@@ -17,6 +17,9 @@
 #    under the License.
 
 import abc
+import uuid
+
+from nova
 
 CLAIMED = 'claimed'
 UNCLAIMED = 'unclaimed'
@@ -25,17 +28,18 @@ UNCLAIMED = 'unclaimed'
 class Job(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, type, reservation):
+    def __init__(self, name, type, context):
         self.name = name
-        # A link back to the reservation which
-        # can be used to query information about
-        # this job (and its subsequent
-        # workflows and tasks).
-        self.reservation = reservation
         # TBD - likely more details about this job
         self.details = None
         self.state = UNCLAIMED
         self.owner = None
+        self.tracking_id = str(uuid.uuid4())
+        self.context = context
+
+    def uri(self):
+        return "%s://%s/%s" % (self.type, self.name,
+                               self.tracking_id)
 
     @abc.abstractproperty
     def type(self):
@@ -48,6 +52,11 @@ class Job(object):
     @abc.abstractmethod
     def claim(self, owner):
         # This can be used to transition this job from unclaimed to claimed.
+        #
+        # This must be done in a way that likely uses some type of locking or
+        # ownership transfer so that only a single entity gets this job to work
+        # on. This will avoid multi-job ownership, which can lead to
+        # inconsistent state.
         raise NotImplementedError()
 
     @abc.abstractmethod

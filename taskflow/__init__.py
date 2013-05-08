@@ -32,6 +32,3 @@ class Failure(object):
         self.name = name
         self.workflow = workflow
         self.exception = exception
-
-
-
