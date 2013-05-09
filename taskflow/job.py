@@ -19,8 +19,6 @@
 import abc
 import uuid
 
-from nova
-
 CLAIMED = 'claimed'
 UNCLAIMED = 'unclaimed'
 
