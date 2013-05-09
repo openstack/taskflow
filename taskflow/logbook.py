@@ -17,13 +17,9 @@
 #    under the License.
 
 import abc
-
-from oslo.config import cfg
+import logging
 
 """Define APIs for the logbook providers."""
-
-from nova.openstack.common import importutils
-from nova.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 

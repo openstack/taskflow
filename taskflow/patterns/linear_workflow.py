@@ -18,14 +18,13 @@
 
 import collections as dict_provider
 import copy
+import logging
 
 # OrderedDict is only in 2.7 or greater :-(
 if not hasattr(dict_provider, 'OrderedDict'):
     import ordereddict as dict_provider
 
-from nova import workflow
-from nova.openstack.common import excutils
-from nova.openstack.common import log as logging
+from taskflow.openstack.common import excutils
 
 LOG = logging.getLogger(__name__)
 
