@@ -29,30 +29,48 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def post(self, job):
+        """Posts a job to the underlying job board implementation
+        and returns a promise object which can be used to query the
+        state of said job."""
         raise NotImplementedError()
 
     def _notify_posted(self, job):
+        """When a job is received, by whichever mechanism the underlying
+        implementation provides, the job should be given to said listeners
+        for them to know that a job has arrived."""
         for i in self._listeners:
             i.notify_posted(job)
 
+    def _notify_erased(self, job):
+        """When a job is erased, by whichever mechanism the underlying
+        implementation provides, the job should be given to said listeners
+        for them to know that a job has been erased."""
+        for i in self._listeners:
+            i.notify_erased(job)
+
     @abc.abstractmethod
-    def await(self, blocking=True):
+    def erase(self, job):
+        """Erases the given job from this job board."""
+        for i in self._listeners:
+            i._notify_erased(job)
+
+    @abc.abstractmethod
+    def await(self, block=True, timeout=None):
+        """Blocks the current [thread, greenthread, process] until a new job
+        has arrived."""
         raise NotImplementedError()
 
     def subscribe(self, listener):
-        self._listeners.append(listener)
+        """Adds a new listener who will be notified on job updates/postings."""
+        if listener not in self._listeners:
+            self._listeners.append(listener)
 
     def unsubscribe(self, listener):
+        """Removes a given listener from notifications about job
+        updates/postings."""
         if listener in self._listeners:
             self._listeners.remove(listener)
 
     def close(self):
-        """Allows the job board provider to free any resources that it has."""
+        """Allows the job board to free any resources that it has."""
         pass
-
-
-class ProxyJobBoard(JobBoard):
-    def post(self, context, job):
-        
-        raise NotImplementedError()
-

@@ -15,3 +15,23 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+# Job states.
+CLAIMED = 'CLAIMED'
+FAILURE = 'FAILURE'
+PENDING = 'PENDING'
+REVERTING = 'REVERTING'
+SUCCESS = 'SUCCESS'
+UNCLAIMED = 'UNCLAIMED'
+
+# Flow states.
+FAILURE = FAILURE
+PENDING = PENDING
+REVERTING = REVERTING
+STARTED = 'STARTED'
+SUCCESS = SUCCESS
+
+# Task states.
+FAILURE = FAILURE
+STARTED = STARTED
+SUCCESS = SUCCESS
