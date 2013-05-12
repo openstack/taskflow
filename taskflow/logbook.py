@@ -17,15 +17,15 @@
 #    under the License.
 
 import abc
-import logging
 
-"""Define APIs for the logbook providers."""
-
-LOG = logging.getLogger(__name__)
+from datetime import datetime
 
 
-class RecordNotFound(Exception):
-    pass
+class LogEntry(object):
+    def __init__(self, name, metadata=None):
+        self.created_on = datetime.utcnow()
+        self.name = name
+        self.metadata = metadata
 
 
 class LogBook(object):
@@ -34,20 +34,17 @@ class LogBook(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, resource_uri):
-        self.uri = resource_uri
-
     @abc.abstractmethod
-    def add_record(self, name, metadata=None):
-        """Atomically adds a new entry to the given logbook with the supplied
-        metadata (if any)."""
+    def add(self, entry):
+        """Atomically adds a new entry to the given logbook."""
         raise NotImplementedError()
 
-    @abc.abstractmethod
-    def fetch_record(self, name):
-        """Fetchs a record with the given name and returns any metadata about
-        said record."""
-        raise NotImplementedError()
+    def search_by_name(self, name):
+        """Yields entries with the given name. The order will be in the same
+        order that they were added."""
+        for e in self:
+            if e.name == name:
+                yield e
 
     @abc.abstractmethod
     def __contains__(self, name):
@@ -56,37 +53,16 @@ class LogBook(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def mark(self, name, metadata, merge_functor=None):
-        """Marks the given logbook entry (which must exist) with the given
-        metadata, if said entry already exists then the provided merge functor
-        or a default function, will be activated to merge the existing metadata
-        with the supplied metadata."""
-        raise NotImplementedError()
-
-    @abc.abstractmethod
     def __iter__(self):
-        """Iterates over all names and metadata and provides back both of these
-        via a (name, metadata) tuple. The order will be in the same order that
+        """Iterates over all entries. The order will be in the same order that
         they were added."""
         raise NotImplementedError()
 
-    def close(self):
-        """Allows the job board provider to free any resources that it has."""
-        pass
-
-
-class DBLogBook(LogBook):
-    """Base class for a logbook impl that uses a backing database."""
-
-    def __init__(self, context, job):
-        super(DBLogBook, self).__init__(job.uri)
-        self.context = context
-        self.job = job
+    @abc.abstractmethod
+    def erase(self, name):
+        """Erases any entries with given name."""
+        raise NotImplementedError()
 
     def close(self):
-        # Free the db connection
+        """Allows the logbook to free any resources that it has."""
         pass
-
-
-class MemoryLogBook(LogBook):
-    pass

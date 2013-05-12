@@ -19,48 +19,77 @@
 import abc
 import uuid
 
-CLAIMED = 'claimed'
-UNCLAIMED = 'unclaimed'
+from taskflow import exceptions as exc
+from taskflow import states
+
+
+class JobClaimer(object):
+    """A base class for objects that can attempt to claim a given claim a given
+    job, so that said job can be worked on."""
+
+    __metaclass__ = abc.ABCMeta
+
+    @abc.abstractmethod
+    def claim(self, job, owner):
+        """This method will attempt to claim said job and must
+        either succeed at this or throw an exception signaling the job can not
+        be claimed."""
+        raise NotImplementedError()
 
 
 class Job(object):
+    """A job is connection to some set of work to be done by some agent. Basic
+    information is provided about said work to be able to attempt to 
+    fullfill said work."""
+
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, type, context):
+    def __init__(self, name, context, catalog, claimer):
         self.name = name
-        # TBD - likely more details about this job
-        self.details = None
-        self.state = UNCLAIMED
-        self.owner = None
-        self.tracking_id = str(uuid.uuid4())
         self.context = context
+        self.state = states.UNCLAIMED
+        self.owner = None
+        self.posted_on = []
+        self._catalog = catalog
+        self._claimer = claimer
+        self._logbook = None
+        self._id = str(uuid.uuid4().hex)
 
-    def uri(self):
-        return "%s://%s/%s" % (self.type, self.name,
-                               self.tracking_id)
+    @property
+    def logbook(self):
+        if self._logbook is None:
+            if self in self._catalog:
+                self._logbook = self._catalog.fetch(self)
+            else:
+                self._logbook = self._catalog.create(self)
+        return self._logbook
 
-    @abc.abstractproperty
-    def type(self):
-        # Returns which type of job this is.
-        #
-        # For example, a 'run_instance' job, or a 'delete_instance' job could
-        # be possible types.
-        raise NotImplementedError()
-
-    @abc.abstractmethod
     def claim(self, owner):
-        # This can be used to transition this job from unclaimed to claimed.
-        #
-        # This must be done in a way that likely uses some type of locking or
-        # ownership transfer so that only a single entity gets this job to work
-        # on. This will avoid multi-job ownership, which can lead to
-        # inconsistent state.
-        raise NotImplementedError()
+        """ This can be used to attempt transition this job from unclaimed
+        to claimed.
 
-    @abc.abstractmethod
-    def consume(self):
-        # This can be used to transition this job from active to finished.
-        #
-        # During said transition the job and any details of it may be removed
-        # from some backing storage (if applicable).
-        raise NotImplementedError()
+        This must be done in a way that likely uses some type of locking or
+        ownership transfer so that only a single entity gets this job to work
+        on. This will avoid multi-job ownership, which can lead to
+        inconsistent state."""
+        if self.state != states.UNCLAIMED:
+            raise exc.UnclaimableJobException("Unable to claim job when job is"
+                                              " in state %s" % (self.state))
+        self._claimer.claim(self, owner)
+        self.owner = owner
+        self._change_state(states.CLAIMED)
+ 
+    def _change_state(self, new_state):
+        self.state = new_state
+        # TODO(harlowja): update the logbook
+
+    def erase(self):
+        """Erases any traces of this job from its associated resources."""
+        for b in self.posted_on:
+            b.erase(self)
+        self._catalog.erase(self)
+        self._logbook = None
+
+    @property
+    def tracking_id(self):
+        return "j-%s-%s" % (self.name, self._id)

@@ -15,16 +15,3 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-
-class Reservation(object):
-    """This is an abstraction of a promise to complete some type of job which
-    can be returned to a user for later lookup on the progress of said
-    promise"""
-
-    def __init__(self, for_who, id):
-        self.for_who = for_who
-        self.id = id
-
-    def __str__(self):
-        return "Reservation: '%s' for '%s'" % (self.id, self.for_who)
