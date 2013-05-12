@@ -20,7 +20,7 @@ import abc
 
 
 class Catalog(object):
-    """A catalog can create, fetch, erase a logbook for a jobs"""
+    """A catalog can [create, fetch, erase] logbooks for jobs"""
 
     __metaclass__ = abc.ABCMeta
 
