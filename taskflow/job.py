@@ -23,7 +23,7 @@ from taskflow import exceptions as exc
 from taskflow import states
 
 
-class JobClaimer(object):
+class Claimer(object):
     """A base class for objects that can attempt to claim a given claim a given
     job, so that said job can be worked on."""
 
@@ -57,6 +57,7 @@ class Job(object):
 
     @property
     def logbook(self):
+        """Fetches (or creates) a logbook entry for this job."""
         if self._logbook is None:
             if self in self._catalog:
                 self._logbook = self._catalog.fetch(self)
@@ -82,6 +83,10 @@ class Job(object):
     def _change_state(self, new_state):
         self.state = new_state
         # TODO(harlowja): update the logbook
+
+    def await(self, blocking=True, timeout=None):
+        """Attempts to wait until the job fails or finishes."""
+        raise NotImplementedError()
 
     def erase(self):
         """Erases any traces of this job from its associated resources."""

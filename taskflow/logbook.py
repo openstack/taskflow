@@ -21,7 +21,9 @@ import abc
 from datetime import datetime
 
 
-class LogEntry(object):
+class Entry(object):
+    """A logbook entry has the bare minimum of these fields."""
+
     def __init__(self, name, metadata=None):
         self.created_on = datetime.utcnow()
         self.name = name
