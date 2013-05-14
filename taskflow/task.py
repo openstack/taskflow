@@ -25,8 +25,13 @@ class Task(object):
     """
     __metaclass__ = abc.ABCMeta
 
+    def __init__(self, name=None):
+        if name is None:
+            name = "%s: %s" % (self.__class__.__name__, id(self))
+        self.name = name
+
     def __str__(self):
-        return "Task: %s" % (self.__class__.__name__)
+        return self.name
 
     @abc.abstractmethod
     def apply(self, context, *args, **kwargs):

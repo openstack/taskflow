@@ -25,18 +25,13 @@ class Catalog(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def fetch(self, job):
-        """Fetches a logbook for a job."""
-        raise NotImplementedError()
-
-    @abc.abstractmethod
     def __contains__(self, job):
         """Checks if the given catalog has a logbook for a job."""
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def create(self, job):
-        """Creates a new logbook for a job."""
+    def create_or_fetch(self, job):
+        """Creates a new logbook for a job or gives back an old one."""
         raise NotImplementedError()
 
     @abc.abstractmethod

@@ -49,15 +49,26 @@ class JobBoard(object):
             i.notify_erased(job)
 
     @abc.abstractmethod
+    def posted_after(self, date_posted=None):
+        """Gets the jobs posted after (or equal to) the given datetime object
+        (or all jobs if none)."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def posted_before(self, date_posted=None):
+        """Gets the jobs posted before the given datetime object
+        (or all jobs if none)."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
     def erase(self, job):
         """Erases the given job from this job board."""
         for i in self._listeners:
             i._notify_erased(job)
 
     @abc.abstractmethod
-    def await(self, block=True, timeout=None):
-        """Blocks the current [thread, greenthread, process] until a new job
-        has arrived."""
+    def await(self, timeout=None):
+        """Blocks the current thread until a new job has arrived."""
         raise NotImplementedError()
 
     def subscribe(self, listener):
