@@ -24,6 +24,7 @@ import threading
 
 from taskflow import catalog
 from taskflow import exceptions as exc
+from taskflow import job
 from taskflow import jobboard
 from taskflow import logbook
 from taskflow import utils
@@ -43,12 +44,27 @@ def check_not_closed(meth):
     return check
 
 
+class MemoryClaimer(job.Claimer):
+    def claim(self, job, owner):
+        # Straight foward check if already claimed.
+        if job.owner is not None:
+            raise exc.UnclaimableJobException()
+        job.owner = owner
+
+
 class MemoryCatalog(catalog.Catalog):
     def __init__(self):
         super(MemoryCatalog, self).__init__()
         self._catalogs = []
         self._closed = False
         self._lock = threading.RLock()
+
+    def __contains__(self, job):
+        with self._lock:
+            for (j, b) in self._catalogs:
+                if j == job:
+                    return True
+        return False
 
     def close(self):
         self._closed = True
@@ -122,12 +138,11 @@ class MemoryJobBoard(jobboard.JobBoard):
     @check_not_closed
     def post(self, job):
         with self._lock.acquire(read=False):
-            self._active_jobs.append((datetime.utcnow(), job))
+            self._board.append((datetime.utcnow(), job))
         # Let people know a job is here
         self._notify_posted(job)
         self._event.set()
-        # And now that they are notified, wait for
-        # another posting.
+        # And now that they are notified, wait for another posting.
         self._event.clear()
 
     @check_not_closed
@@ -148,9 +163,9 @@ class MemoryJobBoard(jobboard.JobBoard):
                 if j == job:
                     exists = True
                     break
-           if not exists:
-               raise exc.JobNotFound()
-           self._board = [(d, j) for (d, j) in self._board if j != job]
+            if not exists:
+                raise exc.JobNotFound()
+            self._board = [(d, j) for (d, j) in self._board if j != job]
 
     @check_not_closed
     def posted_after(self, date_posted=None):
@@ -163,5 +178,4 @@ class MemoryJobBoard(jobboard.JobBoard):
 
     @check_not_closed
     def await(self, timeout=None):
-        with not self._event.is_set():
-            self._event.wait(timeout)
+        self._event.wait(timeout)

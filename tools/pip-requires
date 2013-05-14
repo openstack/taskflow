@@ -1,1 +1,3 @@
-oslo.cfg>=1.1.0
+# Packages needed for using this library.
+
+oslo.config>=1.1.0

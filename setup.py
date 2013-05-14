@@ -18,7 +18,8 @@ def read_requires(base):
     return requires
 
 
-setuptools.setup(name='taskflow',
+setuptools.setup(
+    name='taskflow',
     version='0.0.1',
     author='OpenStack',
     license='Apache Software License',

@@ -1,0 +1,8 @@
+# Packages needed for testing this library.
+
+nose
+pep8==1.4.5
+nose-exclude
+openstack.nose_plugin>=0.7
+mox
+coverage
