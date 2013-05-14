@@ -27,6 +27,7 @@ from taskflow import exceptions as exc
 from taskflow import job
 from taskflow import jobboard
 from taskflow import logbook
+from taskflow import states
 from taskflow import utils
 
 LOG = logging.getLogger(__name__)
@@ -165,6 +166,9 @@ class MemoryJobBoard(jobboard.JobBoard):
                     break
             if not exists:
                 raise exc.JobNotFound()
+            if j.state not in (states.SUCCESS, states.FAILURE):
+                raise exc.InvalidStateException("Can not delete a job in "
+                                                "state %s" % (j.state))
             self._board = [(d, j) for (d, j) in self._board if j != job]
 
     @check_not_closed

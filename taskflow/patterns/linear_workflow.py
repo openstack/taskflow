@@ -77,21 +77,50 @@ class Workflow(object):
         else:
             result_fetcher = None
 
-        self.state = states.STARTED
-        for task in self.tasks:
+        self._change_state(context, states.STARTED)
+
+        # TODO(harlowja): we can likely add in custom reconcilation strategies
+        # here or around here...
+        def do_rollback_for(task, ex):
+            self._change_state(context, states.REVERTING)
+            with excutils.save_and_reraise_exception():
+                try:
+                    self._on_task_error(context, task)
+                except Exception:
+                    LOG.exception("Dropping exception catched when"
+                                  " notifying about existing task"
+                                  " exception.")
+                self.rollback(context, exc.TaskException(task, self, ex))
+                self._change_state(context, states.FAILURE)
+
+        self._change_state(context, states.RESUMING)
+        last_task = 0
+        if result_fetcher:
+            for (i, task) in enumerate(self.tasks):
+                (has_result, result) = result_fetcher(context, self, task)
+                if not has_result:
+                    break
+                # Fake running the task so that we trigger the same
+                # notifications and state changes (and rollback that would
+                # have happened in a normal flow).
+                last_task = i + 1
+                try:
+                    self._on_task_start(context, task)
+                    # Keep a pristine copy of the result
+                    # so that if said result is altered by other further
+                    # states the one here will not be. This ensures that
+                    # if rollback occurs that the task gets exactly the
+                    # result it returned and not a modified one.
+                    self.results.append((task, copy.deepcopy(result)))
+                    self._on_task_finish(context, task, result)
+                except Exception as ex:
+                    do_rollback_for(task, ex)
+
+        self._change_state(context, states.RUNNING)
+        for task in self.tasks[last_task:]:
             try:
-                # See if we have already ran this.
-                result = None
-                has_result = False
-                if result_fetcher:
-                    (has_result, result) = result_fetcher(context, self, task)
-                if not has_result:
-                    self.state = state.RUNNING
-                else:
-                    self.state = state.RESUMING
                 self._on_task_start(context, task)
-                if not has_result:
-                    result = task.apply(context, *args, **kwargs)
+                result = task.apply(context, *args, **kwargs)
                 # Keep a pristine copy of the result
                 # so that if said result is altered by other further states
                 # the one here will not be. This ensures that if rollback
@@ -100,19 +129,20 @@ class Workflow(object):
                 self.results.append((task, copy.deepcopy(result)))
                 self._on_task_finish(context, task, result)
             except Exception as ex:
-                self.state = states.FAILURE
-                with excutils.save_and_reraise_exception():
-                    try:
-                        self._on_task_error(context, task)
-                    except Exception:
-                        LOG.exception("Dropping exception catched when"
-                                      " notifying about existing task"
-                                      " exception.")
-                    self.state = states.REVERTING
-                    self.rollback(context, exc.TaskException(task, self, ex))
-                    self.state = states.FAILURE
+                do_rollback_for(task, ex)
+
         # Only gets here if everything went successfully.
-        self.state = states.SUCCESS
+        self._change_state(context, states.SUCCESS)
+
+    def _change_state(self, context, new_state):
+        if self.state != new_state:
+            self.state = new_state
+            self._on_flow_state_change(context)
+
+    def _on_flow_state_change(self, context):
+        # Notify any listeners that the internal state has changed.
+        for i in self.listeners:
+            i.notify(context, self)
 
     def _on_task_error(self, context, task):
         # Notify any listeners that the task has errored.
