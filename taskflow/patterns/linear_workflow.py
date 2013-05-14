@@ -16,7 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections as dict_provider
 import copy
 import functools
 import logging
