@@ -21,12 +21,22 @@ class TaskException(Exception):
     """When a task failure occurs the following object will be given to revert
        and can be used to interrogate what caused the failure."""
 
-    def __init__(self, task, name, workflow, cause=None):
+    def __init__(self, task, workflow=None, cause=None):
         super(TaskException, self).__init__()
         self.task = task
-        self.name = name
         self.workflow = workflow
         self.cause = cause
+
+
+class ClosedException(Exception):
+    """Raised when an access on a closed object occurs."""
+    pass
+
+
+class InvalidStateException(Exception):
+    """Raised when a task/job/workflow is in an invalid state when an
+    operation is attempting to apply to said task/job/workflow."""
+    pass
 
 
 class UnclaimableJobException(Exception):
@@ -34,16 +44,6 @@ class UnclaimableJobException(Exception):
     pass
 
 
-class UnknownJobException(Exception):
-    """Raised when a job board does not know about desired job."""
-    pass
-
-
-class RecordAlreadyExists(Exception):
-    """Raised when a logbook entry already exists."""
-    pass
-
-
-class RecordNotFound(Exception):
-    """Raised when a logbook entry can not be found."""
+class JobNotFound(Exception):
+    """Raised when a job entry can not be found."""
     pass
