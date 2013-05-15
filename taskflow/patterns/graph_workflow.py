@@ -31,6 +31,10 @@ LOG = logging.getLogger(__name__)
 
 
 class Workflow(patterns.OrderedWorkflow):
+    """A workflow which will analyze the attached tasks input requirements and
+    determine who provides said input and order the task so that said providing
+    task will be ran before."""
+
     def __init__(self, name, tolerant=False, parents=None):
         super(Workflow, self).__init__(name, tolerant, parents)
         self._graph = digraph.DiGraph()

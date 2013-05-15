@@ -20,7 +20,7 @@ from taskflow import patterns
 
 
 class Workflow(patterns.OrderedWorkflow):
-    """A linear chain of independent tasks that can be applied as one unit or
+    """A linear chain of *independent* tasks that can be applied as one unit or
        rolled back as one unit."""
 
     def __init__(self, name, tolerant=False, parents=None):
