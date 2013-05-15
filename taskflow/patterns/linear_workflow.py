@@ -16,10 +16,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow import patterns
+from taskflow.patterns import ordered_workflow
 
 
-class Workflow(patterns.OrderedWorkflow):
+class Workflow(ordered_workflow.Workflow):
     """A linear chain of *independent* tasks that can be applied as one unit or
        rolled back as one unit."""
 

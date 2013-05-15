@@ -25,12 +25,12 @@ from networkx.algorithms import dag
 from networkx.classes import digraph
 
 from taskflow import exceptions as exc
-from taskflow import patterns
+from taskflow import ordered_workflow
 
 LOG = logging.getLogger(__name__)
 
 
-class Workflow(patterns.OrderedWorkflow):
+class Workflow(ordered_workflow.Workflow):
     """A workflow which will analyze the attached tasks input requirements and
     determine who provides said input and order the task so that said providing
     task will be ran before."""
@@ -47,6 +47,7 @@ class Workflow(patterns.OrderedWorkflow):
         # Only insert the node to start, connect all the edges
         # together later after all nodes have been added.
         self._graph.add_node(task)
+        self._connected = False
 
     def run(self, context, *args, **kwargs):
         self.connect()
