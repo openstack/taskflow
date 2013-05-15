@@ -33,6 +33,16 @@ class Task(object):
     def __str__(self):
         return self.name
 
+    def requires(self):
+        """Return any input 'resource' names this task depends on existing
+        before this task can be applied."""
+        return set()
+
+    def provides(self):
+        """Return any output 'resource' names this task produces that other
+        tasks may depend on this task providing."""
+        return set()
+
     @abc.abstractmethod
     def apply(self, context, *args, **kwargs):
         """Activate a given task which will perform some operation and return.
