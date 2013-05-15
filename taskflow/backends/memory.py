@@ -86,34 +86,59 @@ class MemoryCatalog(catalog.Catalog):
             self._catalogs = [(j, b) for (j, b) in self._catalogs if j != job]
 
 
+class MemoryChapter(logbook.Chapter):
+    def __init__(self, book, name):
+        super(MemoryChapter, self).__init__(book, name)
+        self._pages = []
+
+    def __iter__(self):
+        for p in self._pages:
+            yield p
+
+    def __contains__(self, name):
+        for p in self._pages:
+            if p.name == name:
+                return True
+        return False
+
+    def __len__(self):
+        return len(self._pages)
+
+    def add_page(self, page):
+        self._pages.append(page)
+
+
 class MemoryLogBook(logbook.LogBook):
     def __init__(self):
         super(MemoryLogBook, self).__init__()
-        self._entries = []
+        self._chapters = []
+        self._chapter_names = set()
         self._closed = False
 
     @check_not_closed
-    def add(self, entry):
-        self._entries.append(entry)
+    def add_chapter(self, chapter_name):
+        if chapter_name in self._chapter_names:
+            raise exc.ChapterAlreadyExists()
+        self._chapters.append(MemoryChapter(self, chapter_name))
+        self._chapter_names.add(chapter_name)
 
     @check_not_closed
     def __iter__(self):
-        for e in self._entries:
-            yield e
+        for c in self._chapters:
+            yield c
 
     def close(self):
         self._closed = True
 
     @check_not_closed
-    def __contains__(self, name):
-        for e in self:
-            if e.name == name:
+    def __contains__(self, chapter_name):
+        for c in self:
+            if c.name == name:
                 return True
         return False
 
-    @check_not_closed
-    def erase(self, name):
-        self._entries = [e for e in self._entries if e.name == name]
+    def __len__(self):
+        return len(self._chapters)
 
 
 class MemoryJobBoard(jobboard.JobBoard):

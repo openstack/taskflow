@@ -28,6 +28,11 @@ class TaskException(Exception):
         self.cause = cause
 
 
+class ChapterAlreadyExists(Exception):
+    """Raised when a chapter of a logbook already exists."""
+    pass
+
+
 class ClosedException(Exception):
     """Raised when an access on a closed object occurs."""
     pass
