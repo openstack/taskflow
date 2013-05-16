@@ -76,7 +76,7 @@ class Workflow(object):
         raise NotImplementedError()
 
     def __str__(self):
-        return "%s: %s" % (self.__class__.__name__, id(self))
+        return "Workflow: %s" % (self.name)
 
     @abc.abstractmethod
     def order(self):
