@@ -90,71 +90,79 @@ class MemoryCatalog(catalog.Catalog):
             self._catalogs = [(j, b) for (j, b) in self._catalogs if j != job]
 
 
-class MemoryChapter(logbook.Chapter):
+class MemoryWorkflowDetail(logbook.WorkflowDetail):
     def __init__(self, book, name):
-        super(MemoryChapter, self).__init__(book, name)
-        self._pages = []
+        super(MemoryWorkflowDetail, self).__init__(book, name)
+        self._tasks = []
 
     def __iter__(self):
-        for p in self._pages:
-            yield p
+        for t in self._tasks:
+            yield t
 
-    def __contains__(self, page_name):
-        for p in self._pages:
-            if p.name == page_name:
+    def __contains__(self, task_name):
+        for t in self:
+            if t.name == task_name:
                 return True
         return False
 
-    def fetch_pages(self, page_name):
-        return [p for p in self._pages if p.name == page_name]
+    def fetch_tasks(self, task_name):
+        return [t for t in self if t.name == task_name]
 
     def __len__(self):
-        return len(self._pages)
+        return len(self._tasks)
 
-    def add_page(self, page):
-        self._pages.append(page)
+    def add_task(self, task_details):
+        self._tasks.append(task_details)
+
+    def delete_tasks(self, task_name):
+        self._tasks = [t for t in self if t.name != task_name]
 
 
 class MemoryLogBook(logbook.LogBook):
     def __init__(self):
         super(MemoryLogBook, self).__init__()
-        self._chapters = []
-        self._chapter_names = set()
+        self._workflows = []
+        self._workflow_names = set()
         self._closed = False
 
     @check_not_closed
-    def add_chapter(self, chapter_name):
-        if chapter_name in self._chapter_names:
-            raise exc.ChapterAlreadyExists("Chapter %s already exists" %
-                                           (chapter_name))
-        self._chapters.append(MemoryChapter(self, chapter_name))
-        self._chapter_names.add(chapter_name)
+    def add_workflow(self, workflow_name):
+        if workflow_name in self._workflow_names:
+            raise exc.AlreadyExists()
+        self._workflows.append(MemoryWorkflowDetail(self, workflow_name))
+        self._workflow_names.add(workflow_name)
 
     @check_not_closed
-    def fetch_chapter(self, chapter_name):
-        if chapter_name not in self._chapter_names:
-            raise exc.ChapterNotFound("No chapter named %s" % (chapter_name))
-        for c in self._chapters:
-            if c.name == chapter_name:
-                return c
+    def fetch_workflow(self, workflow_name):
+        if workflow_name not in self._workflow_names:
+            raise exc.NotFound()
+        for w in self._workflows:
+            if w.name == workflow_name:
+                return w
 
     @check_not_closed
     def __iter__(self):
-        for c in self._chapters:
-            yield c
+        for w in self._workflows:
+            yield w
 
     def close(self):
         self._closed = True
 
     @check_not_closed
-    def __contains__(self, chapter_name):
-        for c in self:
-            if c.name == chapter_name:
-                return True
-        return False
+    def __contains__(self, workflow_name):
+        try:
+            self.fetch_workflow(workflow_name)
+            return True
+        except exc.NotFound:
+            return False
+
+    def delete_workflow(self, workflow_name):
+        w = self.fetch_workflow(workflow_name)
+        self._workflow_names.remove(workflow_name)
+        self._workflows.remove(w)
 
     def __len__(self):
-        return len(self._chapters)
+        return len(self._workflows)
 
 
 class MemoryJobBoard(jobboard.JobBoard):
