@@ -17,12 +17,13 @@
 #    under the License.
 
 import abc
+import weakref
 
 from datetime import datetime
 
 
-class Entry(object):
-    """A logbook entry has the bare minimum of these fields."""
+class Page(object):
+    """A logbook page has the bare minimum of these fields."""
 
     def __init__(self, name, metadata=None):
         self.date_created = datetime.utcnow()
@@ -30,39 +31,73 @@ class Entry(object):
         self.metadata = metadata
 
 
+class Chapter(object):
+    """Base class for what a chapter of a logbook should provide."""
+
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, book, name):
+        self.book = weakref.proxy(book)
+        self.name = name
+
+    @abc.abstractmethod
+    def __iter__(self):
+        """Iterates over all pages in the given chapter.
+
+        The order will be in the same order that they were added."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def __contains__(self, name):
+        """Determines if any page with the given name exists in this
+        chapter."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def add_page(self, page):
+        """Adds a page to the underlying chapter."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def __len__(self):
+        """Returns how many pages the underlying chapter has."""
+        raise NotImplementedError()
+
+
 class LogBook(object):
-    """Base class for what a logbook (distributed or local or in-between)
-    should provide"""
+    """Base class for what a logbook should provide"""
 
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def add(self, entry):
-        """Atomically adds a new entry to the given logbook."""
+    def add_chapter(self, chapter_name):
+        """Atomically adds a new chapter to the given logbook
+        or raises an exception if that chapter (or a chapter with
+        that name) already exists.
+        """
         raise NotImplementedError()
 
-    def search_by_name(self, name):
-        """Yields entries with the given name. The order will be in the same
-        order that they were added."""
-        for e in self:
-            if e.name == name:
-                yield e
+    def fetch_chapter(self, chapter_name):
+        """Fetches the given chapter or raises an exception if that chapter
+        does not exist."""
+        raise NotImplementedError()
 
     @abc.abstractmethod
-    def __contains__(self, name):
-        """Determines if any entry with the given name exists in this
+    def __contains__(self, chapter_name):
+        """Determines if a chapter with the given name exists in this
         logbook."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     def __iter__(self):
-        """Iterates over all entries. The order will be in the same order that
-        they were added."""
+        """Iterates over all the chapters.
+
+        The order will be in the same order that they were added."""
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def erase(self, name):
-        """Erases any entries with given name."""
+    def __len__(self):
+        """Returns how many pages the underlying chapter has."""
         raise NotImplementedError()
 
     def close(self):
