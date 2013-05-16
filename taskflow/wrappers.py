@@ -20,6 +20,11 @@ from taskflow import task
 
 
 class FunctorTask(task.Task):
+    """A simple task that can wrap two given functions and allow them to be
+    in combination used in apply and reverting a given task. Useful for
+    situations where existing functions already are in place and you just want
+    to wrap them up."""
+
     def __init__(self, apply_functor, revert_functor):
         super(FunctorTask, self).__init__("%s_%s" % (apply_functor.__name__,
                                                      revert_functor.__name__))
