@@ -42,25 +42,33 @@ class Job(object):
     information is provided about said work to be able to attempt to
     fullfill said work."""
 
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self, name, context, catalog, claimer):
         self.name = name
         self.context = context
-        self.state = states.UNCLAIMED
         self.owner = None
         self.posted_on = []
         self._catalog = catalog
         self._claimer = claimer
         self._logbook = None
         self._id = str(uuid.uuid4().hex)
+        self._state = states.UNCLAIMED
+
+    @property
+    def state(self):
+        return self._state
+
+    def _change_state(self, new_state):
+        if self.state != new_state:
+            self._state = new_state
+            # TODO(harlowja): add logbook info?
 
     @property
     def logbook(self):
         """Fetches (or creates) a logbook entry for this job."""
         if self._logbook is None:
-            if self in self._catalog:
-                self._logbook = self._catalog.fetch(self)
-            else:
-                self._logbook = self._catalog.create(self)
+            self._logbook = self._catalog.create_or_fetch(self)
         return self._logbook
 
     def claim(self, owner):
@@ -77,14 +85,6 @@ class Job(object):
         self._claimer.claim(self, owner)
         self.owner = owner
         self._change_state(states.CLAIMED)
-
-    def _change_state(self, new_state):
-        self.state = new_state
-        # TODO(harlowja): update the logbook
-
-    def await(self, blocking=True, timeout=None):
-        """Attempts to wait until the job fails or finishes."""
-        raise NotImplementedError()
 
     def erase(self):
         """Erases any traces of this job from its associated resources."""

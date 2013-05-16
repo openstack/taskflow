@@ -60,6 +60,10 @@ class MemoryCatalog(catalog.Catalog):
         self._closed = False
         self._lock = threading.RLock()
 
+    def __len__(self):
+        with self._lock:
+            return len(self._catalogs)
+
     def __contains__(self, job):
         with self._lock:
             for (j, b) in self._catalogs:
@@ -77,7 +81,7 @@ class MemoryCatalog(catalog.Catalog):
                 if j == job:
                     return b
             b = MemoryLogBook()
-            self._catalogs.append((j, b))
+            self._catalogs.append((job, b))
             return b
 
     @check_not_closed
@@ -95,11 +99,14 @@ class MemoryChapter(logbook.Chapter):
         for p in self._pages:
             yield p
 
-    def __contains__(self, name):
+    def __contains__(self, page_name):
         for p in self._pages:
-            if p.name == name:
+            if p.name == page_name:
                 return True
         return False
+
+    def fetch_pages(self, page_name):
+        return [p for p in self._pages if p.name == page_name]
 
     def __len__(self):
         return len(self._pages)
@@ -118,9 +125,18 @@ class MemoryLogBook(logbook.LogBook):
     @check_not_closed
     def add_chapter(self, chapter_name):
         if chapter_name in self._chapter_names:
-            raise exc.ChapterAlreadyExists()
+            raise exc.ChapterAlreadyExists("Chapter %s already exists" %
+                                           (chapter_name))
         self._chapters.append(MemoryChapter(self, chapter_name))
         self._chapter_names.add(chapter_name)
+
+    @check_not_closed
+    def fetch_chapter(self, chapter_name):
+        if chapter_name not in self._chapter_names:
+            raise exc.ChapterNotFound("No chapter named %s" % (chapter_name))
+        for c in self._chapters:
+            if c.name == chapter_name:
+                return c
 
     @check_not_closed
     def __iter__(self):
@@ -133,7 +149,7 @@ class MemoryLogBook(logbook.LogBook):
     @check_not_closed
     def __contains__(self, chapter_name):
         for c in self:
-            if c.name == name:
+            if c.name == chapter_name:
                 return True
         return False
 

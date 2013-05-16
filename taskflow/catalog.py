@@ -29,6 +29,10 @@ class Catalog(object):
         """Checks if the given catalog has a logbook for a job."""
         raise NotImplementedError()
 
+    def __len__(self):
+        """Gets how many logbooks are in this catalog."""
+        raise NotImplementedError()
+
     @abc.abstractmethod
     def create_or_fetch(self, job):
         """Creates a new logbook for a job or gives back an old one."""
