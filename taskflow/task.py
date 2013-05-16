@@ -31,7 +31,7 @@ class Task(object):
         self.name = name
 
     def __str__(self):
-        return self.name
+        return "Task: %s" % (self.name)
 
     def requires(self):
         """Return any input 'resource' names this task depends on existing
