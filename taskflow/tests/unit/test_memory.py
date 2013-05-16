@@ -97,7 +97,8 @@ class MemoryBackendTest(unittest.TestCase):
                         # Create some dummy workflow for the job
                         wf = lw.Workflow('dummy')
                         for i in range(0, 5):
-                            t = wrap.FunctorTask(null_functor, null_functor)
+                            t = wrap.FunctorTask(None,
+                                                 null_functor, null_functor)
                             wf.add(t)
                         j.associate(wf)
                         j.state = states.RUNNING
@@ -156,9 +157,9 @@ class MemoryBackendTest(unittest.TestCase):
         def do_interrupt(context, *args, **kwargs):
             wf.interrupt()
 
-        task_1 = wrap.FunctorTask(do_1, null_functor)
-        task_1_5 = wrap.FunctorTask(do_interrupt, null_functor)
-        task_2 = wrap.FunctorTask(do_2, null_functor)
+        task_1 = wrap.FunctorTask(None, do_1, null_functor)
+        task_1_5 = wrap.FunctorTask(None, do_interrupt, null_functor)
+        task_2 = wrap.FunctorTask(None, do_2, null_functor)
 
         wf.add(task_1)
         wf.add(task_1_5)  # Interrupt it after task_1 finishes
@@ -201,8 +202,8 @@ class MemoryBackendTest(unittest.TestCase):
         def do_2(context, *args, **kwargs):
             call_log.append(2)
 
-        wf.add(wrap.FunctorTask(do_1, null_functor))
-        wf.add(wrap.FunctorTask(do_2, null_functor))
+        wf.add(wrap.FunctorTask(None, do_1, null_functor))
+        wf.add(wrap.FunctorTask(None, do_2, null_functor))
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))

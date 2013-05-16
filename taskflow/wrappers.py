@@ -25,9 +25,11 @@ class FunctorTask(task.Task):
     situations where existing functions already are in place and you just want
     to wrap them up."""
 
-    def __init__(self, apply_functor, revert_functor):
-        super(FunctorTask, self).__init__("%s_%s" % (apply_functor.__name__,
-                                                     revert_functor.__name__))
+    def __init__(self, name, apply_functor, revert_functor):
+        super(FunctorTask, self).__init__(name)
+        if not self.name:
+            self.name = "%s_%s" % (apply_functor.__name__,
+                                   revert_functor.__name__)
         self._apply_functor = apply_functor
         self._revert_functor = revert_functor
 
