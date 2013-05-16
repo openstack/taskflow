@@ -21,6 +21,7 @@ from datetime import datetime
 import functools
 import logging
 import threading
+import weakref
 
 from taskflow import catalog
 from taskflow import exceptions as exc
@@ -47,10 +48,10 @@ def check_not_closed(meth):
 
 class MemoryClaimer(job.Claimer):
     def claim(self, job, owner):
-        # Straight foward check if already claimed.
-        if job.owner is not None:
-            raise exc.UnclaimableJobException()
         job.owner = owner
+
+    def unclaim(self, job, owner):
+        job.owner = None
 
 
 class MemoryCatalog(catalog.Catalog):
@@ -185,14 +186,23 @@ class MemoryJobBoard(jobboard.JobBoard):
             if date_functor(d):
                 yield j
 
+    def repost(self, job):
+        # Let people know a job is here
+        self._notify_posted(job)
+        self._event.set()
+        # And now that they are notified, reset for another posting.
+        self._event.clear()
+
     @check_not_closed
     def post(self, job):
         with self._lock.acquire(read=False):
             self._board.append((datetime.utcnow(), job))
+        # Ensure the job tracks that we posted it
+        job.posted_on.append(weakref.proxy(self))
         # Let people know a job is here
         self._notify_posted(job)
         self._event.set()
-        # And now that they are notified, wait for another posting.
+        # And now that they are notified, reset for another posting.
         self._event.clear()
 
     @check_not_closed
@@ -219,6 +229,7 @@ class MemoryJobBoard(jobboard.JobBoard):
                 raise exc.InvalidStateException("Can not delete a job in "
                                                 "state %s" % (j.state))
             self._board = [(d, j) for (d, j) in self._board if j != job]
+            self._notify_erased(job)
 
     @check_not_closed
     def posted_after(self, date_posted=None):
