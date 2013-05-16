@@ -30,6 +30,10 @@ class Page(object):
         self.name = name
         self.metadata = metadata
 
+    def __str__(self):
+        return "Page (%s, %s): %s" % (self.name, self.date_created,
+                                      self.metadata)
+
 
 class Chapter(object):
     """Base class for what a chapter of a logbook should provide."""
@@ -48,9 +52,14 @@ class Chapter(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def __contains__(self, name):
+    def __contains__(self, page_name):
         """Determines if any page with the given name exists in this
         chapter."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def fetch_pages(self, page_name):
+        """Fetch any pages that match the given page name."""
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -62,6 +71,9 @@ class Chapter(object):
     def __len__(self):
         """Returns how many pages the underlying chapter has."""
         raise NotImplementedError()
+
+    def __str__(self):
+        return "Chapter (%s): %s pages" % (self.name, len(self))
 
 
 class LogBook(object):
@@ -77,6 +89,7 @@ class LogBook(object):
         """
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def fetch_chapter(self, chapter_name):
         """Fetches the given chapter or raises an exception if that chapter
         does not exist."""

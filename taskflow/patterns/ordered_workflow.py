@@ -18,6 +18,7 @@
 
 import abc
 import copy
+import functools
 import logging
 
 from taskflow.openstack.common import excutils
@@ -54,16 +55,21 @@ class Workflow(object):
         # the contract we have with tasks that they will be given the value
         # they returned if reversion is triggered.
         self.result_fetcher = None
-        # Any objects that want to listen when a task starts/stops/completes
+        # Any objects that want to listen when a wf/task starts/stops/completes
         # or errors should be registered here. This can be used to monitor
         # progress and record tasks finishing (so that it becomes possible to
         # store the result of a task in some persistent or semi-persistent
         # storage backend).
+        self.task_listeners = []
         self.listeners = []
         # The state of this flow.
-        self.state = states.PENDING
+        self._state = states.PENDING
         # Tasks results are stored here...
         self.results = []
+
+    @property
+    def state(self):
+        return self._state
 
     @abc.abstractmethod
     def add(self, task):
@@ -108,8 +114,8 @@ class Workflow(object):
         self._change_state(context, states.RESUMING)
         last_task = 0
         if result_fetcher:
-            for (i, task) in enumerate(self.tasks):
-                (has_result, result) = result_fetcher(context, self, task)
+            for (i, task) in enumerate(self.order()):
+                (has_result, result) = result_fetcher(self, task)
                 if not has_result:
                     break
                 # Fake running the task so that we trigger the same
@@ -129,12 +135,16 @@ class Workflow(object):
                     do_rollback_for(task, ex)
 
         self._change_state(context, states.RUNNING)
+        was_interrupted = False
         for task in self.order():
+            if self.state == states.INTERRUPTED:
+                was_interrupted = True
+                break
             try:
                 has_result = False
                 result = None
                 if result_fetcher:
-                    (has_result, result) = result_fetcher(context, self, task)
+                    (has_result, result) = result_fetcher(self, task)
                 self._on_task_start(context, task)
                 if not has_result:
                     inputs = self._fetch_inputs(task)
@@ -150,34 +160,44 @@ class Workflow(object):
             except Exception as ex:
                 do_rollback_for(task, ex)
 
-        # Only gets here if everything went successfully.
-        self._change_state(context, states.SUCCESS)
+        if not was_interrupted:
+            # Only gets here if everything went successfully.
+            self._change_state(context, states.SUCCESS)
+
+    def reset(self):
+        self._state = states.PENDING
+        self.results = []
+        self._reversions = []
+
+    def interrupt(self):
+        self._change_state(None, states.INTERRUPTED)
 
     def _change_state(self, context, new_state):
         if self.state != new_state:
-            self.state = new_state
-            self._on_flow_state_change(context)
+            old_state = self.state
+            self._state = new_state
+            self._on_flow_state_change(context, old_state)
 
-    def _on_flow_state_change(self, context):
+    def _on_flow_state_change(self, context, old_state):
         # Notify any listeners that the internal state has changed.
-        for i in self.listeners:
-            i.notify(context, self)
+        for f in self.listeners:
+            f(context, self, old_state)
 
     def _on_task_error(self, context, task):
         # Notify any listeners that the task has errored.
-        for i in self.listeners:
-            i.notify(context, states.FAILURE, self, task)
+        for f in self.task_listeners:
+            f(context, states.FAILURE, self, task)
 
     def _on_task_start(self, context, task):
         # Notify any listeners that we are about to start the given task.
-        for i in self.listeners:
-            i.notify(context, states.STARTED, self, task)
+        for f in self.task_listeners:
+            f(context, states.STARTED, self, task)
 
     def _on_task_finish(self, context, task, result):
         # Notify any listeners that we are finishing the given task.
         self._reversions.append((task, result))
-        for i in self.listeners:
-            i.notify(context, states.SUCCESS, self, task, result=result)
+        for f in self.task_listeners:
+            f(context, states.SUCCESS, self, task, result=result)
 
     def rollback(self, context, cause):
         for (i, (task, result)) in enumerate(reversed(self._reversions)):

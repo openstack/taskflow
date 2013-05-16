@@ -17,7 +17,12 @@
 #    under the License.
 
 
-class TaskException(Exception):
+class TaskFlowException(Exception):
+    """Base class for exceptions emitted from this library."""
+    pass
+
+
+class TaskException(TaskFlowException):
     """When a task failure occurs the following object will be given to revert
        and can be used to interrogate what caused the failure."""
 
@@ -28,27 +33,32 @@ class TaskException(Exception):
         self.cause = cause
 
 
-class ChapterAlreadyExists(Exception):
+class ChapterNotFound(TaskFlowException):
+    """Raised when a chapter of a logbook doesn't exist."""
+    pass
+
+
+class ChapterAlreadyExists(TaskFlowException):
     """Raised when a chapter of a logbook already exists."""
     pass
 
 
-class ClosedException(Exception):
+class ClosedException(TaskFlowException):
     """Raised when an access on a closed object occurs."""
     pass
 
 
-class InvalidStateException(Exception):
+class InvalidStateException(TaskFlowException):
     """Raised when a task/job/workflow is in an invalid state when an
     operation is attempting to apply to said task/job/workflow."""
     pass
 
 
-class UnclaimableJobException(Exception):
+class UnclaimableJobException(TaskFlowException):
     """Raised when a job can not be claimed."""
     pass
 
 
-class JobNotFound(Exception):
+class JobNotFound(TaskFlowException):
     """Raised when a job entry can not be found."""
     pass
