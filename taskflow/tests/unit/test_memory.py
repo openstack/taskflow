@@ -42,9 +42,16 @@ def gen_task_name(task, state):
     return "%s:%s" % (task.name, state)
 
 
+def close_all(*args):
+    for a in args:
+        if not a:
+            continue
+        a.close()
+
+
 class FunctorTask(task.Task):
     def __init__(self, apply_functor, revert_functor):
-        super(FunctorTask, self).__init__("%s-%s" % (apply_functor.__name__,
+        super(FunctorTask, self).__init__("%s+%s" % (apply_functor.__name__,
                                                      revert_functor.__name__))
         self._apply_functor = apply_functor
         self._revert_functor = revert_functor
@@ -57,34 +64,21 @@ class FunctorTask(task.Task):
 
 
 class MemoryBackendTest(unittest.TestCase):
-    def testWorkJobLinearInterrupted(self):
-        job_claimer = memory.MemoryClaimer()
-        book_catalog = memory.MemoryCatalog()
-
-        j = job.Job("the-big-action-job", {}, book_catalog, job_claimer)
-        self.assertEquals(states.UNCLAIMED, j.state)
-        j.claim("me")
-        self.assertEquals(states.CLAIMED, j.state)
-        self.assertEquals('me', j.owner)
+    def _createDummyWorkflow(self, j, name='dummy'):
+        wf = lw.Workflow(name)
 
         def wf_state_change_listener(context, wf, old_state):
             if wf.name in j.logbook:
                 return
             j.logbook.add_workflow(wf.name)
 
-        stop_after = []
-
         def task_state_change_listener(context, state, wf, task, result=None):
             metadata = None
             wf_details = j.logbook.fetch_workflow(wf.name)
-            if state in (states.SUCCESS,):
+            if state in [states.SUCCESS]:
                 metadata = {
                     'result': result,
                 }
-                if task.name in stop_after:
-                    # Oops, stopping...
-                    wf.interrupt()
-                    stop_after.remove(task.name)
             td_name = gen_task_name(task, state)
             if td_name not in wf_details:
                 wf_details.add_task(logbook.TaskDetail(td_name, metadata))
@@ -97,7 +91,100 @@ class MemoryBackendTest(unittest.TestCase):
                 return (True, task_details.metadata['result'])
             return (False, None)
 
-        wf = lw.Workflow("the-big-action")
+        wf.task_listeners.append(task_state_change_listener)
+        wf.listeners.append(wf_state_change_listener)
+        wf.result_fetcher = task_result_fetcher
+        return wf
+
+    def _createMemoryImpl(self, cons=1):
+        worker_group = []
+        poisons = []
+        for i in range(0, cons):
+            poisons.append(threading.Event())
+
+        def killer():
+            for p in poisons:
+                p.set()
+            for t in worker_group:
+                t.join()
+
+        job_claimer = memory.MemoryClaimer()
+        book_catalog = memory.MemoryCatalog()
+        job_board = memory.MemoryJobBoard()
+
+        def runner(my_name, poison):
+            while not poison.isSet():
+                my_jobs = []
+                job_board.await(0.05)
+                job_search_from = None
+                for j in job_board.posted_after(job_search_from):
+                    if j.owner is not None:
+                        continue
+                    try:
+                        j.claim(my_name)
+                        my_jobs.append(j)
+                    except exc.UnclaimableJobException:
+                        pass
+                if not my_jobs:
+                    # No jobs were claimed, lets not search the past again
+                    # then, since *likely* those jobs will remain claimed...
+                    job_search_from = datetime.utcnow()
+                if my_jobs and poison.isSet():
+                    # Oh crap, we need to unclaim and repost the jobs.
+                    for j in my_jobs:
+                        j.unclaim()
+                        job_board.repost(j)
+                else:
+                    # Set all jobs to pending before starting them
+                    for j in my_jobs:
+                        j.state = states.PENDING
+                    for j in my_jobs:
+                        # Create some dummy workflow for the job
+                        wf = self._createDummyWorkflow(j)
+                        for i in range(0, 5):
+                            wf.add(FunctorTask(null_functor, null_functor))
+                        j.state = states.RUNNING
+                        wf.run(j.context)
+                        j.state = states.SUCCESS
+                        j.erase()
+
+        for i in range(0, cons):
+            t_name = "Thread-%s" % (i + 1)
+            t_runner = functools.partial(runner, t_name, poisons[i])
+            c = threading.Thread(name=t_name, target=t_runner)
+            c.daemon = True
+            worker_group.append(c)
+            c.start()
+
+        return (job_board, job_claimer, book_catalog, killer)
+
+    def testJobWorking(self):
+        killer = None
+        job_board = None
+        book_catalog = None
+        try:
+            (job_board, job_claimer,
+             book_catalog, killer) = self._createMemoryImpl()
+            j = job.Job("blah", {}, book_catalog, job_claimer)
+            job_board.post(j)
+            j.await()
+            self.assertEquals(0, len(job_board.posted_after()))
+        finally:
+            if killer:
+                killer()
+            close_all(book_catalog, job_board)
+
+    def testWorkJobLinearInterrupted(self):
+        job_claimer = memory.MemoryClaimer()
+        book_catalog = memory.MemoryCatalog()
+
+        j = job.Job("the-int-job", {}, book_catalog, job_claimer)
+        self.assertEquals(states.UNCLAIMED, j.state)
+        j.claim("me")
+        self.assertEquals(states.CLAIMED, j.state)
+        self.assertEquals('me', j.owner)
+
+        wf = self._createDummyWorkflow(j, "the-int-action")
         self.assertEquals(states.PENDING, wf.state)
 
         call_log = []
@@ -108,28 +195,29 @@ class MemoryBackendTest(unittest.TestCase):
         def do_2(context, *args, **kwargs):
             call_log.append(2)
 
-        task_1 = FunctorTask(do_1, null_functor)
-        task_2 = FunctorTask(do_2, null_functor)
-        wf.add(task_1)
-        wf.add(task_2)
-        wf.task_listeners.append(task_state_change_listener)
-        wf.listeners.append(wf_state_change_listener)
-        wf.result_fetcher = task_result_fetcher
+        def do_interrupt(context, *args, **kwargs):
+            wf.interrupt()
 
-        # Interrupt it after task_1 finishes
-        stop_after.append(task_1.name)
-        wf.run({})
+        task_1 = FunctorTask(do_1, null_functor)
+        task_1_5 = FunctorTask(do_interrupt, null_functor)
+        task_2 = FunctorTask(do_2, null_functor)
+
+        wf.add(task_1)
+        wf.add(task_1_5)  # Interrupt it after task_1 finishes
+        wf.add(task_2)
+
+        wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(2, len(j.logbook.fetch_workflow("the-big-action")))
+        self.assertEquals(4, len(j.logbook.fetch_workflow("the-int-action")))
         self.assertEquals(1, len(call_log))
 
         wf.reset()
         self.assertEquals(states.PENDING, wf.state)
-        wf.run({})
+        wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(4, len(j.logbook.fetch_workflow("the-big-action")))
+        self.assertEquals(6, len(j.logbook.fetch_workflow("the-int-action")))
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 
@@ -137,36 +225,13 @@ class MemoryBackendTest(unittest.TestCase):
         job_claimer = memory.MemoryClaimer()
         book_catalog = memory.MemoryCatalog()
 
-        j = job.Job("the-big-action-job", {}, book_catalog, job_claimer)
+        j = job.Job("the-line-job", {}, book_catalog, job_claimer)
         self.assertEquals(states.UNCLAIMED, j.state)
         j.claim("me")
         self.assertEquals(states.CLAIMED, j.state)
         self.assertEquals('me', j.owner)
 
-        def wf_state_change_listener(context, wf, old_state):
-            if wf.name in j.logbook:
-                return
-            j.logbook.add_workflow(wf.name)
-
-        def task_state_change_listener(context, state, wf, task, result=None):
-            metadata = None
-            wf_details = j.logbook.fetch_workflow(wf.name)
-            if state in (states.SUCCESS,):
-                metadata = {
-                    'result': result,
-                }
-            wf_details.add_task(logbook.TaskDetail(gen_task_name(task, state),
-                                                   metadata))
-
-        def task_result_fetcher(context, wf, task):
-            wf_details = j.logbook.fetch_workflow(wf.name)
-            td_name = gen_task_name(task, states.SUCCESS)
-            if td_name in wf_details:
-                task_details = wf_details.fetch_tasks(td_name)[0]
-                return (True, task_details.metadata['result'])
-            return (False, None)
-
-        wf = lw.Workflow("the-big-action")
+        wf = self._createDummyWorkflow(j, 'the-line-action')
         self.assertEquals(states.PENDING, wf.state)
 
         call_log = []
@@ -179,13 +244,10 @@ class MemoryBackendTest(unittest.TestCase):
 
         wf.add(FunctorTask(do_1, null_functor))
         wf.add(FunctorTask(do_2, null_functor))
-        wf.task_listeners.append(task_state_change_listener)
-        wf.listeners.append(wf_state_change_listener)
-        wf.result_fetcher = task_result_fetcher
-        wf.run({})
+        wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(4, len(j.logbook.fetch_workflow("the-big-action")))
+        self.assertEquals(4, len(j.logbook.fetch_workflow("the-line-action")))
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 

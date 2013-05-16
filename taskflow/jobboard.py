@@ -29,9 +29,12 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def post(self, job):
-        """Posts a job to the underlying job board implementation
-        and returns a promise object which can be used to query the
-        state of said job."""
+        """Posts a job to the job board."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def repost(self, job):
+        """Reposts a job that already exists on the job board."""
         raise NotImplementedError()
 
     def _notify_posted(self, job):
@@ -63,8 +66,7 @@ class JobBoard(object):
     @abc.abstractmethod
     def erase(self, job):
         """Erases the given job from this job board."""
-        for i in self._listeners:
-            i._notify_erased(job)
+        raise NotImplementedError()
 
     @abc.abstractmethod
     def await(self, timeout=None):
