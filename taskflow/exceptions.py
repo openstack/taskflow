@@ -33,13 +33,13 @@ class TaskException(TaskFlowException):
         self.cause = cause
 
 
-class ChapterNotFound(TaskFlowException):
-    """Raised when a chapter of a logbook doesn't exist."""
+class NotFound(TaskFlowException):
+    """Raised when some entry in some object doesn't exist."""
     pass
 
 
-class ChapterAlreadyExists(TaskFlowException):
-    """Raised when a chapter of a logbook already exists."""
+class AlreadyExists(TaskFlowException):
+    """Raised when some entry in some object already exists."""
     pass
 
 

@@ -34,16 +34,26 @@ from taskflow.backends import memory
 from taskflow.patterns import linear_workflow as lw
 
 
+def null_functor(*args, **kwargs):
+    return None
+
+
+def gen_task_name(task, state):
+    return "%s:%s" % (task.name, state)
+
+
 class FunctorTask(task.Task):
-    def __init__(self, functor):
-        super(FunctorTask, self).__init__(functor.__name__)
-        self._functor = functor
+    def __init__(self, apply_functor, revert_functor):
+        super(FunctorTask, self).__init__("%s-%s" % (apply_functor.__name__,
+                                                     revert_functor.__name__))
+        self._apply_functor = apply_functor
+        self._revert_functor = revert_functor
 
     def apply(self, context, *args, **kwargs):
-        return self._functor(context, *args, **kwargs)
+        return self._apply_functor(context, *args, **kwargs)
 
     def revert(self, context, result, cause):
-        pass
+        return self._revert_functor(context, result, cause)
 
 
 class MemoryBackendTest(unittest.TestCase):
@@ -60,32 +70,31 @@ class MemoryBackendTest(unittest.TestCase):
         def wf_state_change_listener(context, wf, old_state):
             if wf.name in j.logbook:
                 return
-            j.logbook.add_chapter(wf.name)
+            j.logbook.add_workflow(wf.name)
 
         stop_after = []
 
         def task_state_change_listener(context, state, wf, task, result=None):
             metadata = None
-            chp = j.logbook.fetch_chapter(wf.name)
+            wf_details = j.logbook.fetch_workflow(wf.name)
             if state in (states.SUCCESS,):
                 metadata = {
                     'result': result,
                 }
                 if task.name in stop_after:
+                    # Oops, stopping...
                     wf.interrupt()
                     stop_after.remove(task.name)
-            page_name = "%s:%s" % (task.name, state)
-            if page_name not in chp:
-                chp.add_page(logbook.Page(page_name, metadata))
+            td_name = gen_task_name(task, state)
+            if td_name not in wf_details:
+                wf_details.add_task(logbook.TaskDetail(td_name, metadata))
 
         def task_result_fetcher(context, wf, task):
-            chp = j.logbook.fetch_chapter(wf.name)
-            # Attempt to find the results page for the given workflow
-            # and task.
-            results_page = "%s:%s" % (task.name, states.SUCCESS)
-            if results_page in chp:
-                page = chp.fetch_pages(results_page)[0]
-                return (True, page.metadata['result'])
+            wf_details = j.logbook.fetch_workflow(wf.name)
+            td_name = gen_task_name(task, states.SUCCESS)
+            if td_name in wf_details:
+                task_details = wf_details.fetch_tasks(td_name)[0]
+                return (True, task_details.metadata['result'])
             return (False, None)
 
         wf = lw.Workflow("the-big-action")
@@ -99,8 +108,8 @@ class MemoryBackendTest(unittest.TestCase):
         def do_2(context, *args, **kwargs):
             call_log.append(2)
 
-        task_1 = FunctorTask(do_1)
-        task_2 = FunctorTask(do_2)
+        task_1 = FunctorTask(do_1, null_functor)
+        task_2 = FunctorTask(do_2, null_functor)
         wf.add(task_1)
         wf.add(task_2)
         wf.task_listeners.append(task_state_change_listener)
@@ -112,7 +121,7 @@ class MemoryBackendTest(unittest.TestCase):
         wf.run({})
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(2, len(j.logbook.fetch_chapter("the-big-action")))
+        self.assertEquals(2, len(j.logbook.fetch_workflow("the-big-action")))
         self.assertEquals(1, len(call_log))
 
         wf.reset()
@@ -120,7 +129,7 @@ class MemoryBackendTest(unittest.TestCase):
         wf.run({})
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(4, len(j.logbook.fetch_chapter("the-big-action")))
+        self.assertEquals(4, len(j.logbook.fetch_workflow("the-big-action")))
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 
@@ -137,24 +146,24 @@ class MemoryBackendTest(unittest.TestCase):
         def wf_state_change_listener(context, wf, old_state):
             if wf.name in j.logbook:
                 return
-            j.logbook.add_chapter(wf.name)
+            j.logbook.add_workflow(wf.name)
 
         def task_state_change_listener(context, state, wf, task, result=None):
             metadata = None
-            chp = j.logbook.fetch_chapter(wf.name)
+            wf_details = j.logbook.fetch_workflow(wf.name)
             if state in (states.SUCCESS,):
                 metadata = {
                     'result': result,
                 }
-            page_name = "%s:%s" % (task.name, state)
-            chp.add_page(logbook.Page(page_name, metadata))
+            wf_details.add_task(logbook.TaskDetail(gen_task_name(task, state),
+                                                   metadata))
 
         def task_result_fetcher(context, wf, task):
-            chp = j.logbook.fetch_chapter(wf.name)
-            results_page = "%s:%s" % (task.name, states.SUCCESS)
-            if results_page in chp:
-                page = chp.fetch_pages(results_page)[0]
-                return (True, page.metadata['result'])
+            wf_details = j.logbook.fetch_workflow(wf.name)
+            td_name = gen_task_name(task, states.SUCCESS)
+            if td_name in wf_details:
+                task_details = wf_details.fetch_tasks(td_name)[0]
+                return (True, task_details.metadata['result'])
             return (False, None)
 
         wf = lw.Workflow("the-big-action")
@@ -168,15 +177,15 @@ class MemoryBackendTest(unittest.TestCase):
         def do_2(context, *args, **kwargs):
             call_log.append(2)
 
-        wf.add(FunctorTask(do_1))
-        wf.add(FunctorTask(do_2))
+        wf.add(FunctorTask(do_1, null_functor))
+        wf.add(FunctorTask(do_2, null_functor))
         wf.task_listeners.append(task_state_change_listener)
         wf.listeners.append(wf_state_change_listener)
         wf.result_fetcher = task_result_fetcher
         wf.run({})
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(4, len(j.logbook.fetch_chapter("the-big-action")))
+        self.assertEquals(4, len(j.logbook.fetch_workflow("the-big-action")))
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 
