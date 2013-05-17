@@ -41,7 +41,7 @@ class Claimer(object):
     def unclaim(self, job, owner):
         """This method will attempt to unclaim said job and must
         either succeed at this or throw an exception signaling the job can not
-        be claimed."""
+        be unclaimed."""
         raise NotImplementedError()
 
 
