@@ -85,7 +85,7 @@ class Workflow(object):
     def _fetch_inputs(self, task):
         return {}
 
-    def _perform_reconcilation(self, task, excp):
+    def _perform_reconcilation(self, context, task, excp):
         # Attempt to reconcile the given exception that occured while applying
         # the given task and either reconcile said task and its associated
         # failure, so that the workflow can continue or abort and perform
@@ -150,7 +150,7 @@ class Workflow(object):
                     self.results.append((task, copy.deepcopy(result)))
                     self._on_task_finish(context, task, result)
                 except Exception as e:
-                    self._perform_reconcilation(task, e)
+                    self._perform_reconcilation(context, task, e)
 
         self._change_state(context, states.RUNNING)
         was_interrupted = False
@@ -176,7 +176,7 @@ class Workflow(object):
                 self.results.append((task, copy.deepcopy(result)))
                 self._on_task_finish(context, task, result)
             except Exception as e:
-                self._perform_reconcilation(task, e)
+                self._perform_reconcilation(context, task, e)
 
         if not was_interrupted:
             # Only gets here if everything went successfully.
