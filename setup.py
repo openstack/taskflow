@@ -23,7 +23,7 @@ setuptools.setup(
     version='0.0.1',
     author='OpenStack',
     license='Apache Software License',
-    description='Taskflow state management library.',
+    description='Taskflow structured state management library.',
     long_description='The taskflow library provides core functionality that '
                      'can be used to build [resumable, reliable, '
                      'easily understandable, ...] highly available '
