@@ -249,10 +249,12 @@ class Workflow(object):
             except Exception:
                 # Ex: WARN: Failed rolling back stage 1 (validate_request) of
                 #           chain validation due to Y exception.
+                log_f = LOG.warn
+                if not self.tolerant:
+                    log_f = LOG.exception
                 msg = ("Failed rolling back stage %(index)s (%(task)s)"
                        " of workflow %(workflow)s, due to inner exception.")
-                LOG.warn(msg % {'index': (i + 1), 'task': task,
-                         'workflow': self})
+                log_f(msg % {'index': (i + 1), 'task': task, 'workflow': self})
                 if not self.tolerant:
                     # NOTE(harlowja): LOG a msg AND re-raise the exception if
                     # the chain does not tolerate exceptions happening in the
