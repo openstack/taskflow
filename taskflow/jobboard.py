@@ -18,6 +18,10 @@
 
 import abc
 
+# Sent as what happened to listeners
+POSTED = 'POSTED'
+ERASED = 'ERASED'
+
 
 class JobBoard(object):
     """Base class for job boards."""
@@ -41,15 +45,15 @@ class JobBoard(object):
         """When a job is received, by whichever mechanism the underlying
         implementation provides, the job should be given to said listeners
         for them to know that a job has arrived."""
-        for i in self._listeners:
-            i.notify_posted(job)
+        for f in self._listeners:
+            f(job, POSTED)
 
     def _notify_erased(self, job):
         """When a job is erased, by whichever mechanism the underlying
         implementation provides, the job should be given to said listeners
         for them to know that a job has been erased."""
-        for i in self._listeners:
-            i.notify_erased(job)
+        for f in self._listeners:
+            f(job, ERASED)
 
     @abc.abstractmethod
     def posted_after(self, date_posted=None):
