@@ -130,9 +130,13 @@ class Workflow(object):
         self._change_state(context, states.STARTED)
         task_order = self.order()
         last_task = 0
+        was_interrupted = False
         if result_fetcher:
             self._change_state(context, states.RESUMING)
             for (i, task) in enumerate(task_order):
+                if self.state == states.INTERRUPTED:
+                    was_interrupted = True
+                    break
                 (has_result, result) = result_fetcher(self, task)
                 if not has_result:
                     break
@@ -152,8 +156,10 @@ class Workflow(object):
                 except Exception as e:
                     self._perform_reconcilation(context, task, e)
 
+        if was_interrupted:
+            return
+
         self._change_state(context, states.RUNNING)
-        was_interrupted = False
         for task in task_order[last_task:]:
             if self.state == states.INTERRUPTED:
                 was_interrupted = True
