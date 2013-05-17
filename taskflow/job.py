@@ -21,6 +21,7 @@ import time
 import uuid
 
 from taskflow import exceptions as exc
+from taskflow import logbook
 from taskflow import states
 
 
@@ -78,6 +79,53 @@ class Job(object):
         if self.state != new_state:
             self._state = new_state
             # TODO(harlowja): add logbook info?
+
+    def associate(self, wf, task_state_name_functor=None):
+        """Attachs the needed resumption and state change tracking listeners
+         to the given workflow under for this job."""
+
+        # TODO(harlowja): should this be in the job class or the workflow class
+        # or neither, still not quite sure...
+
+        def generate_task_name(task, state):
+            return "%s:%s" % (task.name, state)
+
+        if not task_state_name_functor:
+            task_state_name_functor = generate_task_name
+
+        def wf_state_change_listener(context, wf, old_state):
+            if wf.name in self.logbook:
+                return
+            self.logbook.add_workflow(wf.name)
+
+        def task_result_fetcher(context, wf, task):
+            wf_details = self.logbook.fetch_workflow(wf.name)
+            # See if it completed before so that we can use its results instead
+            # of having to recompute them.
+            td_name = task_state_name_functor(task, states.SUCCESS)
+            if td_name in wf_details:
+                # TODO(harlowja): should we be a little more cautious about
+                # duplicate task results? Maybe we shouldn't allow them to
+                # have the same name in the first place?
+                task_details = wf_details.fetch_tasks(td_name)[0]
+                if task_details.metadata and 'result' in task_details.metadata:
+                    return (True, task_details.metadata['result'])
+            return (False, None)
+
+        def task_state_change_listener(context, state, wf, task, result=None):
+                metadata = None
+                wf_details = self.logbook.fetch_workflow(wf.name)
+                if state == states.SUCCESS:
+                    metadata = {
+                        'result': result,
+                    }
+                td_name = task_state_name_functor(task, state)
+                if td_name not in wf_details:
+                    wf_details.add_task(logbook.TaskDetail(td_name, metadata))
+
+        wf.task_listeners.append(task_state_change_listener)
+        wf.listeners.append(wf_state_change_listener)
+        wf.result_fetcher = task_result_fetcher
 
     @property
     def logbook(self):
