@@ -111,10 +111,11 @@ class Workflow(object):
                 self.rollback(context, exc.TaskException(task, self, ex))
                 self._change_state(context, states.FAILURE)
 
-        self._change_state(context, states.RESUMING)
+        task_order = self.order()
         last_task = 0
         if result_fetcher:
-            for (i, task) in enumerate(self.order()):
+            self._change_state(context, states.RESUMING)
+            for (i, task) in enumerate(task_order):
                 (has_result, result) = result_fetcher(self, task)
                 if not has_result:
                     break
@@ -136,7 +137,7 @@ class Workflow(object):
 
         self._change_state(context, states.RUNNING)
         was_interrupted = False
-        for task in self.order():
+        for task in task_order[last_task:]:
             if self.state == states.INTERRUPTED:
                 was_interrupted = True
                 break
