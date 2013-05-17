@@ -25,7 +25,7 @@ from taskflow import states
 
 
 class Claimer(object):
-    """A base class for objects that can attempt to claim a given claim a given
+    """A base class for objects that can attempt to claim a given
     job, so that said job can be worked on."""
 
     __metaclass__ = abc.ABCMeta
