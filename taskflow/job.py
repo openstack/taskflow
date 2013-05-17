@@ -82,7 +82,8 @@ class Job(object):
 
     def associate(self, wf, task_state_name_functor=None):
         """Attachs the needed resumption and state change tracking listeners
-         to the given workflow under for this job."""
+         to the given workflow so that the workflow can be resumed/tracked using
+         the jobs components."""
 
         # TODO(harlowja): should this be in the job class or the workflow class
         # or neither, still not quite sure...
