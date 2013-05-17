@@ -73,6 +73,7 @@ class Workflow(object):
 
     @abc.abstractmethod
     def add(self, task):
+        """Adds a given task to this workflow."""
         raise NotImplementedError()
 
     def __str__(self):
@@ -80,10 +81,14 @@ class Workflow(object):
 
     @abc.abstractmethod
     def order(self):
+        """Returns the order in which the tasks should be ran
+        as a iterable list."""
         raise NotImplementedError()
 
-    def _fetch_inputs(self, task):
-        return {}
+    def _fetch_task_inputs(self, task):
+        """Retrieves and additional kwargs inputs to provide to the task when
+        said task is being applied."""
+        return None
 
     def _perform_reconcilation(self, context, task, excp):
         # Attempt to reconcile the given exception that occured while applying
@@ -171,7 +176,9 @@ class Workflow(object):
                     (has_result, result) = result_fetcher(self, task)
                 self._on_task_start(context, task)
                 if not has_result:
-                    inputs = self._fetch_inputs(task)
+                    inputs = self._fetch_task_inputs(task)
+                    if inputs is None:
+                        inputs = {}
                     inputs.update(kwargs)
                     result = task.apply(context, *args, **inputs)
                 # Keep a pristine copy of the result
