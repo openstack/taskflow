@@ -25,7 +25,7 @@ from networkx.algorithms import dag
 from networkx.classes import digraph
 
 from taskflow import exceptions as exc
-from taskflow import ordered_workflow
+from taskflow.patterns import ordered_workflow
 
 LOG = logging.getLogger(__name__)
 
