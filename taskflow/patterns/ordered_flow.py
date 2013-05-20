@@ -95,14 +95,14 @@ class Flow(object):
         # the given task and either reconcile said task and its associated
         # failure, so that the flow can continue or abort and perform
         # some type of undo of the tasks already completed.
-        try:
-            self._change_state(context, states.REVERTING)
-        except Exception:
-            LOG.exception("Dropping exception catched when"
-                          " changing state to reverting while performing"
-                          " reconcilation on a tasks exception.")
         cause = exc.TaskException(task, self, excp)
         with excutils.save_and_reraise_exception():
+            try:
+                self._change_state(context, states.REVERTING)
+            except Exception:
+                LOG.exception("Dropping exception catched when"
+                              " changing state to reverting while performing"
+                              " reconcilation on a tasks exception.")
             try:
                 self._on_task_error(context, task)
             except Exception:

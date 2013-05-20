@@ -49,6 +49,17 @@ class Flow(ordered_flow.Flow):
         self._graph.add_node(task)
         self._connected = False
 
+    def _fetch_task_inputs(self, task):
+        task_needs = task.requires()
+        if not task_needs:
+            return None
+        inputs = {}
+        for (_who, there_result) in self.results:
+            for n in task_needs:
+                if there_result and n in there_result:
+                    inputs[n] = there_result[n]
+        return inputs
+
     def run(self, context, *args, **kwargs):
         self.connect()
         return super(Flow, self).run(context, *args, **kwargs)
@@ -64,23 +75,30 @@ class Flow(ordered_flow.Flow):
                                             "tasks needed inputs and outputs.")
 
     def connect(self):
-        """Connects the edges of the graph together."""
-        if self._connected:
+        """Connects the nodes & edges of the graph together."""
+        if self._connected or len(self._graph) == 0:
             return
+
         provides_what = defaultdict(list)
         requires_what = defaultdict(list)
         for t in self._graph.nodes_iter():
-            for r in t.requires:
+            for r in t.requires():
                 requires_what[r].append(t)
-            for p in t.provides:
+            for p in t.provides():
                 provides_what[p].append(t)
-        for (i_want, n) in requires_what.items():
+
+        for (i_want, who_wants) in requires_what.items():
             if i_want not in provides_what:
-                raise exc.InvalidStateException("Task %s requires input %s "
+                raise exc.InvalidStateException("Task/s %s requires input %s "
                                                 "but no other task produces "
-                                                "said output" % (n, i_want))
+                                                "said output." % (who_wants,
+                                                                  i_want))
             for p in provides_what[i_want]:
                 # P produces for N so thats why we link P->N and not N->P
-                self._graph.add_edge(p, n)
+                for n in who_wants:
+                    why = {
+                        i_want: True,
+                    }
+                    self._graph.add_edge(p, n, why)
 
         self._connected = True
