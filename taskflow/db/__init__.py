@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+i# -*- coding: utf-8 -*-
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
@@ -16,8 +16,3 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-"""Implementation of SQLAlchemy backend."""
-
-import logging
-
-LOG = logging.getLogger(__name__)

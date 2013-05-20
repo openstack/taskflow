@@ -16,8 +16,27 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-"""Implementation of SQLAlchemy backend."""
 
-import logging
+from oslo.config import cfg
 
-LOG = logging.getLogger(__name__)
+from taskflow.common import config
+from taskflow import utils
+
+SQL_CONNECTION = 'sqlite://'
+db_opts = [
+    cfg.StrOpt('db_backend',
+               default='sqlalchemy',
+               help='The backend to use for db')]
+
+CONF = cfg.CONF
+CONF.register_opts(db_opts)
+
+IMPL = utils.LazyPluggable('db_backend',
+                           sqlalchemy='taskflow.db.sqlalchemy.api')
+
+def configure():
+    global SQL_CONNECTION
+    global SQL_IDLE_TIMEOUT
+    config.register_db_opts()
+    SQL_CONNECTION = cfg.CONF.sql_connection
+    SQL_IDLE_TIMEOUT = cfg.CONF.sql_idle_timeout

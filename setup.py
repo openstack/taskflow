@@ -10,7 +10,7 @@ def read_requires(base):
     if not os.path.isfile(path):
         return requires
     with open(path, 'rb') as h:
-        for line in h.read.splitlines():
+        for line in h.read().splitlines():
             line = line.strip()
             if len(line) == 0 or line.startswith("#"):
                 continue

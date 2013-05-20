@@ -3,7 +3,7 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
-#    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
+#    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -16,8 +16,23 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-"""Implementation of SQLAlchemy backend."""
 
-import logging
+""" Celery Configuration File """
+
+from taskflow.common import config
+
+config.register_celery_opts()
+
+from oslo.cfg import cfg
 
 LOG = logging.getLogger(__name__)
+
+""" If ALWAYS_EAGER is set to true, Celery will execute synchronously """
+if '--eager' in sys.argv:
+    CELERY_ALWAYS_EAGER = True
+else:
+    CELERY_ALWAYS_EAGER = False
+
+BROKER_URL = cfg.CFG('celery_mq')
+
+
