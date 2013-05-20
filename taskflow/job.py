@@ -97,10 +97,10 @@ class Job(object):
         def wf_state_change_listener(context, wf, old_state):
             if wf.name in self.logbook:
                 return
-            self.logbook.add_workflow(wf.name)
+            self.logbook.add_flow(wf.name)
 
         def task_result_fetcher(context, wf, task):
-            wf_details = self.logbook.fetch_workflow(wf.name)
+            wf_details = self.logbook[wf.name]
             # See if it completed before so that we can use its results instead
             # of having to recompute them.
             td_name = task_state_name_functor(task, states.SUCCESS)
@@ -108,21 +108,22 @@ class Job(object):
                 # TODO(harlowja): should we be a little more cautious about
                 # duplicate task results? Maybe we shouldn't allow them to
                 # have the same name in the first place?
-                task_details = wf_details.fetch_tasks(td_name)[0]
+                task_details = wf_details[td_name][0]
                 if task_details.metadata and 'result' in task_details.metadata:
                     return (True, task_details.metadata['result'])
             return (False, None)
 
         def task_state_change_listener(context, state, wf, task, result=None):
                 metadata = None
-                wf_details = self.logbook.fetch_workflow(wf.name)
+                wf_details = self.logbook[wf.name]
                 if state == states.SUCCESS:
                     metadata = {
                         'result': result,
                     }
                 td_name = task_state_name_functor(task, state)
                 if td_name not in wf_details:
-                    wf_details.add_task(logbook.TaskDetail(td_name, metadata))
+                    td_details = wf_details.add_task(td_name)
+                    td_details.metadata = metadata
 
         wf.task_listeners.append(task_state_change_listener)
         wf.listeners.append(wf_state_change_listener)

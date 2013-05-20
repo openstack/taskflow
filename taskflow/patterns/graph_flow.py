@@ -25,18 +25,18 @@ from networkx.algorithms import dag
 from networkx.classes import digraph
 
 from taskflow import exceptions as exc
-from taskflow.patterns import ordered_workflow
+from taskflow.patterns import ordered_flow
 
 LOG = logging.getLogger(__name__)
 
 
-class Workflow(ordered_workflow.Workflow):
-    """A workflow which will analyze the attached tasks input requirements and
+class Flow(ordered_flow.Flow):
+    """A flow which will analyze the attached tasks input requirements and
     determine who provides said input and order the task so that said providing
     task will be ran before."""
 
     def __init__(self, name, tolerant=False, parents=None):
-        super(Workflow, self).__init__(name, tolerant, parents)
+        super(Flow, self).__init__(name, tolerant, parents)
         self._graph = digraph.DiGraph()
         self._connected = False
 
@@ -51,7 +51,7 @@ class Workflow(ordered_workflow.Workflow):
 
     def run(self, context, *args, **kwargs):
         self.connect()
-        return super(Workflow, self).run(context, *args, **kwargs)
+        return super(Flow, self).run(context, *args, **kwargs)
 
     def order(self):
         self.connect()
@@ -60,7 +60,7 @@ class Workflow(ordered_workflow.Workflow):
         except g_exc.NetworkXUnfeasible:
             raise exc.InvalidStateException("Unable to correctly determine "
                                             "the path through the provided "
-                                            "workflow which will satisfy the "
+                                            "flow which will satisfy the "
                                             "tasks needed inputs and outputs.")
 
     def connect(self):

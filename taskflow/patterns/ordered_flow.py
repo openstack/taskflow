@@ -28,10 +28,10 @@ from taskflow import states
 LOG = logging.getLogger(__name__)
 
 
-class Workflow(object):
+class Flow(object):
     """A set tasks that can be applied as one unit or rolled back as one
-    unit using an ordered arrangements of said tasks where reversion can be
-    handled by reversing through the tasks applied."""
+    unit using an ordered arrangements of said tasks where reversion is by
+    default handled by reversing through the tasks applied."""
 
     __metaclass__ = abc.ABCMeta
 
@@ -43,8 +43,8 @@ class Workflow(object):
         # If this chain can ignore individual task reversion failure then this
         # should be set to true, instead of the default value of false.
         self.tolerant = tolerant
-        # If this workflow has a parent workflow/s which need to be reverted if
-        # this workflow fails then please include them here to allow this child
+        # If this flow has a parent flow/s which need to be reverted if
+        # this flow fails then please include them here to allow this child
         # to call the parents...
         self.parents = parents
         # This should be a functor that returns whether a given task has
@@ -73,11 +73,11 @@ class Workflow(object):
 
     @abc.abstractmethod
     def add(self, task):
-        """Adds a given task to this workflow."""
+        """Adds a given task to this flow."""
         raise NotImplementedError()
 
     def __str__(self):
-        return "Workflow: %s" % (self.name)
+        return "Flow: %s" % (self.name)
 
     @abc.abstractmethod
     def order(self):
@@ -93,7 +93,7 @@ class Workflow(object):
     def _perform_reconcilation(self, context, task, excp):
         # Attempt to reconcile the given exception that occured while applying
         # the given task and either reconcile said task and its associated
-        # failure, so that the workflow can continue or abort and perform
+        # failure, so that the flow can continue or abort and perform
         # some type of undo of the tasks already completed.
         try:
             self._change_state(context, states.REVERTING)
@@ -111,7 +111,7 @@ class Workflow(object):
                               " exception.")
             # The default strategy will be to rollback all the contained
             # tasks by calling there reverting methods, and then calling
-            # any parent workflows rollbacks (and so-on).
+            # any parent flows rollbacks (and so-on).
             try:
                 self.rollback(context, cause)
             finally:
@@ -124,7 +124,7 @@ class Workflow(object):
 
     def run(self, context, *args, **kwargs):
         if self.state != states.PENDING:
-            raise exc.InvalidStateException("Unable to run workflow when "
+            raise exc.InvalidStateException("Unable to run flow when "
                                             "in state %s" % (self.state))
 
         if self.result_fetcher:
@@ -233,10 +233,10 @@ class Workflow(object):
     def rollback(self, context, cause):
         # Performs basic task by task rollback by going through the reverse
         # order that tasks have finished and asking said task to undo whatever
-        # it has done. If this workflow has any parent workflows then they will
+        # it has done. If this flow has any parent flows then they will
         # also be called to rollback any tasks said parents contain.
         #
-        # Note(harlowja): if a workflow can more simply revert a whole set of
+        # Note(harlowja): if a flow can more simply revert a whole set of
         # tasks via a simpler command then it can override this method to
         # accomplish that.
         #
@@ -253,14 +253,14 @@ class Workflow(object):
                 if not self.tolerant:
                     log_f = LOG.exception
                 msg = ("Failed rolling back stage %(index)s (%(task)s)"
-                       " of workflow %(workflow)s, due to inner exception.")
-                log_f(msg % {'index': (i + 1), 'task': task, 'workflow': self})
+                       " of flow %(flow)s, due to inner exception.")
+                log_f(msg % {'index': (i + 1), 'task': task, 'flow': self})
                 if not self.tolerant:
                     # NOTE(harlowja): LOG a msg AND re-raise the exception if
                     # the chain does not tolerate exceptions happening in the
                     # rollback method.
                     raise
         if self.parents:
-            # Rollback any parents workflows if they exist...
+            # Rollback any parents flows if they exist...
             for p in self.parents:
                 p.rollback(context, cause)

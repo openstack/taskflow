@@ -91,10 +91,11 @@ class MemoryCatalog(catalog.Catalog):
             self._catalogs = [(j, b) for (j, b) in self._catalogs if j != job]
 
 
-class MemoryWorkflowDetail(logbook.WorkflowDetail):
-    def __init__(self, book, name):
-        super(MemoryWorkflowDetail, self).__init__(book, name)
+class MemoryFlowDetail(logbook.FlowDetail):
+    def __init__(self, book, name, task_cls=logbook.TaskDetail):
+        super(MemoryFlowDetail, self).__init__(book, name)
         self._tasks = []
+        self._task_cls = task_cls
 
     def __iter__(self):
         for t in self._tasks:
@@ -106,64 +107,68 @@ class MemoryWorkflowDetail(logbook.WorkflowDetail):
                 return True
         return False
 
-    def fetch_tasks(self, task_name):
+    def __getitem__(self, task_name):
         return [t for t in self if t.name == task_name]
 
     def __len__(self):
         return len(self._tasks)
 
-    def add_task(self, task_details):
+    def add_task(self, task_name):
+        task_details = self._task_cls(task_name)
         self._tasks.append(task_details)
+        return task_details
 
-    def delete_tasks(self, task_name):
+    def __delitem__(self, task_name):
         self._tasks = [t for t in self if t.name != task_name]
 
 
 class MemoryLogBook(logbook.LogBook):
     def __init__(self):
         super(MemoryLogBook, self).__init__()
-        self._workflows = []
-        self._workflow_names = set()
+        self._flows = []
+        self._flow_names = set()
         self._closed = False
 
     @check_not_closed
-    def add_workflow(self, workflow_name):
-        if workflow_name in self._workflow_names:
+    def add_flow(self, flow_name):
+        if flow_name in self._flow_names:
             raise exc.AlreadyExists()
-        self._workflows.append(MemoryWorkflowDetail(self, workflow_name))
-        self._workflow_names.add(workflow_name)
+        f = MemoryFlowDetail(self, flow_name)
+        self._flows.append(f)
+        self._flow_names.add(flow_name)
+        return f
 
     @check_not_closed
-    def fetch_workflow(self, workflow_name):
-        if workflow_name not in self._workflow_names:
+    def __getitem__(self, flow_name):
+        if flow_name not in self._flow_names:
             raise exc.NotFound()
-        for w in self._workflows:
-            if w.name == workflow_name:
+        for w in self._flows:
+            if w.name == flow_name:
                 return w
 
     @check_not_closed
     def __iter__(self):
-        for w in self._workflows:
+        for w in self._flows:
             yield w
 
     def close(self):
         self._closed = True
 
     @check_not_closed
-    def __contains__(self, workflow_name):
+    def __contains__(self, flow_name):
         try:
-            self.fetch_workflow(workflow_name)
+            self[flow_name]
             return True
         except exc.NotFound:
             return False
 
-    def delete_workflow(self, workflow_name):
-        w = self.fetch_workflow(workflow_name)
-        self._workflow_names.remove(workflow_name)
-        self._workflows.remove(w)
+    def __delitem__(self, flow_name):
+        w = self[flow_name]
+        self._flow_names.remove(flow_name)
+        self._flows.remove(w)
 
     def __len__(self):
-        return len(self._workflows)
+        return len(self._flows)
 
 
 class MemoryJobBoard(jobboard.JobBoard):
