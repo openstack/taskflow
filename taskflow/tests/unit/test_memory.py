@@ -32,7 +32,7 @@ from taskflow import task
 from taskflow import wrappers as wrap
 
 from taskflow.backends import memory
-from taskflow.patterns import linear_workflow as lw
+from taskflow.patterns import linear_flow as lw
 
 
 def null_functor(*args, **kwargs):
@@ -94,8 +94,8 @@ class MemoryBackendTest(unittest.TestCase):
                     for j in my_jobs:
                         j.state = states.PENDING
                     for j in my_jobs:
-                        # Create some dummy workflow for the job
-                        wf = lw.Workflow('dummy')
+                        # Create some dummy flow for the job
+                        wf = lw.Flow('dummy')
                         for i in range(0, 5):
                             t = wrap.FunctorTask(None,
                                                  null_functor, null_functor)
@@ -142,7 +142,7 @@ class MemoryBackendTest(unittest.TestCase):
         self.assertEquals(states.CLAIMED, j.state)
         self.assertEquals('me', j.owner)
 
-        wf = lw.Workflow("the-int-action")
+        wf = lw.Flow("the-int-action")
         j.associate(wf)
         self.assertEquals(states.PENDING, wf.state)
 
@@ -168,7 +168,7 @@ class MemoryBackendTest(unittest.TestCase):
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(4, len(j.logbook.fetch_workflow("the-int-action")))
+        self.assertEquals(4, len(j.logbook["the-int-action"]))
         self.assertEquals(1, len(call_log))
 
         wf.reset()
@@ -176,7 +176,7 @@ class MemoryBackendTest(unittest.TestCase):
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(6, len(j.logbook.fetch_workflow("the-int-action")))
+        self.assertEquals(6, len(j.logbook["the-int-action"]))
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 
@@ -190,7 +190,7 @@ class MemoryBackendTest(unittest.TestCase):
         self.assertEquals(states.CLAIMED, j.state)
         self.assertEquals('me', j.owner)
 
-        wf = lw.Workflow('the-line-action')
+        wf = lw.Flow('the-line-action')
         self.assertEquals(states.PENDING, wf.state)
         j.associate(wf)
 
@@ -207,7 +207,7 @@ class MemoryBackendTest(unittest.TestCase):
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(4, len(j.logbook.fetch_workflow("the-line-action")))
+        self.assertEquals(4, len(j.logbook["the-line-action"]))
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 

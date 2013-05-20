@@ -29,14 +29,15 @@ class TaskDetail(object):
         self.date_created = datetime.utcnow()
         self.name = name
         self.metadata = metadata
+        self.date_updated = None
 
     def __str__(self):
         return "TaskDetail (%s, %s): %s" % (self.name, self.date_created,
                                             self.metadata)
 
 
-class WorkflowDetail(object):
-    """Workflow details have the bare minimum of these fields/methods."""
+class FlowDetail(object):
+    """Flow details have the bare minimum of these fields/methods."""
 
     __metaclass__ = abc.ABCMeta
 
@@ -54,31 +55,32 @@ class WorkflowDetail(object):
     @abc.abstractmethod
     def __contains__(self, task_name):
         """Determines if any task details with the given name exists in this
-        workflow details."""
+        flow details."""
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def fetch_tasks(self, task_name):
+    def __getitem__(self, task_name):
         """Fetch any task details that match the given task name."""
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def add_task(self, task_details):
-        """Adds a task detail entry to this workflow details."""
+    def add_task(self, task_name):
+        """Atomically creates a new task detail entry to this flows details and
+        returns it for further use."""
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def delete_tasks(self, task_name):
+    def __delitem__(self, task_name):
         """Deletes any task details that match the given task name."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     def __len__(self):
-        """Returns how many task details objects the workflow contains."""
+        """Returns how many task details objects the flow contains."""
         raise NotImplementedError()
 
     def __str__(self):
-        return "WorkflowDetail (%s): %s entries" % (self.name, len(self))
+        return "FlowDetail (%s): %s entries" % (self.name, len(self))
 
 
 class LogBook(object):
@@ -87,42 +89,42 @@ class LogBook(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def add_workflow(self, workflow_name):
-        """Atomically adds a new workflow details object to the given logbook
-        or raises an exception if that workflow (or a workflow with
-        that name) already exists.
+    def add_flow(self, flow_name):
+        """Atomically adds and returns a new flow details object to the given
+        logbook or raises an exception if that flow (or a flow with that name)
+        already exists.
         """
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def fetch_workflow(self, workflow_name):
-        """Fetches the given workflow details object for the given workflow
-        name or raises an exception if that workflow name does not exist."""
+    def __getitem__(self, flow_name):
+        """Fetches the given flow details object for the given flow
+        name or raises an exception if that flow name does not exist."""
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def __contains__(self, workflow_name):
-        """Determines if a workflow details object with the given workflow name
+    def __contains__(self, flow_name):
+        """Determines if a flow details object with the given flow name
         exists in this logbook."""
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def delete_workflow(self, workflow_name):
-        """Removes the given workflow details object that matches the provided
-        workflow name or raises an exception if that workflow name does not
+    def __delitem__(self, flow_name):
+        """Removes the given flow details object that matches the provided
+        flow name or raises an exception if that flow name does not
         exist."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     def __iter__(self):
-        """Iterates over all the contained workflow details.
+        """Iterates over all the contained flow details.
 
         The order will be in the same order that they were added."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     def __len__(self):
-        """Returns how many workflow details the logbook contains."""
+        """Returns how many flow details the logbook contains."""
         raise NotImplementedError()
 
     def close(self):
