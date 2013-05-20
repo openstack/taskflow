@@ -20,7 +20,12 @@
 """Session Handling for SQLAlchemy backend."""
 
 import logging
+
+import sqlalchemy.orm
+import sqlalchemy.engine
+import sqlalchemy.interfaces
 import sqlalchemy
+from sqlalchemy.pool import NullPool
 
 from taskflow.db import api as db_api
 
@@ -76,10 +81,7 @@ def get_engine():
     if "sqlite" in connection_dict.drivername:
         engine_args['poolclass'] = NullPool
 
-    if "mysql" in connection_dict.drivername:
-        engine_args['listeners'] = [MySQLPingListener()]
-
-    _ENGINE = sqlqlchemy.create_engine(_get_sql_connection(),
+    _ENGINE = sqlalchemy.create_engine(_get_sql_connection(),
                                        **engine_args)
 
     #TODO: Check to make sure engine connected
