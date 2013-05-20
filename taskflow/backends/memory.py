@@ -156,11 +156,9 @@ class MemoryLogBook(logbook.LogBook):
 
     @check_not_closed
     def __contains__(self, flow_name):
-        try:
-            self[flow_name]
-            return True
-        except exc.NotFound:
+        if flow_name not in self._flow_names:
             return False
+        return True
 
     def __delitem__(self, flow_name):
         w = self[flow_name]
