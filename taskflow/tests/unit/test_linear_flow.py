@@ -61,7 +61,7 @@ class LinearFlowTest(unittest.TestCase):
                                     null_functor)
 
     def testSadFlowStateChanges(self):
-        wf = lw.Workflow("the-test-action")
+        wf = lw.Flow("the-test-action")
         flow_changes = []
 
         def flow_listener(context, wf, previous_state):
@@ -83,7 +83,7 @@ class LinearFlowTest(unittest.TestCase):
         self.assertEquals(states.FAILURE, wf.state)
 
     def testHappyFlowStateChanges(self):
-        wf = lw.Workflow("the-test-action")
+        wf = lw.Flow("the-test-action")
         flow_changes = []
 
         def flow_listener(context, wf, previous_state):
