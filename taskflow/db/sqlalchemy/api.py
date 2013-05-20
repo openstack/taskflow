@@ -16,8 +16,15 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 """Implementation of SQLAlchemy backend."""
 
 import logging
 
 LOG = logging.getLogger(__name__)
+
+def model_query(context, *args, **kwargs):
+    session = kwargs.get('session') or get_session()
+    query = session.query(*args)
+
+    return query

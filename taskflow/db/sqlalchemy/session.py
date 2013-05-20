@@ -84,6 +84,12 @@ def get_engine():
     _ENGINE = sqlalchemy.create_engine(_get_sql_connection(),
                                        **engine_args)
 
+    if 'mysql' in connection_dict.drivername:
+        sqlalchemy.event.listen(_ENGINE, 'checkout', ping_listener)
+    if 'sqlite' in connection_dict.drivername:
+        sqlalchemy.event.listen(_ENGINE, 'connect',
+                                synchronous_switch_listener)
+
     #TODO: Check to make sure engine connected
 
     return _ENGINE
