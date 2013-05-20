@@ -26,10 +26,10 @@ class TaskException(TaskFlowException):
     """When a task failure occurs the following object will be given to revert
        and can be used to interrogate what caused the failure."""
 
-    def __init__(self, task, workflow=None, cause=None):
+    def __init__(self, task, flow=None, cause=None):
         super(TaskException, self).__init__()
         self.task = task
-        self.workflow = workflow
+        self.flow = flow
         self.cause = cause
 
 
