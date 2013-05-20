@@ -21,6 +21,9 @@
 
 import logging
 
+from taskflow.db.sqlalchemy import models
+from taskflow.db.session import get_session
+
 LOG = logging.getLogger(__name__)
 
 def model_query(context, *args, **kwargs):
