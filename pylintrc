@@ -1,10 +1,10 @@
-[Messages Control]
-# W0511: TODOs in code comments are fine.
-# W0142: *args and **kwargs are fine.
-# W0622: Redefining id is fine.
-disable-msg=W0511,W0142,W0622
+[MESSAGES CONTROL]
 
-[Basic]
+# Disable the message(s) with the given id(s).
+disable=C0111,I0011,R0201,R0922,R0924,W0142,W0511,W0622,W0703
+
+[BASIC]
+
 # Variable names can be 1 to 31 characters long, with lowercase and underscores
 variable-rgx=[a-z_][a-z0-9_]{0,30}$
 
@@ -15,13 +15,20 @@ argument-rgx=[a-z_][a-z0-9_]{1,30}$
 # and be lowecased with underscores
 method-rgx=[a-z_][a-z0-9_]{2,50}$
 
-# Module names matching nova-* are ok (files in bin/)
-module-rgx=(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+)|(nova-[a-z0-9_-]+))$
-
 # Don't require docstrings on tests.
 no-docstring-rgx=((__.*__)|([tT]est.*)|setUp|tearDown)$
 
-[Design]
+[DESIGN]
+max-args=10
+max-attributes=20
+max-branchs=30
 max-public-methods=100
+max-statements=60
 min-public-methods=0
-max-args=6
+
+[REPORTS]
+output-format=parseable
+include-ids=yes
+
+[VARIABLES]
+additional-builtins=_

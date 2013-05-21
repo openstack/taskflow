@@ -17,11 +17,9 @@
 #    under the License.
 
 import abc
-import time
 import uuid
 
 from taskflow import exceptions as exc
-from taskflow import logbook
 from taskflow import states
 from taskflow import utils
 
@@ -98,12 +96,12 @@ class Job(object):
         if not task_state_name_functor:
             task_state_name_functor = generate_task_name
 
-        def wf_state_change_listener(context, wf, old_state):
+        def wf_state_change_listener(_context, wf, _old_state):
             if wf.name in self.logbook:
                 return
             self.logbook.add_flow(wf.name)
 
-        def task_result_fetcher(context, wf, task):
+        def task_result_fetcher(_context, wf, task):
             wf_details = self.logbook[wf.name]
             # See if it completed before so that we can use its results instead
             # of having to recompute them.
@@ -117,17 +115,17 @@ class Job(object):
                     return (True, task_details.metadata['result'])
             return (False, None)
 
-        def task_state_change_listener(context, state, wf, task, result=None):
-                metadata = None
-                wf_details = self.logbook[wf.name]
-                if state == states.SUCCESS:
-                    metadata = {
-                        'result': result,
-                    }
-                td_name = task_state_name_functor(task, state)
-                if td_name not in wf_details:
-                    td_details = wf_details.add_task(td_name)
-                    td_details.metadata = metadata
+        def task_state_change_listener(_context, state, wf, task, result=None):
+            metadata = None
+            wf_details = self.logbook[wf.name]
+            if state == states.SUCCESS:
+                metadata = {
+                    'result': result,
+                }
+            td_name = task_state_name_functor(task, state)
+            if td_name not in wf_details:
+                td_details = wf_details.add_task(td_name)
+                td_details.metadata = metadata
 
         wf.task_listeners.append(task_state_change_listener)
         wf.listeners.append(wf_state_change_listener)
@@ -185,4 +183,6 @@ class Job(object):
 
     @property
     def tracking_id(self):
+        """Returns a tracking *unique* identifier that can be used to identify
+        this job among other jobs."""
         return "j-%s-%s" % (self.name, self._id)

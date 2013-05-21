@@ -95,7 +95,7 @@ class Flow(object):
         as a iterable list."""
         raise NotImplementedError()
 
-    def _fetch_task_inputs(self, task):
+    def _fetch_task_inputs(self, _task):
         """Retrieves and additional kwargs inputs to provide to the task when
         said task is being applied."""
         return None

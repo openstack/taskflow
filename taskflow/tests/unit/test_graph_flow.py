@@ -17,7 +17,6 @@
 #    under the License.
 
 import collections
-import functools
 import unittest
 
 from taskflow import exceptions as excp
@@ -28,7 +27,7 @@ from taskflow import wrappers
 from taskflow.patterns import graph_flow as gw
 
 
-def null_functor(*args, **kwargs):
+def null_functor(*_args, **_kwargs):
     return None
 
 
@@ -44,7 +43,7 @@ class ProvidesRequiresTask(task.Task):
     def provides(self):
         return self._provides
 
-    def apply(self, context, *args, **kwargs):
+    def apply(self, context, *_args, **kwargs):
         outs = {
             '__inputs__': dict(kwargs),
         }
@@ -55,21 +54,21 @@ class ProvidesRequiresTask(task.Task):
 
 
 class GraphFlowTest(unittest.TestCase):
-    def testRevertPath(self):
+    def test_reverting_flow(self):
         flo = gw.Flow("test-flow")
         reverted = []
 
-        def run1(context, *args, **kwargs):
+        def run1(context): # pylint: disable=W0613
             return {
                 'a': 1,
             }
 
-        def run1_revert(context, result, cause):
+        def run1_revert(context, result, cause): # pylint: disable=W0613
             reverted.append('run1')
             self.assertEquals(states.REVERTING, cause.flow.state)
             self.assertEquals(result, {'a': 1})
 
-        def run2(context, a, *args, **kwargs):
+        def run2(context, a): # pylint: disable=W0613,C0103
             raise Exception('Dead')
 
         flo.add(wrappers.FunctorTask(None, run1, run1_revert,
@@ -84,7 +83,7 @@ class GraphFlowTest(unittest.TestCase):
         self.assertEquals(states.FAILURE, flo.state)
         self.assertEquals(['run1'], reverted)
 
-    def testNoProvider(self):
+    def test_no_requires_provider(self):
         flo = gw.Flow("test-flow")
         flo.add(ProvidesRequiresTask('test1',
                                      provides=['a', 'b'],
@@ -93,7 +92,7 @@ class GraphFlowTest(unittest.TestCase):
         self.assertRaises(excp.InvalidStateException, flo.run, {})
         self.assertEquals(states.FAILURE, flo.state)
 
-    def testLoopFlow(self):
+    def test_looping_flow(self):
         flo = gw.Flow("test-flow")
         flo.add(ProvidesRequiresTask('test1',
                                      provides=['a', 'b'],
@@ -106,7 +105,7 @@ class GraphFlowTest(unittest.TestCase):
         self.assertRaises(excp.InvalidStateException, flo.run, ctx)
         self.assertEquals(states.FAILURE, flo.state)
 
-    def testComplicatedInputsOutputs(self):
+    def test_complicated_inputs_outputs(self):
         flo = gw.Flow("test-flow")
         flo.add(ProvidesRequiresTask('test1',
                                      provides=['a', 'b'],
@@ -139,14 +138,14 @@ class GraphFlowTest(unittest.TestCase):
         # This order is deterministic
         self.assertEquals(['test1', 'test4', 'test5', 'test6'], run_order[2:])
 
-    def testConnectRequirementFailure(self):
+    def test_connect_requirement_failure(self):
 
-        def run1(context, *args, **kwargs):
+        def run1(context): # pylint: disable=W0613
             return {
                 'a': 1,
             }
 
-        def run2(context, b, c, d, *args, **kwargs):
+        def run2(context, b, c, d): # pylint: disable=W0613,C0103
             return None
 
         flo = gw.Flow("test-flow")
@@ -160,31 +159,31 @@ class GraphFlowTest(unittest.TestCase):
         self.assertRaises(excp.InvalidStateException, flo.run, {})
         self.assertRaises(excp.InvalidStateException, flo.order)
 
-    def testHappyPath(self):
+    def test_happy_flow(self):
         flo = gw.Flow("test-flow")
 
         run_order = []
         f_args = {}
 
-        def run1(context, *args, **kwargs):
+        def run1(context): # pylint: disable=W0613,C0103
             run_order.append('ran1')
             return {
                 'a': 1,
             }
 
-        def run2(context, a, *args, **kwargs):
+        def run2(context, a): # pylint: disable=W0613,C0103
             run_order.append('ran2')
             return {
                 'c': 3,
             }
 
-        def run3(context, a, *args, **kwargs):
+        def run3(context, a): # pylint: disable=W0613,C0103
             run_order.append('ran3')
             return {
                 'b': 2,
             }
 
-        def run4(context, b, c, *args, **kwargs):
+        def run4(context, b, c): # pylint: disable=W0613,C0103
             run_order.append('ran4')
             f_args['b'] = b
             f_args['c'] = c

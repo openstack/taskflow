@@ -19,28 +19,20 @@
 from datetime import datetime
 
 import functools
-import inspect
 import threading
-import time
 import unittest
 
 from taskflow import exceptions as exc
 from taskflow import job
-from taskflow import logbook
 from taskflow import states
-from taskflow import task
 from taskflow import wrappers as wrap
 
 from taskflow.backends import memory
 from taskflow.patterns import linear_flow as lw
 
 
-def null_functor(*args, **kwargs):
+def null_functor(*_args, **_kwargs):
     return None
-
-
-def gen_task_name(task, state):
-    return "%s:%s" % (task.name, state)
 
 
 def close_all(*args):
@@ -51,10 +43,10 @@ def close_all(*args):
 
 
 class MemoryBackendTest(unittest.TestCase):
-    def _createMemoryImpl(self, cons=1):
+    def _create_memory_impl(self, cons=1):
         worker_group = []
         poisons = []
-        for i in range(0, cons):
+        for _i in range(0, cons):
             poisons.append(threading.Event())
 
         def killer():
@@ -96,7 +88,7 @@ class MemoryBackendTest(unittest.TestCase):
                     for j in my_jobs:
                         # Create some dummy flow for the job
                         wf = lw.Flow('dummy')
-                        for i in range(0, 5):
+                        for _i in range(0, 5):
                             t = wrap.FunctorTask(None,
                                                  null_functor, null_functor)
                             wf.add(t)
@@ -116,13 +108,13 @@ class MemoryBackendTest(unittest.TestCase):
 
         return (job_board, job_claimer, book_catalog, killer)
 
-    def testJobWorking(self):
+    def test_job_working(self):
         killer = None
         job_board = None
         book_catalog = None
         try:
             (job_board, job_claimer,
-             book_catalog, killer) = self._createMemoryImpl()
+             book_catalog, killer) = self._create_memory_impl()
             j = job.Job("blah", {}, book_catalog, job_claimer)
             job_board.post(j)
             j.await()
@@ -132,7 +124,7 @@ class MemoryBackendTest(unittest.TestCase):
                 killer()
             close_all(book_catalog, job_board)
 
-    def testWorkJobLinearInterrupted(self):
+    def test_working_job_interrupted(self):
         job_claimer = memory.MemoryClaimer()
         book_catalog = memory.MemoryCatalog()
 
@@ -148,13 +140,13 @@ class MemoryBackendTest(unittest.TestCase):
 
         call_log = []
 
-        def do_1(context, *args, **kwargs):
+        def do_1(_context, *_args, **_kwargs):
             call_log.append(1)
 
-        def do_2(context, *args, **kwargs):
+        def do_2(_context, *_args, **_kwargs):
             call_log.append(2)
 
-        def do_interrupt(context, *args, **kwargs):
+        def do_interrupt(_context, *_args, **_kwargs):
             wf.interrupt()
 
         task_1 = wrap.FunctorTask(None, do_1, null_functor)
@@ -180,7 +172,7 @@ class MemoryBackendTest(unittest.TestCase):
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 
-    def testWorkJobLinearClean(self):
+    def test_working_job(self):
         job_claimer = memory.MemoryClaimer()
         book_catalog = memory.MemoryCatalog()
 
@@ -196,10 +188,10 @@ class MemoryBackendTest(unittest.TestCase):
 
         call_log = []
 
-        def do_1(context, *args, **kwargs):
+        def do_1(_context, *_args, **_kwargs):
             call_log.append(1)
 
-        def do_2(context, *args, **kwargs):
+        def do_2(_context, *_args, **_kwargs):
             call_log.append(2)
 
         wf.add(wrap.FunctorTask(None, do_1, null_functor))
@@ -211,7 +203,7 @@ class MemoryBackendTest(unittest.TestCase):
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 
-    def testPostRecvJob(self):
+    def test_post_receive_job(self):
         job_claimer = memory.MemoryClaimer()
         book_catalog = memory.MemoryCatalog()
         j = job.Job("test", {}, book_catalog, job_claimer)
