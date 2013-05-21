@@ -16,6 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import inspect
+
 from taskflow import task
 
 
@@ -25,13 +27,29 @@ class FunctorTask(task.Task):
     situations where existing functions already are in place and you just want
     to wrap them up."""
 
-    def __init__(self, name, apply_functor, revert_functor):
+    def __init__(self, name, apply_functor, revert_functor,
+                 provides_what=None, extract_requires=False):
         super(FunctorTask, self).__init__(name)
         if not self.name:
             self.name = "%s_%s" % (apply_functor.__name__,
                                    revert_functor.__name__)
         self._apply_functor = apply_functor
         self._revert_functor = revert_functor
+        self._requires = set()
+        self._provides = set()
+        if provides_what:
+            self._provides.update(provides_what)
+        if extract_requires:
+            for a in inspect.getargspec(apply_functor).args:
+                if a in ('self', 'context',):
+                    continue
+                self._requires.add(a)
+
+    def requires(self):
+        return set(self._requires)
+
+    def provides(self):
+        return set(self._provides)
 
     def apply(self, context, *args, **kwargs):
         return self._apply_functor(context, *args, **kwargs)

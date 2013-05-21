@@ -60,6 +60,46 @@ class LinearFlowTest(unittest.TestCase):
                                     functools.partial(do_interrupt, token),
                                     null_functor)
 
+    def testSadFlowStateChanges(self):
+        wf = lw.Flow("the-test-action")
+        flow_changes = []
+
+        def flow_listener(context, wf, previous_state):
+            flow_changes.append(previous_state)
+
+        wf.listeners.append(flow_listener)
+        wf.add(self.makeRevertingTask(1, True))
+
+        self.assertEquals(states.PENDING, wf.state)
+        self.assertRaises(Exception, wf.run, {})
+
+        expected_states = [
+            states.PENDING,
+            states.STARTED,
+            states.RUNNING,
+            states.REVERTING,
+        ]
+        self.assertEquals(expected_states, flow_changes)
+        self.assertEquals(states.FAILURE, wf.state)
+
+    def testHappyFlowStateChanges(self):
+        wf = lw.Flow("the-test-action")
+        flow_changes = []
+
+        def flow_listener(context, wf, previous_state):
+            flow_changes.append(previous_state)
+
+        wf.listeners.append(flow_listener)
+        wf.add(self.makeRevertingTask(1))
+
+        self.assertEquals(states.PENDING, wf.state)
+        wf.run({})
+
+        self.assertEquals([states.PENDING, states.STARTED, states.RUNNING],
+                          flow_changes)
+
+        self.assertEquals(states.SUCCESS, wf.state)
+
     def testHappyPath(self):
         wf = lw.Flow("the-test-action")
 
