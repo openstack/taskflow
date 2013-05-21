@@ -23,6 +23,7 @@ import uuid
 from taskflow import exceptions as exc
 from taskflow import logbook
 from taskflow import states
+from taskflow import utils
 
 
 class Claimer(object):
@@ -53,7 +54,7 @@ class Job(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, context, catalog, claimer):
+    def __init__(self, name, context, catalog, claimer, jid=None):
         self.name = name
         self.context = context
         self.owner = None
@@ -61,7 +62,10 @@ class Job(object):
         self._catalog = catalog
         self._claimer = claimer
         self._logbook = None
-        self._id = str(uuid.uuid4().hex)
+        if not jid:
+            self._id = str(uuid.uuid4().hex)
+        else:
+            self._id = str(jid)
         self._state = states.UNCLAIMED
 
     def __str__(self):
@@ -97,10 +101,10 @@ class Job(object):
         def wf_state_change_listener(context, wf, old_state):
             if wf.name in self.logbook:
                 return
-            self.logbook.add_workflow(wf.name)
+            self.logbook.add_flow(wf.name)
 
         def task_result_fetcher(context, wf, task):
-            wf_details = self.logbook.fetch_workflow(wf.name)
+            wf_details = self.logbook[wf.name]
             # See if it completed before so that we can use its results instead
             # of having to recompute them.
             td_name = task_state_name_functor(task, states.SUCCESS)
@@ -108,21 +112,22 @@ class Job(object):
                 # TODO(harlowja): should we be a little more cautious about
                 # duplicate task results? Maybe we shouldn't allow them to
                 # have the same name in the first place?
-                task_details = wf_details.fetch_tasks(td_name)[0]
+                task_details = wf_details[td_name][0]
                 if task_details.metadata and 'result' in task_details.metadata:
                     return (True, task_details.metadata['result'])
             return (False, None)
 
         def task_state_change_listener(context, state, wf, task, result=None):
                 metadata = None
-                wf_details = self.logbook.fetch_workflow(wf.name)
+                wf_details = self.logbook[wf.name]
                 if state == states.SUCCESS:
                     metadata = {
                         'result': result,
                     }
                 td_name = task_state_name_functor(task, state)
                 if td_name not in wf_details:
-                    wf_details.add_task(logbook.TaskDetail(td_name, metadata))
+                    td_details = wf_details.add_task(td_name)
+                    td_details.metadata = metadata
 
         wf.task_listeners.append(task_state_change_listener)
         wf.listeners.append(wf_state_change_listener)
@@ -170,22 +175,13 @@ class Job(object):
     def await(self, timeout=None):
         """Awaits until either the job fails or succeeds or the provided
         timeout is reached."""
-        if timeout is not None:
-            end_time = time.time() + max(0, timeout)
-        else:
-            end_time = None
-        # Use the same/similar scheme that the python condition class uses.
-        delay = 0.0005
-        while self.state not in (states.FAILURE, states.SUCCESS):
-            time.sleep(delay)
-            if end_time is not None:
-                remaining = end_time - time.time()
-                if remaining <= 0:
-                    return False
-                delay = min(delay * 2, remaining, 0.05)
-            else:
-                delay = min(delay * 2, 0.05)
-        return True
+
+        def check_functor():
+            if self.state not in (states.FAILURE, states.SUCCESS):
+                return False
+            return True
+
+        return utils.await(check_functor, timeout)
 
     @property
     def tracking_id(self):

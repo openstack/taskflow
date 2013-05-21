@@ -23,14 +23,14 @@ from taskflow import states
 from taskflow import task
 from taskflow import wrappers
 
-from taskflow.patterns import linear_workflow as lw
+from taskflow.patterns import linear_flow as lw
 
 
 def null_functor(*args, **kwargs):
     return None
 
 
-class LinearWorkflowTest(unittest.TestCase):
+class LinearFlowTest(unittest.TestCase):
     def makeRevertingTask(self, token, blowup=False):
 
         def do_apply(token, context, *args, **kwargs):
@@ -60,8 +60,48 @@ class LinearWorkflowTest(unittest.TestCase):
                                     functools.partial(do_interrupt, token),
                                     null_functor)
 
+    def testSadFlowStateChanges(self):
+        wf = lw.Flow("the-test-action")
+        flow_changes = []
+
+        def flow_listener(context, wf, previous_state):
+            flow_changes.append(previous_state)
+
+        wf.listeners.append(flow_listener)
+        wf.add(self.makeRevertingTask(1, True))
+
+        self.assertEquals(states.PENDING, wf.state)
+        self.assertRaises(Exception, wf.run, {})
+
+        expected_states = [
+            states.PENDING,
+            states.STARTED,
+            states.RUNNING,
+            states.REVERTING,
+        ]
+        self.assertEquals(expected_states, flow_changes)
+        self.assertEquals(states.FAILURE, wf.state)
+
+    def testHappyFlowStateChanges(self):
+        wf = lw.Flow("the-test-action")
+        flow_changes = []
+
+        def flow_listener(context, wf, previous_state):
+            flow_changes.append(previous_state)
+
+        wf.listeners.append(flow_listener)
+        wf.add(self.makeRevertingTask(1))
+
+        self.assertEquals(states.PENDING, wf.state)
+        wf.run({})
+
+        self.assertEquals([states.PENDING, states.STARTED, states.RUNNING],
+                          flow_changes)
+
+        self.assertEquals(states.SUCCESS, wf.state)
+
     def testHappyPath(self):
-        wf = lw.Workflow("the-test-action")
+        wf = lw.Flow("the-test-action")
 
         for i in range(0, 10):
             wf.add(self.makeRevertingTask(i))
@@ -74,7 +114,7 @@ class LinearWorkflowTest(unittest.TestCase):
             self.assertEquals('passed', v)
 
     def testRevertingPath(self):
-        wf = lw.Workflow("the-test-action")
+        wf = lw.Flow("the-test-action")
         wf.add(self.makeRevertingTask(1))
         wf.add(self.makeRevertingTask(2, True))
 
@@ -84,7 +124,7 @@ class LinearWorkflowTest(unittest.TestCase):
         self.assertEquals(1, len(run_context))
 
     def testInterruptPath(self):
-        wf = lw.Workflow("the-int-action")
+        wf = lw.Flow("the-int-action")
 
         result_storage = {}
 
@@ -124,7 +164,7 @@ class LinearWorkflowTest(unittest.TestCase):
         self.assertEquals(2, len(context))
 
     def testParentRevertingPath(self):
-        happy_wf = lw.Workflow("the-happy-action")
+        happy_wf = lw.Flow("the-happy-action")
         for i in range(0, 10):
             happy_wf.add(self.makeRevertingTask(i))
         context = {}
@@ -133,7 +173,7 @@ class LinearWorkflowTest(unittest.TestCase):
         for (_k, v) in context.items():
             self.assertEquals('passed', v)
 
-        baddy_wf = lw.Workflow("the-bad-action", parents=[happy_wf])
+        baddy_wf = lw.Flow("the-bad-action", parents=[happy_wf])
         baddy_wf.add(self.makeRevertingTask(i + 1))
         baddy_wf.add(self.makeRevertingTask(i + 2, True))
         self.assertRaises(Exception, baddy_wf.run, context)

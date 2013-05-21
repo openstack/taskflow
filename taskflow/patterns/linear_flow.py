@@ -16,15 +16,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.patterns import ordered_workflow
+from taskflow.patterns import ordered_flow
 
 
-class Workflow(ordered_workflow.Workflow):
+class Flow(ordered_flow.Flow):
     """A linear chain of *independent* tasks that can be applied as one unit or
        rolled back as one unit."""
 
     def __init__(self, name, tolerant=False, parents=None):
-        super(Workflow, self).__init__(name, tolerant, parents)
+        super(Flow, self).__init__(name, tolerant, parents)
         self._tasks = []
 
     def add(self, task):

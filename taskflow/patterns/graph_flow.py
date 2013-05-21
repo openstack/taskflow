@@ -25,18 +25,18 @@ from networkx.algorithms import dag
 from networkx.classes import digraph
 
 from taskflow import exceptions as exc
-from taskflow.patterns import ordered_workflow
+from taskflow.patterns import ordered_flow
 
 LOG = logging.getLogger(__name__)
 
 
-class Workflow(ordered_workflow.Workflow):
-    """A workflow which will analyze the attached tasks input requirements and
+class Flow(ordered_flow.Flow):
+    """A flow which will analyze the attached tasks input requirements and
     determine who provides said input and order the task so that said providing
     task will be ran before."""
 
     def __init__(self, name, tolerant=False, parents=None):
-        super(Workflow, self).__init__(name, tolerant, parents)
+        super(Flow, self).__init__(name, tolerant, parents)
         self._graph = digraph.DiGraph()
         self._connected = False
 
@@ -49,9 +49,20 @@ class Workflow(ordered_workflow.Workflow):
         self._graph.add_node(task)
         self._connected = False
 
+    def _fetch_task_inputs(self, task):
+        task_needs = task.requires()
+        if not task_needs:
+            return None
+        inputs = {}
+        for (_who, there_result) in self.results:
+            for n in task_needs:
+                if there_result and n in there_result:
+                    inputs[n] = there_result[n]
+        return inputs
+
     def run(self, context, *args, **kwargs):
         self.connect()
-        return super(Workflow, self).run(context, *args, **kwargs)
+        return super(Flow, self).run(context, *args, **kwargs)
 
     def order(self):
         self.connect()
@@ -60,27 +71,39 @@ class Workflow(ordered_workflow.Workflow):
         except g_exc.NetworkXUnfeasible:
             raise exc.InvalidStateException("Unable to correctly determine "
                                             "the path through the provided "
-                                            "workflow which will satisfy the "
+                                            "flow which will satisfy the "
                                             "tasks needed inputs and outputs.")
 
     def connect(self):
-        """Connects the edges of the graph together."""
-        if self._connected:
+        """Connects the nodes & edges of the graph together."""
+        if self._connected or len(self._graph) == 0:
             return
+
         provides_what = defaultdict(list)
         requires_what = defaultdict(list)
         for t in self._graph.nodes_iter():
-            for r in t.requires:
+            for r in t.requires():
                 requires_what[r].append(t)
-            for p in t.provides:
+            for p in t.provides():
                 provides_what[p].append(t)
-        for (i_want, n) in requires_what.items():
-            if i_want not in provides_what:
-                raise exc.InvalidStateException("Task %s requires input %s "
-                                                "but no other task produces "
-                                                "said output" % (n, i_want))
-            for p in provides_what[i_want]:
+
+        for (want_what, who_wants) in requires_what.items():
+            who_provided = 0
+            for p in provides_what.get(want_what, []):
                 # P produces for N so thats why we link P->N and not N->P
-                self._graph.add_edge(p, n)
+                for n in who_wants:
+                    if p is n:
+                        # No self-referencing allowed.
+                        continue
+                    why = {
+                        want_what: True,
+                    }
+                    self._graph.add_edge(p, n, why)
+                    who_provided += 1
+            if not who_provided:
+                raise exc.InvalidStateException("Task/s %s requires input %s "
+                                                "but no other task produces "
+                                                "said output." % (who_wants,
+                                                                  want_what))
 
         self._connected = True

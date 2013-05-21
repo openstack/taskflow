@@ -18,6 +18,26 @@
 
 import contextlib
 import threading
+import time
+
+
+def await(check_functor, timeout=None):
+    if timeout is not None:
+        end_time = time.time() + max(0, timeout)
+    else:
+        end_time = None
+    # Use the same/similar scheme that the python condition class uses.
+    delay = 0.0005
+    while not check_functor():
+        time.sleep(delay)
+        if end_time is not None:
+            remaining = end_time - time.time()
+            if remaining <= 0:
+                return False
+            delay = min(delay * 2, remaining, 0.05)
+        else:
+            delay = min(delay * 2, 0.05)
+    return True
 
 
 class ReaderWriterLock(object):
