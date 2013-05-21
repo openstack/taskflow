@@ -18,12 +18,7 @@
 #    under the License.
 """
 SQLAlchemy models for taskflow data.
-
-NOTE: WFs cannot currently be re-used in a single logbook or job, but can be re-used across
-multiple logbooks and jobs
 """
-
-import logging
 
 from oslo.config import cfg
 

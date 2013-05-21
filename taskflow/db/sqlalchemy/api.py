@@ -33,31 +33,3 @@ def model_query(context, *args, **kwargs):
     query = session.query(*args)
 
     return query
-
-def workflow_get(context, workflow_id):
-    """Return one workflow with matching workflow_id"""
-    result = model_query(context, models.Workflow).get(workflow_id)
-
-    if not result:
-        raise exception.NotFound("No workflow found "
-                                 "with id %s." % (workflow_id,))
-
-def workflow_get_all(context):
-    """Return all workflows"""
-    results = model_query(context, models.Workflow).all()
-
-    if not results:
-        raise exception.NotFound("No workflows were found.")
-
-    return results
-
-def workflow_get_names(context):
-    """Return all workflow names"""
-    results = model_auery(context, models.Workflow.name).all()
-
-    return zip(*results)
-
-def workflow_create(context, workflow_id):
-    """Create new workflow with workflow_id"""
-    
-    
