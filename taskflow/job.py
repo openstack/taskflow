@@ -23,6 +23,7 @@ import uuid
 from taskflow import exceptions as exc
 from taskflow import logbook
 from taskflow import states
+from taskflow import utils
 
 
 class Claimer(object):
@@ -171,22 +172,13 @@ class Job(object):
     def await(self, timeout=None):
         """Awaits until either the job fails or succeeds or the provided
         timeout is reached."""
-        if timeout is not None:
-            end_time = time.time() + max(0, timeout)
-        else:
-            end_time = None
-        # Use the same/similar scheme that the python condition class uses.
-        delay = 0.0005
-        while self.state not in (states.FAILURE, states.SUCCESS):
-            time.sleep(delay)
-            if end_time is not None:
-                remaining = end_time - time.time()
-                if remaining <= 0:
-                    return False
-                delay = min(delay * 2, remaining, 0.05)
-            else:
-                delay = min(delay * 2, 0.05)
-        return True
+
+        def check_functor():
+            if self.state not in (states.FAILURE, states.SUCCESS):
+                return False
+            return True
+
+        return utils.await(check_functor, timeout)
 
     @property
     def tracking_id(self):

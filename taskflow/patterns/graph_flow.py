@@ -87,18 +87,23 @@ class Flow(ordered_flow.Flow):
             for p in t.provides():
                 provides_what[p].append(t)
 
-        for (i_want, who_wants) in requires_what.items():
-            if i_want not in provides_what:
+        for (want_what, who_wants) in requires_what.items():
+            who_provided = 0
+            for p in provides_what.get(want_what, []):
+                # P produces for N so thats why we link P->N and not N->P
+                for n in who_wants:
+                    if p is n:
+                        # No self-referencing allowed.
+                        continue
+                    why = {
+                        want_what: True,
+                    }
+                    self._graph.add_edge(p, n, why)
+                    who_provided += 1
+            if not who_provided:
                 raise exc.InvalidStateException("Task/s %s requires input %s "
                                                 "but no other task produces "
                                                 "said output." % (who_wants,
-                                                                  i_want))
-            for p in provides_what[i_want]:
-                # P produces for N so thats why we link P->N and not N->P
-                for n in who_wants:
-                    why = {
-                        i_want: True,
-                    }
-                    self._graph.add_edge(p, n, why)
+                                                                  want_what))
 
         self._connected = True
