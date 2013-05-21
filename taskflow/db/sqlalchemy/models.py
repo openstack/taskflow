@@ -118,13 +118,13 @@ class TaskFlowBase(object):
 workflow_logbook_assoc = Table('wf_lb_assoc', BASE.metadata,
     Column('workflow_id', Integer, ForeignKey('workflow.id')),
     Column('logbook_id', Integer, ForeignKey('logbook.id')),
-    Column(Integer, primary_key=True)
+    Column('id', Integer, primary_key=True)
 )
 
 workflow_job_assoc = Table('wf_job_assoc', BASE.metadata,
-    Column('left_id', Integer, ForeignKey('left.id')),
-    Column('right_id', Integer, ForeignKey('right.id')),
-    Column(Integer, primary_key=True)
+    Column('workflow_id', Integer, ForeignKey('workflow.id')),
+    Column('job_id', Integer, ForeignKey('job.id')),
+    Column('id', Integer, primary_key=True)
 )
 
 class LogBook(BASE, TaskFlowBase):
