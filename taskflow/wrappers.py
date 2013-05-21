@@ -20,6 +20,8 @@ import inspect
 
 from taskflow import task
 
+AUTO_ARGS = ('self', 'context',)
+
 
 class FunctorTask(task.Task):
     """A simple task that can wrap two given functions and allow them to be
@@ -29,10 +31,10 @@ class FunctorTask(task.Task):
 
     def __init__(self, name, apply_functor, revert_functor,
                  provides_what=None, extract_requires=False):
+        if not name:
+            name = "_".join([apply_functor.__name__, revert_functor.__name__])
         super(FunctorTask, self).__init__(name)
-        if not self.name:
-            self.name = "%s_%s" % (apply_functor.__name__,
-                                   revert_functor.__name__)
+
         self._apply_functor = apply_functor
         self._revert_functor = revert_functor
         self._requires = set()
@@ -40,10 +42,11 @@ class FunctorTask(task.Task):
         if provides_what:
             self._provides.update(provides_what)
         if extract_requires:
-            for a in inspect.getargspec(apply_functor).args:
-                if a in ('self', 'context',):
+            for arg_name in inspect.getargspec(apply_functor).args:
+                # These are automatically given, ignore.
+                if arg_name in AUTO_ARGS:
                     continue
-                self._requires.add(a)
+                self._requires.add(arg_name)
 
     def requires(self):
         return set(self._requires)
