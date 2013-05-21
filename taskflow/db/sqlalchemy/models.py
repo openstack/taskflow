@@ -18,13 +18,16 @@
 #    under the License.
 """
 SQLAlchemy models for taskflow data.
+
+NOTE: WFs cannot currently be re-used in a single logbook or job, but can be re-used across
+multiple logbooks and jobs
 """
 
 import logging
 
 from oslo.config import cfg
 
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Table
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import object_mapper, relationship, backref
@@ -112,7 +115,27 @@ class TaskFlowBase(object):
         local.update(joined)
         return local.iteritems()
 
+workflow_logbook_assoc = Table('wf_lb_assoc', BASE.metadata,
+    Column('workflow_id', Integer, ForeignKey('workflow.id')),
+    Column('logbook_id', Integer, ForeignKey('logbook.id')),
+    Column(Integer, primary_key=True)
+)
 
+workflow_job_assoc = Table('wf_job_assoc', BASE.metadata,
+    Column('left_id', Integer, ForeignKey('left.id')),
+    Column('right_id', Integer, ForeignKey('right.id')),
+    Column(Integer, primary_key=True)
+)
+
+class LogBook(BASE, TaskFlowBase):
+    """Represents a logbook for a set of workflows"""
+
+    __tablename__ = 'logbook'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    workflows = relationship("Workflow",
+                             secondary=workflow_logbook_assoc)
 
 class Job(BASE, TaskFlowBase):
     """Represents a Job"""
@@ -124,7 +147,8 @@ class Job(BASE, TaskFlowBase):
     name = Column(String)
     owner = Column(String)
     state = Column(String)
-    workflows = relationship("Workflow")
+    workflows = relationship("Workflow",
+                             secondary=workflow_job_assoc)
 
 
 class Workflow(BASE, TaskFlowBase):
@@ -136,8 +160,6 @@ class Workflow(BASE, TaskFlowBase):
     workflow_id = Column(String, default=uuidutils.generate_uuid)
     name = Column(String)
     tasks = relationship("Task", backref="workflow")
-    job_id = relationship("Job", ForeignKey('job.id'))
-
 
 class Task(BASE, TaskFlowBase):
     """Represents Task Objects"""
