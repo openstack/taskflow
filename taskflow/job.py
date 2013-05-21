@@ -54,7 +54,7 @@ class Job(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, context, catalog, claimer):
+    def __init__(self, name, context, catalog, claimer, jid=None):
         self.name = name
         self.context = context
         self.owner = None
@@ -62,7 +62,10 @@ class Job(object):
         self._catalog = catalog
         self._claimer = claimer
         self._logbook = None
-        self._id = str(uuid.uuid4().hex)
+        if not jid:
+            self._id = str(uuid.uuid4().hex)
+        else:
+            self._id = str(jid)
         self._state = states.UNCLAIMED
 
     def __str__(self):
