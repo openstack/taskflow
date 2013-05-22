@@ -196,11 +196,11 @@ def workflow_create(context, workflow_name):
 
     return workflow_ref
 
-def workflow_destroy(context, wf_id):
+def workflow_destroy(context, wf_name):
     """Delete a given Workflow"""
     session = get_session()
     with session.begin():
-        wf = workflow_get(context, wf_id, session=session)
+        wf = workflow_get(context, wf_name, session=session)
         wf.delete()
 
 """
