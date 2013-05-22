@@ -22,17 +22,6 @@ class TaskFlowException(Exception):
     pass
 
 
-class TaskException(TaskFlowException):
-    """When a task failure occurs the following object will be given to revert
-       and can be used to interrogate what caused the failure."""
-
-    def __init__(self, task, flow=None, cause=None):
-        super(TaskException, self).__init__()
-        self.task = task
-        self.flow = flow
-        self.cause = cause
-
-
 class NotFound(TaskFlowException):
     """Raised when some entry in some object doesn't exist."""
     pass

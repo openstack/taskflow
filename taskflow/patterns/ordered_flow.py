@@ -28,6 +28,16 @@ from taskflow import states
 LOG = logging.getLogger(__name__)
 
 
+class FlowFailure(object):
+    """When a task failure occurs the following object will be given to revert
+       and can be used to interrogate what caused the failure."""
+
+    def __init__(self, task, flow, cause):
+        self.task = task
+        self.flow = flow
+        self.cause = cause
+
+
 class Flow(object):
     """A set tasks that can be applied as one unit or rolled back as one
     unit using an ordered arrangements of said tasks where reversion is by
@@ -95,7 +105,7 @@ class Flow(object):
         # the given task and either reconcile said task and its associated
         # failure, so that the flow can continue or abort and perform
         # some type of undo of the tasks already completed.
-        cause = exc.TaskException(task, self, excp)
+        cause = FlowFailure(task, self, excp)
         with excutils.save_and_reraise_exception():
             try:
                 self._change_state(context, states.REVERTING)
@@ -133,7 +143,17 @@ class Flow(object):
             result_fetcher = None
 
         self._change_state(context, states.STARTED)
-        task_order = self.order()
+
+        try:
+            task_order = self.order()
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                try:
+                    self._change_state(context, states.FAILURE)
+                except Exception:
+                    LOG.exception("Dropping exception catched when"
+                                  " notifying about ordering failure.")
+
         last_task = 0
         was_interrupted = False
         if result_fetcher:
@@ -177,7 +197,7 @@ class Flow(object):
                 self._on_task_start(context, task)
                 if not has_result:
                     inputs = self._fetch_task_inputs(task)
-                    if inputs is None:
+                    if not inputs:
                         inputs = {}
                     inputs.update(kwargs)
                     result = task.apply(context, *args, **inputs)
