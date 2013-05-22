@@ -166,6 +166,10 @@ class Job(object):
                 for p in a_flow.parents:
                     associate_all(p)
 
+        if not flow.state != states.PENDING:
+            raise exc.InvalidStateException("Unable to run job when job is"
+                                            " in state %s" % (flow.state))
+
         associate_all(flow)
         return flow.run(self.context, *args, **kwargs)
 
