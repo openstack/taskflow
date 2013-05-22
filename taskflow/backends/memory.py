@@ -39,7 +39,7 @@ def check_not_closed(meth):
 
     @functools.wraps(meth)
     def check(self, *args, **kwargs):
-        if self._closed: # pylint: disable=W0212
+        if self._closed:  # pylint: disable=W0212
             raise exc.ClosedException("Unable to call %s on closed object" %
                                       (meth.__name__))
         return meth(self, *args, **kwargs)

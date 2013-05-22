@@ -29,6 +29,7 @@ def close_all(*args):
             continue
         a.close()
 
+
 def null_functor(*args, **kwargs):  # pylint: disable=W0613
     return None
 

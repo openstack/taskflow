@@ -21,7 +21,6 @@ import unittest
 
 from taskflow import exceptions as excp
 from taskflow import states
-from taskflow import task
 from taskflow import wrappers
 
 from taskflow.patterns import graph_flow as gw
@@ -38,12 +37,12 @@ class GraphFlowTest(unittest.TestCase):
                 'a': 1,
             }
 
-        def run1_revert(context, result, cause): # pylint: disable=W0613
+        def run1_revert(context, result, cause):  # pylint: disable=W0613
             reverted.append('run1')
             self.assertEquals(states.REVERTING, cause.flow.state)
             self.assertEquals(result, {'a': 1})
 
-        def run2(context, a): # pylint: disable=W0613,C0103
+        def run2(context, a):  # pylint: disable=W0613,C0103
             raise Exception('Dead')
 
         flo.add(wrappers.FunctorTask(None, run1, run1_revert,
@@ -115,12 +114,12 @@ class GraphFlowTest(unittest.TestCase):
 
     def test_connect_requirement_failure(self):
 
-        def run1(context): # pylint: disable=W0613
+        def run1(context):  # pylint: disable=W0613
             return {
                 'a': 1,
             }
 
-        def run2(context, b, c, d): # pylint: disable=W0613,C0103
+        def run2(context, b, c, d):  # pylint: disable=W0613,C0103
             return None
 
         flo = gw.Flow("test-flow")
@@ -140,25 +139,25 @@ class GraphFlowTest(unittest.TestCase):
         run_order = []
         f_args = {}
 
-        def run1(context): # pylint: disable=W0613,C0103
+        def run1(context):  # pylint: disable=W0613,C0103
             run_order.append('ran1')
             return {
                 'a': 1,
             }
 
-        def run2(context, a): # pylint: disable=W0613,C0103
+        def run2(context, a):  # pylint: disable=W0613,C0103
             run_order.append('ran2')
             return {
                 'c': 3,
             }
 
-        def run3(context, a): # pylint: disable=W0613,C0103
+        def run3(context, a):  # pylint: disable=W0613,C0103
             run_order.append('ran3')
             return {
                 'b': 2,
             }
 
-        def run4(context, b, c): # pylint: disable=W0613,C0103
+        def run4(context, b, c):  # pylint: disable=W0613,C0103
             run_order.append('ran4')
             f_args['b'] = b
             f_args['c'] = c
