@@ -166,7 +166,7 @@ class Job(object):
                 for p in a_flow.parents:
                     associate_all(p)
 
-        if not flow.state != states.PENDING:
+        if flow.state != states.PENDING:
             raise exc.InvalidStateException("Unable to run %s when in"
                                             " state %s" % (flow, flow.state))
 
