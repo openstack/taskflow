@@ -153,7 +153,19 @@ class Job(object):
         self._change_state(states.CLAIMED)
 
     def run(self, flow, *args, **kwargs):
-        self.associate(flow)
+        already_associated = []
+
+        def associate_all(f):
+            # Associate with the flow and the flows parents and so on.
+            if f in already_associated:
+                return
+            self.associate(f)
+            already_associated.append(f)
+            if f.parents:
+                for p in f.parents:
+                    associate_all(p)
+
+        associate_all(flow)
         return flow.run(self.context, *args, **kwargs)
 
     def unclaim(self):
