@@ -48,7 +48,7 @@ class Json(types.TypeDecorator, types.MutableType):
 
 
 class TaskFlowBase(object):
-    """Base class for Heat Models."""
+    """Base class for TaskFlow Models."""
     __table_args__ = {'mysql_engine':'InnoDB'}
     __table_initialized = False
     created_at = Column(DateTime, default=timeutils.utcnow)
@@ -132,6 +132,7 @@ class LogBook(BASE, TaskFlowBase):
     name = Column(String)
     workflows = relationship("Workflow",
                              secondary=workflow_logbook_assoc)
+    job = relationship("Job", uselist=False, backref="logbook")
 
 class Job(BASE, TaskFlowBase):
     """Represents a Job"""
@@ -146,10 +147,11 @@ class Job(BASE, TaskFlowBase):
     state = Column(String)
     workflows = relationship("Workflow",
                              secondary=workflow_job_assoc)
+    logbook_id = Column(String, ForeignKey('logbook.logbook_id')
 
 
 class Workflow(BASE, TaskFlowBase):
-    """Represents Workflow Objects"""
+    """Represents Workflow detail objects"""
 
     __tablename__ = 'workflow'
 
@@ -158,7 +160,7 @@ class Workflow(BASE, TaskFlowBase):
     tasks = relationship("Task", backref="workflow")
 
 class Task(BASE, TaskFlowBase):
-    """Represents Task Objects"""
+    """Represents Task detail objects"""
 
     __tablename__ = 'task'
 

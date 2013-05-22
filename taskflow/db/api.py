@@ -24,7 +24,6 @@ from oslo.config import cfg
 from taskflow.common import config
 from taskflow import utils
 
-SQL_CONNECTION = 'sqlite://'
 db_opts = [
     cfg.StrOpt('db_backend',
                default='sqlalchemy',
@@ -83,6 +82,9 @@ def job_get_owner(context, job_id):
 
 def job_get_state(context, job_id):
     return IMPL.job_get_state(context, job_id)
+
+def job_get_logbook(context, job_id):
+    return IMPL.job_get_logbook(context, job_id)
 
 def job_destroy(context, job_id):
     return IMPL.job_destroy(context, job_id)

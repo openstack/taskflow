@@ -26,7 +26,7 @@ from celery import chord
 LOG = logging.getLogger(__name__)
 
 
-class Workflow(object):
+class Flow(object):
     """A linear chain of independent tasks that can be applied as one unit or
        rolled back as one unit."""
 
@@ -83,5 +83,5 @@ class Workflow(object):
 
     def run(self, context, *args, **kwargs):
         """ Start root task and kick off workflow """
-        root(context)
+        self.root(context)
         LOG.info('WF %s has been started' % (self.name,))

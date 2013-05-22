@@ -136,6 +136,11 @@ def job_get_state(context, job_id):
     job = job_get(context, job_id)
     return job.state
 
+def job_get_logbook(context, job_id):
+    """Return the logbook associated with the given job"""
+    job = job_get(context, job_id)
+    return job.logbook
+
 def job_destroy(context, job_id):
     """Delete a given Job"""
     session = get_session()
