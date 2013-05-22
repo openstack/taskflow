@@ -19,6 +19,7 @@
 import functools
 import unittest
 
+from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import wrappers
 
@@ -121,6 +122,33 @@ class LinearFlowTest(unittest.TestCase):
         self.assertRaises(Exception, wf.run, run_context)
         self.assertEquals('reverted', run_context[1])
         self.assertEquals(1, len(run_context))
+
+    def test_not_satisfied_inputs_previous(self):
+        wf = lw.Flow("the-test-action")
+
+        def task_a(context, *args, **kwargs):
+            pass
+
+        def task_b(context, c, *args, **kwargs):
+            pass
+
+        wf.add(wrappers.FunctorTask(None, task_a, null_functor,
+                                    extract_requires=True))
+        self.assertRaises(exc.InvalidStateException,
+                          wf.add,
+                          wrappers.FunctorTask(None, task_b, null_functor,
+                                               extract_requires=True))
+
+    def test_not_satisfied_inputs_no_previous(self):
+        wf = lw.Flow("the-test-action")
+
+        def task_a(context, c, *args, **kwargs):
+            pass
+
+        self.assertRaises(exc.InvalidStateException,
+                          wf.add,
+                          wrappers.FunctorTask(None, task_a, null_functor,
+                                               extract_requires=True))
 
     def test_interrupt_flow(self):
         wf = lw.Flow("the-int-action")
