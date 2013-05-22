@@ -24,10 +24,7 @@ from taskflow import states
 from taskflow import wrappers
 
 from taskflow.patterns import linear_flow as lw
-
-
-def null_functor(*_args, **_kwargs):
-    return None
+from taskflow.tests import utils
 
 
 class LinearFlowTest(unittest.TestCase):
@@ -45,7 +42,7 @@ class LinearFlowTest(unittest.TestCase):
         if blowup:
             return wrappers.FunctorTask('task-%s' % (token),
                                         functools.partial(blow_up, token),
-                                        null_functor)
+                                        utils.null_functor)
         else:
             return wrappers.FunctorTask('task-%s' % (token),
                                         functools.partial(do_apply, token),
@@ -58,7 +55,7 @@ class LinearFlowTest(unittest.TestCase):
 
         return wrappers.FunctorTask('task-%s' % (token),
                                     do_interrupt,
-                                    null_functor)
+                                    utils.null_functor)
 
     def test_sad_flow_state_changes(self):
         wf = lw.Flow("the-test-action")
@@ -132,11 +129,12 @@ class LinearFlowTest(unittest.TestCase):
         def task_b(context, c, *args, **kwargs):
             pass
 
-        wf.add(wrappers.FunctorTask(None, task_a, null_functor,
+        wf.add(wrappers.FunctorTask(None, task_a, utils.null_functor,
                                     extract_requires=True))
         self.assertRaises(exc.InvalidStateException,
                           wf.add,
-                          wrappers.FunctorTask(None, task_b, null_functor,
+                          wrappers.FunctorTask(None, task_b,
+                                               utils.null_functor,
                                                extract_requires=True))
 
     def test_not_satisfied_inputs_no_previous(self):
@@ -147,8 +145,37 @@ class LinearFlowTest(unittest.TestCase):
 
         self.assertRaises(exc.InvalidStateException,
                           wf.add,
-                          wrappers.FunctorTask(None, task_a, null_functor,
+                          wrappers.FunctorTask(None, task_a,
+                                               utils.null_functor,
                                                extract_requires=True))
+
+    def test_flow_add_order(self):
+        wf = lw.Flow("the-test-action")
+
+        wf.add(utils.ProvidesRequiresTask('test-1',
+                                          requires=set(),
+                                          provides=['a', 'b']))
+        # This one should fail to add since it requires 'c'
+        self.assertRaises(exc.InvalidStateException,
+                          wf.add,
+                          utils.ProvidesRequiresTask('test-2',
+                                                     requires=['c'],
+                                                     provides=[]))
+        wf.add(utils.ProvidesRequiresTask('test-2',
+                                          requires=['a', 'b'],
+                                          provides=['c', 'd']))
+        wf.add(utils.ProvidesRequiresTask('test-3',
+                                          requires=['c', 'd'],
+                                          provides=[]))
+        wf.add(utils.ProvidesRequiresTask('test-4',
+                                          requires=[],
+                                          provides=['d']))
+        wf.add(utils.ProvidesRequiresTask('test-5',
+                                          requires=[],
+                                          provides=['d']))
+        wf.add(utils.ProvidesRequiresTask('test-6',
+                                          requires=['d'],
+                                          provides=[]))
 
     def test_interrupt_flow(self):
         wf = lw.Flow("the-int-action")

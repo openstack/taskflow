@@ -29,17 +29,7 @@ from taskflow import wrappers as wrap
 
 from taskflow.backends import memory
 from taskflow.patterns import linear_flow as lw
-
-
-def null_functor(*_args, **_kwargs):
-    return None
-
-
-def close_all(*args):
-    for a in args:
-        if not a:
-            continue
-        a.close()
+from taskflow.tests import utils
 
 
 class MemoryBackendTest(unittest.TestCase):
@@ -90,7 +80,8 @@ class MemoryBackendTest(unittest.TestCase):
                         wf = lw.Flow('dummy')
                         for _i in range(0, 5):
                             t = wrap.FunctorTask(None,
-                                                 null_functor, null_functor)
+                                                 utils.null_functor,
+                                                 utils.null_functor)
                             wf.add(t)
                         j.associate(wf)
                         j.state = states.RUNNING
@@ -122,7 +113,7 @@ class MemoryBackendTest(unittest.TestCase):
         finally:
             if killer:
                 killer()
-            close_all(book_catalog, job_board)
+            utils.close_all(book_catalog, job_board)
 
     def test_working_job_interrupted(self):
         job_claimer = memory.MemoryClaimer()
@@ -149,9 +140,9 @@ class MemoryBackendTest(unittest.TestCase):
         def do_interrupt(_context, *_args, **_kwargs):
             wf.interrupt()
 
-        task_1 = wrap.FunctorTask(None, do_1, null_functor)
-        task_1_5 = wrap.FunctorTask(None, do_interrupt, null_functor)
-        task_2 = wrap.FunctorTask(None, do_2, null_functor)
+        task_1 = wrap.FunctorTask(None, do_1, utils.null_functor)
+        task_1_5 = wrap.FunctorTask(None, do_interrupt, utils.null_functor)
+        task_2 = wrap.FunctorTask(None, do_2, utils.null_functor)
 
         wf.add(task_1)
         wf.add(task_1_5)  # Interrupt it after task_1 finishes
@@ -194,8 +185,8 @@ class MemoryBackendTest(unittest.TestCase):
         def do_2(_context, *_args, **_kwargs):
             call_log.append(2)
 
-        wf.add(wrap.FunctorTask(None, do_1, null_functor))
-        wf.add(wrap.FunctorTask(None, do_2, null_functor))
+        wf.add(wrap.FunctorTask(None, do_1, utils.null_functor))
+        wf.add(wrap.FunctorTask(None, do_2, utils.null_functor))
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))

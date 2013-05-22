@@ -25,32 +25,7 @@ from taskflow import task
 from taskflow import wrappers
 
 from taskflow.patterns import graph_flow as gw
-
-
-def null_functor(*_args, **_kwargs):
-    return None
-
-
-class ProvidesRequiresTask(task.Task):
-    def __init__(self, name, provides, requires):
-        super(ProvidesRequiresTask, self).__init__(name)
-        self._provides = provides
-        self._requires = requires
-
-    def requires(self):
-        return self._requires
-
-    def provides(self):
-        return self._provides
-
-    def apply(self, context, *_args, **kwargs):
-        outs = {
-            '__inputs__': dict(kwargs),
-        }
-        context['__order__'].append(self.name)
-        for v in self.provides():
-            outs[v] = True
-        return outs
+from taskflow.tests import utils
 
 
 class GraphFlowTest(unittest.TestCase):
@@ -58,7 +33,7 @@ class GraphFlowTest(unittest.TestCase):
         flo = gw.Flow("test-flow")
         reverted = []
 
-        def run1(context): # pylint: disable=W0613
+        def run1(context):  # pylint: disable=W0613
             return {
                 'a': 1,
             }
@@ -74,7 +49,7 @@ class GraphFlowTest(unittest.TestCase):
         flo.add(wrappers.FunctorTask(None, run1, run1_revert,
                                      provides_what=['a'],
                                      extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run2, null_functor,
+        flo.add(wrappers.FunctorTask(None, run2, utils.null_functor,
                                      provides_what=['c'],
                                      extract_requires=True))
 
@@ -85,21 +60,21 @@ class GraphFlowTest(unittest.TestCase):
 
     def test_no_requires_provider(self):
         flo = gw.Flow("test-flow")
-        flo.add(ProvidesRequiresTask('test1',
-                                     provides=['a', 'b'],
-                                     requires=['c', 'd']))
+        flo.add(utils.ProvidesRequiresTask('test1',
+                                           provides=['a', 'b'],
+                                           requires=['c', 'd']))
         self.assertEquals(states.PENDING, flo.state)
         self.assertRaises(excp.InvalidStateException, flo.run, {})
         self.assertEquals(states.FAILURE, flo.state)
 
     def test_looping_flow(self):
         flo = gw.Flow("test-flow")
-        flo.add(ProvidesRequiresTask('test1',
-                                     provides=['a', 'b'],
-                                     requires=['c', 'd', 'e']))
-        flo.add(ProvidesRequiresTask('test2',
-                                     provides=['c', 'd', 'e'],
-                                     requires=['a', 'b']))
+        flo.add(utils.ProvidesRequiresTask('test1',
+                                           provides=['a', 'b'],
+                                           requires=['c', 'd', 'e']))
+        flo.add(utils.ProvidesRequiresTask('test2',
+                                           provides=['c', 'd', 'e'],
+                                           requires=['a', 'b']))
         ctx = collections.defaultdict(list)
         self.assertEquals(states.PENDING, flo.state)
         self.assertRaises(excp.InvalidStateException, flo.run, ctx)
@@ -107,30 +82,30 @@ class GraphFlowTest(unittest.TestCase):
 
     def test_complicated_inputs_outputs(self):
         flo = gw.Flow("test-flow")
-        flo.add(ProvidesRequiresTask('test1',
-                                     provides=['a', 'b'],
-                                     requires=['c', 'd', 'e']))
-        flo.add(ProvidesRequiresTask('test2',
-                                     provides=['c', 'd', 'e'],
-                                     requires=[]))
-        flo.add(ProvidesRequiresTask('test3',
-                                     provides=['c', 'd'],
-                                     requires=[]))
-        flo.add(ProvidesRequiresTask('test4',
-                                     provides=['z'],
-                                     requires=['a', 'b', 'c', 'd', 'e']))
-        flo.add(ProvidesRequiresTask('test5',
-                                     provides=['y'],
-                                     requires=['z']))
-        flo.add(ProvidesRequiresTask('test6',
-                                     provides=[],
-                                     requires=['y']))
+        flo.add(utils.ProvidesRequiresTask('test1',
+                                           provides=['a', 'b'],
+                                           requires=['c', 'd', 'e']))
+        flo.add(utils.ProvidesRequiresTask('test2',
+                                           provides=['c', 'd', 'e'],
+                                           requires=[]))
+        flo.add(utils.ProvidesRequiresTask('test3',
+                                           provides=['c', 'd'],
+                                           requires=[]))
+        flo.add(utils.ProvidesRequiresTask('test4',
+                                           provides=['z'],
+                                           requires=['a', 'b', 'c', 'd', 'e']))
+        flo.add(utils.ProvidesRequiresTask('test5',
+                                           provides=['y'],
+                                           requires=['z']))
+        flo.add(utils.ProvidesRequiresTask('test6',
+                                           provides=[],
+                                           requires=['y']))
 
         self.assertEquals(states.PENDING, flo.state)
         ctx = collections.defaultdict(list)
         flo.run(ctx)
         self.assertEquals(states.SUCCESS, flo.state)
-        run_order = ctx['__order__']
+        run_order = ctx[utils.ORDER_KEY]
 
         # Order isn't deterministic so that's why we sort it
         self.assertEquals(['test2', 'test3'], sorted(run_order[0:2]))
@@ -149,10 +124,10 @@ class GraphFlowTest(unittest.TestCase):
             return None
 
         flo = gw.Flow("test-flow")
-        flo.add(wrappers.FunctorTask(None, run1, null_functor,
+        flo.add(wrappers.FunctorTask(None, run1, utils.null_functor,
                                      provides_what=['a'],
                                      extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run2, null_functor,
+        flo.add(wrappers.FunctorTask(None, run2, utils.null_functor,
                                      extract_requires=True))
 
         self.assertRaises(excp.InvalidStateException, flo.connect)
@@ -188,16 +163,16 @@ class GraphFlowTest(unittest.TestCase):
             f_args['b'] = b
             f_args['c'] = c
 
-        flo.add(wrappers.FunctorTask(None, run1, null_functor,
+        flo.add(wrappers.FunctorTask(None, run1, utils.null_functor,
                                      provides_what=['a'],
                                      extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run2, null_functor,
+        flo.add(wrappers.FunctorTask(None, run2, utils.null_functor,
                                      provides_what=['c'],
                                      extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run3, null_functor,
+        flo.add(wrappers.FunctorTask(None, run3, utils.null_functor,
                                      provides_what=['b'],
                                      extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run4, null_functor,
+        flo.add(wrappers.FunctorTask(None, run4, utils.null_functor,
                                      extract_requires=True))
 
         flo.run({})
