@@ -22,7 +22,7 @@ SQLAlchemy models for taskflow data.
 
 from oslo.config import cfg
 
-from sqlalchemy import Column, Integer, String, Table
+from sqlalchemy import Column, Integer, String, Table, MetaData
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import object_mapper, relationship, backref
@@ -31,12 +31,11 @@ from sqlalchemy import types as types
 
 from json import dumps, loads
 
-from taskflow.db.sqlalchemy.session import get_session
+from taskflow.db.sqlalchemy.session import get_session, get_engine
 from taskflow.openstack.common import timeutils, uuidutils
 
 CONF = cfg.CONF
 BASE = declarative_base()
-
 
 class Json(types.TypeDecorator, types.MutableType):
     impl = types.Text
@@ -128,6 +127,8 @@ class LogBook(BASE, TaskFlowBase):
     __tablename__ = 'logbook'
 
     id = Column(Integer, primary_key=True)
+    logbook_id = Column(String, default=uuidutils.generate_uuid,
+                        unique=True)
     name = Column(String)
     workflows = relationship("Workflow",
                              secondary=workflow_logbook_assoc)
@@ -138,7 +139,8 @@ class Job(BASE, TaskFlowBase):
     __tablename__ = 'job'
 
     id = Column(Integer, primary_key=True)
-    job_id = Column(String, default=uuidutils.generate_uuid)
+    job_id = Column(String, default=uuidutils.generate_uuid,
+                    unique=True)
     name = Column(String)
     owner = Column(String)
     state = Column(String)
@@ -152,8 +154,7 @@ class Workflow(BASE, TaskFlowBase):
     __tablename__ = 'workflow'
 
     id = Column(Integer, primary_key=True)
-    workflow_id = Column(String, default=uuidutils.generate_uuid)
-    name = Column(String)
+    name = Column(String, unique=True)
     tasks = relationship("Task", backref="workflow")
 
 class Task(BASE, TaskFlowBase):
@@ -168,3 +169,6 @@ class Task(BASE, TaskFlowBase):
     exception = Column(String)
     stacktrace = Column(String)
     workflow_id = Column(String, ForeignKey('workflow.id'))
+
+def create_tables():
+    BASE.metadata.create_all(get_engine())

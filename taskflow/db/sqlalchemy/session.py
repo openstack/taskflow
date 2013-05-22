@@ -78,17 +78,17 @@ def get_engine():
             "convert_unicode": True
         }
 
-    if "sqlite" in connection_dict.drivername:
-        engine_args['poolclass'] = NullPool
+        if "sqlite" in connection_dict.drivername:
+            engine_args['poolclass'] = NullPool
 
-    _ENGINE = sqlalchemy.create_engine(_get_sql_connection(),
-                                       **engine_args)
+        _ENGINE = sqlalchemy.create_engine(_get_sql_connection(),
+                                           **engine_args)
 
-    if 'mysql' in connection_dict.drivername:
-        sqlalchemy.event.listen(_ENGINE, 'checkout', ping_listener)
-    if 'sqlite' in connection_dict.drivername:
-        sqlalchemy.event.listen(_ENGINE, 'connect',
-                                synchronous_switch_listener)
+        if 'mysql' in connection_dict.drivername:
+            sqlalchemy.event.listen(_ENGINE, 'checkout', ping_listener)
+        if 'sqlite' in connection_dict.drivername:
+            sqlalchemy.event.listen(_ENGINE, 'connect',
+                                    synchronous_switch_listener)
 
     #TODO: Check to make sure engine connected
 
