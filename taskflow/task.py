@@ -38,13 +38,13 @@ class Task(object):
         return "Task: %s" % (self.name)
 
     def requires(self):
-        """Return any input 'resource' names this task depends on existing
-        before this task can be applied."""
+        """Returns an *immutable* input 'resource' name set this task depends
+        on existing before this task can be applied."""
         return self._requires
 
     def provides(self):
-        """Return any output 'resource' names this task produces that other
-        tasks may depend on this task providing."""
+        """Returns an *immutable* output 'resource' name set this task
+        produces that other tasks may depend on this task providing."""
         return self._provides
 
     @abc.abstractmethod
