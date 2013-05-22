@@ -87,6 +87,13 @@ def logbook_add_workflow(context, lb_id, wf_name):
 
         return lb.workflows
 
+def logbook_destroy(context, lb_id):
+    """Delete a given LogBook"""
+    session = get_session()
+    with session.begin():
+        lb = logbook_get(context, lb_id, session=session)
+        lb.delete()
+
 """
 JOB
 """
@@ -99,6 +106,42 @@ def job_get(context, job_id, session=None):
     if not query:
         raise exception.NotFound("No Job with id %s found"
                                  % (job_id,))
+
+    return query.first()
+
+def job_update(context, job_id, values):
+    """Update job with given values"""
+    session = get_session()
+    with session.begin():
+        job = job_get(context, job_id, session=session)
+        job.update(values)
+        job.save(session=session)
+
+def job_add_workflow(context, job_id, wf_id):
+    """Add a Workflow to given job"""
+    session = get_session()
+    with session.begin():
+        job = job_get(context, job_id)
+        wf = workflow_get(context, wf_id)
+        job.workflows.append(wf)
+        return job.workflows
+
+def job_get_owner(context, job_id):
+    """Return a job's current owner"""
+    job = job_get(context, job_id)
+    return job.owner
+
+def job_get_state(context, job_id):
+    """Return a job's current owner"""
+    job = job_get(context, job_id)
+    return job.state
+
+def job_destroy(context, job_id):
+    """Delete a given Job"""
+    session = get_session()
+    with session.begin():
+        job = job_get(context, job_id, session=session)
+        job.delete()
 
 
 """
@@ -193,7 +236,7 @@ def task_update(context, task_id, values):
         task = task_get(context, task_id)
 
         task.update(values)
-        task.save()
+        task.save(session=session)
 
 def task_destroy(context, task_id):
     """Delete an existing Task"""

@@ -25,8 +25,8 @@ from oslo.config import cfg
 
 db_opts = [
     cfg.StrOpt('sql_connection',
-               #default='mysql://task:flow@localhost/taskflow',
-               default='sqlite:///test.db',
+               default='mysql://task:flow@localhost/taskflow',
+               #default='sqlite:///test.db',
                help='The SQLAlchemy connection string used to connect to the '
                'database'),
     cfg.IntOpt('sql_idle_timeout',
