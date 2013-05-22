@@ -32,10 +32,10 @@ class FlowFailure(object):
     """When a task failure occurs the following object will be given to revert
        and can be used to interrogate what caused the failure."""
 
-    def __init__(self, task, flow, cause):
+    def __init__(self, task, flow, exception=None):
         self.task = task
         self.flow = flow
-        self.cause = cause
+        self.exception = exception
 
 
 class Flow(object):
