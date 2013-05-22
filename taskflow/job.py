@@ -86,14 +86,14 @@ class Job(object):
             self._state = new_state
             # TODO(harlowja): add logbook info?
 
-    def _workflow_listener(self, context, flow, old_state):
+    def _workflow_listener(self, _context, flow, _old_state):
         """Ensure that when we receive an event from said workflow that we
         make sure a logbook entry exists for that flow."""
         if flow.name in self.logbook:
             return
         self.logbook.add_flow(flow.name)
 
-    def _task_listener(self, context, state, flow, task, result=None):
+    def _task_listener(self, _context, state, flow, task, result=None):
         """Store the result of the task under the given flow in the log
         book so that it can be retrieved later."""
         metadata = None
@@ -107,7 +107,7 @@ class Job(object):
             task_details = flow_details.add_task(task_state)
             task_details.metadata = metadata
 
-    def _task_result_fetcher(self, context, flow, task):
+    def _task_result_fetcher(self, _context, flow, task):
         flow_details = self.logbook[flow.name]
         # See if it completed before so that we can use its results instead
         # of having to recompute them.
@@ -155,14 +155,15 @@ class Job(object):
     def run(self, flow, *args, **kwargs):
         already_associated = []
 
-        def associate_all(f):
-            # Associate with the flow and the flows parents and so on.
-            if f in already_associated:
+        def associate_all(a_flow):
+            if a_flow in already_associated:
                 return
-            self.associate(f)
-            already_associated.append(f)
-            if f.parents:
-                for p in f.parents:
+            # Associate with the flow.
+            self.associate(a_flow)
+            already_associated.append(a_flow)
+            # Ensure we are associated with all the flows parents.
+            if a_flow.parents:
+                for p in a_flow.parents:
                     associate_all(p)
 
         associate_all(flow)
