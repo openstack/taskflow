@@ -25,9 +25,7 @@ class Task(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name=None):
-        if name is None:
-            name = "%s: %s" % (self.__class__.__name__, id(self))
+    def __init__(self, name):
         self.name = name
         # Identifying items that this task requires to apply.
         self._requires = set()
