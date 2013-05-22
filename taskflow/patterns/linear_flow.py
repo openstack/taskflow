@@ -29,6 +29,15 @@ class Flow(ordered_flow.Flow):
         super(Flow, self).__init__(name, tolerant, parents)
         self._tasks = []
 
+    def _fetch_task_inputs(self, task):
+        inputs = {}
+        if self.results:
+            (_last_task, last_results) = self.results[-1]
+            for k in task.requires():
+                if last_results and k in last_results:
+                    inputs[k] = last_results[k]
+        return inputs
+
     def _validate_provides(self, task):
         last_provides = set()
         last_provider = None
