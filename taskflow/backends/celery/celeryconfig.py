@@ -18,14 +18,15 @@
 
 """ Celery Configuration File """
 
+import logging
+
 from taskflow.common import config
+
+from oslo.config import cfg
 
 config.register_celery_opts()
 
-from oslo.cfg import cfg
-
 LOG = logging.getLogger(__name__)
-
 BROKER_URL = cfg.CFG('celery_mq')
 CELERY_RESULT_BACKEND = "database"
 CELERY_RESULT_DBURI = cfg.CFG('celery_backend')
