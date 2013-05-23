@@ -37,14 +37,8 @@ def null_functor(*args, **kwargs):  # pylint: disable=W0613
 class ProvidesRequiresTask(task.Task):
     def __init__(self, name, provides, requires):
         super(ProvidesRequiresTask, self).__init__(name)
-        self._provides = provides
-        self._requires = requires
-
-    def requires(self):
-        return self._requires
-
-    def provides(self):
-        return self._provides
+        self.provides = provides
+        self.requires = requires
 
     def apply(self, context, *args, **kwargs):
         outs = {
@@ -54,6 +48,6 @@ class ProvidesRequiresTask(task.Task):
         if not ORDER_KEY in context:
             context[ORDER_KEY] = []
         context[ORDER_KEY].append(self.name)
-        for v in self.provides():
+        for v in self.provides:
             outs[v] = True
         return outs

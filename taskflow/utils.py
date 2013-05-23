@@ -17,8 +17,11 @@
 #    under the License.
 
 import contextlib
+import logging
 import threading
 import time
+
+LOG = logging.getLogger(__name__)
 
 
 def await(check_functor, timeout=None):
@@ -38,6 +41,46 @@ def await(check_functor, timeout=None):
         else:
             delay = min(delay * 2, 0.05)
     return True
+
+
+class RollbackAccumulator(object):
+    """A utility class that can help in organizing 'undo' like code
+    so that said code be rolled back on failure (automatically or manually)
+    by activating rollback callables that were inserted during said codes
+    progression."""
+
+    def __init__(self):
+        self._rollbacks = []
+
+    def add(self, *callables):
+        self._rollbacks.extend(callables)
+
+    def reset(self):
+        self._rollbacks = []
+
+    def __len__(self):
+        return len(self._rollbacks)
+
+    def __iter__(self):
+        # Rollbacks happen in the reverse order that they were added.
+        return reversed(self._rollbacks)
+
+    def __enter__(self):
+        return self
+
+    def rollback(self, cause):
+        LOG.warn("Activating %s rollbacks due to %s.", len(self), cause)
+        for (i, f) in enumerate(self):
+            LOG.debug("Calling rollback %s: %s", i + 1, f)
+            try:
+                f(cause)
+            except Exception:
+                LOG.exception(("Failed rolling back %s: %s due "
+                               "to inner exception."), i + 1, f)
+
+    def __exit__(self, type, value, tb):
+        if any((value, type, tb)):
+            self.rollback(value)
 
 
 class ReaderWriterLock(object):
@@ -113,6 +156,7 @@ class ReaderWriterLock(object):
             self.readers_ok.acquire()
             self.readers_ok.notifyAll()
             self.readers_ok.release()
+
 
 class LazyPluggable(object):
     """A pluggable backend loaded lazily based on some value."""

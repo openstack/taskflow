@@ -27,23 +27,15 @@ class Task(object):
 
     def __init__(self, name):
         self.name = name
-        # Identifying items that this task requires to apply.
-        self._requires = set()
-        # Identifying items that this task provides from its apply.
-        self._provides = set()
+        # An *immutable* input 'resource' name set this task depends
+        # on existing before this task can be applied.
+        self.requires = set()
+        # An *immutable* output 'resource' name set this task
+        # produces that other tasks may depend on this task providing.
+        self.provides = set()
 
     def __str__(self):
         return "Task: %s" % (self.name)
-
-    def requires(self):
-        """Returns an *immutable* input 'resource' name set this task depends
-        on existing before this task can be applied."""
-        return self._requires
-
-    def provides(self):
-        """Returns an *immutable* output 'resource' name set this task
-        produces that other tasks may depend on this task providing."""
-        return self._provides
 
     @abc.abstractmethod
     def apply(self, context, *args, **kwargs):

@@ -34,9 +34,8 @@ class Flow(ordered_flow.Flow):
     determine who provides said input and order the task so that said providing
     task will be ran before."""
 
-    def __init__(self, name, tolerant=False, parents=None,
-                 allow_same_inputs=True):
-        super(Flow, self).__init__(name, tolerant, parents)
+    def __init__(self, name, parents=None, allow_same_inputs=True):
+        super(Flow, self).__init__(name, parents)
         self._graph = digraph.DiGraph()
         self._connected = False
         self._allow_same_inputs = allow_same_inputs
@@ -53,10 +52,10 @@ class Flow(ordered_flow.Flow):
     def _fetch_task_inputs(self, task):
         inputs = collections.defaultdict(list)
 
-        for n in task.requires():
+        for n in task.requires:
             for (them, there_result) in self.results:
                 if (not self._graph.has_edge(them, task) or
-                    not n in them.provides()):
+                    not n in them.provides):
                     continue
                 if there_result and n in there_result:
                     inputs[n].append(there_result[n])
@@ -90,9 +89,9 @@ class Flow(ordered_flow.Flow):
         provides_what = collections.defaultdict(list)
         requires_what = collections.defaultdict(list)
         for t in self._graph.nodes_iter():
-            for r in t.requires():
+            for r in t.requires:
                 requires_what[r].append(t)
-            for p in t.provides():
+            for p in t.provides:
                 provides_what[p].append(t)
 
         def get_providers(node, want_what):

@@ -34,28 +34,20 @@ class FunctorTask(task.Task):
         if not name:
             name = "_".join([apply_functor.__name__, revert_functor.__name__])
         super(FunctorTask, self).__init__(name)
-
         self._apply_functor = apply_functor
         self._revert_functor = revert_functor
-        self._requires = set()
-        self._provides = set()
         if provides_what:
-            self._provides.update(provides_what)
+            self.provides.update(provides_what)
         if extract_requires:
             for arg_name in inspect.getargspec(apply_functor).args:
                 # These are automatically given, ignore.
                 if arg_name in AUTO_ARGS:
                     continue
-                self._requires.add(arg_name)
-
-    def requires(self):
-        return set(self._requires)
-
-    def provides(self):
-        return set(self._provides)
+                self.requires.add(arg_name)
 
     def apply(self, context, *args, **kwargs):
         return self._apply_functor(context, *args, **kwargs)
 
     def revert(self, context, result, cause):
-        return self._revert_functor(context, result, cause)
+        if self._revert_functor:
+            self._revert_functor(context, result, cause)

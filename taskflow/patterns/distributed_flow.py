@@ -30,7 +30,7 @@ class Flow(object):
     """A linear chain of independent tasks that can be applied as one unit or
        rolled back as one unit."""
 
-    def __init__(self, name, tolerant=False, parents=None):
+    def __init__(self, name, parents=None):
         self.name = name
         self.root = None
         self._tasks = []

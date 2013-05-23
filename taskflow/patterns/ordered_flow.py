@@ -24,6 +24,7 @@ import logging
 from taskflow.openstack.common import excutils
 from taskflow import exceptions as exc
 from taskflow import states
+from taskflow import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -38,6 +39,19 @@ class FlowFailure(object):
         self.exception = exception
 
 
+class RollbackTask(object):
+    def __init__(self, context, task, result):
+        self.task = task
+        self.result = result
+        self.context = context
+
+    def __str__(self):
+        return str(self.task)
+
+    def __call__(self, cause):
+        self.task.revert(self.context, self.result, cause)
+
+
 class Flow(object):
     """A set tasks that can be applied as one unit or rolled back as one
     unit using an ordered arrangements of said tasks where reversion is by
@@ -45,14 +59,11 @@ class Flow(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, tolerant=False, parents=None):
+    def __init__(self, name, parents=None):
         # The tasks which have been applied will be collected here so that they
         # can be reverted in the correct order on failure.
-        self._reversions = []
+        self._accumulator = utils.RollbackAccumulator()
         self.name = name
-        # If this chain can ignore individual task reversion failure then this
-        # should be set to true, instead of the default value of false.
-        self.tolerant = tolerant
         # If this flow has a parent flow/s which need to be reverted if
         # this flow fails then please include them here to allow this child
         # to call the parents...
@@ -100,24 +111,6 @@ class Flow(object):
         said task is being applied."""
         return None
 
-    def _perform_reconcilation(self, context, task, excp):
-        # Attempt to reconcile the given exception that occured while applying
-        # the given task and either reconcile said task and its associated
-        # failure, so that the flow can continue or abort and perform
-        # some type of undo of the tasks already completed.
-        cause = FlowFailure(task, self, excp)
-        with excutils.save_and_reraise_exception():
-            try:
-                self._on_task_error(context, task)
-            except Exception:
-                LOG.exception("Dropping exception catched when"
-                              " notifying about existing task"
-                              " exception.")
-            # The default strategy will be to rollback all the contained
-            # tasks by calling there reverting methods, and then calling
-            # any parent flows rollbacks (and so-on).
-            self.rollback(context, cause)
-
     def run(self, context, *args, **kwargs):
         if self.state != states.PENDING:
             raise exc.InvalidStateException("Unable to run flow when "
@@ -129,7 +122,6 @@ class Flow(object):
             result_fetcher = None
 
         self._change_state(context, states.STARTED)
-
         try:
             task_order = self.order()
         except Exception:
@@ -139,6 +131,29 @@ class Flow(object):
                 except Exception:
                     LOG.exception("Dropping exception catched when"
                                   " notifying about ordering failure.")
+
+        def run_task(task, result=None, simulate_run=False):
+            try:
+                self._on_task_start(context, task)
+                if not simulate_run:
+                    inputs = self._fetch_task_inputs(task)
+                    if not inputs:
+                        inputs = {}
+                    inputs.update(kwargs)
+                    result = task.apply(context, *args, **inputs)
+                # Keep a pristine copy of the result
+                # so that if said result is altered by other further
+                # states the one here will not be. This ensures that
+                # if rollback occurs that the task gets exactly the
+                # result it returned and not a modified one.
+                self.results.append((task, result))
+                self._accumulator.add(RollbackTask(context, task,
+                                                   copy.deepcopy(result)))
+                self._on_task_finish(context, task, result)
+            except Exception as e:
+                cause = FlowFailure(task, self, e)
+                with excutils.save_and_reraise_exception():
+                    self.rollback(context, cause)
 
         last_task = 0
         was_interrupted = False
@@ -152,20 +167,10 @@ class Flow(object):
                 if not has_result:
                     break
                 # Fake running the task so that we trigger the same
-                # notifications and state changes (and rollback that would
-                # have happened in a normal flow).
+                # notifications and state changes (and rollback that
+                # would have happened in a normal flow).
                 last_task = i + 1
-                try:
-                    self._on_task_start(context, task)
-                    # Keep a pristine copy of the result
-                    # so that if said result is altered by other further
-                    # states the one here will not be. This ensures that
-                    # if rollback occurs that the task gets exactly the
-                    # result it returned and not a modified one.
-                    self.results.append((task, copy.deepcopy(result)))
-                    self._on_task_finish(context, task, result)
-                except Exception as e:
-                    self._perform_reconcilation(context, task, e)
+                run_task(task, result=result, simulate_run=True)
 
         if was_interrupted:
             return
@@ -175,27 +180,7 @@ class Flow(object):
             if self.state == states.INTERRUPTED:
                 was_interrupted = True
                 break
-            try:
-                has_result = False
-                result = None
-                if result_fetcher:
-                    (has_result, result) = result_fetcher(self, task)
-                self._on_task_start(context, task)
-                if not has_result:
-                    inputs = self._fetch_task_inputs(task)
-                    if not inputs:
-                        inputs = {}
-                    inputs.update(kwargs)
-                    result = task.apply(context, *args, **inputs)
-                # Keep a pristine copy of the result
-                # so that if said result is altered by other further states
-                # the one here will not be. This ensures that if rollback
-                # occurs that the task gets exactly the result it returned
-                # and not a modified one.
-                self.results.append((task, copy.deepcopy(result)))
-                self._on_task_finish(context, task, result)
-            except Exception as e:
-                self._perform_reconcilation(context, task, e)
+            run_task(task)
 
         if not was_interrupted:
             # Only gets here if everything went successfully.
@@ -204,7 +189,7 @@ class Flow(object):
     def reset(self):
         self._state = states.PENDING
         self.results = []
-        self._reversions = []
+        self._accumulator.reset()
 
     def interrupt(self):
         self._change_state(None, states.INTERRUPTED)
@@ -232,7 +217,6 @@ class Flow(object):
 
     def _on_task_finish(self, context, task, result):
         # Notify any listeners that we are finishing the given task.
-        self._reversions.append((task, result))
         for f in self.task_listeners:
             f(context, states.SUCCESS, self, task, result=result)
 
@@ -256,27 +240,8 @@ class Flow(object):
                           " changing state to reverting while performing"
                           " reconcilation on a tasks exception.")
 
-        def rollback_tasks(reversions, tolerant):
-            for (i, (task, result)) in enumerate(reversions):
-                try:
-                    task.revert(context, result, cause)
-                except Exception:
-                    # Ex: WARN: Failed rolling back stage 1 (validate_request) of
-                    #           chain validation due to Y exception.
-                    log_f = LOG.warn
-                    if not tolerant:
-                        log_f = LOG.exception
-                    msg = ("Failed rolling back stage %(index)s (%(task)s)"
-                           " of flow %(flow)s, due to inner exception.")
-                    log_f(msg % {'index': (i + 1), 'task': task, 'flow': self})
-                    if not tolerant:
-                        # NOTE(harlowja): LOG a msg AND re-raise the exception
-                        # if the flow does not tolerate exceptions happening
-                        #  in the rollback method.
-                        raise
-
         try:
-            rollback_tasks(reversed(self._reversions), self.tolerant)
+            self._accumulator.rollback(cause)
         finally:
             try:
                 self._change_state(context, states.FAILURE)

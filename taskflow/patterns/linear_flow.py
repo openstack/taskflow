@@ -20,31 +20,21 @@ from taskflow import exceptions as exc
 from taskflow.patterns import ordered_flow
 
 
-def _convert_to_set(items):
-    if not items:
-        return set()
-    if isinstance(items, set):
-        return items
-    if isinstance(items, dict):
-        return items.keys()
-    return set(iter(items))
-
-
 class Flow(ordered_flow.Flow):
     """A linear chain of tasks that can be applied as one unit or
        rolled back as one unit. Each task in the chain may have requirements
        which are satisfied by the previous task/s in the chain."""
 
-    def __init__(self, name, tolerant=False, parents=None):
-        super(Flow, self).__init__(name, tolerant, parents)
+    def __init__(self, name, parents=None):
+        super(Flow, self).__init__(name, parents)
         self._tasks = []
 
     def _fetch_task_inputs(self, task):
         inputs = {}
-        for r in _convert_to_set(task.requires()):
+        for r in task.requires:
             # Find the last task that provided this.
             for (last_task, last_results) in reversed(self.results):
-                if r not in _convert_to_set(last_task.provides()):
+                if r not in last_task.provides:
                     continue
                 if last_results and r in last_results:
                     inputs[r] = last_results[r]
@@ -57,10 +47,10 @@ class Flow(ordered_flow.Flow):
     def _validate_provides(self, task):
         # Ensure that some previous task provides this input.
         missing_requires = []
-        for r in _convert_to_set(task.requires()):
+        for r in task.requires:
             found_provider = False
             for prev_task in reversed(self._tasks):
-                if r in _convert_to_set(prev_task.provides()):
+                if r in prev_task.provides:
                     found_provider = True
                     break
             if not found_provider:
