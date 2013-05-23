@@ -1,3 +1,8 @@
 # Packages needed for using this library.
 oslo.config>=1.1.0
 networkx
+# Only needed if celery/distributed flows used.
+celery
+# Only needed if database backend used.
+sqlalchemy>=0.7,<=0.7.99
+sqlalchemy-migrate>=0.7
