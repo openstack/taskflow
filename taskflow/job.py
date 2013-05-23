@@ -23,6 +23,8 @@ from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import utils
 
+from taskflow.openstack.common import uuidutils
+
 
 def task_and_state(task, state):
     return "%s:%s" % (task.name, state)
@@ -65,7 +67,7 @@ class Job(object):
         self._claimer = claimer
         self._logbook = None
         if not jid:
-            self._id = str(uuid.uuid4().hex)
+            self._id = uuidutils.generate_uuid()
         else:
             self._id = str(jid)
         self._state = states.UNCLAIMED
