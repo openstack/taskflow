@@ -16,18 +16,64 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from taskflow import exceptions as exc
 from taskflow.patterns import ordered_flow
 
 
+def _convert_to_set(items):
+    if not items:
+        return set()
+    if isinstance(items, set):
+        return items
+    if isinstance(items, dict):
+        return items.keys()
+    return set(iter(items))
+
+
 class Flow(ordered_flow.Flow):
-    """A linear chain of *independent* tasks that can be applied as one unit or
-       rolled back as one unit."""
+    """A linear chain of tasks that can be applied as one unit or
+       rolled back as one unit. Each task in the chain may have requirements
+       which are satisfied by the previous task/s in the chain."""
 
     def __init__(self, name, tolerant=False, parents=None):
         super(Flow, self).__init__(name, tolerant, parents)
         self._tasks = []
 
+    def _fetch_task_inputs(self, task):
+        inputs = {}
+        for r in _convert_to_set(task.requires()):
+            # Find the last task that provided this.
+            for (last_task, last_results) in reversed(self.results):
+                if r not in _convert_to_set(last_task.provides()):
+                    continue
+                if last_results and r in last_results:
+                    inputs[r] = last_results[r]
+                else:
+                    inputs[r] = None
+                # Some task said they had it, get the next requirement.
+                break
+        return inputs
+
+    def _validate_provides(self, task):
+        # Ensure that some previous task provides this input.
+        missing_requires = []
+        for r in _convert_to_set(task.requires()):
+            found_provider = False
+            for prev_task in reversed(self._tasks):
+                if r in _convert_to_set(prev_task.provides()):
+                    found_provider = True
+                    break
+            if not found_provider:
+                missing_requires.append(r)
+        # Ensure that the last task provides all the needed input for this
+        # task to run correctly.
+        if len(missing_requires):
+            msg = ("There is no previous task providing the outputs %s"
+                   " for %s to correctly execute.") % (missing_requires, task)
+            raise exc.InvalidStateException(msg)
+
     def add(self, task):
+        self._validate_provides(task)
         self._tasks.append(task)
 
     def order(self):

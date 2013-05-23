@@ -24,9 +24,7 @@ from networkx.algorithms import dag
 from networkx.classes import digraph
 
 from taskflow import exceptions as exc
-from taskflow.openstack.common import excutils
 from taskflow.patterns import ordered_flow
-from taskflow import states
 
 LOG = logging.getLogger(__name__)
 

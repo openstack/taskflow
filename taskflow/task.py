@@ -25,23 +25,25 @@ class Task(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name=None):
-        if name is None:
-            name = "%s: %s" % (self.__class__.__name__, id(self))
+    def __init__(self, name):
         self.name = name
+        # Identifying items that this task requires to apply.
+        self._requires = set()
+        # Identifying items that this task provides from its apply.
+        self._provides = set()
 
     def __str__(self):
         return "Task: %s" % (self.name)
 
     def requires(self):
-        """Return any input 'resource' names this task depends on existing
-        before this task can be applied."""
-        return set()
+        """Returns an *immutable* input 'resource' name set this task depends
+        on existing before this task can be applied."""
+        return self._requires
 
     def provides(self):
-        """Return any output 'resource' names this task produces that other
-        tasks may depend on this task providing."""
-        return set()
+        """Returns an *immutable* output 'resource' name set this task
+        produces that other tasks may depend on this task providing."""
+        return self._provides
 
     @abc.abstractmethod
     def apply(self, context, *args, **kwargs):

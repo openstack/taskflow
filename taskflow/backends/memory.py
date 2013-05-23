@@ -23,9 +23,10 @@ import logging
 import threading
 import weakref
 
+import taskflow
+
 from taskflow import catalog
 from taskflow import exceptions as exc
-from taskflow import job
 from taskflow import jobboard
 from taskflow import logbook
 from taskflow import states
@@ -38,7 +39,7 @@ def check_not_closed(meth):
 
     @functools.wraps(meth)
     def check(self, *args, **kwargs):
-        if self._closed:
+        if self._closed:  # pylint: disable=W0212
             raise exc.ClosedException("Unable to call %s on closed object" %
                                       (meth.__name__))
         return meth(self, *args, **kwargs)
@@ -46,7 +47,7 @@ def check_not_closed(meth):
     return check
 
 
-class MemoryClaimer(job.Claimer):
+class MemoryClaimer(taskflow.job.Claimer):
     def claim(self, job, owner):
         job.owner = owner
 
@@ -67,7 +68,7 @@ class MemoryCatalog(catalog.Catalog):
 
     def __contains__(self, job):
         with self._lock:
-            for (j, b) in self._catalogs:
+            for (j, _b) in self._catalogs:
                 if j == job:
                     return True
         return False
@@ -228,9 +229,9 @@ class MemoryJobBoard(jobboard.JobBoard):
                     break
             if not exists:
                 raise exc.JobNotFound()
-            if j.state not in (states.SUCCESS, states.FAILURE):
+            if job.state not in (states.SUCCESS, states.FAILURE):
                 raise exc.InvalidStateException("Can not delete a job in "
-                                                "state %s" % (j.state))
+                                                "state %s" % (job.state))
             self._board = [(d, j) for (d, j) in self._board if j != job]
             self._notify_erased(job)
 
