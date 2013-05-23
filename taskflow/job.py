@@ -17,7 +17,6 @@
 #    under the License.
 
 import abc
-import uuid
 
 from taskflow import exceptions as exc
 from taskflow import states
