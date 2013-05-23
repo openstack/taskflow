@@ -4,6 +4,13 @@ import os
 import setuptools
 
 
+def _clean_line(line):
+    line = line.strip()
+    line = line.split("#")[0]
+    line = line.strip()
+    return line
+
+
 def read_requires(base):
     path = os.path.join('tools', base)
     requires = []
@@ -11,8 +18,8 @@ def read_requires(base):
         return requires
     with open(path, 'rb') as h:
         for line in h.read().splitlines():
-            line = line.strip()
-            if len(line) == 0 or line.startswith("#"):
+            line = _clean_line(line)
+            if not line:
                 continue
             requires.append(line)
     return requires
