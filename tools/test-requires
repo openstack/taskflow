@@ -1,8 +1,9 @@
-# Packages needed for testing this library.
-
+# Packages needed for developer testing this library.
+coverage
+distribute>=0.6.24
+mox
 nose
-pep8==1.4.5
 nose-exclude
 openstack.nose_plugin>=0.7
-mox
-coverage
+pep8==1.4.5
+pylint==0.25.2
