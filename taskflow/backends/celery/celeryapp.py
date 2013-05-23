@@ -16,10 +16,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import logging
 import traceback as tb
 
 from celery.signals import task_failure, task_success
-from nova.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
