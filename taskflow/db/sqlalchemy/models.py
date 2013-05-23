@@ -147,7 +147,7 @@ class Job(BASE, TaskFlowBase):
     state = Column(String)
     workflows = relationship("Workflow",
                              secondary=workflow_job_assoc)
-    logbook_id = Column(String, ForeignKey('logbook.logbook_id')
+    logbook_id = Column(String, ForeignKey('logbook.logbook_id'))
 
 
 class Workflow(BASE, TaskFlowBase):
