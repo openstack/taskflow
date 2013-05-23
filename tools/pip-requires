@@ -1,5 +1,6 @@
 # Packages needed for using this library.
 oslo.config>=1.1.0
+iso8601
 networkx
 # Only needed if celery/distributed flows used.
 celery
