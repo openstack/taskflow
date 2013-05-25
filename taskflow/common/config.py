@@ -21,14 +21,20 @@
 Routines for configuring TaskFlow
 """
 
+import os
+
 from oslo.config import cfg
 
 db_opts = [
     cfg.StrOpt('sql_connection',
-               default='mysql://task:flow@localhost/taskflow',
-               #default='sqlite:///test.db',
+               default='sqlite:///' +
+                       os.path.abspath(os.path.join(os.path.dirname(__file__),
+                       '../', '$sqlite_db')),
                help='The SQLAlchemy connection string used to connect to the '
-               'database'),
+                    'database'),
+    cfg.StrOpt('sqlite_db',
+               default='taskflow.sqlite',
+               help='The filename to use with sqlite'),
     cfg.IntOpt('sql_idle_timeout',
                default=3600,
                help='timeout before idle sql connections are reaped')]
