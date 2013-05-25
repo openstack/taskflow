@@ -147,6 +147,10 @@ class Flow(object):
                 # if rollback occurs that the task gets exactly the
                 # result it returned and not a modified one.
                 self.results.append((task, result))
+                # Add the task result to the accumulator before
+                # notifying others that the task has finished to
+                # avoid the case where a listener might throw an
+                # exception.
                 self._accumulator.add(RollbackTask(context, task,
                                                    copy.deepcopy(result)))
                 self._on_task_finish(context, task, result)
