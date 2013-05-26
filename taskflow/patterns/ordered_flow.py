@@ -17,6 +17,7 @@
 #    under the License.
 
 import abc
+import collections
 import copy
 import functools
 import logging
@@ -49,7 +50,9 @@ class RollbackTask(object):
         return str(self.task)
 
     def __call__(self, cause):
-        self.task.revert(self.context, self.result, cause)
+        if (hasattr(self.task, "revert") and
+            isinstance(self.task.revert, collections.Callable)):
+            self.task.revert(self.context, self.result, cause)
 
 
 class Flow(object):
@@ -140,7 +143,7 @@ class Flow(object):
                     if not inputs:
                         inputs = {}
                     inputs.update(kwargs)
-                    result = task.apply(context, *args, **inputs)
+                    result = task(context, *args, **inputs)
                 # Keep a pristine copy of the result
                 # so that if said result is altered by other further
                 # states the one here will not be. This ensures that

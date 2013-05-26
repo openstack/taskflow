@@ -38,7 +38,7 @@ class Task(object):
         return "Task: %s" % (self.name)
 
     @abc.abstractmethod
-    def apply(self, context, *args, **kwargs):
+    def __call__(self, context, *args, **kwargs):
         """Activate a given task which will perform some operation and return.
 
            This method can be used to apply some given context and given set

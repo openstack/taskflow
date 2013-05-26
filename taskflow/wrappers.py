@@ -45,7 +45,7 @@ class FunctorTask(task.Task):
                     continue
                 self.requires.add(arg_name)
 
-    def apply(self, context, *args, **kwargs):
+    def __call__(self, context, *args, **kwargs):
         return self._apply_functor(context, *args, **kwargs)
 
     def revert(self, context, result, cause):

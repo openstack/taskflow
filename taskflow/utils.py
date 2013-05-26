@@ -24,6 +24,10 @@ import time
 LOG = logging.getLogger(__name__)
 
 
+def safe_attr(obj, name, default=None):
+    return getattr(obj, name, default)
+
+
 def await(check_functor, timeout=None):
     if timeout is not None:
         end_time = time.time() + max(0, timeout)

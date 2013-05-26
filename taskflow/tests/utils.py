@@ -40,7 +40,7 @@ class ProvidesRequiresTask(task.Task):
         self.provides = provides
         self.requires = requires
 
-    def apply(self, context, *args, **kwargs):
+    def __call__(self, context, *args, **kwargs):
         outs = {
             KWARGS_KEY: dict(kwargs),
             ARGS_KEY: list(args),

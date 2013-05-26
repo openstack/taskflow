@@ -17,6 +17,7 @@
 #    under the License.
 
 from taskflow import exceptions as exc
+from taskflow import utils
 from taskflow.patterns import ordered_flow
 
 
@@ -31,10 +32,10 @@ class Flow(ordered_flow.Flow):
 
     def _fetch_task_inputs(self, task):
         inputs = {}
-        for r in task.requires:
+        for r in utils.safe_attr(task, 'requires', []):
             # Find the last task that provided this.
             for (last_task, last_results) in reversed(self.results):
-                if r not in last_task.provides:
+                if r not in utils.safe_attr(last_task, 'provides', []):
                     continue
                 if last_results and r in last_results:
                     inputs[r] = last_results[r]
@@ -47,10 +48,10 @@ class Flow(ordered_flow.Flow):
     def _validate_provides(self, task):
         # Ensure that some previous task provides this input.
         missing_requires = []
-        for r in task.requires:
+        for r in utils.safe_attr(task, 'requires', []):
             found_provider = False
             for prev_task in reversed(self._tasks):
-                if r in prev_task.provides:
+                if r in utils.safe_attr(prev_task, 'provides', []):
                     found_provider = True
                     break
             if not found_provider:
