@@ -16,11 +16,75 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+import functools
 import inspect
 
 from taskflow import task
 
 AUTO_ARGS = ('self', 'context',)
+
+
+def _get_args(f):
+    args = []
+    if hasattr(f, '__argspec'):
+        args = list(f.__argspec.args)
+    return set([a for a in args if a not in AUTO_ARGS and not
+                isinstance(a, collections.Callable)])
+
+
+def _set_argspec(f):
+    if not hasattr(f, '__argspec'):
+        f.__argspec = inspect.getargspec(f)
+
+
+def requires(*args, **kwargs):
+
+    def decorator(f):
+        # Ensure we copy its arg spec since wrappers lose there wrapping
+        # functions arg specification. This is supposedly fixed in python 3.3.
+        _set_argspec(f)
+        f.requires = _get_args(f)
+        f.requires.update([a for a in args if a not in AUTO_ARGS and
+                           not isinstance(a, collections.Callable)])
+
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            f(*args, **kwargs)
+
+        return wrapper
+
+    if kwargs or not args:
+        return decorator
+    else:
+        if isinstance(args[0], collections.Callable):
+            return decorator(args[0])
+        else:
+            return decorator
+
+
+def provides(*args, **kwargs):
+
+    def decorator(f):
+        # Ensure we copy its arg spec since wrappers lose there wrapping
+        # functions arg specification. This is supposedly fixed in python 3.3.
+        _set_argspec(f)
+        f.provides = set([a for a in args if a not in AUTO_ARGS and
+                          not isinstance(a, collections.Callable)])
+
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            f(*args, **kwargs)
+
+        return wrapper
+
+    if kwargs or not args:
+        return decorator
+    else:
+        if isinstance(args[0], collections.Callable):
+            return decorator(args[0])
+        else:
+            return decorator
 
 
 class FunctorTask(task.Task):
