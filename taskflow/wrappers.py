@@ -41,8 +41,8 @@ def _set_argspec(f):
 def requires(*args, **kwargs):
 
     def decorator(f):
-        # Ensure we copy its arg spec since wrappers lose there wrapping
-        # functions arg specification. This is supposedly fixed in python 3.3.
+        # Ensure we copy its arg. spec. since wrappers lose there wrapping
+        # functions arg. specification. This is supposedly fixed in python 3.3.
         _set_argspec(f)
         f.requires = _get_args(f)
         f.requires.update([a for a in args if a not in AUTO_ARGS and
@@ -50,10 +50,12 @@ def requires(*args, **kwargs):
 
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
 
         return wrapper
 
+    # This is needed to handle when the decorator has args or the decorator
+    # doesn't have args, python is rather weird here...
     if kwargs or not args:
         return decorator
     else:
@@ -66,18 +68,20 @@ def requires(*args, **kwargs):
 def provides(*args, **kwargs):
 
     def decorator(f):
-        # Ensure we copy its arg spec since wrappers lose there wrapping
-        # functions arg specification. This is supposedly fixed in python 3.3.
+        # Ensure we copy its arg. spec. since wrappers lose there wrapping
+        # functions arg. specification. This is supposedly fixed in python 3.3.
         _set_argspec(f)
         f.provides = set([a for a in args if a not in AUTO_ARGS and
                           not isinstance(a, collections.Callable)])
 
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            f(*args, **kwargs)
+            return f(*args, **kwargs)
 
         return wrapper
 
+    # This is needed to handle when the decorator has args or the decorator
+    # doesn't have args, python is rather weird here...
     if kwargs or not args:
         return decorator
     else:
@@ -93,21 +97,19 @@ class FunctorTask(task.Task):
     situations where existing functions already are in place and you just want
     to wrap them up."""
 
-    def __init__(self, name, apply_functor, revert_functor,
+    def __init__(self, name, apply_functor, revert_functor=None,
                  provides_what=None, extract_requires=False):
         if not name:
             name = "_".join([apply_functor.__name__, revert_functor.__name__])
         super(FunctorTask, self).__init__(name)
-        self._apply_functor = apply_functor
+        if extract_requires:
+            self._apply_functor = requires(apply_functor)
+            self.requires.update(self._apply_functor.requires)
+        else:
+            self._apply_functor = apply_functor
         self._revert_functor = revert_functor
         if provides_what:
             self.provides.update(provides_what)
-        if extract_requires:
-            for arg_name in inspect.getargspec(apply_functor).args:
-                # These are automatically given, ignore.
-                if arg_name in AUTO_ARGS:
-                    continue
-                self.requires.add(arg_name)
 
     def __call__(self, context, *args, **kwargs):
         return self._apply_functor(context, *args, **kwargs)
