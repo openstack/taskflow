@@ -53,12 +53,13 @@ def requires(*args, **kwargs):
         if not hasattr(f, 'requires'):
             f.requires = set()
 
-        inspect_what = f
-        if hasattr(f, '__wrapped__'):
-            inspect_what = f.__wrapped__
+        if kwargs.pop('auto_extract', True):
+            inspect_what = f
+            if hasattr(f, '__wrapped__'):
+                inspect_what = f.__wrapped__
+            f_args = inspect.getargspec(inspect_what).args
+            f.requires.update([a for a in f_args if _take_arg(a)])
 
-        f_args = inspect.getargspec(inspect_what).args
-        f.requires.update([a for a in f_args if _take_arg(a)])
         f.requires.update([a for a in args if _take_arg(a)])
 
         @wraps(f)

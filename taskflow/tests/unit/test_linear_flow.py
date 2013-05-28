@@ -19,6 +19,7 @@
 import functools
 import unittest
 
+from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import wrappers
@@ -56,6 +57,30 @@ class LinearFlowTest(unittest.TestCase):
         return wrappers.FunctorTask('task-%s' % (token),
                                     do_interrupt,
                                     utils.null_functor)
+
+    def test_functor_flow(self):
+        wf = lw.Flow("the-test-action")
+
+        @decorators.provides('a', 'b', 'c')
+        def do_apply1(context):
+            context['1'] = True
+            return {
+                'a': 1,
+                'b': 2,
+                'c': 3,
+            }
+
+        @decorators.requires('c', 'a', auto_extract=False)
+        def do_apply2(context, **kwargs):
+            self.assertTrue('c' in kwargs)
+            self.assertEquals(1, kwargs['a'])
+            context['2'] = True
+
+        ctx = {}
+        wf.add(do_apply1)
+        wf.add(do_apply2)
+        wf.run(ctx)
+        self.assertEquals(2, len(ctx))
 
     def test_sad_flow_state_changes(self):
         wf = lw.Flow("the-test-action")
