@@ -13,7 +13,7 @@ from taskflow.db.sqlalchemy.session import get_session
 from taskflow.openstack.common import exception
 
 db_api.configure()
-db_filepath = cfg.CONF.get('sql_connection')
+db_api.SQL_CONNECTION = 'sqlite:///test.db'
 
 def setUpModule():
 	if not path.isfile('test.db'):
