@@ -20,7 +20,19 @@ import collections
 import functools
 import inspect
 
+# These arguments are ones that we will skip when parsing for requirements
+# for a function to operate (when used as a task).
 AUTO_ARGS = ('self', 'context',)
+
+
+def _take_arg(a):
+    if a in AUTO_ARGS:
+        return False
+    # In certain decorator cases it seems like we get the function to be
+    # decorated as an argument, we don't want to take that as a real argument.
+    if isinstance(a, collections.Callable):
+        return False
+    return True
 
 
 def wraps(fn):
@@ -45,11 +57,9 @@ def requires(*args, **kwargs):
         if hasattr(f, '__wrapped__'):
             inspect_what = f.__wrapped__
 
-        f.requires.update([a for a in inspect.getargspec(inspect_what).args
-                           if a not in AUTO_ARGS and not
-                           isinstance(a, collections.Callable)])
-        f.requires.update([a for a in args if a not in AUTO_ARGS and
-                           not isinstance(a, collections.Callable)])
+        f_args = inspect.getargspec(inspect_what).args
+        f.requires.update([a for a in f_args if _take_arg(a)])
+        f.requires.update([a for a in args if _take_arg(a)])
 
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -74,8 +84,7 @@ def provides(*args, **kwargs):
         if not hasattr(f, 'provides'):
             f.provides = set()
 
-        f.provides.update([a for a in args if a not in AUTO_ARGS and
-                           not isinstance(a, collections.Callable)])
+        f.provides.update([a for a in args if _take_arg(a)])
 
         @wraps(f)
         def wrapper(*args, **kwargs):
