@@ -74,8 +74,8 @@ def provides(*args, **kwargs):
         if not hasattr(f, 'provides'):
             f.provides = set()
 
-        f.provides = set([a for a in args if a not in AUTO_ARGS and
-                          not isinstance(a, collections.Callable)])
+        f.provides.update([a for a in args if a not in AUTO_ARGS and
+                           not isinstance(a, collections.Callable)])
 
         @wraps(f)
         def wrapper(*args, **kwargs):
