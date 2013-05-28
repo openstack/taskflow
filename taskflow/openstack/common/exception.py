@@ -39,7 +39,11 @@ class ApiError(Error):
 
 
 class NotFound(Error):
-    pass
+    msg = " %s not found."
+
+    def __init__(self, obj):
+        msg = self.__class__.msg % obj
+        super(NotFound, self).__init__(msg)
 
 
 class UnknownScheme(Error):

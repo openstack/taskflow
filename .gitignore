@@ -33,3 +33,9 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+# DS_STORE
+.DS_Store
+
+# Modified Files
+*.swp

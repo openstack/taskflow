@@ -21,6 +21,7 @@
 
 import logging
 
+from taskflow import states
 from taskflow.db.sqlalchemy import models
 from taskflow.db.sqlalchemy.session import get_session
 
@@ -43,7 +44,7 @@ def logbook_get(context, lb_id, session=None):
     query = model_query(context, models.LogBook, session=session).\
         filter_by(logbook_id=lb_id)
 
-    if not query:
+    if not query.first():
         raise exception.NotFound("No LogBook found with id "
                                  "%s." % (lb_id,))
 
@@ -54,7 +55,7 @@ def logbook_get_by_name(context, lb_name):
     query = model_query(context, models.LogBook).\
         filter_by(name=lb_name)
 
-    if not query:
+    if not query.all():
         raise exception.NotFound("LogBook %s not found."
                                  % (lb_name,))
 
@@ -72,7 +73,9 @@ def logbook_create(context, name, lb_id=None):
 
 def logbook_get_workflows(context, lb_id):
     """Return all workflows associated with a logbook"""
-    lb = logbook_get(context, lb_id)
+    session = get_session()
+    with session.begin():
+        lb = logbook_get(context, lb_id, session=session)
 
     return lb.workflows
 
@@ -85,14 +88,14 @@ def logbook_add_workflow(context, lb_id, wf_name):
 
         lb.workflows.append(wf)
 
-        return lb.workflows
+    return lb.workflows
 
 def logbook_destroy(context, lb_id):
     """Delete a given LogBook"""
     session = get_session()
     with session.begin():
         lb = logbook_get(context, lb_id, session=session)
-        lb.delete()
+        lb.delete(session=session)
 
 """
 JOB
@@ -100,10 +103,10 @@ JOB
 
 def job_get(context, job_id, session=None):
     """Return Job with matching job_id"""
-    query = model_query(context, models.Workflow, session=session).\
+    query = model_query(context, models.Job, session=session).\
         filter_by(job_id=job_id)
 
-    if not query:
+    if not query.first():
         raise exception.NotFound("No Job with id %s found"
                                  % (job_id,))
 
@@ -121,10 +124,10 @@ def job_add_workflow(context, job_id, wf_id):
     """Add a Workflow to given job"""
     session = get_session()
     with session.begin():
-        job = job_get(context, job_id)
-        wf = workflow_get(context, wf_id)
+        job = job_get(context, job_id, session=session)
+        wf = workflow_get(context, wf_id, session=session)
         job.workflows.append(wf)
-        return job.workflows
+    return job.workflows
 
 def job_get_owner(context, job_id):
     """Return a job's current owner"""
@@ -138,15 +141,28 @@ def job_get_state(context, job_id):
 
 def job_get_logbook(context, job_id):
     """Return the logbook associated with the given job"""
-    job = job_get(context, job_id)
+    session = get_session()
+    with session.begin():
+        job = job_get(context, job_id, session=session)
     return job.logbook
+
+def job_create(context, name, job_id=None):
+    job_ref = models.Job()
+    job_ref.name = name
+    job_ref.state = states.UNCLAIMED
+    if job_id:
+        job_ref.job_id = job_id
+        job_ref.logbook_id = job_id
+    job_ref.save()
+
+    return job_ref
 
 def job_destroy(context, job_id):
     """Delete a given Job"""
     session = get_session()
     with session.begin():
         job = job_get(context, job_id, session=session)
-        job.delete()
+        job.delete(session=session)
 
 
 """
@@ -158,7 +174,7 @@ def workflow_get(context, wf_name, session=None):
     query = model_query(context, models.Workflow, session=session).\
         filter_by(name=wf_name)
 
-    if not query:
+    if not query.first():
         raise exception.NotFound("Workflow %s not found." % (wf_name,))
 
     return query.first()
@@ -180,7 +196,9 @@ def workflow_get_names(context):
 
 def workflow_get_tasks(context, wf_name):
     """Return all tasks for a given Workflow"""
-    wf = workflow_get(context, wf_name)
+    session = get_session()
+    with session.begin():
+        wf = workflow_get(context, wf_name, session=session)
 
     return wf.tasks
 
@@ -206,7 +224,7 @@ def workflow_destroy(context, wf_name):
     session = get_session()
     with session.begin():
         wf = workflow_get(context, wf_name, session=session)
-        wf.delete()
+        wf.delete(session=session)
 
 """
 TASK
@@ -214,14 +232,14 @@ TASK
 
 def task_get(context, task_id, session=None):
     """Return Task with task_id"""
-    result = model_query(context, models.Task, session=session).\
+    query = model_query(context, models.Task, session=session).\
         filter_by(task_id=task_id)
 
-    if not result:
+    if not query.first():
         raise exception.NotFound("No Task found with id "
                                  "%s." % (task_id,))
 
-    return result
+    return query.first()
 
 def task_create(context, task_name, wf_id, task_id=None):
     """Create task associated with given workflow"""
@@ -248,4 +266,4 @@ def task_destroy(context, task_id):
     session = get_session()
     with session.begin():
         task = task_get(context, task_id, session=session)
-        task.delete()
+        task.delete(session=session)
