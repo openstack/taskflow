@@ -52,10 +52,10 @@ class Flow(ordered_flow.Flow):
     def _fetch_task_inputs(self, task):
         inputs = collections.defaultdict(list)
 
-        for n in task.requires:
+        for n in getattr(task, 'requires', []):
             for (them, there_result) in self.results:
                 if (not self._graph.has_edge(them, task) or
-                    not n in them.provides):
+                    not n in getattr(them, 'provides', [])):
                     continue
                 if there_result and n in there_result:
                     inputs[n].append(there_result[n])
@@ -89,9 +89,9 @@ class Flow(ordered_flow.Flow):
         provides_what = collections.defaultdict(list)
         requires_what = collections.defaultdict(list)
         for t in self._graph.nodes_iter():
-            for r in t.requires:
+            for r in getattr(t, 'requires', []):
                 requires_what[r].append(t)
-            for p in t.provides:
+            for p in getattr(t, 'provides', []):
                 provides_what[p].append(t)
 
         def get_providers(node, want_what):

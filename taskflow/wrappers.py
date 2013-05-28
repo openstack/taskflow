@@ -16,11 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import inspect
-
+from taskflow import decorators
 from taskflow import task
-
-AUTO_ARGS = ('self', 'context',)
 
 
 class FunctorTask(task.Task):
@@ -29,23 +26,21 @@ class FunctorTask(task.Task):
     situations where existing functions already are in place and you just want
     to wrap them up."""
 
-    def __init__(self, name, apply_functor, revert_functor,
+    def __init__(self, name, apply_functor, revert_functor=None,
                  provides_what=None, extract_requires=False):
         if not name:
             name = "_".join([apply_functor.__name__, revert_functor.__name__])
         super(FunctorTask, self).__init__(name)
-        self._apply_functor = apply_functor
+        if extract_requires:
+            self._apply_functor = decorators.requires(apply_functor)
+            self.requires.update(self._apply_functor.requires)
+        else:
+            self._apply_functor = apply_functor
         self._revert_functor = revert_functor
         if provides_what:
             self.provides.update(provides_what)
-        if extract_requires:
-            for arg_name in inspect.getargspec(apply_functor).args:
-                # These are automatically given, ignore.
-                if arg_name in AUTO_ARGS:
-                    continue
-                self.requires.add(arg_name)
 
-    def apply(self, context, *args, **kwargs):
+    def __call__(self, context, *args, **kwargs):
         return self._apply_functor(context, *args, **kwargs)
 
     def revert(self, context, result, cause):
