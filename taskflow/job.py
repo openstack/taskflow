@@ -39,9 +39,9 @@ def task_and_state(task, state):
         # Likely a function and not a task object so let us search for these
         # attributes to get a good name for this task.
         name_pieces = [a for a in utils.get_many_attr(task,
-                                                           '__module__',
-                                                           '__name__',
-                                                           '__version__')
+                                                      '__module__',
+                                                      '__name__',
+                                                      '__version__')
                        if a is not None]
     if not name_pieces:
         # Ok, unsure what this task is, just use whatever its string
