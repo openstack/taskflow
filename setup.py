@@ -37,6 +37,7 @@ setuptools.setup(
                      'systems which process workflows in a structured manner.',
     author_email='openstack-dev@lists.openstack.org',
     url='http://www.openstack.org/',
+    packages=setuptools.find_packages(),
     tests_require=read_requires('test-requires'),
     install_requires=read_requires('pip-requires'),
     classifiers=[
