@@ -26,15 +26,13 @@ from taskflow.openstack.common import uuidutils
 
 
 def task_and_state(task, state):
-    name = None
-    for a in ('name', '__name__'):
-        if hasattr(task, a):
-            attr = getattr(task, a)
-            if attr is not None:
-                name = str(attr)
-                break
-    if name is None:
-        name = str(task)
+    try:
+        name = task.name
+    except AttributeError:
+        try:
+            name = task.__name__
+        except AttributeError:
+            name = str(task)
     return "%s:%s" % (name, state)
 
 

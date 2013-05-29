@@ -238,6 +238,9 @@ class LinearFlowTest(unittest.TestCase):
 
         # And now reset and resume.
         wf.reset()
+        wf.result_fetcher = result_fetcher
+        wf.task_listeners.append(task_listener)
+
         self.assertEquals(states.PENDING, wf.state)
         wf.run(context)
         self.assertEquals(2, len(context))

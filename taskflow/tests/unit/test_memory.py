@@ -155,6 +155,7 @@ class MemoryBackendTest(unittest.TestCase):
         self.assertEquals(1, len(call_log))
 
         wf.reset()
+        j.associate(wf)
         self.assertEquals(states.PENDING, wf.state)
         wf.run(j.context)
 

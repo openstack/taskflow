@@ -304,9 +304,9 @@ class WorkflowTest(unittest.TestCase):
 	
 	@classmethod
 	def teardownClass(cls):
-		for id in tsk_ids:
+		for id in cls.tsk_ids:
 			db_api.task_destroy('', id)
-		for name in wf_names:
+		for name in cls.wf_names:
 			db_api.workflow_destroy('', name)
 		cls.tsk_ids = []
 		cls.tsk_names = []
@@ -408,7 +408,7 @@ class TaskTest(unittest.TestCase):
 
 	@classmethod
 	def teardownClass(cls):
-		for id in tsk_ids:
+		for id in cls.tsk_ids:
 			db_api.task_destroy('', id)
 		cls.tsk_ids = []
 		cls.tsk_names = []
