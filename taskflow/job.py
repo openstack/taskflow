@@ -26,7 +26,16 @@ from taskflow.openstack.common import uuidutils
 
 
 def task_and_state(task, state):
-    return "%s:%s" % (task.name, state)
+    name = None
+    for a in ('name', '__name__'):
+        if hasattr(task, a):
+            attr = getattr(task, a)
+            if attr is not None:
+                name = str(attr)
+                break
+    if name is None:
+        name = str(task)
+    return "%s:%s" % (name, state)
 
 
 class Claimer(object):

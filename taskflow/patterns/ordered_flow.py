@@ -194,8 +194,12 @@ class Flow(object):
             self._change_state(context, states.SUCCESS)
 
     def reset(self):
+        # Reset all internal state (except our parent workflows).
         self._state = states.PENDING
         self.results = []
+        self.task_listeners = []
+        self.listeners = []
+        self.result_fetcher = None
         self._accumulator.reset()
 
     def interrupt(self):
