@@ -18,6 +18,8 @@
 
 import abc
 
+from taskflow import utils
+
 
 class Task(object):
     """An abstraction that defines a potential piece of work that can be
@@ -33,9 +35,14 @@ class Task(object):
         # An *immutable* output 'resource' name set this task
         # produces that other tasks may depend on this task providing.
         self.provides = set()
+        # This identifies the version of the task to be ran which
+        # can be useful in resuming older versions of tasks. Standard
+        # major, minor version semantics apply.
+        self.version = (1, 0)
 
     def __str__(self):
-        return "Task: %s" % (self.name)
+        return "Task: %s v%s" % (self.name, utils.join(self.version,
+                                                       with_what="."))
 
     @abc.abstractmethod
     def __call__(self, context, *args, **kwargs):
