@@ -83,7 +83,6 @@ class JobTest(unittest.TestCase):
 		cls.job_names = []
 
 	def test_job_get(self):
-		print '\nTesting job_get...'
 		expected = self.job_names[0]
 		actual = db_api.job_get('', self.job_ids[0]).name
 
@@ -92,7 +91,6 @@ class JobTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.job_get, '', 9001)
 
 	def test_job_update(self):
-		print '\nTesting job_update...'
 		db_api.job_update('', 1, dict(owner='OwnerTest', state=states.CLAIMED))
 		job = db_api.job_get('', 1)
 
@@ -109,7 +107,6 @@ class JobTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.job_update, '', 9001, dict(owner='OwnerTest', state=states.CLAIMED))
 
 	def test_job_add_workflow(self):
-		print '\nTesting job_add_workflow...'
 		db_api.workflow_create('', u'workflow_10')
 		self.wf_ids.append(10)
 		self.wf_names.append(u'workflow_10')
@@ -127,7 +124,6 @@ class JobTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.job_add_workflow, '', 1, u'workflow_9001')
 
 	def test_job_get_owner(self):
-		print '\nTesting job_get_owner...'
 		actual = db_api.job_get_owner('', 1)
 
 		self.assertIsNone(actual)
@@ -135,7 +131,6 @@ class JobTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.job_get_owner, '', 9001)
 
 	def test_job_get_state(self):
-		print '\nTesting job_get_state...'
 		expected = states.UNCLAIMED
 		actual = db_api.job_get_state('', 1)
 
@@ -144,7 +139,6 @@ class JobTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.job_get_state, '', 9001)
 
 	def test_job_get_logbook(self):
-		print '\nTesting job_get_logbook...'
 		expected = self.lb_names[0]
 		actual = db_api.job_get_logbook('', 1).name
 
@@ -153,7 +147,6 @@ class JobTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.job_get_logbook, '', 9001)
 
 	def test_job_create(self):
-		print '\nTesting job_create...'
 		id = 1
 		while (self.job_ids.count(id) > 0):
 			id = id + 1
@@ -165,7 +158,6 @@ class JobTest(unittest.TestCase):
 		self.assertIsNotNone(actual)
 
 	def test_job_destroy(self):
-		print '\nTesting job_destroy...'
 		id = self.job_ids.pop()
 		db_api.job_destroy('', id)
 		self.job_names.pop()
@@ -207,7 +199,6 @@ class LogBookTest(unittest.TestCase):
 		cls.lb_names = []
 
 	def test_logbook_get(self):
-		print '\nTesting logbook_get...'
 		expected = self.lb_names[0]
 		actual = db_api.logbook_get('', self.lb_ids[0]).name
 
@@ -216,7 +207,6 @@ class LogBookTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.logbook_get, '', 9001)
 
 	def test_logbook_get_by_name(self):
-		print '\nTesting logbook_get_by_name...'
 		expected = [self.lb_ids[0]]
 		actual = []
 		for logbook in db_api.logbook_get_by_name('', self.lb_names[0]):
@@ -227,7 +217,6 @@ class LogBookTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.logbook_get_by_name, '', u'logbook_9001')
 
 	def test_logbook_create(self):
-		print '\nTesting logbook_create...'
 		id = 1
 		while (self.lb_ids.count(id) > 0):
 			id = id + 1
@@ -240,7 +229,6 @@ class LogBookTest(unittest.TestCase):
 		self.assertIsNotNone(actual)
 
 	def test_logbook_get_workflows(self):
-		print '\nTesting logbook_get_workflows...'
 		expected = self.wf_ids
 		actual = []
 		wfs = db_api.logbook_get_workflows('', self.lb_ids[0])
@@ -253,7 +241,6 @@ class LogBookTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.logbook_get_workflows, '', 9001)
 
 	def test_logbook_add_workflow(self):
-		print '\nTesting logbook_add_workflow...'
 		db_api.workflow_create('', u'workflow_10')
 		self.wf_ids.append(10)
 		self.wf_names.append(u'workflow_10')
@@ -271,7 +258,6 @@ class LogBookTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.logbook_add_workflow, '', 1, u'workflow_9001')
 
 	def test_logbook_destroy(self):
-		print '\nTesting logbook_destroy...'
 		id = self.lb_ids.pop()
 		db_api.logbook_destroy('', id)
 		self.lb_names.pop()
@@ -314,7 +300,6 @@ class WorkflowTest(unittest.TestCase):
 		cls.wf_names = []
 					
 	def test_workflow_get(self):
-		print '\nTesting workflow_get...'
 		expected =  self.wf_ids[0]
 		actual = db_api.workflow_get('', self.wf_names[0]).id
 
@@ -323,7 +308,6 @@ class WorkflowTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.workflow_get, '', u'workflow_9001')
 
 	def test_workflow_get_all(self):
-		print '\nTesting workflow_get_all...'
 		expected = self.wf_ids
 		actual = []
 		temp = db_api.workflow_get_all('')
@@ -334,7 +318,6 @@ class WorkflowTest(unittest.TestCase):
 		self.assertEquals(expected, actual)
 
 	def test_workflow_get_names(self):
-		print '\nTesting workflow_get_names...'
 		expected = []
 		for name in self.wf_names:
 			expected.append(name)
@@ -345,7 +328,6 @@ class WorkflowTest(unittest.TestCase):
 		self.assertEquals(expected, actual)
 
 	def test_workflow_get_tasks(self):
-		print '\nTesting workflow_get_tasks...'
 		expected = [self.tsk_names[0], self.tsk_names[9]]
 		actual = []
 		temp = db_api.workflow_get_tasks('', u'workflow_1')
@@ -358,7 +340,6 @@ class WorkflowTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.workflow_get_tasks, '', u'workflow_9001')
 
 	def test_workflow_add_task(self):
-		print '\nTesting workflow_add_task...'
 		tsk_tmp = db_api.task_create('', u'task_10', 1, 10)
 		db_api.workflow_add_task('', u'workflow_1', 10)
 		self.tsk_ids.append(10)
@@ -373,7 +354,6 @@ class WorkflowTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.workflow_add_task, '', u'workflow_1', 9001)
 
 	def test_workflow_create(self):
-		print '\nTesting workflow_create...'
 		id = 0
 		while (self.wf_ids.count(id) > 0):
 			id = id + 1
@@ -384,7 +364,6 @@ class WorkflowTest(unittest.TestCase):
 		self.assertIsNotNone(db_api.workflow_get('', u'workflow_{}'.format(id)))
 
 	def test_workflow_destroy(self):
-		print '\nTesting workflow_destroy...'
 		name = self.wf_names.pop()
 		db_api.workflow_destroy('', name)
 		self.wf_ids.pop()
@@ -414,7 +393,6 @@ class TaskTest(unittest.TestCase):
 		cls.tsk_names = []
 
 	def test_task_get(self):
-		print '\nTesting task_get...'
 		expected = self.tsk_names[0]
 		actual = db_api.task_get('', self.tsk_ids[0])
 
@@ -423,7 +401,6 @@ class TaskTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.task_get, '', 9001)
 
 	def test_task_create(self):
-		print '\nTesting task_create...'
 		id = 1
 		while (self.tsk_ids.count(id) > 0):
 			id = id + 1
@@ -434,7 +411,6 @@ class TaskTest(unittest.TestCase):
 		self.assertIsNotNone(db_api.task_get('', id))
 
 	def test_task_update(self):
-		print '\nTesting task_update...'
 		db_api.task_update('', 1, dict(exception='ExceptionTest', stacktrace='StacktraceTest'))
 		task = db_api.task_get('', 1)
 
@@ -451,7 +427,6 @@ class TaskTest(unittest.TestCase):
 		self.assertRaises(exception.NotFound, db_api.task_update, '', 9001, dict(exception='ExceptionTest', stacktrace='StacktraceTest'))
 
 	def test_task_destroy(self):
-		print '\nTesting task_destroy...'
 		id = self.tsk_ids.pop()
 		db_api.task_destroy('', id)
 		self.tsk_names.pop()
