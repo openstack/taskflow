@@ -24,6 +24,18 @@ import time
 LOG = logging.getLogger(__name__)
 
 
+def join(itr, with_what=","):
+    pieces = [str(i) for i in itr]
+    return with_what.join(pieces)
+
+
+def get_many_attr(obj, *attrs):
+    many = []
+    for a in attrs:
+        many.append(getattr(obj, a, None))
+    return many
+
+
 def await(check_functor, timeout=None):
     if timeout is not None:
         end_time = time.time() + max(0, timeout)
