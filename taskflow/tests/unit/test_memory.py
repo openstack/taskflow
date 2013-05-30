@@ -22,10 +22,10 @@ import functools
 import threading
 import unittest
 
+from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import job
 from taskflow import states
-from taskflow import wrappers as wrap
 
 from taskflow.backends import memory
 from taskflow.patterns import linear_flow as lw
@@ -79,10 +79,7 @@ class MemoryBackendTest(unittest.TestCase):
                         # Create some dummy flow for the job
                         wf = lw.Flow('dummy')
                         for _i in range(0, 5):
-                            t = wrap.FunctorTask(None,
-                                                 utils.null_functor,
-                                                 utils.null_functor)
-                            wf.add(t)
+                            wf.add(utils.null_functor)
                         j.associate(wf)
                         j.state = states.RUNNING
                         wf.run(j.context)
@@ -131,18 +128,21 @@ class MemoryBackendTest(unittest.TestCase):
 
         call_log = []
 
-        def do_1(_context, *_args, **_kwargs):
+        @decorators.task
+        def do_1(context, *args, **kwargs):
             call_log.append(1)
 
-        def do_2(_context, *_args, **_kwargs):
+        @decorators.task
+        def do_2(context, *args, **kwargs):
             call_log.append(2)
 
-        def do_interrupt(_context, *_args, **_kwargs):
+        @decorators.task
+        def do_interrupt(context, *args, **kwargs):
             wf.interrupt()
 
-        task_1 = wrap.FunctorTask(None, do_1, utils.null_functor)
-        task_1_5 = wrap.FunctorTask(None, do_interrupt, utils.null_functor)
-        task_2 = wrap.FunctorTask(None, do_2, utils.null_functor)
+        task_1 = do_1
+        task_1_5 = do_interrupt
+        task_2 = do_2
 
         wf.add(task_1)
         wf.add(task_1_5)  # Interrupt it after task_1 finishes
@@ -180,14 +180,16 @@ class MemoryBackendTest(unittest.TestCase):
 
         call_log = []
 
-        def do_1(_context, *_args, **_kwargs):
+        @decorators.task
+        def do_1(context, *args, **kwargs):
             call_log.append(1)
 
-        def do_2(_context, *_args, **_kwargs):
+        @decorators.task
+        def do_2(context, *args, **kwargs):
             call_log.append(2)
 
-        wf.add(wrap.FunctorTask(None, do_1, utils.null_functor))
-        wf.add(wrap.FunctorTask(None, do_2, utils.null_functor))
+        wf.add(do_1)
+        wf.add(do_2)
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))

@@ -17,6 +17,7 @@
 #    under the License.
 
 import abc
+import types
 
 from taskflow import exceptions as exc
 from taskflow import states
@@ -26,28 +27,31 @@ from taskflow.openstack.common import uuidutils
 
 
 def task_and_state(task, state):
-    name_pieces = []
-    try:
-        name_pieces.append(task.name)
-        if isinstance(task.version, (list, tuple)):
-            name_pieces.append(utils.join(task.version, "."))
+    """Combines a task objects string representation with a state to
+    create a uniquely identifying task+state name."""
+
+    task_name = ""
+    if isinstance(task, types.FunctionType):
+        # If its a function look for the attributes that should have been
+        # set using the task() decorator provided in the decorators file. If
+        # those have not been set, then we should at least have enough basic
+        # information (not a version) to form a useful task name.
+        if hasattr(task, 'name'):
+            task_name = str(task.name)
         else:
-            name_pieces.append(task.version)
-    except AttributeError:
-        pass
-    if not name_pieces:
-        # Likely a function and not a task object so let us search for these
-        # attributes to get a good name for this task.
-        name_pieces = [a for a in utils.get_many_attr(task,
-                                                      '__module__',
-                                                      '__name__',
-                                                      '__version__')
-                       if a is not None]
-    if not name_pieces:
-        # Ok, unsure what this task is, just use whatever its string
-        # representation is.
-        name_pieces.append(task)
-    return "%s;%s" % (utils.join(name_pieces, ':'), state)
+            name_pieces = [a for a in utils.get_many_attr(task,
+                                                          '__module__',
+                                                          '__name__')
+                           if a is not None]
+            task_name = utils.join(name_pieces, ".")
+        task_version = getattr(task, '__version__', None)
+        if isinstance(task_version, (list, tuple)):
+            task_version = utils.join(task_version, with_what=".")
+        if task_version is not None:
+            task_name += "==%s" % (task_version)
+    else:
+        task_name = str(task)
+    return "%s;%s" % (task_name, state)
 
 
 class Claimer(object):

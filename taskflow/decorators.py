@@ -47,16 +47,78 @@ def wraps(fn):
     return wrapper
 
 
+def task(*args, **kwargs):
+    """Decorates a given function and ensures that all needed attributes of
+    that function are set so that the function can be used as a task."""
+
+    def decorator(f):
+
+        def noop(*args, **kwargs):
+            pass
+
+        f.revert = kwargs.pop('revert_with', noop)
+
+        # Sets the version of the task.
+        version = kwargs.pop('version', (1, 0))
+        f = versionize(*version)(f)
+
+        # Attach any requirements this function needs for running.
+        requires_what = kwargs.pop('requires', [])
+        f = requires(*requires_what, **kwargs)(f)
+
+        # Attach any items this function provides as output
+        provides_what = kwargs.pop('provides', [])
+        f = provides(*provides_what, **kwargs)(f)
+
+        # Associate a name of this task that is the module + function name.
+        f.name = "%s.%s" % (f.__module__, f.__name__)
+
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    # This is needed to handle when the decorator has args or the decorator
+    # doesn't have args, python is rather weird here...
+    if kwargs or not args:
+        return decorator
+    else:
+        if isinstance(args[0], collections.Callable):
+            return decorator(args[0])
+        else:
+            return decorator
+
+
+def versionize(major, minor=None):
+    """A decorator that marks the wrapped function with a major & minor version
+    number."""
+
+    if minor is None:
+        minor = 0
+
+    def decorator(f):
+        f.__version__ = (major, minor)
+
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 def requires(*args, **kwargs):
+    """Attaches a set of items that the decorated function requires as input
+    to the functions underlying dictionary."""
 
     def decorator(f):
         if not hasattr(f, 'requires'):
             f.requires = set()
 
         if kwargs.pop('auto_extract', True):
-            inspect_what = f
-            if hasattr(f, '__wrapped__'):
-                inspect_what = f.__wrapped__
+            inspect_what = getattr(f, '__wrapped__', f)
             f_args = inspect.getargspec(inspect_what).args
             f.requires.update([a for a in f_args if _take_arg(a)])
 
@@ -80,6 +142,8 @@ def requires(*args, **kwargs):
 
 
 def provides(*args, **kwargs):
+    """Attaches a set of items that the decorated function provides as output
+    to the functions underlying dictionary."""
 
     def decorator(f):
         if not hasattr(f, 'provides'):

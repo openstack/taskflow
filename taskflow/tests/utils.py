@@ -37,8 +37,8 @@ def null_functor(*args, **kwargs):  # pylint: disable=W0613
 class ProvidesRequiresTask(task.Task):
     def __init__(self, name, provides, requires):
         super(ProvidesRequiresTask, self).__init__(name)
-        self.provides = provides
-        self.requires = requires
+        self.provides.update(provides)
+        self.requires.update(requires)
 
     def __call__(self, context, *args, **kwargs):
         outs = {
