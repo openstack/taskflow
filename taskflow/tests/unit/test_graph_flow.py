@@ -19,9 +19,9 @@
 import collections
 import unittest
 
+from taskflow import decorators
 from taskflow import exceptions as excp
 from taskflow import states
-from taskflow import wrappers
 
 from taskflow.patterns import graph_flow as gw
 from taskflow.tests import utils
@@ -32,25 +32,23 @@ class GraphFlowTest(unittest.TestCase):
         flo = gw.Flow("test-flow")
         reverted = []
 
-        def run1(context):  # pylint: disable=W0613
-            return {
-                'a': 1,
-            }
-
         def run1_revert(context, result, cause):  # pylint: disable=W0613
             reverted.append('run1')
             self.assertEquals(states.REVERTING, cause.flow.state)
             self.assertEquals(result, {'a': 1})
 
+        @decorators.task(revert_with=run1_revert, provides=['a'])
+        def run1(context):  # pylint: disable=W0613
+            return {
+                'a': 1,
+            }
+
+        @decorators.task(provides=['c'])
         def run2(context, a):  # pylint: disable=W0613,C0103
             raise Exception('Dead')
 
-        flo.add(wrappers.FunctorTask(None, run1, run1_revert,
-                                     provides_what=['a'],
-                                     extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run2, utils.null_functor,
-                                     provides_what=['c'],
-                                     extract_requires=True))
+        flo.add(run1)
+        flo.add(run2)
 
         self.assertEquals(states.PENDING, flo.state)
         self.assertRaises(Exception, flo.run, {})
@@ -147,20 +145,19 @@ class GraphFlowTest(unittest.TestCase):
 
     def test_connect_requirement_failure(self):
 
+        @decorators.task(provides=['a'])
         def run1(context):  # pylint: disable=W0613
             return {
                 'a': 1,
             }
 
+        @decorators.task
         def run2(context, b, c, d):  # pylint: disable=W0613,C0103
             return None
 
         flo = gw.Flow("test-flow")
-        flo.add(wrappers.FunctorTask(None, run1, utils.null_functor,
-                                     provides_what=['a'],
-                                     extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run2, utils.null_functor,
-                                     extract_requires=True))
+        flo.add(run1)
+        flo.add(run2)
 
         self.assertRaises(excp.InvalidStateException, flo.connect)
         self.assertRaises(excp.InvalidStateException, flo.run, {})
@@ -172,40 +169,37 @@ class GraphFlowTest(unittest.TestCase):
         run_order = []
         f_args = {}
 
+        @decorators.task(provides=['a'])
         def run1(context):  # pylint: disable=W0613,C0103
             run_order.append('ran1')
             return {
                 'a': 1,
             }
 
+        @decorators.task(provides=['c'])
         def run2(context, a):  # pylint: disable=W0613,C0103
             run_order.append('ran2')
             return {
                 'c': 3,
             }
 
+        @decorators.task(provides=['b'])
         def run3(context, a):  # pylint: disable=W0613,C0103
             run_order.append('ran3')
             return {
                 'b': 2,
             }
 
+        @decorators.task
         def run4(context, b, c):  # pylint: disable=W0613,C0103
             run_order.append('ran4')
             f_args['b'] = b
             f_args['c'] = c
 
-        flo.add(wrappers.FunctorTask(None, run1, utils.null_functor,
-                                     provides_what=['a'],
-                                     extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run2, utils.null_functor,
-                                     provides_what=['c'],
-                                     extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run3, utils.null_functor,
-                                     provides_what=['b'],
-                                     extract_requires=True))
-        flo.add(wrappers.FunctorTask(None, run4, utils.null_functor,
-                                     extract_requires=True))
+        flo.add(run1)
+        flo.add(run2)
+        flo.add(run3)
+        flo.add(run4)
 
         flo.run({})
         self.assertEquals(['ran1', 'ran2', 'ran3', 'ran4'], sorted(run_order))

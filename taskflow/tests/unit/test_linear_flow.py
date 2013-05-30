@@ -22,7 +22,6 @@ import unittest
 from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
-from taskflow import wrappers
 
 from taskflow.patterns import linear_flow as lw
 from taskflow.tests import utils
@@ -31,32 +30,33 @@ from taskflow.tests import utils
 class LinearFlowTest(unittest.TestCase):
     def make_reverting_task(self, token, blowup=False):
 
-        def do_apply(token, context, *_args, **_kwargs):
-            context[token] = 'passed'
-
-        def do_revert(token, context, *_args, **_kwargs):
+        def do_revert(context, *args, **kwargs):
             context[token] = 'reverted'
 
-        def blow_up(_context, *_args, **_kwargs):
+        @decorators.task(revert_with=do_revert)
+        def do_apply(context, *args, **kwargs):
+            context[token] = 'passed'
+
+        @decorators.task
+        def blow_up(context, *args, **kwargs):
             raise Exception("I blew up")
 
         if blowup:
-            return wrappers.FunctorTask('task-%s' % (token),
-                                        functools.partial(blow_up, token),
-                                        utils.null_functor)
+            # Alter the task name so that its unique by including the token.
+            blow_up.name += str(token)
+            return blow_up
         else:
-            return wrappers.FunctorTask('task-%s' % (token),
-                                        functools.partial(do_apply, token),
-                                        functools.partial(do_revert, token))
+            # Alter the task name so that its unique by including the token.
+            do_apply.name += str(token)
+            return do_apply
 
     def make_interrupt_task(self, token, wf):
 
-        def do_interrupt(_context, *_args, **_kwargs):
+        @decorators.task
+        def do_interrupt(context, *args, **kwargs):
             wf.interrupt()
 
-        return wrappers.FunctorTask('task-%s' % (token),
-                                    do_interrupt,
-                                    utils.null_functor)
+        return do_interrupt
 
     def test_functor_flow(self):
         wf = lw.Flow("the-test-action")
@@ -148,31 +148,27 @@ class LinearFlowTest(unittest.TestCase):
     def test_not_satisfied_inputs_previous(self):
         wf = lw.Flow("the-test-action")
 
+        @decorators.task
         def task_a(context, *args, **kwargs):
             pass
 
+        @decorators.task
         def task_b(context, c, *args, **kwargs):
             pass
 
-        wf.add(wrappers.FunctorTask(None, task_a, utils.null_functor,
-                                    extract_requires=True))
+        wf.add(task_a)
         self.assertRaises(exc.InvalidStateException,
-                          wf.add,
-                          wrappers.FunctorTask(None, task_b,
-                                               utils.null_functor,
-                                               extract_requires=True))
+                          wf.add, task_b)
 
     def test_not_satisfied_inputs_no_previous(self):
         wf = lw.Flow("the-test-action")
 
+        @decorators.task
         def task_a(context, c, *args, **kwargs):
             pass
 
         self.assertRaises(exc.InvalidStateException,
-                          wf.add,
-                          wrappers.FunctorTask(None, task_a,
-                                               utils.null_functor,
-                                               extract_requires=True))
+                          wf.add, task_a)
 
     def test_flow_add_order(self):
         wf = lw.Flow("the-test-action")

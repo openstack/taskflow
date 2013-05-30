@@ -41,8 +41,7 @@ class Task(object):
         self.version = (1, 0)
 
     def __str__(self):
-        return "Task: %s v%s" % (self.name, utils.join(self.version,
-                                                       with_what="."))
+        return "%s==%s" % (self.name, utils.join(self.version, with_what="."))
 
     @abc.abstractmethod
     def __call__(self, context, *args, **kwargs):
