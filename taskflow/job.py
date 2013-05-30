@@ -44,9 +44,11 @@ def task_and_state(task, state):
                                                           '__name__')
                            if a is not None]
             task_name = utils.join(name_pieces, ".")
-        version_pieces = utils.get_many_attr(task, '__version__')
-        if version_pieces and version_pieces[0]:
-            task_name += "==" + utils.join(version_pieces[0], with_what=".")
+        task_version = getattr(task, '__version__', None)
+        if isinstance(task_version, (list, tuple)):
+            task_version = utils.join(task_version, with_what=".")
+        if task_version is not None:
+            task_name += "==%s" % (task_version)
     else:
         task_name = str(task)
     return "%s;%s" % (task_name, state)
