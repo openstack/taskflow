@@ -114,8 +114,8 @@ class MemoryFlowDetail(logbook.FlowDetail):
     def __len__(self):
         return len(self._tasks)
 
-    def add_task(self, task_name):
-        task_details = self._task_cls(task_name)
+    def add_task(self, task_name, metadata=None):
+        task_details = self._task_cls(task_name, metadata)
         self._tasks.append(task_details)
         return task_details
 

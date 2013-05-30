@@ -64,7 +64,7 @@ class FlowDetail(object):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def add_task(self, task_name):
+    def add_task(self, task_name, metadata=None):
         """Atomically creates a new task detail entry to this flows details and
         returns it for further use."""
         raise NotImplementedError()

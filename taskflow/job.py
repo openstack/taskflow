@@ -130,8 +130,7 @@ class Job(object):
             }
         task_state = task_and_state(task, state)
         if task_state not in flow_details:
-            task_details = flow_details.add_task(task_state)
-            task_details.metadata = metadata
+            flow_details.add_task(task_state, metadata)
 
     def _task_result_fetcher(self, _context, flow, task):
         flow_details = self.logbook[flow.name]
