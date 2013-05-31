@@ -20,9 +20,11 @@ import collections
 import functools
 import inspect
 
+from taskflow import utils
+
 # These arguments are ones that we will skip when parsing for requirements
 # for a function to operate (when used as a task).
-AUTO_ARGS = ('self', 'context',)
+AUTO_ARGS = ('self', 'context', 'cls')
 
 
 def _take_arg(a):
@@ -118,7 +120,11 @@ def requires(*args, **kwargs):
             f.requires = set()
 
         if kwargs.pop('auto_extract', True):
-            inspect_what = getattr(f, '__wrapped__', f)
+            inspect_what = getattr(f, '__wrapped__', None)
+
+            if not inspect_what:
+                inspect_what = utils.get_wrapped_function(f)
+
             f_args = inspect.getargspec(inspect_what).args
             f.requires.update([a for a in f_args if _take_arg(a)])
 

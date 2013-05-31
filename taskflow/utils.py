@@ -24,6 +24,28 @@ import time
 LOG = logging.getLogger(__name__)
 
 
+def get_wrapped_function(function):
+    """Get the method at the bottom of a stack of decorators."""
+
+    if not hasattr(function, 'func_closure') or not function.func_closure:
+        return function
+
+    def _get_wrapped_function(function):
+        if not hasattr(function, 'func_closure') or not function.func_closure:
+            return None
+
+        for closure in function.func_closure:
+            func = closure.cell_contents
+
+            deeper_func = _get_wrapped_function(func)
+            if deeper_func:
+                return deeper_func
+            elif hasattr(closure.cell_contents, '__call__'):
+                return closure.cell_contents
+
+    return _get_wrapped_function(function)
+
+
 def join(itr, with_what=","):
     pieces = [str(i) for i in itr]
     return with_what.join(pieces)
