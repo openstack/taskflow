@@ -72,7 +72,7 @@ class Flow(object):
         # to call the parents...
         self.parents = parents
         # This should be a functor that returns whether a given task has
-        # already ran by returning a pair of (has_result, result).
+        # already ran by returning a pair of (has_result, was_error, result).
         #
         # NOTE(harlowja): This allows for resumption by skipping tasks which
         # have already occurred. The previous return value is needed due to
@@ -135,7 +135,7 @@ class Flow(object):
                     LOG.exception("Dropping exception catched when"
                                   " notifying about ordering failure.")
 
-        def run_task(task, result=None, simulate_run=False):
+        def run_task(task, failed=False, result=None, simulate_run=False):
             try:
                 self._on_task_start(context, task)
                 if not simulate_run:
@@ -144,6 +144,20 @@ class Flow(object):
                         inputs = {}
                     inputs.update(kwargs)
                     result = task(context, *args, **inputs)
+                else:
+                    if failed:
+                        if not result:
+                            # If no exception or exception message was provided
+                            # or captured from the previous run then we need to
+                            # form one for this task.
+                            result = "%s failed running." % (task)
+                        if isinstance(result, basestring):
+                            result = exc.InvalidStateException(result)
+                        if not isinstance(result, Exception):
+                            LOG.warn("Can not raise a non-exception"
+                                     " object: %s", result)
+                            result = exc.InvalidStateException()
+                        raise result
                 # Keep a pristine copy of the result
                 # so that if said result is altered by other further
                 # states the one here will not be. This ensures that
@@ -160,6 +174,11 @@ class Flow(object):
             except Exception as e:
                 cause = FlowFailure(task, self, e)
                 with excutils.save_and_reraise_exception():
+                    try:
+                        self._on_task_error(context, task, e)
+                    except Exception:
+                        LOG.exception("Dropping exception catched when"
+                                      " notifying about task failure.")
                     self.rollback(context, cause)
 
         last_task = 0
@@ -170,14 +189,15 @@ class Flow(object):
                 if self.state == states.INTERRUPTED:
                     was_interrupted = True
                     break
-                (has_result, result) = result_fetcher(self, task)
+                (has_result, was_error, result) = result_fetcher(self, task)
                 if not has_result:
                     break
                 # Fake running the task so that we trigger the same
                 # notifications and state changes (and rollback that
                 # would have happened in a normal flow).
                 last_task = i + 1
-                run_task(task, result=result, simulate_run=True)
+                run_task(task, failed=was_error, result=result,
+                         simulate_run=True)
 
         if was_interrupted:
             return
@@ -216,10 +236,10 @@ class Flow(object):
         for f in self.listeners:
             f(context, self, old_state)
 
-    def _on_task_error(self, context, task):
+    def _on_task_error(self, context, task, exc):
         # Notify any listeners that the task has errored.
         for f in self.task_listeners:
-            f(context, states.FAILURE, self, task)
+            f(context, states.FAILURE, self, task, result=exc)
 
     def _on_task_start(self, context, task):
         # Notify any listeners that we are about to start the given task.

@@ -124,7 +124,7 @@ class Job(object):
         book so that it can be retrieved later."""
         metadata = None
         flow_details = self.logbook[flow.name]
-        if state == states.SUCCESS:
+        if state in (states.SUCCESS, states.FAILURE):
             metadata = {
                 'result': result,
             }
@@ -134,17 +134,19 @@ class Job(object):
 
     def _task_result_fetcher(self, _context, flow, task):
         flow_details = self.logbook[flow.name]
-        # See if it completed before so that we can use its results instead
-        # of having to recompute them.
-        task_state = task_and_state(task, states.SUCCESS)
-        if task_state in flow_details:
-            # TODO(harlowja): should we be a little more cautious about
-            # duplicate task results? Maybe we shouldn't allow them to
-            # have the same name in the first place?
-            task_details = flow_details[task_state][0]
-            if task_details.metadata and 'result' in task_details.metadata:
-                return (True, task_details.metadata['result'])
-        return (False, None)
+        # See if it completed before (or failed before) so that we can use its
+        # results instead of having to recompute it.
+        for s in (states.SUCCESS, states.FAILURE):
+            name = task_and_state(task, s)
+            if name in flow_details:
+                # TODO(harlowja): should we be a little more cautious about
+                # duplicate task results? Maybe we shouldn't allow them to
+                # have the same name in the first place?
+                details = flow_details[name][0]
+                if details.metadata and 'result' in details.metadata:
+                    return (True, s == states.FAILURE,
+                            details.metadata['result'])
+        return (False, False, None)
 
     def associate(self, flow, parents=True):
         """Attachs the needed resumption and state change tracking listeners

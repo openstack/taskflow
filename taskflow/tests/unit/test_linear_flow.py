@@ -208,8 +208,8 @@ class LinearFlowTest(unittest.TestCase):
 
         def result_fetcher(_ctx, _wf, task):
             if task.name in result_storage:
-                return (True, result_storage.get(task.name))
-            return (False, None)
+                return (True, False, result_storage.get(task.name))
+            return (False, False, None)
 
         def task_listener(_ctx, state, _wf, task, result=None):
             if state not in (states.SUCCESS, states.FAILURE,):
