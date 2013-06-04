@@ -32,6 +32,10 @@ class Task(object):
         # An *immutable* input 'resource' name set this task depends
         # on existing before this task can be applied.
         self.requires = set()
+        # An *immutable* input 'resource' name set this task would like to
+        # depends on existing before this task can be applied (but does not
+        # strongly depend on existing).
+        self.optional = set()
         # An *immutable* output 'resource' name set this task
         # produces that other tasks may depend on this task providing.
         self.provides = set()

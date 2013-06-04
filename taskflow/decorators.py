@@ -68,6 +68,10 @@ def task(*args, **kwargs):
         requires_what = kwargs.pop('requires', [])
         f = requires(*requires_what, **kwargs)(f)
 
+        # Attach any optional requirements this function needs for running.
+        optional_what = kwargs.pop('optional', [])
+        f = optional(*optional_what, **kwargs)(f)
+
         # Attach any items this function provides as output
         provides_what = kwargs.pop('provides', [])
         f = provides(*provides_what, **kwargs)(f)
@@ -109,6 +113,33 @@ def versionize(major, minor=None):
         return wrapper
 
     return decorator
+
+
+def optional(*args, **kwargs):
+    """Attaches a set of items that the decorated function would like as input
+    to the functions underlying dictionary."""
+
+    def decorator(f):
+        if not hasattr(f, 'optional'):
+            f.optional = set()
+
+        f.optional.update([a for a in args if _take_arg(a)])
+
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    # This is needed to handle when the decorator has args or the decorator
+    # doesn't have args, python is rather weird here...
+    if kwargs or not args:
+        return decorator
+    else:
+        if isinstance(args[0], collections.Callable):
+            return decorator(args[0])
+        else:
+            return decorator
 
 
 def requires(*args, **kwargs):
