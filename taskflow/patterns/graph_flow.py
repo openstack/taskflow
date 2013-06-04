@@ -50,19 +50,31 @@ class Flow(ordered_flow.Flow):
         self._connected = False
 
     def _fetch_task_inputs(self, task):
-        would_like = set(getattr(task, 'requires', []))
-        would_like.update(getattr(task, 'optional', []))
 
-        inputs = collections.defaultdict(list)
-        for n in would_like:
-            for (them, there_result) in self.results:
-                if (not self._graph.has_edge(them, task) or
-                    not n in getattr(them, 'provides', [])):
-                    continue
-                if there_result and n in there_result:
-                    inputs[n].append(there_result[n])
-                else:
-                    inputs[n].append(None)
+        def extract_inputs(place_where, would_like, is_optional=False):
+            for n in would_like:
+                for (them, there_result) in self.results:
+                    if not n in set(getattr(them, 'provides', [])):
+                        continue
+                    if (not is_optional and
+                        not self._graph.has_edge(them, task)):
+                        continue
+                    if there_result and n in there_result:
+                        place_where[n].append(there_result[n])
+                        if is_optional:
+                            # Take the first task that provides this optional
+                            # item.
+                            break
+                    elif not is_optional:
+                        place_where[n].append(None)
+
+        required_inputs = set(getattr(task, 'requires', []))
+        optional_inputs = set(getattr(task, 'optional', []))
+        optional_inputs = optional_inputs - required_inputs
+
+        task_inputs = collections.defaultdict(list)
+        extract_inputs(task_inputs, required_inputs)
+        extract_inputs(task_inputs, optional_inputs, is_optional=True)
 
         def collapse_functor(k_v):
             (k, v) = k_v
@@ -70,7 +82,7 @@ class Flow(ordered_flow.Flow):
                 v = v[0]
             return (k, v)
 
-        return dict(map(collapse_functor, inputs.iteritems()))
+        return dict(map(collapse_functor, task_inputs.iteritems()))
 
     def order(self):
         self.connect()
