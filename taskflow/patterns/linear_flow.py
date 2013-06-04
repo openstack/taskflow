@@ -30,16 +30,19 @@ class Flow(ordered_flow.Flow):
         self._tasks = []
 
     def _fetch_task_inputs(self, task):
+        would_like = set(getattr(task, 'requires', []))
+        would_like.update(getattr(task, 'optional', []))
+
         inputs = {}
-        for r in getattr(task, 'requires', []):
+        for n in would_like:
             # Find the last task that provided this.
             for (last_task, last_results) in reversed(self.results):
-                if r not in getattr(last_task, 'provides', []):
+                if n not in getattr(last_task, 'provides', []):
                     continue
-                if last_results and r in last_results:
-                    inputs[r] = last_results[r]
+                if last_results and n in last_results:
+                    inputs[n] = last_results[n]
                 else:
-                    inputs[r] = None
+                    inputs[n] = None
                 # Some task said they had it, get the next requirement.
                 break
         return inputs

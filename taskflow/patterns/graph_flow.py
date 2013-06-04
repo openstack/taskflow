@@ -50,9 +50,11 @@ class Flow(ordered_flow.Flow):
         self._connected = False
 
     def _fetch_task_inputs(self, task):
-        inputs = collections.defaultdict(list)
+        would_like = set(getattr(task, 'requires', []))
+        would_like.update(getattr(task, 'optional', []))
 
-        for n in getattr(task, 'requires', []):
+        inputs = collections.defaultdict(list)
+        for n in would_like:
             for (them, there_result) in self.results:
                 if (not self._graph.has_edge(them, task) or
                     not n in getattr(them, 'provides', [])):
