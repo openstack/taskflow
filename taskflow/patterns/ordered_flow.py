@@ -21,6 +21,7 @@ import collections
 import copy
 import functools
 import logging
+import sys
 
 from taskflow.openstack.common import excutils
 from taskflow import exceptions as exc
@@ -34,10 +35,11 @@ class FlowFailure(object):
     """When a task failure occurs the following object will be given to revert
        and can be used to interrogate what caused the failure."""
 
-    def __init__(self, task, flow, exception=None):
+    def __init__(self, task, flow, exception):
         self.task = task
         self.flow = flow
-        self.exception = exception
+        self.exc = exception
+        self.exc_info = sys.exc_info()
 
 
 class RollbackTask(object):
