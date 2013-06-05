@@ -17,7 +17,7 @@
 #    under the License.
 
 import functools
-import unittest
+import unittest2
 
 from taskflow import decorators
 from taskflow import exceptions as exc
@@ -27,7 +27,7 @@ from taskflow.patterns import linear_flow as lw
 from taskflow.tests import utils
 
 
-class LinearFlowTest(unittest.TestCase):
+class LinearFlowTest(unittest2.TestCase):
     def make_reverting_task(self, token, blowup=False):
 
         def do_revert(context, *args, **kwargs):

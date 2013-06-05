@@ -20,7 +20,7 @@ from datetime import datetime
 
 import functools
 import threading
-import unittest
+import unittest2
 
 from taskflow import decorators
 from taskflow import exceptions as exc
@@ -32,7 +32,7 @@ from taskflow.patterns import linear_flow as lw
 from taskflow.tests import utils
 
 
-class MemoryBackendTest(unittest.TestCase):
+class MemoryBackendTest(unittest2.TestCase):
     def _create_memory_impl(self, cons=1):
         worker_group = []
         poisons = []

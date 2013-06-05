@@ -18,7 +18,7 @@
 
 """Import required libraries"""
 import os
-import unittest
+import unittest2
 
 from os import path
 from oslo.config import cfg
@@ -45,7 +45,7 @@ JobTest
 """
 
 
-class JobTest(unittest.TestCase):
+class JobTest(unittest2.TestCase):
     wf_ids = []
     wf_names = []
     lb_ids = []
@@ -55,7 +55,7 @@ class JobTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        wf_fmt = u'workflow_{}'
+        wf_fmt = u'workflow_{0}'
         lb_tmp = db_api.logbook_create('', u'logbook_1', 1)
         cls.lb_ids.append(1)
         cls.lb_names.append(u'logbook_1')
@@ -157,9 +157,9 @@ class JobTest(unittest.TestCase):
         id = 1
         while (self.job_ids.count(id) > 0):
             id = id + 1
-        job_tmp = db_api.job_create('', u'job_{}'.format(id), id)
+        job_tmp = db_api.job_create('', u'job_{0}'.format(id), id)
         self.job_ids.append(id)
-        self.job_names.append(u'job_{}'.format(id))
+        self.job_names.append(u'job_{0}'.format(id))
 
         actual = db_api.job_get('', id)
         self.assertIsNotNone(actual)
@@ -176,7 +176,7 @@ LogBookTest
 """
 
 
-class LogBookTest(unittest.TestCase):
+class LogBookTest(unittest2.TestCase):
     wf_ids = []
     wf_names = []
     lb_ids = []
@@ -184,7 +184,7 @@ class LogBookTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        wf_fmt = u'workflow_{}'
+        wf_fmt = u'workflow_{0}'
         lb_tmp = db_api.logbook_create('', u'logbook_1', 1)
         cls.lb_ids.append(1)
         cls.lb_names.append(u'logbook_1')
@@ -230,9 +230,9 @@ class LogBookTest(unittest.TestCase):
         id = 1
         while (self.lb_ids.count(id) > 0):
             id = id + 1
-        lb_tmp = db_api.logbook_create('', u'logbook_{}'.format(id), id)
+        lb_tmp = db_api.logbook_create('', u'logbook_{0}'.format(id), id)
         self.lb_ids.append(id)
-        self.lb_names.append(u'logbook_{}'.format(id))
+        self.lb_names.append(u'logbook_{0}'.format(id))
 
         actual = db_api.logbook_get('', id)
 
@@ -282,7 +282,7 @@ WorkflowTest
 """
 
 
-class WorkflowTest(unittest.TestCase):
+class WorkflowTest(unittest2.TestCase):
     tsk_ids = []
     tsk_names = []
     wf_ids = []
@@ -290,8 +290,8 @@ class WorkflowTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        wf_fmt = u'workflow_{}'
-        tsk_fmt = u'task_{}'
+        wf_fmt = u'workflow_{0}'
+        tsk_fmt = u'task_{0}'
         for i in range(1, 10):
             wf_tmp = db_api.workflow_create('', wf_fmt.format(i))
             tsk_tmp = db_api.task_create('', tsk_fmt.format(i), i, i)
@@ -376,12 +376,12 @@ class WorkflowTest(unittest.TestCase):
         id = 0
         while (self.wf_ids.count(id) > 0):
             id = id + 1
-        wf_tmp = db_api.workflow_create('', u'workflow_{}'.format(id))
+        wf_tmp = db_api.workflow_create('', u'workflow_{0}'.format(id))
         self.wf_ids.append(id)
-        self.wf_names.append(u'workflow_{}'.format(id))
+        self.wf_names.append(u'workflow_{0}'.format(id))
 
         self.assertIsNotNone(db_api.workflow_get('',
-                             u'workflow_{}'.format(id)))
+                             u'workflow_{0}'.format(id)))
 
     def test_workflow_destroy(self):
         name = self.wf_names.pop()
@@ -395,13 +395,13 @@ TaskTest
 """
 
 
-class TaskTest(unittest.TestCase):
+class TaskTest(unittest2.TestCase):
     tsk_ids = []
     tsk_names = []
 
     @classmethod
     def setUpClass(cls):
-        tsk_fmt = u'task_{}'
+        tsk_fmt = u'task_{0}'
         for i in range(1, 10):
             tsk_tmp = db_api.task_create('', tsk_fmt.format(i), i, i)
             cls.tsk_ids.append(i)
@@ -426,9 +426,9 @@ class TaskTest(unittest.TestCase):
         id = 1
         while (self.tsk_ids.count(id) > 0):
             id = id + 1
-        tsk_tmp = db_api.task_create('', u'task_{}'.format(id), 1, id)
+        tsk_tmp = db_api.task_create('', u'task_{0}'.format(id), 1, id)
         self.tsk_ids.append(id)
-        self.tsk_names.append(u'task_{}'.format(id))
+        self.tsk_names.append(u'task_{0}'.format(id))
 
         self.assertIsNotNone(db_api.task_get('', id))
 

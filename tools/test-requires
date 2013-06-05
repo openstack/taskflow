@@ -7,3 +7,5 @@ nose-exclude
 openstack.nose_plugin>=0.7
 pep8==1.4.5
 pylint==0.25.2
+# Needed for features in 2.7 not in 2.6
+unittest2

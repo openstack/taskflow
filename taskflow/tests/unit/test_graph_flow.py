@@ -17,7 +17,7 @@
 #    under the License.
 
 import collections
-import unittest
+import unittest2
 
 from taskflow import decorators
 from taskflow import exceptions as excp
@@ -27,7 +27,7 @@ from taskflow.patterns import graph_flow as gw
 from taskflow.tests import utils
 
 
-class GraphFlowTest(unittest.TestCase):
+class GraphFlowTest(unittest2.TestCase):
     def test_reverting_flow(self):
         flo = gw.Flow("test-flow")
         reverted = []
