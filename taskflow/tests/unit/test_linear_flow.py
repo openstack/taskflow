@@ -169,8 +169,8 @@ class LinearFlowTest(unittest2.TestCase):
             pass
 
         wf.add(task_a)
-        self.assertRaises(exc.InvalidStateException,
-                          wf.add, task_b)
+        wf.add(task_b)
+        self.assertRaises(exc.InvalidStateException, wf.run, {})
 
     def test_not_satisfied_inputs_no_previous(self):
         wf = lw.Flow("the-test-action")
@@ -179,8 +179,8 @@ class LinearFlowTest(unittest2.TestCase):
         def task_a(context, c, *args, **kwargs):
             pass
 
-        self.assertRaises(exc.InvalidStateException,
-                          wf.add, task_a)
+        wf.add(task_a)
+        self.assertRaises(exc.InvalidStateException, wf.run, {})
 
     def test_flow_add_order(self):
         wf = lw.Flow("the-test-action")
@@ -189,11 +189,12 @@ class LinearFlowTest(unittest2.TestCase):
                                           requires=set(),
                                           provides=['a', 'b']))
         # This one should fail to add since it requires 'c'
-        self.assertRaises(exc.InvalidStateException,
-                          wf.add,
-                          utils.ProvidesRequiresTask('test-2',
-                                                     requires=['c'],
-                                                     provides=[]))
+        uuid = wf.add(utils.ProvidesRequiresTask('test-2',
+                                                 requires=['c'],
+                                                 provides=[]))
+        self.assertRaises(exc.InvalidStateException, wf.run, {})
+        wf.remove(uuid)
+
         wf.add(utils.ProvidesRequiresTask('test-2',
                                           requires=['a', 'b'],
                                           provides=['c', 'd']))
@@ -209,6 +210,8 @@ class LinearFlowTest(unittest2.TestCase):
         wf.add(utils.ProvidesRequiresTask('test-6',
                                           requires=['d'],
                                           provides=[]))
+        wf.reset()
+        wf.run({})
 
     def test_interrupt_flow(self):
         wf = lw.Flow("the-int-action")

@@ -62,6 +62,7 @@ class Flow(base.Flow):
         self._left_off_at = 0
         # All runners to run are collected here.
         self._runners = []
+        self._connected = False
 
     @decorators.locked
     def add_many(self, tasks):
@@ -76,7 +77,7 @@ class Flow(base.Flow):
         assert isinstance(task, collections.Callable)
         r = utils.Runner(task)
         r.runs_before = list(reversed(self._runners))
-        self._associate_providers(r)
+        self._connected = False
         self._runners.append(r)
         return r.uuid
 
@@ -108,8 +109,30 @@ class Flow(base.Flow):
         lines.append("  State: %s" % (self.state))
         return "\n".join(lines)
 
-    def _ordering(self):
+    @decorators.locked
+    def remove(self, task_uuid):
+        removed = False
+        for (i, r) in enumerate(self._runners):
+            if r.uuid == task_uuid:
+                self._runners.pop(i)
+                self._connected = False
+                removed = True
+                break
+        if not removed:
+            raise IndexError("No task found with uuid %s" % (task_uuid))
+
+    def _connect(self):
+        if self._connected:
+            return self._runners
+        for r in self._runners:
+            r.providers = {}
+        for r in reversed(self._runners):
+            self._associate_providers(r)
+        self._connected = True
         return self._runners
+
+    def _ordering(self):
+        return self._connect()
 
     @decorators.locked
     def run(self, context, *args, **kwargs):
@@ -241,6 +264,7 @@ class Flow(base.Flow):
         self.result_fetcher = None
         self._accumulator.reset()
         self._left_off_at = 0
+        self._connected = False
 
     @decorators.locked
     def rollback(self, context, cause):
