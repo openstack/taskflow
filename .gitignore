@@ -25,6 +25,7 @@ pip-log.txt
 .coverage
 .tox
 nosetests.xml
+.venv
 
 # Translations
 *.mo
@@ -33,6 +34,7 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+.settings
 
 # DS_STORE
 .DS_Store
