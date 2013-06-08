@@ -151,7 +151,7 @@ class MemoryBackendTest(unittest2.TestCase):
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(4, len(j.logbook["the-int-action"]))
+        self.assertEquals(2, len(j.logbook["the-int-action"]))
         self.assertEquals(1, len(call_log))
 
         wf.reset()
@@ -160,7 +160,7 @@ class MemoryBackendTest(unittest2.TestCase):
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(6, len(j.logbook["the-int-action"]))
+        self.assertEquals(3, len(j.logbook["the-int-action"]))
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 
@@ -193,7 +193,7 @@ class MemoryBackendTest(unittest2.TestCase):
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
-        self.assertEquals(4, len(j.logbook["the-line-action"]))
+        self.assertEquals(2, len(j.logbook["the-line-action"]))
         self.assertEquals(2, len(call_log))
         self.assertEquals(states.SUCCESS, wf.state)
 

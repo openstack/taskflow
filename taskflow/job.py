@@ -17,6 +17,8 @@
 #    under the License.
 
 import abc
+import logging
+import re
 import types
 
 from taskflow import exceptions as exc
@@ -25,11 +27,25 @@ from taskflow import utils
 
 from taskflow.openstack.common import uuidutils
 
+LOG = logging.getLogger(__name__)
 
-def task_and_state(task, state):
-    """Combines a task objects string representation with a state to
-    create a uniquely identifying task+state name."""
 
+def _get_task_version(task):
+    """Gets a tasks *string* version, whether it is a task object/function."""
+    task_version = ''
+    if isinstance(task, types.FunctionType):
+        task_version = getattr(task, '__version__', '')
+    if not task_version and hasattr(task, 'version'):
+        task_version = task.version
+    if isinstance(task_version, (list, tuple)):
+        task_version = utils.join(task_version, with_what=".")
+    if not isinstance(task_version, basestring):
+        task_version = str(task_version)
+    return task_version
+
+
+def _get_task_name(task):
+    """Gets a tasks *string* name, whether it is a task object/function."""
     task_name = ""
     if isinstance(task, types.FunctionType):
         # If its a function look for the attributes that should have been
@@ -44,14 +60,46 @@ def task_and_state(task, state):
                                                           '__name__')
                            if a is not None]
             task_name = utils.join(name_pieces, ".")
-        task_version = getattr(task, '__version__', None)
-        if isinstance(task_version, (list, tuple)):
-            task_version = utils.join(task_version, with_what=".")
-        if task_version is not None:
-            task_name += "==%s" % (task_version)
     else:
         task_name = str(task)
-    return "%s;%s" % (task_name, state)
+    return task_name
+
+
+def _is_version_compatible(version_1, version_2):
+    """Checks for major version compatibility of two *string" versions."""
+    if version_1 == version_2:
+        # Equivalent exactly, so skip the rest.
+        return True
+
+    def _convert_to_pieces(version):
+        try:
+            pieces = []
+            for p in version.split("."):
+                p = p.strip()
+                if not len(p):
+                    pieces.append(0)
+                    continue
+                # Clean off things like 1alpha, or 2b and just select the
+                # digit that starts that entry instead.
+                p_match = re.match(r"(\d+)([A-Za-z]*)(.*)", p)
+                if p_match:
+                    p = p_match.group(1)
+                pieces.append(int(p))
+        except (AttributeError, TypeError, ValueError):
+            pieces = []
+        return pieces
+
+    version_1_pieces = _convert_to_pieces(version_1)
+    version_2_pieces = _convert_to_pieces(version_2)
+    if len(version_1_pieces) == 0 or len(version_2_pieces) == 0:
+        return False
+
+    # Ensure major version compatibility to start.
+    major1 = version_1_pieces[0]
+    major2 = version_2_pieces[0]
+    if major1 != major2:
+        return False
+    return True
 
 
 class Claimer(object):
@@ -122,31 +170,65 @@ class Job(object):
     def _task_listener(self, _context, state, flow, task, result=None):
         """Store the result of the task under the given flow in the log
         book so that it can be retrieved later."""
-        metadata = None
+        metadata = {}
         flow_details = self.logbook[flow.name]
         if state in (states.SUCCESS, states.FAILURE):
-            metadata = {
-                'result': result,
-            }
-        task_state = task_and_state(task, state)
-        if task_state not in flow_details:
-            flow_details.add_task(task_state, metadata)
+            metadata['result'] = result
+
+        name = _get_task_name(task)
+        if name not in flow_details:
+            metadata['states'] = [state]
+            metadata['version'] = _get_task_version(task)
+            flow_details.add_task(name, metadata)
+        else:
+            details = flow_details[name]
+
+            # Warn about task versions possibly being incompatible
+            my_version = _get_task_version(task)
+            prev_version = details.metadata.get('version')
+            if not _is_version_compatible(my_version, prev_version):
+                LOG.warn("Updating a task with a different version than the"
+                         " one being listened to (%s != %s)",
+                         prev_version, my_version)
+
+            past_states = details.metadata.get('states', [])
+            past_states.append(state)
+            details.metadata['states'] = past_states
+            details.metadata.update(metadata)
 
     def _task_result_fetcher(self, _context, flow, task):
         flow_details = self.logbook[flow.name]
+
         # See if it completed before (or failed before) so that we can use its
         # results instead of having to recompute it.
-        for s in (states.SUCCESS, states.FAILURE):
-            name = task_and_state(task, s)
-            if name in flow_details:
-                # TODO(harlowja): should we be a little more cautious about
-                # duplicate task results? Maybe we shouldn't allow them to
-                # have the same name in the first place?
-                details = flow_details[name][0]
-                if details.metadata and 'result' in details.metadata:
-                    return (True, s == states.FAILURE,
-                            details.metadata['result'])
-        return (False, False, None)
+        not_found = (False, False, None)
+        name = _get_task_name(task)
+        if name not in flow_details:
+            return not_found
+
+        details = flow_details[name]
+        has_completed = False
+        was_failure = False
+        task_states = details.metadata.get('states', [])
+        for state in task_states:
+            if state in (states.SUCCESS, states.FAILURE):
+                if state == states.FAILURE:
+                    was_failure = True
+                has_completed = True
+                break
+
+        # Warn about task versions possibly being incompatible
+        my_version = _get_task_version(task)
+        prev_version = details.metadata.get('version')
+        if not _is_version_compatible(my_version, prev_version):
+            LOG.warn("Fetching task results from a task with a different"
+                     " version from the one being requested (%s != %s)",
+                     prev_version, my_version)
+
+        if has_completed:
+            return (True, was_failure, details.metadata.get('result'))
+
+        return not_found
 
     def associate(self, flow, parents=True):
         """Attachs the needed resumption and state change tracking listeners

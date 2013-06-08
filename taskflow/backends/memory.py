@@ -95,32 +95,30 @@ class MemoryCatalog(catalog.Catalog):
 class MemoryFlowDetail(logbook.FlowDetail):
     def __init__(self, book, name, task_cls=logbook.TaskDetail):
         super(MemoryFlowDetail, self).__init__(book, name)
-        self._tasks = []
+        self._tasks = {}
         self._task_cls = task_cls
 
     def __iter__(self):
-        for t in self._tasks:
+        for t in self._tasks.values():
             yield t
 
     def __contains__(self, task_name):
-        for t in self:
-            if t.name == task_name:
-                return True
-        return False
+        return task_name in self._tasks
 
     def __getitem__(self, task_name):
-        return [t for t in self if t.name == task_name]
+        return self._tasks[task_name]
 
     def __len__(self):
         return len(self._tasks)
 
     def add_task(self, task_name, metadata=None):
         task_details = self._task_cls(task_name, metadata)
-        self._tasks.append(task_details)
+        self._tasks[task_name] = task_details
         return task_details
 
     def __delitem__(self, task_name):
-        self._tasks = [t for t in self if t.name != task_name]
+        self._tasks.pop(task_name, None)
+        return None
 
 
 class MemoryLogBook(logbook.LogBook):
