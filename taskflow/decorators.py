@@ -19,12 +19,59 @@
 import collections
 import functools
 import inspect
-
-from taskflow import utils
+import types
 
 # These arguments are ones that we will skip when parsing for requirements
 # for a function to operate (when used as a task).
 AUTO_ARGS = ('self', 'context', 'cls')
+
+
+def is_decorated(functor):
+    if not isinstance(functor, (types.MethodType, types.FunctionType)):
+        return False
+    return getattr(extract(functor), '__task__', False)
+
+
+def extract(functor):
+    # Extract the underlying functor if its a method since we can not set
+    # attributes on instance methods, this is supposedly fixed in python 3
+    # and later.
+    #
+    # TODO(harlowja): add link to this fix.
+    assert isinstance(functor, (types.MethodType, types.FunctionType))
+    if isinstance(functor, types.MethodType):
+        return functor.__func__
+    else:
+        return functor
+
+
+def _mark_as_task(functor):
+    setattr(functor, '__task__', True)
+
+
+def _get_wrapped(function):
+    """Get the method at the bottom of a stack of decorators."""
+
+    if hasattr(function, '__wrapped__'):
+        return getattr(function, '__wrapped__')
+
+    if not hasattr(function, 'func_closure') or not function.func_closure:
+        return function
+
+    def _get_wrapped_function(function):
+        if not hasattr(function, 'func_closure') or not function.func_closure:
+            return None
+
+        for closure in function.func_closure:
+            func = closure.cell_contents
+
+            deeper_func = _get_wrapped_function(func)
+            if deeper_func:
+                return deeper_func
+            elif hasattr(closure.cell_contents, '__call__'):
+                return closure.cell_contents
+
+    return _get_wrapped_function(function)
 
 
 def _take_arg(a):
@@ -54,30 +101,35 @@ def task(*args, **kwargs):
     that function are set so that the function can be used as a task."""
 
     def decorator(f):
+        w_f = extract(f)
 
         def noop(*args, **kwargs):
             pass
 
-        f.revert = kwargs.pop('revert_with', noop)
+        # Mark as being a task
+        _mark_as_task(w_f)
+
+        # By default don't revert this.
+        w_f.revert = kwargs.pop('revert_with', noop)
+
+        # Associate a name of this task that is the module + function name.
+        w_f.name = "%s.%s" % (f.__module__, f.__name__)
 
         # Sets the version of the task.
         version = kwargs.pop('version', (1, 0))
-        f = versionize(*version)(f)
+        f = _versionize(*version)(f)
 
         # Attach any requirements this function needs for running.
         requires_what = kwargs.pop('requires', [])
-        f = requires(*requires_what, **kwargs)(f)
+        f = _requires(*requires_what, **kwargs)(f)
 
         # Attach any optional requirements this function needs for running.
         optional_what = kwargs.pop('optional', [])
-        f = optional(*optional_what, **kwargs)(f)
+        f = _optional(*optional_what, **kwargs)(f)
 
         # Attach any items this function provides as output
         provides_what = kwargs.pop('provides', [])
-        f = provides(*provides_what, **kwargs)(f)
-
-        # Associate a name of this task that is the module + function name.
-        f.name = "%s.%s" % (f.__module__, f.__name__)
+        f = _provides(*provides_what, **kwargs)(f)
 
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -96,7 +148,7 @@ def task(*args, **kwargs):
             return decorator
 
 
-def versionize(major, minor=None):
+def _versionize(major, minor=None):
     """A decorator that marks the wrapped function with a major & minor version
     number."""
 
@@ -104,7 +156,8 @@ def versionize(major, minor=None):
         minor = 0
 
     def decorator(f):
-        f.__version__ = (major, minor)
+        w_f = extract(f)
+        w_f.version = (major, minor)
 
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -115,15 +168,17 @@ def versionize(major, minor=None):
     return decorator
 
 
-def optional(*args, **kwargs):
+def _optional(*args, **kwargs):
     """Attaches a set of items that the decorated function would like as input
     to the functions underlying dictionary."""
 
     def decorator(f):
-        if not hasattr(f, 'optional'):
-            f.optional = set()
+        w_f = extract(f)
 
-        f.optional.update([a for a in args if _take_arg(a)])
+        if not hasattr(w_f, 'optional'):
+            w_f.optional = set()
+
+        w_f.optional.update([a for a in args if _take_arg(a)])
 
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -142,24 +197,22 @@ def optional(*args, **kwargs):
             return decorator
 
 
-def requires(*args, **kwargs):
+def _requires(*args, **kwargs):
     """Attaches a set of items that the decorated function requires as input
     to the functions underlying dictionary."""
 
     def decorator(f):
-        if not hasattr(f, 'requires'):
-            f.requires = set()
+        w_f = extract(f)
+
+        if not hasattr(w_f, 'requires'):
+            w_f.requires = set()
 
         if kwargs.pop('auto_extract', True):
-            inspect_what = getattr(f, '__wrapped__', None)
-
-            if not inspect_what:
-                inspect_what = utils.get_wrapped_function(f)
-
+            inspect_what = _get_wrapped(f)
             f_args = inspect.getargspec(inspect_what).args
-            f.requires.update([a for a in f_args if _take_arg(a)])
+            w_f.requires.update([a for a in f_args if _take_arg(a)])
 
-        f.requires.update([a for a in args if _take_arg(a)])
+        w_f.requires.update([a for a in args if _take_arg(a)])
 
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -178,15 +231,17 @@ def requires(*args, **kwargs):
             return decorator
 
 
-def provides(*args, **kwargs):
+def _provides(*args, **kwargs):
     """Attaches a set of items that the decorated function provides as output
     to the functions underlying dictionary."""
 
     def decorator(f):
-        if not hasattr(f, 'provides'):
-            f.provides = set()
+        w_f = extract(f)
 
-        f.provides.update([a for a in args if _take_arg(a)])
+        if not hasattr(f, 'provides'):
+            w_f.provides = set()
+
+        w_f.provides.update([a for a in args if _take_arg(a)])
 
         @wraps(f)
         def wrapper(*args, **kwargs):

@@ -60,7 +60,7 @@ class LinearFlowTest(unittest2.TestCase):
     def test_functor_flow(self):
         wf = lw.Flow("the-test-action")
 
-        @decorators.provides('a', 'b', 'c')
+        @decorators.task(provides=['a', 'b', 'c'])
         def do_apply1(context):
             context['1'] = True
             return {
@@ -69,7 +69,7 @@ class LinearFlowTest(unittest2.TestCase):
                 'c': 3,
             }
 
-        @decorators.requires('c', 'a', auto_extract=False)
+        @decorators.task(requires=['c', 'a'], auto_extract=False)
         def do_apply2(context, **kwargs):
             self.assertTrue('c' in kwargs)
             self.assertEquals(1, kwargs['a'])
