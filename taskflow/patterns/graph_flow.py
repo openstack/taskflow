@@ -56,8 +56,8 @@ class Flow(ordered_flow.Flow):
                 for (them, there_result) in self.results:
                     if not n in set(getattr(them, 'provides', [])):
                         continue
-                    if (not is_optional and
-                        not self._graph.has_edge(them, task)):
+                    if ((not is_optional and
+                         not self._graph.has_edge(them, task))):
                         continue
                     if there_result and n in there_result:
                         place_where[n].append(there_result[n])
@@ -125,8 +125,8 @@ class Flow(ordered_flow.Flow):
                     if p is n:
                         # No self-referencing allowed.
                         continue
-                    if (len(get_providers(n, want_what)) and not
-                        self._allow_same_inputs):
+                    if ((len(get_providers(n, want_what))
+                         and not self._allow_same_inputs)):
                         msg = "Multiple providers of %s not allowed."
                         raise exc.InvalidStateException(msg % (want_what))
                     self._graph.add_edge(p, n, attr_dict={

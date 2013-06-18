@@ -52,8 +52,8 @@ class RollbackTask(object):
         return str(self.task)
 
     def __call__(self, cause):
-        if (hasattr(self.task, "revert") and
-            isinstance(self.task.revert, collections.Callable)):
+        if ((hasattr(self.task, "revert") and
+             isinstance(self.task.revert, collections.Callable))):
             self.task.revert(self.context, self.result, cause)
 
 

@@ -29,15 +29,18 @@ from taskflow.openstack.common import exception
 
 LOG = logging.getLogger(__name__)
 
+
 def model_query(context, *args, **kwargs):
     session = kwargs.get('session') or get_session()
     query = session.query(*args)
 
     return query
 
+
 """
 LOGBOOK
 """
+
 
 def logbook_get(context, lb_id, session=None):
     """Return a logbook with matching lb_id"""
@@ -50,6 +53,7 @@ def logbook_get(context, lb_id, session=None):
 
     return query.first()
 
+
 def logbook_get_by_name(context, lb_name):
     """Return all logbooks with matching name"""
     query = model_query(context, models.LogBook).\
@@ -61,6 +65,7 @@ def logbook_get_by_name(context, lb_name):
 
     return query.all()
 
+
 def logbook_create(context, name, lb_id=None):
     """Create a new logbook"""
     lb_ref = models.LogBook()
@@ -71,6 +76,7 @@ def logbook_create(context, name, lb_id=None):
 
     return lb_ref
 
+
 def logbook_get_workflows(context, lb_id):
     """Return all workflows associated with a logbook"""
     session = get_session()
@@ -78,6 +84,7 @@ def logbook_get_workflows(context, lb_id):
         lb = logbook_get(context, lb_id, session=session)
 
     return lb.workflows
+
 
 def logbook_add_workflow(context, lb_id, wf_name):
     """Add Workflow to given LogBook"""
@@ -90,6 +97,7 @@ def logbook_add_workflow(context, lb_id, wf_name):
 
     return lb.workflows
 
+
 def logbook_destroy(context, lb_id):
     """Delete a given LogBook"""
     session = get_session()
@@ -97,9 +105,11 @@ def logbook_destroy(context, lb_id):
         lb = logbook_get(context, lb_id, session=session)
         lb.delete(session=session)
 
+
 """
 JOB
 """
+
 
 def job_get(context, job_id, session=None):
     """Return Job with matching job_id"""
@@ -112,6 +122,7 @@ def job_get(context, job_id, session=None):
 
     return query.first()
 
+
 def job_update(context, job_id, values):
     """Update job with given values"""
     session = get_session()
@@ -119,6 +130,7 @@ def job_update(context, job_id, values):
         job = job_get(context, job_id, session=session)
         job.update(values)
         job.save(session=session)
+
 
 def job_add_workflow(context, job_id, wf_id):
     """Add a Workflow to given job"""
@@ -129,15 +141,18 @@ def job_add_workflow(context, job_id, wf_id):
         job.workflows.append(wf)
     return job.workflows
 
+
 def job_get_owner(context, job_id):
     """Return a job's current owner"""
     job = job_get(context, job_id)
     return job.owner
 
+
 def job_get_state(context, job_id):
     """Return a job's current owner"""
     job = job_get(context, job_id)
     return job.state
+
 
 def job_get_logbook(context, job_id):
     """Return the logbook associated with the given job"""
@@ -145,6 +160,7 @@ def job_get_logbook(context, job_id):
     with session.begin():
         job = job_get(context, job_id, session=session)
     return job.logbook
+
 
 def job_create(context, name, job_id=None):
     job_ref = models.Job()
@@ -156,6 +172,7 @@ def job_create(context, name, job_id=None):
     job_ref.save()
 
     return job_ref
+
 
 def job_destroy(context, job_id):
     """Delete a given Job"""
@@ -169,6 +186,7 @@ def job_destroy(context, job_id):
 WORKFLOW
 """
 
+
 def workflow_get(context, wf_name, session=None):
     """Return one workflow with matching workflow_id"""
     query = model_query(context, models.Workflow, session=session).\
@@ -179,6 +197,7 @@ def workflow_get(context, wf_name, session=None):
 
     return query.first()
 
+
 def workflow_get_all(context):
     """Return all workflows"""
     results = model_query(context, models.Workflow).all()
@@ -188,11 +207,13 @@ def workflow_get_all(context):
 
     return results
 
+
 def workflow_get_names(context):
     """Return all workflow names"""
     results = model_query(context, models.Workflow.name).all()
 
     return zip(*results)
+
 
 def workflow_get_tasks(context, wf_name):
     """Return all tasks for a given Workflow"""
@@ -201,6 +222,7 @@ def workflow_get_tasks(context, wf_name):
         wf = workflow_get(context, wf_name, session=session)
 
     return wf.tasks
+
 
 def workflow_add_task(context, wf_id, task_id):
     """Add a task to a given workflow"""
@@ -211,6 +233,7 @@ def workflow_add_task(context, wf_id, task_id):
         wf.tasks.append(task)
         return wf.tasks
 
+
 def workflow_create(context, workflow_name):
     """Create new workflow with workflow_id"""
     workflow_ref = models.Workflow()
@@ -219,6 +242,7 @@ def workflow_create(context, workflow_name):
 
     return workflow_ref
 
+
 def workflow_destroy(context, wf_name):
     """Delete a given Workflow"""
     session = get_session()
@@ -226,9 +250,11 @@ def workflow_destroy(context, wf_name):
         wf = workflow_get(context, wf_name, session=session)
         wf.delete(session=session)
 
+
 """
 TASK
 """
+
 
 def task_get(context, task_id, session=None):
     """Return Task with task_id"""
@@ -241,6 +267,7 @@ def task_get(context, task_id, session=None):
 
     return query.first()
 
+
 def task_create(context, task_name, wf_id, task_id=None):
     """Create task associated with given workflow"""
     task_ref = models.Task()
@@ -252,6 +279,7 @@ def task_create(context, task_name, wf_id, task_id=None):
 
     return task_ref
 
+
 def task_update(context, task_id, values):
     """Update Task with given values"""
     session = get_session()
@@ -260,6 +288,7 @@ def task_update(context, task_id, values):
 
         task.update(values)
         task.save(session=session)
+
 
 def task_destroy(context, task_id):
     """Delete an existing Task"""

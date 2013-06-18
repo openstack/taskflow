@@ -36,14 +36,13 @@ class Flow(object):
         self._tasks = []
         logbook.add_workflow(name)
 
-
     def chain_listeners(self, context, initial_task, callback_task):
         """ Register one listener for a task """
         if self.root is None:
             initial_task.name = '%s.%s' % (self.name, initial_task.name)
             self.root = initial_task.s(context)
             self._tasks.append(initial_task)
-            LOG.info('WF %s root task set to %s' % (self.name, initial_task.name))
+            LOG.info('WF %s root task set to %s', self.name, initial_task.name)
 
         callback_task.name = '%s.%s' % (self.name, callback_task.name)
         self._tasks.append(callback_task)
@@ -56,13 +55,13 @@ class Flow(object):
             initial_task.name = '%s.%s' % (self.name, initial_task.name)
             self.root = initial_task.s(context)
             self._tasks.append(initial_task)
-            LOG.info('WF %s root task set to %s' % (self.name, initial_task.name))
+            LOG.info('WF %s root task set to %s', self.name, initial_task.name)
         for task in callback_tasks:
             task.name = '%s.%s' % (self.name, task.name)
             self._tasks.append(task)
             initial_task.link(task.s(context))
 
-    def merge_listeners(self, context, inital_tasks, callback_task):
+    def merge_listeners(self, context, initial_tasks, callback_task):
         """ Register one listener for multiple tasks """
         header = []
         if self.root is None:

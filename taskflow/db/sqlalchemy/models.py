@@ -32,10 +32,11 @@ from sqlalchemy import types as types
 from json import dumps, loads
 
 from taskflow.db.sqlalchemy.session import get_session, get_engine
-from taskflow.openstack.common import timeutils, uuidutils
+from taskflow.openstack.common import timeutils, uuidutils, exception
 
 CONF = cfg.CONF
 BASE = declarative_base()
+
 
 class Json(types.TypeDecorator, types.MutableType):
     impl = types.Text
@@ -49,11 +50,10 @@ class Json(types.TypeDecorator, types.MutableType):
 
 class TaskFlowBase(object):
     """Base class for TaskFlow Models."""
-    __table_args__ = {'mysql_engine':'InnoDB'}
+    __table_args__ = {'mysql_engine': 'InnoDB'}
     __table_initialized = False
     created_at = Column(DateTime, default=timeutils.utcnow)
     updated_at = Column(DateTime, default=timeutils.utcnow)
-
 
     def save(self, session=None):
         """Save this object."""
@@ -109,17 +109,22 @@ class TaskFlowBase(object):
         local.update(joined)
         return local.iteritems()
 
-workflow_logbook_assoc = Table('wf_lb_assoc', BASE.metadata,
+
+workflow_logbook_assoc = Table(
+    'wf_lb_assoc', BASE.metadata,
     Column('workflow_id', Integer, ForeignKey('workflow.id')),
     Column('logbook_id', Integer, ForeignKey('logbook.id')),
     Column('id', Integer, primary_key=True)
 )
 
-workflow_job_assoc = Table('wf_job_assoc', BASE.metadata,
+
+workflow_job_assoc = Table(
+    'wf_job_assoc', BASE.metadata,
     Column('workflow_id', Integer, ForeignKey('workflow.id')),
     Column('job_id', Integer, ForeignKey('job.id')),
     Column('id', Integer, primary_key=True)
 )
+
 
 class LogBook(BASE, TaskFlowBase):
     """Represents a logbook for a set of workflows"""
@@ -133,6 +138,7 @@ class LogBook(BASE, TaskFlowBase):
     workflows = relationship("Workflow",
                              secondary=workflow_logbook_assoc)
     job = relationship("Job", uselist=False, backref="logbook")
+
 
 class Job(BASE, TaskFlowBase):
     """Represents a Job"""
@@ -159,6 +165,7 @@ class Workflow(BASE, TaskFlowBase):
     name = Column(String, unique=True)
     tasks = relationship("Task", backref="workflow")
 
+
 class Task(BASE, TaskFlowBase):
     """Represents Task detail objects"""
 
@@ -171,6 +178,7 @@ class Task(BASE, TaskFlowBase):
     exception = Column(String)
     stacktrace = Column(String)
     workflow_id = Column(String, ForeignKey('workflow.id'))
+
 
 def create_tables():
     BASE.metadata.create_all(get_engine())

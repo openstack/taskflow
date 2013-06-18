@@ -448,7 +448,8 @@ class TaskTest(unittest2.TestCase):
         self.assertEquals(expected, actual)
 
         self.assertRaises(exception.NotFound, db_api.task_update, '', 9001,
-                          dict(exception='ExceptionTest', stacktrace='StacktraceTest'))
+                          dict(exception='ExceptionTest',
+                               stacktrace='StacktraceTest'))
 
     def test_task_destroy(self):
         id = self.tsk_ids.pop()

@@ -36,5 +36,4 @@ class Base(object):
     def __init__(self, db_driver=None):
         if not db_driver:
             db_driver = CONF.db_driver
-        self.db = importutils.import_module(db_driver) # pylint: disable=C0103
-
+        self.db = importutils.import_module(db_driver)  # pylint: disable=C0103

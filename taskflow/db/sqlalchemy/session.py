@@ -27,6 +27,8 @@ import sqlalchemy.interfaces
 import sqlalchemy
 from sqlalchemy.pool import NullPool
 
+from sqlalchemy import exc
+
 from taskflow.db import api as db_api
 
 LOG = logging.getLogger(__name__)
@@ -62,7 +64,7 @@ http://groups.google.com/group/sqlalchemy/msg/a4ce563d802c929f
     except dbapi_conn.OperationalError, ex:
         if ex.args[0] in (2006, 2013, 2014, 2045, 2055):
             LOG.warn(_('Got mysql server has gone away: %s'), ex)
-            raise DisconnectionError("Database server went away")
+            raise exc.DisconnectionError("Database server went away")
         else:
             raise
 
@@ -100,6 +102,7 @@ def get_maker(engine, autocommit=True, expire_on_commit=False):
     return sqlalchemy.orm.sessionmaker(bind=engine,
                                        autocommit=autocommit,
                                        expire_on_commit=expire_on_commit)
+
 
 def _get_sql_connection():
     return db_api.SQL_CONNECTION

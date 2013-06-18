@@ -49,8 +49,10 @@ celery_opts = [
                help='The MongoDB connection string used to connect to the '
                     'celery message queue')]
 
+
 def register_db_opts():
     cfg.CONF.register_opts(db_opts)
+
 
 def register_celery_opts():
     cfg.CONF.register_opts(celery_opts)
