@@ -22,6 +22,7 @@ import threading
 from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
+from taskflow import utils
 
 
 class Flow(object):
@@ -56,10 +57,11 @@ class Flow(object):
         self.parents = parents
         # Any objects that want to listen when a wf/task starts/stops/completes
         # or errors should be registered here. This can be used to monitor
-        # progress and record tasks finishing and other advanced features that
-        # can be implemented when you can track a flows progress.
-        self.task_listeners = []
-        self.listeners = []
+        # progress and record tasks finishing (so that it becomes possible to
+        # store the result of a task in some persistent or semi-persistent
+        # storage backend).
+        self.notifier = utils.TransitionNotifier()
+        self.task_notifier = utils.TransitionNotifier()
         # Ensure that modifications and/or multiple runs aren't happening
         # at the same time in the same flow at the same time.
         self._lock = threading.RLock()
@@ -79,32 +81,16 @@ class Flow(object):
                 was_changed = True
         if was_changed:
             # Don't notify while holding the lock.
-            self._on_flow_state_change(context, old_state)
+            self.notifier.notify(self.state, details={
+                'context': context,
+                'flow': self,
+                'old_state': old_state,
+            })
 
     def __str__(self):
         lines = ["Flow: %s" % (self.name)]
         lines.append("  State: %s" % (self.state))
         return "\n".join(lines)
-
-    def _on_flow_state_change(self, context, old_state):
-        # Notify any listeners that the internal state has changed.
-        for f in self.listeners:
-            f(context, self, old_state)
-
-    def _on_task_error(self, context, task, cause):
-        # Notify any listeners that the task has errored.
-        for f in self.task_listeners:
-            f(context, states.FAILURE, self, task, result=cause)
-
-    def _on_task_start(self, context, task):
-        # Notify any listeners that we are about to start the given task.
-        for f in self.task_listeners:
-            f(context, states.STARTED, self, task)
-
-    def _on_task_finish(self, context, task, result):
-        # Notify any listeners that we are finishing the given task.
-        for f in self.task_listeners:
-            f(context, states.SUCCESS, self, task, result=result)
 
     @abc.abstractmethod
     def add(self, task):
@@ -137,7 +123,12 @@ class Flow(object):
         old_state = self.state
         if old_state != states.INTERRUPTED:
             self._state = states.INTERRUPTED
-            self._on_flow_state_change(None, old_state)
+            self.notifier.notify(self.state, details={
+                'context': None,
+                'flow': self,
+                'old_state': old_state,
+            })
+        return 0
 
     @decorators.locked
     def reset(self):
@@ -146,8 +137,8 @@ class Flow(object):
         if self.state not in self.RESETTABLE_STATES:
             raise exc.InvalidStateException(("Can not reset when"
                                              " in state %s") % (self.state))
-        self.task_listeners = []
-        self.listeners = []
+        self.notifier.reset()
+        self.task_notifier.reset()
         self._change_state(None, states.PENDING)
 
     @decorators.locked

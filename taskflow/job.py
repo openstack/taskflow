@@ -155,21 +155,24 @@ class Job(object):
             self._state = new_state
             # TODO(harlowja): add logbook info?
 
-    def _workflow_listener(self, _context, flow, _old_state):
+    def _workflow_listener(self, state, details):
         """Ensure that when we receive an event from said workflow that we
         make sure a logbook entry exists for that flow."""
+        flow = details['flow']
         if flow.name in self.logbook:
             return
         self.logbook.add_flow(flow.name)
 
-    def _task_listener(self, _context, state, flow, task, result=None):
+    def _task_listener(self, state, details):
         """Store the result of the task under the given flow in the log
         book so that it can be retrieved later."""
+        flow = details['flow']
         metadata = {}
         flow_details = self.logbook[flow.name]
         if state in (states.SUCCESS, states.FAILURE):
-            metadata['result'] = result
+            metadata['result'] = details['result']
 
+        task = details['task']
         name = _get_task_name(task)
         if name not in flow_details:
             metadata['states'] = [state]
@@ -191,7 +194,7 @@ class Job(object):
             details.metadata['states'] = past_states
             details.metadata.update(metadata)
 
-    def _task_result_fetcher(self, _context, flow, task):
+    def _task_result_fetcher(self, _context, flow, task, task_uuid):
         flow_details = self.logbook[flow.name]
 
         # See if it completed before (or failed before) so that we can use its
@@ -229,14 +232,9 @@ class Job(object):
         """Attachs the needed resumption and state change tracking listeners
         to the given workflow so that the workflow can be resumed/tracked
         using the jobs components."""
-
-        if self._task_listener not in flow.task_listeners:
-            flow.task_listeners.append(self._task_listener)
-        if self._workflow_listener not in flow.listeners:
-            flow.listeners.append(self._workflow_listener)
+        flow.task_notifier.register('*', self._task_listener)
+        flow.notifier.register('*', self._workflow_listener)
         flow.result_fetcher = self._task_result_fetcher
-
-        # Associate the parents as well (if desired)
         if parents and flow.parents:
             for p in flow.parents:
                 self.associate(p, parents)
@@ -244,15 +242,9 @@ class Job(object):
     def disassociate(self, flow, parents=True):
         """Detaches the needed resumption and state change tracking listeners
         from the given workflow."""
-
-        if self._task_listener in flow.task_listeners:
-            flow.task_listeners.remove(self._task_listener)
-        if self._workflow_listener in flow.listeners:
-            flow.listeners.remove(self._workflow_listener)
-        if flow.result_fetcher is self._task_result_fetcher:
-            flow.result_fetcher = None
-
-        # Disassociate from the flows parents (if desired)
+        flow.notifier.deregister('*', self._workflow_listener)
+        flow.task_notifier.deregister('*', self._task_listener)
+        flow.result_fetcher = None
         if parents and flow.parents:
             for p in flow.parents:
                 self.disassociate(p, parents)

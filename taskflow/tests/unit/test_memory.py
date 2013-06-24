@@ -54,6 +54,7 @@ class MemoryBackendTest(unittest2.TestCase):
                 job_board.await(0.05)
                 for j in job_board.posted_after():
                     if j.owner is not None:
+                        # Someone else took it.
                         continue
                     try:
                         j.claim(my_name)

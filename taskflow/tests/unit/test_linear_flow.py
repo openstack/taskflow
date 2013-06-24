@@ -98,10 +98,10 @@ class LinearFlowTest(unittest2.TestCase):
         wf = lw.Flow("the-test-action")
         flow_changes = []
 
-        def flow_listener(_context, _wf, previous_state):
-            flow_changes.append(previous_state)
+        def flow_listener(state, details):
+            flow_changes.append(details['old_state'])
 
-        wf.listeners.append(flow_listener)
+        wf.notifier.register('*', flow_listener)
         wf.add(self.make_reverting_task(1, True))
 
         self.assertEquals(states.PENDING, wf.state)
@@ -120,10 +120,10 @@ class LinearFlowTest(unittest2.TestCase):
         wf = lw.Flow("the-test-action")
         flow_changes = []
 
-        def flow_listener(_context, _wf, previous_state):
-            flow_changes.append(previous_state)
+        def flow_listener(state, details):
+            flow_changes.append(details['old_state'])
 
-        wf.listeners.append(flow_listener)
+        wf.notifier.register('*', flow_listener)
         wf.add(self.make_reverting_task(1))
 
         self.assertEquals(states.PENDING, wf.state)
@@ -218,19 +218,20 @@ class LinearFlowTest(unittest2.TestCase):
         # If we interrupt we need to know how to resume so attach the needed
         # parts to do that...
 
-        def result_fetcher(_ctx, _wf, task):
+        def result_fetcher(_ctx, _wf, task, task_uuid):
             if task.name in result_storage:
                 return (True, False, result_storage.get(task.name))
             return (False, False, None)
 
-        def task_listener(_ctx, state, _wf, task, result=None):
+        def task_listener(state, details):
             if state not in (states.SUCCESS, states.FAILURE,):
                 return
+            task = details['task']
             if task.name not in result_storage:
-                result_storage[task.name] = result
+                result_storage[task.name] = details['result']
 
         wf.result_fetcher = result_fetcher
-        wf.task_listeners.append(task_listener)
+        wf.task_notifier.register('*', task_listener)
 
         wf.add(self.make_reverting_task(1))
         wf.add(self.make_interrupt_task(2, wf))
@@ -247,7 +248,7 @@ class LinearFlowTest(unittest2.TestCase):
         # And now reset and resume.
         wf.reset()
         wf.result_fetcher = result_fetcher
-        wf.task_listeners.append(task_listener)
+        wf.task_notifier.register('*', task_listener)
 
         self.assertEquals(states.PENDING, wf.state)
         wf.run(context)

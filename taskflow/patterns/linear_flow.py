@@ -127,20 +127,21 @@ class Flow(base.Flow):
                 run_order = run_order[self._left_off_at:]
         except Exception:
             with excutils.save_and_reraise_exception():
-                try:
-                    self._change_state(context, states.FAILURE)
-                except Exception:
-                    LOG.exception("Dropping exception catched when"
-                                  " notifying about ordering failure.")
+                self._change_state(context, states.FAILURE)
 
         def run_it(runner, failed=False, result=None, simulate_run=False):
             try:
-                self._on_task_start(context, runner.task)
                 # Add the task to be rolled back *immediately* so that even if
                 # the task fails while producing results it will be given a
                 # chance to rollback.
                 rb = utils.RollbackTask(context, runner.task, result=None)
                 self._accumulator.add(rb)
+                self.task_notifier.notify(states.STARTED, details={
+                    'context': context,
+                    'flow': self,
+                    'task': runner.task,
+                    'task_uuid': runner.uuid,
+                })
                 if not simulate_run:
                     result = runner(context, *args, **kwargs)
                 else:
@@ -175,15 +176,24 @@ class Flow(base.Flow):
                 # Alter the index we have ran at.
                 self._left_off_at += 1
                 self.results[runner.uuid] = copy.deepcopy(result)
-                self._on_task_finish(context, runner.task, result)
+                self.task_notifier.notify(states.SUCCESS, details={
+                    'context': context,
+                    'flow': self,
+                    'result': result,
+                    'task': runner.task,
+                    'task_uuid': runner.uuid,
+                })
             except Exception as e:
                 cause = utils.FlowFailure(runner.task, self, e)
                 with excutils.save_and_reraise_exception():
-                    try:
-                        self._on_task_error(context, runner.task, e)
-                    except Exception:
-                        LOG.exception("Dropping exception catched when"
-                                      " notifying about task failure.")
+                    # Notify any listeners that the task has errored.
+                    self.task_notifier.notify(states.FAILURE, details={
+                        'context': context,
+                        'flow': self,
+                        'result': e,
+                        'task': runner.task,
+                        'task_uuid': runner.uuid,
+                    })
                     self.rollback(context, cause)
 
         # Ensure in a ready to run state.
@@ -199,7 +209,8 @@ class Flow(base.Flow):
                     was_interrupted = True
                     break
                 (has_result, was_error, result) = result_fetcher(self,
-                                                                 runner.task)
+                                                                 runner.task,
+                                                                 runner.uuid)
                 if not has_result:
                     break
                 # Fake running the task so that we trigger the same
@@ -245,22 +256,11 @@ class Flow(base.Flow):
         # For example, if each task was creating a file in a directory, then
         # it's easier to just remove the directory than to ask each task to
         # delete its file individually.
-        try:
-            self._change_state(context, states.REVERTING)
-        except Exception:
-            LOG.exception("Dropping exception catched when"
-                          " changing state to reverting while performing"
-                          " reconcilation on a tasks exception.")
-
+        self._change_state(context, states.REVERTING)
         try:
             self._accumulator.rollback(cause)
         finally:
-            try:
-                self._change_state(context, states.FAILURE)
-            except Exception:
-                LOG.exception("Dropping exception catched when"
-                              " changing state to failure while performing"
-                              " reconcilation on a tasks exception.")
+            self._change_state(context, states.FAILURE)
         if self.parents:
             # Rollback any parents flows if they exist...
             for p in self.parents:
