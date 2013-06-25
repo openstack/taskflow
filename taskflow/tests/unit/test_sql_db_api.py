@@ -21,13 +21,11 @@ import os
 import unittest2
 
 from os import path
-from oslo.config import cfg
 
 from taskflow.openstack.common import exception
 
 from taskflow.db import api as db_api
 from taskflow.db.sqlalchemy import models
-from taskflow.db.sqlalchemy.session import get_session
 from taskflow import states
 
 db_api.configure()
@@ -58,14 +56,14 @@ class JobTest(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
         wf_fmt = u'workflow_{0}'
-        lb_tmp = db_api.logbook_create('', u'logbook_1', 1)
+        db_api.logbook_create('', u'logbook_1', 1)
         cls.lb_ids.append(1)
         cls.lb_names.append(u'logbook_1')
-        job_tmp = db_api.job_create('', u'job_1', 1)
+        db_api.job_create('', u'job_1', 1)
         cls.job_ids.append(1)
         cls.job_names.append(u'job_1')
         for i in range(1, 10):
-            wf_tmp = db_api.workflow_create('', wf_fmt.format(i))
+            db_api.workflow_create('', wf_fmt.format(i))
 
             db_api.logbook_add_workflow('', 1, wf_fmt.format(i))
             db_api.job_add_workflow('', 1, wf_fmt.format(i))
@@ -159,7 +157,7 @@ class JobTest(unittest2.TestCase):
         id = 1
         while (self.job_ids.count(id) > 0):
             id = id + 1
-        job_tmp = db_api.job_create('', u'job_{0}'.format(id), id)
+        db_api.job_create('', u'job_{0}'.format(id), id)
         self.job_ids.append(id)
         self.job_names.append(u'job_{0}'.format(id))
 
@@ -187,11 +185,11 @@ class LogBookTest(unittest2.TestCase):
     @classmethod
     def setUpClass(cls):
         wf_fmt = u'workflow_{0}'
-        lb_tmp = db_api.logbook_create('', u'logbook_1', 1)
+        db_api.logbook_create('', u'logbook_1', 1)
         cls.lb_ids.append(1)
         cls.lb_names.append(u'logbook_1')
         for i in range(1, 10):
-            wf_tmp = db_api.workflow_create('', wf_fmt.format(i))
+            db_api.workflow_create('', wf_fmt.format(i))
 
             db_api.logbook_add_workflow('', 1, wf_fmt.format(i))
 
@@ -232,7 +230,7 @@ class LogBookTest(unittest2.TestCase):
         id = 1
         while (self.lb_ids.count(id) > 0):
             id = id + 1
-        lb_tmp = db_api.logbook_create('', u'logbook_{0}'.format(id), id)
+        db_api.logbook_create('', u'logbook_{0}'.format(id), id)
         self.lb_ids.append(id)
         self.lb_names.append(u'logbook_{0}'.format(id))
 
@@ -295,8 +293,8 @@ class WorkflowTest(unittest2.TestCase):
         wf_fmt = u'workflow_{0}'
         tsk_fmt = u'task_{0}'
         for i in range(1, 10):
-            wf_tmp = db_api.workflow_create('', wf_fmt.format(i))
-            tsk_tmp = db_api.task_create('', tsk_fmt.format(i), i, i)
+            db_api.workflow_create('', wf_fmt.format(i))
+            db_api.task_create('', tsk_fmt.format(i), i, i)
 
             db_api.workflow_add_task('', wf_fmt.format(i), i)
 
@@ -359,7 +357,7 @@ class WorkflowTest(unittest2.TestCase):
                           u'workflow_9001')
 
     def test_workflow_add_task(self):
-        tsk_tmp = db_api.task_create('', u'task_10', 1, 10)
+        db_api.task_create('', u'task_10', 1, 10)
         db_api.workflow_add_task('', u'workflow_1', 10)
         self.tsk_ids.append(10)
         self.tsk_names.append('task_10')
@@ -378,7 +376,7 @@ class WorkflowTest(unittest2.TestCase):
         id = 0
         while (self.wf_ids.count(id) > 0):
             id = id + 1
-        wf_tmp = db_api.workflow_create('', u'workflow_{0}'.format(id))
+        db_api.workflow_create('', u'workflow_{0}'.format(id))
         self.wf_ids.append(id)
         self.wf_names.append(u'workflow_{0}'.format(id))
 
@@ -405,7 +403,7 @@ class TaskTest(unittest2.TestCase):
     def setUpClass(cls):
         tsk_fmt = u'task_{0}'
         for i in range(1, 10):
-            tsk_tmp = db_api.task_create('', tsk_fmt.format(i), i, i)
+            db_api.task_create('', tsk_fmt.format(i), i, i)
             cls.tsk_ids.append(i)
             cls.tsk_names.append(tsk_fmt.format(i))
 
@@ -428,7 +426,7 @@ class TaskTest(unittest2.TestCase):
         id = 1
         while (self.tsk_ids.count(id) > 0):
             id = id + 1
-        tsk_tmp = db_api.task_create('', u'task_{0}'.format(id), 1, id)
+        db_api.task_create('', u'task_{0}'.format(id), 1, id)
         self.tsk_ids.append(id)
         self.tsk_names.append(u'task_{0}'.format(id))
 

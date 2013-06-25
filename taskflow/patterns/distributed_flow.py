@@ -79,7 +79,7 @@ class Flow(object):
 
         # TODO(jlucci): Need to set up chord so that it's not executed
         # immediately.
-        c = chord(header, body=callback_task)
+        chord(header, body=callback_task)
 
     def run(self, context, *args, **kwargs):
         """ Start root task and kick off workflow """

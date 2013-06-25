@@ -24,7 +24,6 @@ Installation script for Taskflows's development virtualenv
 """
 
 import os
-import subprocess
 import sys
 
 import install_venv_common as install_venv

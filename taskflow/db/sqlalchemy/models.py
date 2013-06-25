@@ -22,10 +22,10 @@ SQLAlchemy models for taskflow data.
 import json
 from oslo.config import cfg
 
-from sqlalchemy import Column, Integer, String, Table, MetaData
+from sqlalchemy import Column, Integer, String, Table
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import object_mapper, relationship, backref
+from sqlalchemy.orm import object_mapper, relationship
 from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy import types as types
 

@@ -16,7 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import functools
 import unittest2
 
 from taskflow import decorators
