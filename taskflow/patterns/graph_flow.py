@@ -50,6 +50,7 @@ class Flow(linear_flow.Flow):
         r = utils.Runner(task)
         self._graph.add_node(r, uuid=r.uuid)
         self._runners = []
+        self._leftoff_at = None
         return r.uuid
 
     def _add_dependency(self, provider, requirer):
@@ -58,11 +59,10 @@ class Flow(linear_flow.Flow):
 
     def __str__(self):
         lines = ["GraphFlow: %s" % (self.name)]
-        lines.append("  Number of tasks: %s" % (self._graph.number_of_nodes()))
-        lines.append("  Number of dependencies: %s"
-                     % (self._graph.number_of_edges()))
-        lines.append("  State: %s" % (self.state))
-        return "\n".join(lines)
+        lines.append("%s" % (self._graph.number_of_nodes()))
+        lines.append("%s" % (self._graph.number_of_edges()))
+        lines.append("%s" % (self.state))
+        return "; ".join(lines)
 
     @decorators.locked
     def remove(self, task_uuid):
@@ -76,10 +76,11 @@ class Flow(linear_flow.Flow):
             for r in remove_nodes:
                 self._graph.remove_node(r)
                 self._runners = []
+                self._leftoff_at = None
 
     def _ordering(self):
         try:
-            return self._connect()
+            return iter(self._connect())
         except g_exc.NetworkXUnfeasible:
             raise exc.InvalidStateException("Unable to correctly determine "
                                             "the path through the provided "

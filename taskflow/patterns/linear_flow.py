@@ -18,7 +18,6 @@
 
 import collections
 import copy
-import functools
 import logging
 
 from taskflow.openstack.common import excutils
@@ -46,23 +45,17 @@ class Flow(base.Flow):
         # The tasks which have been applied will be collected here so that they
         # can be reverted in the correct order on failure.
         self._accumulator = utils.RollbackAccumulator()
-        # This should be a functor that returns whether a given task has
-        # already ran by returning a pair of (has_result, was_error, result).
-        #
-        # NOTE(harlowja): This allows for resumption by skipping tasks which
-        # have already occurred. The previous return value is needed due to
-        # the contract we have with tasks that they will be given the value
-        # they returned if reversion is triggered.
-        self.result_fetcher = None
         # Tasks results are stored here. Lookup is by the uuid that was
         # returned from the add function.
         self.results = {}
-        # The last index in the order we left off at before being
-        # interrupted (or failing).
-        self._left_off_at = 0
+        # The previously left off iterator that can be used to resume from
+        # the last task (if interrupted and soft-reset).
+        self._leftoff_at = None
         # All runners to run are collected here.
         self._runners = []
         self._connected = False
+        # The resumption strategy to use.
+        self.resumer = None
 
     @decorators.locked
     def add_many(self, tasks):
@@ -78,6 +71,7 @@ class Flow(base.Flow):
         r = utils.Runner(task)
         r.runs_before = list(reversed(self._runners))
         self._connected = False
+        self._leftoff_at = None
         self._runners.append(r)
         return r.uuid
 
@@ -104,10 +98,9 @@ class Flow(base.Flow):
 
     def __str__(self):
         lines = ["LinearFlow: %s" % (self.name)]
-        lines.append("  Number of tasks: %s" % (len(self._runners)))
-        lines.append("  Last index: %s" % (self._left_off_at))
-        lines.append("  State: %s" % (self.state))
-        return "\n".join(lines)
+        lines.append("%s" % (len(self._runners)))
+        lines.append("%s" % (self.state))
+        return "; ".join(lines)
 
     @decorators.locked
     def remove(self, task_uuid):
@@ -116,6 +109,7 @@ class Flow(base.Flow):
             if r.uuid == task_uuid:
                 self._runners.pop(i)
                 self._connected = False
+                self._leftoff_at = None
                 removed = True
                 break
         if not removed:
@@ -132,22 +126,26 @@ class Flow(base.Flow):
         return self._runners
 
     def _ordering(self):
-        return self._connect()
+        return iter(self._connect())
 
     @decorators.locked
     def run(self, context, *args, **kwargs):
         super(Flow, self).run(context, *args, **kwargs)
 
-        if self.result_fetcher:
-            result_fetcher = functools.partial(self.result_fetcher, context)
-        else:
-            result_fetcher = None
+        def resume_it():
+            if self._leftoff_at is not None:
+                return ([], self._leftoff_at)
+            if self.resumer:
+                (finished, leftover) = self.resumer.resume(self,
+                                                           self._ordering())
+            else:
+                finished = []
+                leftover = self._ordering()
+            return (finished, leftover)
 
         self._change_state(context, states.STARTED)
         try:
-            run_order = self._ordering()
-            if self._left_off_at > 0:
-                run_order = run_order[self._left_off_at:]
+            those_finished, leftover = resume_it()
         except Exception:
             with excutils.save_and_reraise_exception():
                 self._change_state(context, states.FAILURE)
@@ -169,6 +167,9 @@ class Flow(base.Flow):
                     result = runner(context, *args, **kwargs)
                 else:
                     if failed:
+                        # TODO(harlowja): make this configurable??
+                        # If we previously failed, we want to fail again at
+                        # the same place.
                         if not result:
                             # If no exception or exception message was provided
                             # or captured from the previous run then we need to
@@ -196,8 +197,6 @@ class Flow(base.Flow):
                 # intentionally).
                 rb.result = result
                 runner.result = result
-                # Alter the index we have ran at.
-                self._left_off_at += 1
                 self.results[runner.uuid] = copy.deepcopy(result)
                 self.task_notifier.notify(states.SUCCESS, details={
                     'context': context,
@@ -207,7 +206,7 @@ class Flow(base.Flow):
                     'task_uuid': runner.uuid,
                 })
             except Exception as e:
-                cause = utils.FlowFailure(runner.task, self, e)
+                cause = utils.FlowFailure(runner, self, e)
                 with excutils.save_and_reraise_exception():
                     # Notify any listeners that the task has errored.
                     self.task_notifier.notify(states.FAILURE, details={
@@ -219,51 +218,41 @@ class Flow(base.Flow):
                     })
                     self.rollback(context, cause)
 
-        # Ensure in a ready to run state.
-        for runner in run_order:
-            runner.reset()
-
-        last_runner = 0
-        was_interrupted = False
-        if result_fetcher:
+        if len(those_finished):
             self._change_state(context, states.RESUMING)
-            for (i, runner) in enumerate(run_order):
-                if self.state == states.INTERRUPTED:
-                    was_interrupted = True
-                    break
-                (has_result, was_error, result) = result_fetcher(self,
-                                                                 runner.task,
-                                                                 runner.uuid)
-                if not has_result:
-                    break
+            for (r, details) in those_finished:
                 # Fake running the task so that we trigger the same
                 # notifications and state changes (and rollback that
                 # would have happened in a normal flow).
-                last_runner = i + 1
-                run_it(runner, failed=was_error, result=result,
-                       simulate_run=True)
+                failed = states.FAILURE in details.get('states', [])
+                result = details.get('result')
+                run_it(r, failed=failed, result=result, simulate_run=True)
 
-        if was_interrupted:
+        self._leftoff_at = leftover
+        self._change_state(context, states.RUNNING)
+        if self.state == states.INTERRUPTED:
             return
 
-        self._change_state(context, states.RUNNING)
-        for runner in run_order[last_runner:]:
+        was_interrupted = False
+        for r in leftover:
+            r.reset()
+            run_it(r)
             if self.state == states.INTERRUPTED:
                 was_interrupted = True
                 break
-            run_it(runner)
 
         if not was_interrupted:
             # Only gets here if everything went successfully.
             self._change_state(context, states.SUCCESS)
+            self._leftoff_at = None
 
     @decorators.locked
     def reset(self):
         super(Flow, self).reset()
         self.results = {}
-        self.result_fetcher = None
+        self.resumer = None
         self._accumulator.reset()
-        self._left_off_at = 0
+        self._leftoff_at = None
         self._connected = False
 
     @decorators.locked

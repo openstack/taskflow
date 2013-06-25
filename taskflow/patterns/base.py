@@ -89,8 +89,8 @@ class Flow(object):
 
     def __str__(self):
         lines = ["Flow: %s" % (self.name)]
-        lines.append("  State: %s" % (self.state))
-        return "\n".join(lines)
+        lines.append("%s" % (self.state))
+        return "; ".join(lines)
 
     @abc.abstractmethod
     def add(self, task):

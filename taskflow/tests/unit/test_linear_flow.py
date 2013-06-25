@@ -22,7 +22,9 @@ from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
 
+from taskflow.backends import memory
 from taskflow.patterns import linear_flow as lw
+from taskflow.patterns.resumption import logbook as lr
 from taskflow.tests import utils
 
 
@@ -216,25 +218,11 @@ class LinearFlowTest(unittest2.TestCase):
     def test_interrupt_flow(self):
         wf = lw.Flow("the-int-action")
 
-        result_storage = {}
-
         # If we interrupt we need to know how to resume so attach the needed
         # parts to do that...
-
-        def result_fetcher(_ctx, _wf, task, task_uuid):
-            if task.name in result_storage:
-                return (True, False, result_storage.get(task.name))
-            return (False, False, None)
-
-        def task_listener(state, details):
-            if state not in (states.SUCCESS, states.FAILURE,):
-                return
-            task = details['task']
-            if task.name not in result_storage:
-                result_storage[task.name] = details['result']
-
-        wf.result_fetcher = result_fetcher
-        wf.task_notifier.register('*', task_listener)
+        tracker = lr.Resumption(memory.MemoryLogBook())
+        tracker.record_for(wf)
+        wf.resumer = tracker
 
         wf.add(self.make_reverting_task(1))
         wf.add(self.make_interrupt_task(2, wf))
@@ -250,9 +238,8 @@ class LinearFlowTest(unittest2.TestCase):
 
         # And now reset and resume.
         wf.reset()
-        wf.result_fetcher = result_fetcher
-        wf.task_notifier.register('*', task_listener)
-
+        tracker.record_for(wf)
+        wf.resumer = tracker
         self.assertEquals(states.PENDING, wf.state)
         wf.run(context)
         self.assertEquals(2, len(context))

@@ -20,9 +20,11 @@ import collections
 import contextlib
 import copy
 import logging
+import re
 import sys
 import threading
 import time
+import types
 
 from taskflow.openstack.common import uuidutils
 
@@ -52,6 +54,73 @@ def get_many_attr(obj, *attrs):
     return many
 
 
+def get_task_version(task):
+    """Gets a tasks *string* version, whether it is a task object/function."""
+    task_version = get_attr(task, 'version')
+    if isinstance(task_version, (list, tuple)):
+        task_version = join(task_version, with_what=".")
+    if task_version is not None and not isinstance(task_version, basestring):
+        task_version = str(task_version)
+    return task_version
+
+
+def get_task_name(task):
+    """Gets a tasks *string* name, whether it is a task object/function."""
+    task_name = ""
+    if isinstance(task, (types.MethodType, types.FunctionType)):
+        # If its a function look for the attributes that should have been
+        # set using the task() decorator provided in the decorators file. If
+        # those have not been set, then we should at least have enough basic
+        # information (not a version) to form a useful task name.
+        task_name = get_attr(task, 'name')
+        if not task_name:
+            name_pieces = [a for a in get_many_attr(task,
+                                                    '__module__',
+                                                    '__name__')
+                           if a is not None]
+            task_name = join(name_pieces, ".")
+    else:
+        task_name = str(task)
+    return task_name
+
+
+def is_version_compatible(version_1, version_2):
+    """Checks for major version compatibility of two *string" versions."""
+    if version_1 == version_2:
+        # Equivalent exactly, so skip the rest.
+        return True
+
+    def _convert_to_pieces(version):
+        try:
+            pieces = []
+            for p in version.split("."):
+                p = p.strip()
+                if not len(p):
+                    pieces.append(0)
+                    continue
+                # Clean off things like 1alpha, or 2b and just select the
+                # digit that starts that entry instead.
+                p_match = re.match(r"(\d+)([A-Za-z]*)(.*)", p)
+                if p_match:
+                    p = p_match.group(1)
+                pieces.append(int(p))
+        except (AttributeError, TypeError, ValueError):
+            pieces = []
+        return pieces
+
+    version_1_pieces = _convert_to_pieces(version_1)
+    version_2_pieces = _convert_to_pieces(version_2)
+    if len(version_1_pieces) == 0 or len(version_2_pieces) == 0:
+        return False
+
+    # Ensure major version compatibility to start.
+    major1 = version_1_pieces[0]
+    major2 = version_2_pieces[0]
+    if major1 != major2:
+        return False
+    return True
+
+
 def await(check_functor, timeout=None):
     if timeout is not None:
         end_time = time.time() + max(0, timeout)
@@ -71,12 +140,26 @@ def await(check_functor, timeout=None):
     return True
 
 
+class LastFedIter(object):
+    """An iterator which yields back the first item and then yields back
+    results from the provided iterator."""
+
+    def __init__(self, first, rest_itr):
+        self.first = first
+        self.rest_itr = rest_itr
+
+    def __iter__(self):
+        yield self.first
+        for i in self.rest_itr:
+            yield i
+
+
 class FlowFailure(object):
     """When a task failure occurs the following object will be given to revert
        and can be used to interrogate what caused the failure."""
 
-    def __init__(self, task, flow, exception):
-        self.task = task
+    def __init__(self, runner, flow, exception):
+        self.runner = runner
         self.flow = flow
         self.exc = exception
         self.exc_info = sys.exc_info()
@@ -121,7 +204,7 @@ class Runner(object):
         self.result = None
 
     def __str__(self):
-        return "%s@%s" % (self.task, self.uuid)
+        return "%s:%s" % (self.task, self.uuid)
 
     def __call__(self, *args, **kwargs):
         # Find all of our inputs first.

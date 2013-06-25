@@ -28,6 +28,7 @@ from taskflow import states
 
 from taskflow.backends import memory
 from taskflow.patterns import linear_flow as lw
+from taskflow.patterns.resumption import logbook as lr
 from taskflow.tests import utils
 
 
@@ -75,7 +76,9 @@ class MemoryBackendTest(unittest2.TestCase):
                         wf = lw.Flow('dummy')
                         for _i in range(0, 5):
                             wf.add(utils.null_functor)
-                        j.associate(wf)
+                        tracker = lr.Resumption(j.logbook)
+                        tracker.record_for(wf)
+                        wf.resumer = tracker
                         j.state = states.RUNNING
                         wf.run(j.context)
                         j.state = states.SUCCESS
@@ -118,7 +121,10 @@ class MemoryBackendTest(unittest2.TestCase):
         self.assertEquals('me', j.owner)
 
         wf = lw.Flow("the-int-action")
-        j.associate(wf)
+        tracker = lr.Resumption(j.logbook)
+        tracker.record_for(wf)
+        wf.resumer = tracker
+
         self.assertEquals(states.PENDING, wf.state)
 
         call_log = []
@@ -142,7 +148,6 @@ class MemoryBackendTest(unittest2.TestCase):
         wf.add(task_1)
         wf.add(task_1_5)  # Interrupt it after task_1 finishes
         wf.add(task_2)
-
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
@@ -150,8 +155,9 @@ class MemoryBackendTest(unittest2.TestCase):
         self.assertEquals(1, len(call_log))
 
         wf.reset()
-        j.associate(wf)
         self.assertEquals(states.PENDING, wf.state)
+        tracker.record_for(wf)
+        wf.resumer = tracker
         wf.run(j.context)
 
         self.assertEquals(1, len(j.logbook))
@@ -171,7 +177,9 @@ class MemoryBackendTest(unittest2.TestCase):
 
         wf = lw.Flow('the-line-action')
         self.assertEquals(states.PENDING, wf.state)
-        j.associate(wf)
+        tracker = lr.Resumption(j.logbook)
+        tracker.record_for(wf)
+        wf.resumer = tracker
 
         call_log = []
 
