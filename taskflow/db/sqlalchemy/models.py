@@ -29,8 +29,7 @@ from sqlalchemy.orm import object_mapper, relationship
 from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy import types as types
 
-from taskflow.db.sqlalchemy.session import get_engine
-from taskflow.db.sqlalchemy.session import get_session
+from taskflow.db.sqlalchemy import session as sql_session
 from taskflow.openstack.common import exception
 from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
@@ -59,7 +58,7 @@ class TaskFlowBase(object):
     def save(self, session=None):
         """Save this object."""
         if not session:
-            session = get_session()
+            session = sql_session.get_session()
         session.add(self)
         try:
             session.flush()
@@ -74,7 +73,7 @@ class TaskFlowBase(object):
         self.deleted = True
         self.deleted_at = timeutils.utcnow()
         if not session:
-            session = get_session()
+            session = sql_session.get_session()
         session.delete(self)
         session.flush()
 
@@ -182,4 +181,4 @@ class Task(BASE, TaskFlowBase):
 
 
 def create_tables():
-    BASE.metadata.create_all(get_engine())
+    BASE.metadata.create_all(sql_session.get_engine())

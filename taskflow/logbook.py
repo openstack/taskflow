@@ -17,16 +17,15 @@
 #    under the License.
 
 import abc
+import datetime
 import weakref
-
-from datetime import datetime
 
 
 class TaskDetail(object):
     """Task details have the bare minimum of these fields/methods."""
 
     def __init__(self, name, metadata=None):
-        self.date_created = datetime.utcnow()
+        self.date_created = datetime.datetime.utcnow()
         self.name = name
         self.metadata = metadata
         self.date_updated = None

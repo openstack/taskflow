@@ -52,8 +52,7 @@ def synchronous_switch_listener(dbapi_conn, connection_rec):
 
 
 def ping_listener(dbapi_conn, connection_rec, connection_proxy):
-    """
-Ensures that MySQL connections checked out of the
+    """Ensures that MySQL connections checked out of the
 pool are alive.
 
 Borrowed from:

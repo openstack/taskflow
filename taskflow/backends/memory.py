@@ -16,8 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from datetime import datetime
-
+import datetime
 import functools
 import logging
 import threading
@@ -198,7 +197,7 @@ class MemoryJobBoard(jobboard.JobBoard):
     @check_not_closed
     def post(self, job):
         with self._lock.acquire(read=False):
-            self._board.append((datetime.utcnow(), job))
+            self._board.append((datetime.datetime.utcnow(), job))
         # Ensure the job tracks that we posted it
         job.posted_on.append(weakref.proxy(self))
         # Let people know a job is here

@@ -24,7 +24,7 @@ import logging
 from taskflow import states
 
 from taskflow.db.sqlalchemy import models
-from taskflow.db.sqlalchemy.session import get_session
+from taskflow.db.sqlalchemy import session as sql_session
 
 from taskflow.openstack.common import exception
 
@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 
 
 def model_query(context, *args, **kwargs):
-    session = kwargs.get('session') or get_session()
+    session = kwargs.get('session') or sql_session.get_session()
     query = session.query(*args)
 
     return query
@@ -80,7 +80,7 @@ def logbook_create(context, name, lb_id=None):
 
 def logbook_get_workflows(context, lb_id):
     """Return all workflows associated with a logbook"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         lb = logbook_get(context, lb_id, session=session)
 
@@ -89,7 +89,7 @@ def logbook_get_workflows(context, lb_id):
 
 def logbook_add_workflow(context, lb_id, wf_name):
     """Add Workflow to given LogBook"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         wf = workflow_get(context, wf_name, session=session)
         lb = logbook_get(context, lb_id, session=session)
@@ -101,7 +101,7 @@ def logbook_add_workflow(context, lb_id, wf_name):
 
 def logbook_destroy(context, lb_id):
     """Delete a given LogBook"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         lb = logbook_get(context, lb_id, session=session)
         lb.delete(session=session)
@@ -126,7 +126,7 @@ def job_get(context, job_id, session=None):
 
 def job_update(context, job_id, values):
     """Update job with given values"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         job = job_get(context, job_id, session=session)
         job.update(values)
@@ -135,7 +135,7 @@ def job_update(context, job_id, values):
 
 def job_add_workflow(context, job_id, wf_id):
     """Add a Workflow to given job"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         job = job_get(context, job_id, session=session)
         wf = workflow_get(context, wf_id, session=session)
@@ -157,7 +157,7 @@ def job_get_state(context, job_id):
 
 def job_get_logbook(context, job_id):
     """Return the logbook associated with the given job"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         job = job_get(context, job_id, session=session)
     return job.logbook
@@ -177,7 +177,7 @@ def job_create(context, name, job_id=None):
 
 def job_destroy(context, job_id):
     """Delete a given Job"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         job = job_get(context, job_id, session=session)
         job.delete(session=session)
@@ -218,7 +218,7 @@ def workflow_get_names(context):
 
 def workflow_get_tasks(context, wf_name):
     """Return all tasks for a given Workflow"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         wf = workflow_get(context, wf_name, session=session)
 
@@ -227,7 +227,7 @@ def workflow_get_tasks(context, wf_name):
 
 def workflow_add_task(context, wf_id, task_id):
     """Add a task to a given workflow"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         task = task_get(context, task_id, session=session)
         wf = workflow_get(context, wf_id, session=session)
@@ -246,7 +246,7 @@ def workflow_create(context, workflow_name):
 
 def workflow_destroy(context, wf_name):
     """Delete a given Workflow"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         wf = workflow_get(context, wf_name, session=session)
         wf.delete(session=session)
@@ -283,7 +283,7 @@ def task_create(context, task_name, wf_id, task_id=None):
 
 def task_update(context, task_id, values):
     """Update Task with given values"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         task = task_get(context, task_id)
 
@@ -293,7 +293,7 @@ def task_update(context, task_id, values):
 
 def task_destroy(context, task_id):
     """Delete an existing Task"""
-    session = get_session()
+    session = sql_session.get_session()
     with session.begin():
         task = task_get(context, task_id, session=session)
         task.delete(session=session)

@@ -19,17 +19,16 @@
 import logging
 import traceback as tb
 
-from celery.signals import task_failure
-from celery.signals import task_success
+from celery import signals
 
 LOG = logging.getLogger(__name__)
 
 
-@task_failure.connect
+@signals.task_failure.connect
 def task_error_handler(signal=None, sender=None, task_id=None,
                        exception=None, args=None, kwargs=None,
                        traceback=None, einfo=None):
-    """ If a task errors out, log all error info """
+    """If a task errors out, log all error info"""
     LOG.error('Task %s, id: %s, called with args: %s, and kwargs: %s'
               'failed with exception: %s' % (sender.name, task_id,
                                              args, kwargs, exception))
@@ -37,7 +36,7 @@ def task_error_handler(signal=None, sender=None, task_id=None,
     # TODO(jlucci): Auto-initiate rollback from failed task
 
 
-@task_success.connect
+@signals.task_success.connect
 def task_success_handler(singal=None, sender=None, result=None):
-    """ Save task results to WF """
+    """Save task results to WF."""
     pass

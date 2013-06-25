@@ -16,8 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from datetime import datetime
-
+import datetime
 import functools
 import threading
 import unittest2
@@ -65,7 +64,7 @@ class MemoryBackendTest(unittest2.TestCase):
                 if not my_jobs:
                     # No jobs were claimed, lets not search the past again
                     # then, since *likely* those jobs will remain claimed...
-                    job_search_from = datetime.utcnow()
+                    job_search_from = datetime.datetime.utcnow()
                 if my_jobs and poison.isSet():
                     # Oh crap, we need to unclaim and repost the jobs.
                     for j in my_jobs:
@@ -215,7 +214,7 @@ class MemoryBackendTest(unittest2.TestCase):
             j.claim(owner)
 
         def receive_job():
-            start = datetime.utcnow()
+            start = datetime.datetime.utcnow()
             receiver_awake.set()
             new_jobs = []
             while not new_jobs:
