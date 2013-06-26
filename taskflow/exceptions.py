@@ -68,10 +68,10 @@ class JobNotFound(TaskFlowException):
 
 
 class MissingDependencies(InvalidStateException):
-    """Raised when a task has dependencies that can not be satisified."""
-    message = ("%(task)s requires %(requirements)s but no other task produces"
+    """Raised when a entity has dependencies that can not be satisified."""
+    message = ("%(who)s requires %(requirements)s but no other entity produces"
                " said requirements")
 
-    def __init__(self, task, requirements):
-        message = self.message % {'task': task, 'requirements': requirements}
+    def __init__(self, who, requirements):
+        message = self.message % {'who': who, 'requirements': requirements}
         super(MissingDependencies, self).__init__(message)

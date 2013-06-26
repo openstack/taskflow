@@ -49,7 +49,7 @@ class Flow(linear_flow.Flow):
         # to infer the edges at this stage we likely will fail finding
         # dependencies from nodes that don't exist.
         assert isinstance(task, collections.Callable)
-        r = utils.Runner(task)
+        r = utils.AOTRunner(task)
         self._graph.add_node(r, uuid=r.uuid, infer=infer)
         self._reset_internals()
         return r.uuid

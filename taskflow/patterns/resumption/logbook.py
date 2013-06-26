@@ -111,7 +111,7 @@ class Resumption(object):
                 details = self._reconcile_versions(immediate_version, details)
         return (True, details)
 
-    def resume(self, flow, ordering):
+    def __call__(self, flow, ordering):
         """Splits the initial ordering into two segments, the first which
         has already completed (or errored) and the second which has not
         completed or errored.
