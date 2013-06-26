@@ -45,7 +45,7 @@ class ProvidesRequiresTask(task.Task):
             KWARGS_KEY: dict(kwargs),
             ARGS_KEY: list(args),
         }
-        if not ORDER_KEY in context:
+        if ORDER_KEY not in context:
             context[ORDER_KEY] = []
         context[ORDER_KEY].append(self.name)
         for v in self.provides:

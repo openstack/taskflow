@@ -21,10 +21,10 @@
 
 import logging
 
-import sqlalchemy.orm
+import sqlalchemy
 import sqlalchemy.engine
 import sqlalchemy.interfaces
-import sqlalchemy
+import sqlalchemy.orm
 from sqlalchemy.pool import NullPool
 
 from sqlalchemy import exc
@@ -92,7 +92,7 @@ def get_engine():
             sqlalchemy.event.listen(_ENGINE, 'connect',
                                     synchronous_switch_listener)
 
-    #TODO: Check to make sure engine connected
+    # TODO(jharlow): Check to make sure engine connected
 
     return _ENGINE
 

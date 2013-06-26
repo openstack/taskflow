@@ -19,7 +19,8 @@
 import logging
 import traceback as tb
 
-from celery.signals import task_failure, task_success
+from celery.signals import task_failure
+from celery.signals import task_success
 
 LOG = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ def task_error_handler(signal=None, sender=None, task_id=None,
     LOG.error('Trackeback: %s' % (tb.print_tb(traceback), ))
     wf = sender.name.split('.')[0]
     task = ('.').join(n for n in (sender.name.split('.')[1:]) if n)
-    # TODO: Auto-initiate rollback from failed task
+    # TODO(jlucci): Auto-initiate rollback from failed task
 
 
 @task_success.connect

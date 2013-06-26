@@ -19,7 +19,7 @@
 """
 SQLAlchemy models for taskflow data.
 """
-
+import json
 from oslo.config import cfg
 
 from sqlalchemy import Column, Integer, String, Table, MetaData
@@ -29,10 +29,11 @@ from sqlalchemy.orm import object_mapper, relationship, backref
 from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy import types as types
 
-from json import dumps, loads
-
-from taskflow.db.sqlalchemy.session import get_session, get_engine
-from taskflow.openstack.common import timeutils, uuidutils, exception
+from taskflow.db.sqlalchemy.session import get_engine
+from taskflow.db.sqlalchemy.session import get_session
+from taskflow.openstack.common import exception
+from taskflow.openstack.common import timeutils
+from taskflow.openstack.common import uuidutils
 
 CONF = cfg.CONF
 BASE = declarative_base()
@@ -42,10 +43,10 @@ class Json(types.TypeDecorator, types.MutableType):
     impl = types.Text
 
     def process_bind_param(self, value, dialect):
-        return dumps(value)
+        return json.dumps(value)
 
     def process_result_value(self, value, dialect):
-        return loads(value)
+        return json.loads(value)
 
 
 class TaskFlowBase(object):

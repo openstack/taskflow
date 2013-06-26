@@ -22,11 +22,13 @@ import unittest2
 
 from os import path
 from oslo.config import cfg
-from taskflow import states
+
+from taskflow.openstack.common import exception
+
 from taskflow.db import api as db_api
 from taskflow.db.sqlalchemy import models
 from taskflow.db.sqlalchemy.session import get_session
-from taskflow.openstack.common import exception
+from taskflow import states
 
 db_api.configure()
 db_api.SQL_CONNECTION = 'sqlite:///test.db'

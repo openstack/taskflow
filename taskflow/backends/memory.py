@@ -23,7 +23,7 @@ import logging
 import threading
 import weakref
 
-import taskflow
+import taskflow.job
 
 from taskflow import catalog
 from taskflow import exceptions as exc

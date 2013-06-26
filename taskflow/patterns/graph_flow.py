@@ -19,9 +19,9 @@
 import collections
 import logging
 
-from networkx import exception as g_exc
 from networkx.algorithms import dag
 from networkx.classes import digraph
+from networkx import exception as g_exc
 
 from taskflow import exceptions as exc
 from taskflow.patterns import ordered_flow

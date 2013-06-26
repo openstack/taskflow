@@ -1,12 +1,15 @@
-# Packages needed for developer testing this library.
+# Install bounded pep8/pyflakes first, then let flake8 install
+pep8==1.4.5
+pyflakes==0.7.2
+flake8==2.0
+hacking>=0.5.3,<0.6
+
 coverage
 distribute>=0.6.24
-flake8==2.0
 mox
 nose
 nose-exclude
 openstack.nose_plugin>=0.7
-pep8==1.4.5
 pylint==0.25.2
 # Needed for features in 2.7 not in 2.6
 unittest2

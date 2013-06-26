@@ -77,7 +77,8 @@ class Flow(object):
         callback_task.name = '%s.%s' % (self.name, callback_task.name)
         self._tasks.append(callback_task)
 
-        #TODO: Need to set up chord so that it's not executed immediately
+        # TODO(jlucci): Need to set up chord so that it's not executed
+        # immediately.
         c = chord(header, body=callback_task)
 
     def run(self, context, *args, **kwargs):
