@@ -52,8 +52,7 @@ class MemoryBackendTest(unittest2.TestCase):
             while not poison.isSet():
                 my_jobs = []
                 job_board.await(0.05)
-                job_search_from = None
-                for j in job_board.posted_after(job_search_from):
+                for j in job_board.posted_after():
                     if j.owner is not None:
                         continue
                     try:
@@ -61,10 +60,6 @@ class MemoryBackendTest(unittest2.TestCase):
                         my_jobs.append(j)
                     except exc.UnclaimableJobException:
                         pass
-                if not my_jobs:
-                    # No jobs were claimed, lets not search the past again
-                    # then, since *likely* those jobs will remain claimed...
-                    job_search_from = datetime.datetime.utcnow()
                 if my_jobs and poison.isSet():
                     # Oh crap, we need to unclaim and repost the jobs.
                     for j in my_jobs:

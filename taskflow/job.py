@@ -32,14 +32,10 @@ LOG = logging.getLogger(__name__)
 
 def _get_task_version(task):
     """Gets a tasks *string* version, whether it is a task object/function."""
-    task_version = ''
-    if isinstance(task, types.FunctionType):
-        task_version = getattr(task, '__version__', '')
-    if not task_version and hasattr(task, 'version'):
-        task_version = task.version
+    task_version = utils.get_attr(task, 'version')
     if isinstance(task_version, (list, tuple)):
         task_version = utils.join(task_version, with_what=".")
-    if not isinstance(task_version, basestring):
+    if task_version is not None and not isinstance(task_version, basestring):
         task_version = str(task_version)
     return task_version
 
@@ -47,14 +43,13 @@ def _get_task_version(task):
 def _get_task_name(task):
     """Gets a tasks *string* name, whether it is a task object/function."""
     task_name = ""
-    if isinstance(task, types.FunctionType):
+    if isinstance(task, (types.MethodType, types.FunctionType)):
         # If its a function look for the attributes that should have been
         # set using the task() decorator provided in the decorators file. If
         # those have not been set, then we should at least have enough basic
         # information (not a version) to form a useful task name.
-        if hasattr(task, 'name'):
-            task_name = str(task.name)
-        else:
+        task_name = utils.get_attr(task, 'name')
+        if not task_name:
             name_pieces = [a for a in utils.get_many_attr(task,
                                                           '__module__',
                                                           '__name__')

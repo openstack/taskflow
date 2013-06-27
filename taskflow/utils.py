@@ -21,29 +21,18 @@ import logging
 import threading
 import time
 
+from taskflow import decorators
+
 LOG = logging.getLogger(__name__)
 
 
-def get_wrapped_function(function):
-    """Get the method at the bottom of a stack of decorators."""
-
-    if not hasattr(function, 'func_closure') or not function.func_closure:
-        return function
-
-    def _get_wrapped_function(function):
-        if not hasattr(function, 'func_closure') or not function.func_closure:
-            return None
-
-        for closure in function.func_closure:
-            func = closure.cell_contents
-
-            deeper_func = _get_wrapped_function(func)
-            if deeper_func:
-                return deeper_func
-            elif hasattr(closure.cell_contents, '__call__'):
-                return closure.cell_contents
-
-    return _get_wrapped_function(function)
+def get_attr(task, field, default=None):
+    if decorators.is_decorated(task):
+        # If its a decorated functor then the attributes will be either
+        # in the underlying function of the instancemethod or the function
+        # itself.
+        task = decorators.extract(task)
+    return getattr(task, field, default)
 
 
 def join(itr, with_what=","):
@@ -54,7 +43,7 @@ def join(itr, with_what=","):
 def get_many_attr(obj, *attrs):
     many = []
     for a in attrs:
-        many.append(getattr(obj, a, None))
+        many.append(get_attr(obj, a, None))
     return many
 
 

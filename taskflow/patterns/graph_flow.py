@@ -25,6 +25,7 @@ from networkx import exception as g_exc
 
 from taskflow import exceptions as exc
 from taskflow.patterns import ordered_flow
+from taskflow import utils
 
 LOG = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ class Flow(ordered_flow.Flow):
         #
         # Only insert the node to start, connect all the edges
         # together later after all nodes have been added.
+        assert isinstance(task, collections.Callable)
         self._graph.add_node(task)
         self._connected = False
 
@@ -54,7 +56,8 @@ class Flow(ordered_flow.Flow):
         def extract_inputs(place_where, would_like, is_optional=False):
             for n in would_like:
                 for (them, there_result) in self.results:
-                    if not n in set(getattr(them, 'provides', [])):
+                    they_provide = utils.get_attr(them, 'provides', [])
+                    if n not in set(they_provide):
                         continue
                     if ((not is_optional and
                          not self._graph.has_edge(them, task))):
@@ -68,8 +71,8 @@ class Flow(ordered_flow.Flow):
                     elif not is_optional:
                         place_where[n].append(None)
 
-        required_inputs = set(getattr(task, 'requires', []))
-        optional_inputs = set(getattr(task, 'optional', []))
+        required_inputs = set(utils.get_attr(task, 'requires', []))
+        optional_inputs = set(utils.get_attr(task, 'optional', []))
         optional_inputs = optional_inputs - required_inputs
 
         task_inputs = collections.defaultdict(list)
@@ -103,9 +106,9 @@ class Flow(ordered_flow.Flow):
         provides_what = collections.defaultdict(list)
         requires_what = collections.defaultdict(list)
         for t in self._graph.nodes_iter():
-            for r in getattr(t, 'requires', []):
+            for r in utils.get_attr(t, 'requires', []):
                 requires_what[r].append(t)
-            for p in getattr(t, 'provides', []):
+            for p in utils.get_attr(t, 'provides', []):
                 provides_what[p].append(t)
 
         def get_providers(node, want_what):

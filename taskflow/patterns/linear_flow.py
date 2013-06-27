@@ -16,8 +16,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+
 from taskflow import exceptions as exc
 from taskflow.patterns import ordered_flow
+from taskflow import utils
 
 
 class Flow(ordered_flow.Flow):
@@ -30,14 +33,14 @@ class Flow(ordered_flow.Flow):
         self._tasks = []
 
     def _fetch_task_inputs(self, task):
-        would_like = set(getattr(task, 'requires', []))
-        would_like.update(getattr(task, 'optional', []))
+        would_like = set(utils.get_attr(task, 'requires', []))
+        would_like.update(utils.get_attr(task, 'optional', []))
 
         inputs = {}
         for n in would_like:
             # Find the last task that provided this.
             for (last_task, last_results) in reversed(self.results):
-                if n not in getattr(last_task, 'provides', []):
+                if n not in utils.get_attr(last_task, 'provides', []):
                     continue
                 if last_results and n in last_results:
                     inputs[n] = last_results[n]
@@ -50,10 +53,10 @@ class Flow(ordered_flow.Flow):
     def _validate_provides(self, task):
         # Ensure that some previous task provides this input.
         missing_requires = []
-        for r in getattr(task, 'requires', []):
+        for r in utils.get_attr(task, 'requires', []):
             found_provider = False
             for prev_task in reversed(self._tasks):
-                if r in getattr(prev_task, 'provides', []):
+                if r in utils.get_attr(prev_task, 'provides', []):
                     found_provider = True
                     break
             if not found_provider:
@@ -66,6 +69,7 @@ class Flow(ordered_flow.Flow):
             raise exc.InvalidStateException(msg)
 
     def add(self, task):
+        assert isinstance(task, collections.Callable)
         self._validate_provides(task)
         self._tasks.append(task)
 
