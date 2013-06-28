@@ -1,7 +1,8 @@
 # Packages needed for using this library.
 oslo.config>=1.1.0
 iso8601
-networkx
+# Very nice graph library
+networkx>=1.5
 # Only needed if celery/distributed flows used.
 celery
 # Only needed if database backend used.

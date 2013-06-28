@@ -24,16 +24,16 @@ from networkx.classes import digraph
 from networkx import exception as g_exc
 
 from taskflow import exceptions as exc
-from taskflow.patterns import ordered_flow
+from taskflow.patterns import linear_flow
 from taskflow import utils
 
 LOG = logging.getLogger(__name__)
 
 
-class Flow(ordered_flow.Flow):
-    """A flow which will analyze the attached tasks input requirements and
-    determine who provides said input and order the task so that said providing
-    task will be ran before."""
+class Flow(linear_flow.Flow):
+    """A extension of the linear flow which will run the associated tasks in
+    a linear topological ordering (and reverse using the same linear
+    topological order)"""
 
     def __init__(self, name, parents=None, allow_same_inputs=True):
         super(Flow, self).__init__(name, parents)
@@ -42,14 +42,26 @@ class Flow(ordered_flow.Flow):
         self._allow_same_inputs = allow_same_inputs
 
     def add(self, task):
-        # Do something with the task, either store it for later
-        # or add it to the graph right now...
-        #
         # Only insert the node to start, connect all the edges
-        # together later after all nodes have been added.
+        # together later after all nodes have been added since if we try
+        # to infer the edges at this stage we likely will fail finding
+        # dependencies from nodes that don't exist.
         assert isinstance(task, collections.Callable)
-        self._graph.add_node(task)
-        self._connected = False
+        if not self._graph.has_node(task):
+            self._graph.add_node(task)
+            self._connected = False
+
+    def add_many(self, tasks):
+        for t in tasks:
+            self.add(t)
+
+    def __str__(self):
+        lines = ["GraphFlow: %s" % (self.name)]
+        lines.append("  Number of tasks: %s" % (self._graph.number_of_nodes()))
+        lines.append("  Number of dependencies: %s"
+                     % (self._graph.number_of_edges()))
+        lines.append("  State: %s" % (self.state))
+        return "\n".join(lines)
 
     def _fetch_task_inputs(self, task):
 
@@ -87,8 +99,8 @@ class Flow(ordered_flow.Flow):
 
         return dict(map(collapse_functor, task_inputs.iteritems()))
 
-    def order(self):
-        self.connect()
+    def _ordering(self):
+        self._connect()
         try:
             return dag.topological_sort(self._graph)
         except g_exc.NetworkXUnfeasible:
@@ -97,7 +109,7 @@ class Flow(ordered_flow.Flow):
                                             "flow which will satisfy the "
                                             "tasks needed inputs and outputs.")
 
-    def connect(self):
+    def _connect(self):
         """Connects the nodes & edges of the graph together."""
         if self._connected or len(self._graph) == 0:
             return

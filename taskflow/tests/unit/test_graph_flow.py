@@ -159,9 +159,7 @@ class GraphFlowTest(unittest2.TestCase):
         flo.add(run1)
         flo.add(run2)
 
-        self.assertRaises(excp.InvalidStateException, flo.connect)
         self.assertRaises(excp.InvalidStateException, flo.run, {})
-        self.assertRaises(excp.InvalidStateException, flo.order)
 
     def test_happy_flow(self):
         flo = gw.Flow("test-flow")
