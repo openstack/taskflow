@@ -16,8 +16,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import contextlib
 import logging
+import sys
 import threading
 import time
 
@@ -64,6 +66,35 @@ def await(check_functor, timeout=None):
         else:
             delay = min(delay * 2, 0.05)
     return True
+
+
+class FlowFailure(object):
+    """When a task failure occurs the following object will be given to revert
+       and can be used to interrogate what caused the failure."""
+
+    def __init__(self, task, flow, exception):
+        self.task = task
+        self.flow = flow
+        self.exc = exception
+        self.exc_info = sys.exc_info()
+
+
+class RollbackTask(object):
+    """A helper task that on being called will call the underlying callable
+    tasks revert method (if said method exists)"""
+
+    def __init__(self, context, task, result):
+        self.task = task
+        self.result = result
+        self.context = context
+
+    def __str__(self):
+        return str(self.task)
+
+    def __call__(self, cause):
+        if ((hasattr(self.task, "revert") and
+             isinstance(self.task.revert, collections.Callable))):
+            self.task.revert(self.context, self.result, cause)
 
 
 class RollbackAccumulator(object):

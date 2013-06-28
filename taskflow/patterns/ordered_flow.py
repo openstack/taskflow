@@ -17,11 +17,9 @@
 #    under the License.
 
 import abc
-import collections
 import copy
 import functools
 import logging
-import sys
 
 from taskflow.openstack.common import excutils
 
@@ -30,32 +28,6 @@ from taskflow import states
 from taskflow import utils
 
 LOG = logging.getLogger(__name__)
-
-
-class FlowFailure(object):
-    """When a task failure occurs the following object will be given to revert
-       and can be used to interrogate what caused the failure."""
-
-    def __init__(self, task, flow, exception):
-        self.task = task
-        self.flow = flow
-        self.exc = exception
-        self.exc_info = sys.exc_info()
-
-
-class RollbackTask(object):
-    def __init__(self, context, task, result):
-        self.task = task
-        self.result = result
-        self.context = context
-
-    def __str__(self):
-        return str(self.task)
-
-    def __call__(self, cause):
-        if ((hasattr(self.task, "revert") and
-             isinstance(self.task.revert, collections.Callable))):
-            self.task.revert(self.context, self.result, cause)
 
 
 class Flow(object):
@@ -149,7 +121,7 @@ class Flow(object):
                 # Add the task to be rolled back *immediately* so that even if
                 # the task fails while producing results it will be given a
                 # chance to rollback.
-                rb = RollbackTask(context, task, result=None)
+                rb = utils.RollbackTask(context, task, result=None)
                 self._accumulator.add(rb)
                 if not simulate_run:
                     inputs = self._fetch_task_inputs(task)
@@ -191,7 +163,7 @@ class Flow(object):
                 self.results.append((task, result_copy))
                 self._on_task_finish(context, task, result_copy)
             except Exception as e:
-                cause = FlowFailure(task, self, e)
+                cause = utils.FlowFailure(task, self, e)
                 with excutils.save_and_reraise_exception():
                     try:
                         self._on_task_error(context, task, e)
