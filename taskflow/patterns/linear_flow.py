@@ -54,8 +54,9 @@ class Flow(base.Flow):
         # the contract we have with tasks that they will be given the value
         # they returned if reversion is triggered.
         self.result_fetcher = None
-        # Tasks results are stored here...
-        self.results = []
+        # Tasks results are stored here. Lookup is by the uuid that was
+        # returned from the add function.
+        self.results = {}
         # The last index in the order we left off at before being
         # interrupted (or failing).
         self._left_off_at = 0
@@ -173,7 +174,7 @@ class Flow(base.Flow):
                 runner.result = result
                 # Alter the index we have ran at.
                 self._left_off_at += 1
-                self.results.append((runner.task, copy.deepcopy(result)))
+                self.results[runner.uuid] = copy.deepcopy(result)
                 self._on_task_finish(context, runner.task, result)
             except Exception as e:
                 cause = utils.FlowFailure(runner.task, self, e)
@@ -225,7 +226,7 @@ class Flow(base.Flow):
     @decorators.locked
     def reset(self):
         super(Flow, self).reset()
-        self.results = []
+        self.results = {}
         self.result_fetcher = None
         self._accumulator.reset()
         self._left_off_at = 0

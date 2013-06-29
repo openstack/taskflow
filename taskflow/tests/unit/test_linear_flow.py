@@ -57,6 +57,19 @@ class LinearFlowTest(unittest2.TestCase):
 
         return do_interrupt
 
+    def test_result_access(self):
+        wf = lw.Flow("the-test-action")
+
+        @decorators.task
+        def do_apply1(context):
+            return [1, 2]
+
+        result_id = wf.add(do_apply1)
+        ctx = {}
+        wf.run(ctx)
+        self.assertTrue(result_id in wf.results)
+        self.assertEquals([1, 2], wf.results[result_id])
+
     def test_functor_flow(self):
         wf = lw.Flow("the-test-action")
 
