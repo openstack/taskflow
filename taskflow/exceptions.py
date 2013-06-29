@@ -53,3 +53,13 @@ class UnclaimableJobException(TaskFlowException):
 class JobNotFound(TaskFlowException):
     """Raised when a job entry can not be found."""
     pass
+
+
+class MissingDependencies(InvalidStateException):
+    """Raised when a task has dependencies that can not be satisified."""
+    message = ("%(task)s requires %(requirements)s but no other task produces"
+               " said requirements")
+
+    def __init__(self, task, requirements):
+        message = self.message % {'task': task, 'requirements': requirements}
+        super(MissingDependencies, self).__init__(message)

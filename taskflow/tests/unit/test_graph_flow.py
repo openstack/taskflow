@@ -55,39 +55,6 @@ class GraphFlowTest(unittest2.TestCase):
         self.assertEquals(states.FAILURE, flo.state)
         self.assertEquals(['run1'], reverted)
 
-    def test_multi_provider_disallowed(self):
-        flo = gw.Flow("test-flow", allow_same_inputs=False)
-        flo.add(utils.ProvidesRequiresTask('test6',
-                                           provides=['y'],
-                                           requires=[]))
-        flo.add(utils.ProvidesRequiresTask('test7',
-                                           provides=['y'],
-                                           requires=[]))
-        flo.add(utils.ProvidesRequiresTask('test8',
-                                           provides=[],
-                                           requires=['y']))
-        self.assertEquals(states.PENDING, flo.state)
-        self.assertRaises(excp.InvalidStateException, flo.run, {})
-        self.assertEquals(states.FAILURE, flo.state)
-
-    def test_multi_provider_allowed(self):
-        flo = gw.Flow("test-flow", allow_same_inputs=True)
-        flo.add(utils.ProvidesRequiresTask('test6',
-                                           provides=['y', 'z'],
-                                           requires=[]))
-        flo.add(utils.ProvidesRequiresTask('test7',
-                                           provides=['y'],
-                                           requires=['z']))
-        flo.add(utils.ProvidesRequiresTask('test8',
-                                           provides=[],
-                                           requires=['y', 'z']))
-        ctx = {}
-        flo.run(ctx)
-        self.assertEquals(['test6', 'test7', 'test8'], ctx[utils.ORDER_KEY])
-        (_task, results) = flo.results[2]
-        self.assertEquals([True, True], results[utils.KWARGS_KEY]['y'])
-        self.assertEquals(True, results[utils.KWARGS_KEY]['z'])
-
     def test_no_requires_provider(self):
         flo = gw.Flow("test-flow")
         flo.add(utils.ProvidesRequiresTask('test1',

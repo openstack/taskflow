@@ -96,6 +96,16 @@ def wraps(fn):
     return wrapper
 
 
+def locked(f):
+
+    @wraps(f)
+    def wrapper(self, *args, **kwargs):
+        with self._lock:
+            return f(self, *args, **kwargs)
+
+    return wrapper
+
+
 def task(*args, **kwargs):
     """Decorates a given function and ensures that all needed attributes of
     that function are set so that the function can be used as a task."""

@@ -23,6 +23,7 @@ import logging
 
 from taskflow.openstack.common import excutils
 
+from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import utils
@@ -55,70 +56,61 @@ class Flow(base.Flow):
         self.result_fetcher = None
         # Tasks results are stored here...
         self.results = []
-        # The last task index in the order we left off at before being
+        # The last index in the order we left off at before being
         # interrupted (or failing).
         self._left_off_at = 0
-        # All tasks to run are collected here.
-        self._tasks = []
+        # All runners to run are collected here.
+        self._runners = []
 
+    @decorators.locked
     def add_many(self, tasks):
+        uuids = []
         for t in tasks:
-            self.add(t)
+            uuids.append(self.add(t))
+        return uuids
 
+    @decorators.locked
     def add(self, task):
         """Adds a given task to this flow."""
         assert isinstance(task, collections.Callable)
-        self._validate_provides(task)
-        self._tasks.append(task)
+        r = utils.Runner(task)
+        r.runs_before = list(reversed(self._runners))
+        self._associate_providers(r)
+        self._runners.append(r)
+        return r.uuid
 
-    def _validate_provides(self, task):
+    def _associate_providers(self, runner):
         # Ensure that some previous task provides this input.
-        missing_requires = []
-        for r in utils.get_attr(task, 'requires', []):
-            found_provider = False
-            for prev_task in reversed(self._tasks):
-                if r in utils.get_attr(prev_task, 'provides', []):
-                    found_provider = True
+        who_provides = {}
+        task_requires = set(utils.get_attr(runner.task, 'requires', []))
+        LOG.debug("Finding providers of %s for %s", task_requires, runner)
+        for r in task_requires:
+            provider = None
+            for before_me in runner.runs_before:
+                if r in set(utils.get_attr(before_me.task, 'provides', [])):
+                    provider = before_me
                     break
-            if not found_provider:
-                missing_requires.append(r)
+            if provider:
+                LOG.debug("Found provider of %s from %s", r, provider)
+                who_provides[r] = provider
         # Ensure that the last task provides all the needed input for this
         # task to run correctly.
-        if len(missing_requires):
-            msg = ("There is no previous task providing the outputs %s"
-                   " for %s to correctly execute.") % (missing_requires, task)
-            raise exc.InvalidStateException(msg)
+        missing_requires = task_requires - set(who_provides.keys())
+        if missing_requires:
+            raise exc.MissingDependencies(runner, sorted(missing_requires))
+        runner.providers.update(who_provides)
 
     def __str__(self):
         lines = ["LinearFlow: %s" % (self.name)]
-        lines.append("  Number of tasks: %s" % (len(self._tasks)))
+        lines.append("  Number of tasks: %s" % (len(self._runners)))
         lines.append("  Last index: %s" % (self._left_off_at))
         lines.append("  State: %s" % (self.state))
         return "\n".join(lines)
 
     def _ordering(self):
-        return list(self._tasks)
+        return self._runners
 
-    def _fetch_task_inputs(self, task):
-        """Retrieves and additional kwargs inputs to provide to the task when
-        said task is being applied."""
-        would_like = set(utils.get_attr(task, 'requires', []))
-        would_like.update(utils.get_attr(task, 'optional', []))
-
-        inputs = {}
-        for n in would_like:
-            # Find the last task that provided this.
-            for (last_task, last_results) in reversed(self.results):
-                if n not in utils.get_attr(last_task, 'provides', []):
-                    continue
-                if last_results and n in last_results:
-                    inputs[n] = last_results[n]
-                else:
-                    inputs[n] = None
-                # Some task said they had it, get the next requirement.
-                break
-        return inputs
-
+    @decorators.locked
     def run(self, context, *args, **kwargs):
         super(Flow, self).run(context, *args, **kwargs)
 
@@ -129,9 +121,9 @@ class Flow(base.Flow):
 
         self._change_state(context, states.STARTED)
         try:
-            task_order = self._ordering()
+            run_order = self._ordering()
             if self._left_off_at > 0:
-                task_order = task_order[self._left_off_at:]
+                run_order = run_order[self._left_off_at:]
         except Exception:
             with excutils.save_and_reraise_exception():
                 try:
@@ -140,27 +132,23 @@ class Flow(base.Flow):
                     LOG.exception("Dropping exception catched when"
                                   " notifying about ordering failure.")
 
-        def run_task(task, failed=False, result=None, simulate_run=False):
+        def run_it(runner, failed=False, result=None, simulate_run=False):
             try:
-                self._on_task_start(context, task)
+                self._on_task_start(context, runner.task)
                 # Add the task to be rolled back *immediately* so that even if
                 # the task fails while producing results it will be given a
                 # chance to rollback.
-                rb = utils.RollbackTask(context, task, result=None)
+                rb = utils.RollbackTask(context, runner.task, result=None)
                 self._accumulator.add(rb)
                 if not simulate_run:
-                    inputs = self._fetch_task_inputs(task)
-                    if not inputs:
-                        inputs = {}
-                    inputs.update(kwargs)
-                    result = task(context, *args, **inputs)
+                    result = runner(context, *args, **kwargs)
                 else:
                     if failed:
                         if not result:
                             # If no exception or exception message was provided
                             # or captured from the previous run then we need to
                             # form one for this task.
-                            result = "%s failed running." % (task)
+                            result = "%s failed running." % (runner.task)
                         if isinstance(result, basestring):
                             result = exc.InvalidStateException(result)
                         if not isinstance(result, Exception):
@@ -182,53 +170,59 @@ class Flow(base.Flow):
                 # some task could alter this result intentionally or not
                 # intentionally).
                 rb.result = result
+                runner.result = result
                 # Alter the index we have ran at.
                 self._left_off_at += 1
-                result_copy = copy.deepcopy(result)
-                self.results.append((task, result_copy))
-                self._on_task_finish(context, task, result_copy)
+                self.results.append((runner.task, copy.deepcopy(result)))
+                self._on_task_finish(context, runner.task, result)
             except Exception as e:
-                cause = utils.FlowFailure(task, self, e)
+                cause = utils.FlowFailure(runner.task, self, e)
                 with excutils.save_and_reraise_exception():
                     try:
-                        self._on_task_error(context, task, e)
+                        self._on_task_error(context, runner.task, e)
                     except Exception:
                         LOG.exception("Dropping exception catched when"
                                       " notifying about task failure.")
                     self.rollback(context, cause)
 
-        last_task = 0
+        # Ensure in a ready to run state.
+        for runner in run_order:
+            runner.reset()
+
+        last_runner = 0
         was_interrupted = False
         if result_fetcher:
             self._change_state(context, states.RESUMING)
-            for (i, task) in enumerate(task_order):
+            for (i, runner) in enumerate(run_order):
                 if self.state == states.INTERRUPTED:
                     was_interrupted = True
                     break
-                (has_result, was_error, result) = result_fetcher(self, task)
+                (has_result, was_error, result) = result_fetcher(self,
+                                                                 runner.task)
                 if not has_result:
                     break
                 # Fake running the task so that we trigger the same
                 # notifications and state changes (and rollback that
                 # would have happened in a normal flow).
-                last_task = i + 1
-                run_task(task, failed=was_error, result=result,
-                         simulate_run=True)
+                last_runner = i + 1
+                run_it(runner, failed=was_error, result=result,
+                       simulate_run=True)
 
         if was_interrupted:
             return
 
         self._change_state(context, states.RUNNING)
-        for task in task_order[last_task:]:
+        for runner in run_order[last_runner:]:
             if self.state == states.INTERRUPTED:
                 was_interrupted = True
                 break
-            run_task(task)
+            run_it(runner)
 
         if not was_interrupted:
             # Only gets here if everything went successfully.
             self._change_state(context, states.SUCCESS)
 
+    @decorators.locked
     def reset(self):
         super(Flow, self).reset()
         self.results = []
@@ -236,6 +230,7 @@ class Flow(base.Flow):
         self._accumulator.reset()
         self._left_off_at = 0
 
+    @decorators.locked
     def rollback(self, context, cause):
         # Performs basic task by task rollback by going through the reverse
         # order that tasks have finished and asking said task to undo whatever

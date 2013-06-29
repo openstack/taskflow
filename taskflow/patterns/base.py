@@ -17,14 +17,15 @@
 #    under the License.
 
 import abc
+import threading
 
+from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
 
 
 class Flow(object):
     """The base abstract class of all flow implementations."""
-
     __metaclass__ = abc.ABCMeta
 
     RESETTABLE_STATES = set([
@@ -59,6 +60,9 @@ class Flow(object):
         # can be implemented when you can track a flows progress.
         self.task_listeners = []
         self.listeners = []
+        # Ensure that modifications and/or multiple runs aren't happening
+        # at the same time in the same flow at the same time.
+        self._lock = threading.RLock()
 
     @property
     def state(self):
@@ -66,13 +70,21 @@ class Flow(object):
         return self._state
 
     def _change_state(self, context, new_state):
-        if self.state != new_state:
-            old_state = self.state
-            self._state = new_state
+        was_changed = False
+        old_state = self.state
+        with self._lock:
+            if self.state != new_state:
+                old_state = self.state
+                self._state = new_state
+                was_changed = True
+        if was_changed:
+            # Don't notify while holding the lock.
             self._on_flow_state_change(context, old_state)
 
     def __str__(self):
-        return "Flow: %s" % (self.name)
+        lines = ["Flow: %s" % (self.name)]
+        lines.append("  State: %s" % (self.state))
+        return "\n".join(lines)
 
     def _on_flow_state_change(self, context, old_state):
         # Notify any listeners that the internal state has changed.
@@ -96,12 +108,18 @@ class Flow(object):
 
     @abc.abstractmethod
     def add(self, task):
-        """Adds a given task to this flow."""
+        """Adds a given task to this flow.
+
+        Returns the uuid that is associated with the task for later operations
+        before and after it is ran."""
         raise NotImplementedError()
 
     @abc.abstractmethod
     def add_many(self, tasks):
-        """Adds many tasks to this flow."""
+        """Adds many tasks to this flow.
+
+        Returns a list of uuids (one for each task added).
+        """
         raise NotImplementedError()
 
     def interrupt(self):
@@ -113,8 +131,15 @@ class Flow(object):
         if self.state in self.UNINTERRUPTIBLE_STATES:
             raise exc.InvalidStateException(("Can not interrupt when"
                                              " in state %s") % (self.state))
-        self._change_state(None, states.INTERRUPTED)
+        # Note(harlowja): Do *not* acquire the lock here so that the flow may
+        # be interrupted while running. This does mean the the above check may
+        # not be valid but we can worry about that if it becomes an issue.
+        old_state = self.state
+        if old_state != states.INTERRUPTED:
+            self._state = states.INTERRUPTED
+            self._on_flow_state_change(None, old_state)
 
+    @decorators.locked
     def reset(self):
         """Fully resets the internal state of this flow, allowing for the flow
         to be ran again. *Listeners are also reset*"""
@@ -125,6 +150,7 @@ class Flow(object):
         self.listeners = []
         self._change_state(None, states.PENDING)
 
+    @decorators.locked
     def soft_reset(self):
         """Partially resets the internal state of this flow, allowing for the
         flow to be ran again from an interrupted state *only*"""
@@ -133,14 +159,15 @@ class Flow(object):
                                              " in state %s") % (self.state))
         self._change_state(None, states.PENDING)
 
+    @decorators.locked
     def run(self, context, *args, **kwargs):
         """Executes the workflow."""
         if self.state not in self.RUNNABLE_STATES:
             raise exc.InvalidStateException("Unable to run flow when "
                                             "in state %s" % (self.state))
 
-    @abc.abstractmethod
+    @decorators.locked
     def rollback(self, context, cause):
         """Performs rollback of this workflow and any attached parent workflows
         if present."""
-        raise NotImplementedError()
+        pass

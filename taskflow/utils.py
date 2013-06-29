@@ -23,6 +23,8 @@ import sys
 import threading
 import time
 
+from taskflow.openstack.common import uuidutils
+
 from taskflow import decorators
 
 LOG = logging.getLogger(__name__)
@@ -95,6 +97,51 @@ class RollbackTask(object):
         if ((hasattr(self.task, "revert") and
              isinstance(self.task.revert, collections.Callable))):
             self.task.revert(self.context, self.result, cause)
+
+
+class Runner(object):
+    """A helper class that wraps a task and can find the needed inputs for
+    the task to run, as well as providing a uuid and other useful functionality
+    for users of the task.
+
+    TODO(harlowja): replace with the task details object or a subclass of
+    that???
+    """
+
+    def __init__(self, task):
+        assert isinstance(task, collections.Callable)
+        self.task = task
+        self.providers = {}
+        self.uuid = uuidutils.generate_uuid()
+        self.runs_before = []
+        self.result = None
+
+    def reset(self):
+        self.result = None
+
+    def __str__(self):
+        return "%s@%s" % (self.task, self.uuid)
+
+    def __call__(self, *args, **kwargs):
+        # Find all of our inputs first.
+        kwargs = dict(kwargs)
+        for (k, who_made) in self.providers.iteritems():
+            if who_made.result and k in who_made.result:
+                kwargs[k] = who_made.result[k]
+            else:
+                kwargs[k] = None
+        optional_keys = set(get_attr(self.task, 'optional', []))
+        optional_missing_keys = optional_keys - set(kwargs.keys())
+        if optional_missing_keys:
+            for k in optional_missing_keys:
+                for r in self.runs_before:
+                    r_provides = set(get_attr(r.task, 'provides', []))
+                    if k in r_provides and r.result and k in r.result:
+                        kwargs[k] = r.result[k]
+                        break
+        # And now finally run.
+        self.result = self.task(*args, **kwargs)
+        return self.result
 
 
 class RollbackAccumulator(object):

@@ -23,6 +23,7 @@ from networkx.algorithms import dag
 from networkx.classes import digraph
 from networkx import exception as g_exc
 
+from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow.patterns import linear_flow
 from taskflow import utils
@@ -35,25 +36,25 @@ class Flow(linear_flow.Flow):
     a linear topological ordering (and reverse using the same linear
     topological order)"""
 
-    def __init__(self, name, parents=None, allow_same_inputs=True):
+    def __init__(self, name, parents=None):
         super(Flow, self).__init__(name, parents)
         self._graph = digraph.DiGraph()
-        self._connected = False
-        self._allow_same_inputs = allow_same_inputs
 
+    @decorators.locked
     def add(self, task):
         # Only insert the node to start, connect all the edges
         # together later after all nodes have been added since if we try
         # to infer the edges at this stage we likely will fail finding
         # dependencies from nodes that don't exist.
         assert isinstance(task, collections.Callable)
-        if not self._graph.has_node(task):
-            self._graph.add_node(task)
-            self._connected = False
+        r = utils.Runner(task)
+        self._graph.add_node(r, uuid=r.uuid)
+        self._runners = []
+        return r.uuid
 
-    def add_many(self, tasks):
-        for t in tasks:
-            self.add(t)
+    def _add_dependency(self, provider, requirer):
+        if not self._graph.has_edge(provider, requirer):
+            self._graph.add_edge(provider, requirer)
 
     def __str__(self):
         lines = ["GraphFlow: %s" % (self.name)]
@@ -63,46 +64,9 @@ class Flow(linear_flow.Flow):
         lines.append("  State: %s" % (self.state))
         return "\n".join(lines)
 
-    def _fetch_task_inputs(self, task):
-
-        def extract_inputs(place_where, would_like, is_optional=False):
-            for n in would_like:
-                for (them, there_result) in self.results:
-                    they_provide = utils.get_attr(them, 'provides', [])
-                    if n not in set(they_provide):
-                        continue
-                    if ((not is_optional and
-                         not self._graph.has_edge(them, task))):
-                        continue
-                    if there_result and n in there_result:
-                        place_where[n].append(there_result[n])
-                        if is_optional:
-                            # Take the first task that provides this optional
-                            # item.
-                            break
-                    elif not is_optional:
-                        place_where[n].append(None)
-
-        required_inputs = set(utils.get_attr(task, 'requires', []))
-        optional_inputs = set(utils.get_attr(task, 'optional', []))
-        optional_inputs = optional_inputs - required_inputs
-
-        task_inputs = collections.defaultdict(list)
-        extract_inputs(task_inputs, required_inputs)
-        extract_inputs(task_inputs, optional_inputs, is_optional=True)
-
-        def collapse_functor(k_v):
-            (k, v) = k_v
-            if len(v) == 1:
-                v = v[0]
-            return (k, v)
-
-        return dict(map(collapse_functor, task_inputs.iteritems()))
-
     def _ordering(self):
-        self._connect()
         try:
-            return dag.topological_sort(self._graph)
+            return self._connect()
         except g_exc.NetworkXUnfeasible:
             raise exc.InvalidStateException("Unable to correctly determine "
                                             "the path through the provided "
@@ -110,49 +74,45 @@ class Flow(linear_flow.Flow):
                                             "tasks needed inputs and outputs.")
 
     def _connect(self):
-        """Connects the nodes & edges of the graph together."""
-        if self._connected or len(self._graph) == 0:
-            return
+        """Connects the nodes & edges of the graph together by examining who
+        the requirements of each node and finding another node that will
+        create said dependency."""
+        if len(self._graph) == 0:
+            return []
+        if self._runners:
+            return self._runners
 
-        # Figure out the provider of items and the requirers of items.
-        provides_what = collections.defaultdict(list)
-        requires_what = collections.defaultdict(list)
-        for t in self._graph.nodes_iter():
-            for r in utils.get_attr(t, 'requires', []):
-                requires_what[r].append(t)
-            for p in utils.get_attr(t, 'provides', []):
-                provides_what[p].append(t)
+        # Link providers to requirers.
+        #
+        # TODO(harlowja): allow for developers to manually establish these
+        # connections instead of automatically doing it for them??
+        for n in self._graph.nodes_iter():
+            n_requires = set(utils.get_attr(n.task, 'requires', []))
+            LOG.debug("Finding providers of %s for %s", n_requires, n)
+            for p in self._graph.nodes_iter():
+                if not n_requires:
+                    break
+                if n is p:
+                    continue
+                p_provides = set(utils.get_attr(p.task, 'provides', []))
+                p_satisfies = n_requires & p_provides
+                if p_satisfies:
+                    # P produces for N so thats why we link P->N and not N->P
+                    self._add_dependency(p, n)
+                    for k in p_satisfies:
+                        n.providers[k] = p
+                    LOG.debug("Found provider of %s from %s", p_satisfies, p)
+                    n_requires = n_requires - p_satisfies
+            if n_requires:
+                raise exc.MissingDependencies(n, sorted(n_requires))
 
-        def get_providers(node, want_what):
-            providers = []
-            for (producer, me) in self._graph.in_edges_iter(node):
-                providing_what = self._graph.get_edge_data(producer, me)
-                if want_what in providing_what:
-                    providers.append(producer)
-            return providers
-
-        # Link providers to consumers of items.
-        for (want_what, who_wants) in requires_what.iteritems():
-            who_provided = 0
-            for p in provides_what[want_what]:
-                # P produces for N so thats why we link P->N and not N->P
-                for n in who_wants:
-                    if p is n:
-                        # No self-referencing allowed.
-                        continue
-                    if ((len(get_providers(n, want_what))
-                         and not self._allow_same_inputs)):
-                        msg = "Multiple providers of %s not allowed."
-                        raise exc.InvalidStateException(msg % (want_what))
-                    self._graph.add_edge(p, n, attr_dict={
-                        want_what: True,
-                    })
-                    who_provided += 1
-            if not who_provided:
-                who_wants = ", ".join([str(a) for a in who_wants])
-                raise exc.InvalidStateException("%s requires input %s "
-                                                "but no other task produces "
-                                                "said output." % (who_wants,
-                                                                  want_what))
-
-        self._connected = True
+        # Now figure out the order so that we can give the runners there
+        # optional item providers as well as figure out the topological run
+        # order.
+        run_order = dag.topological_sort(self._graph)
+        run_stack = []
+        for r in run_order:
+            r.runs_before = list(reversed(run_stack))
+            run_stack.append(r)
+        self._runners = run_order
+        return run_order
