@@ -160,8 +160,7 @@ class Flow(base.Flow):
                 self.task_notifier.notify(states.STARTED, details={
                     'context': context,
                     'flow': self,
-                    'task': runner.task,
-                    'task_uuid': runner.uuid,
+                    'runner': runner,
                 })
                 if not simulate_run:
                     result = runner(context, *args, **kwargs)
@@ -201,20 +200,17 @@ class Flow(base.Flow):
                 self.task_notifier.notify(states.SUCCESS, details={
                     'context': context,
                     'flow': self,
-                    'result': result,
-                    'task': runner.task,
-                    'task_uuid': runner.uuid,
+                    'runner': runner,
                 })
             except Exception as e:
+                runner.result = e
                 cause = utils.FlowFailure(runner, self, e)
                 with excutils.save_and_reraise_exception():
                     # Notify any listeners that the task has errored.
                     self.task_notifier.notify(states.FAILURE, details={
                         'context': context,
                         'flow': self,
-                        'result': e,
-                        'task': runner.task,
-                        'task_uuid': runner.uuid,
+                        'runner': runner,
                     })
                     self.rollback(context, cause)
 

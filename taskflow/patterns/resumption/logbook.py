@@ -36,24 +36,23 @@ class Resumption(object):
         def _task_listener(state, details):
             """Store the result of the task under the given flow in the log
             book so that it can be retrieved later."""
-            task_id = details['task_uuid']
-            task = details['task']
+            runner = details['runner']
             flow = details['flow']
-            LOG.debug("Recording %s:%s of %s has finished state %s",
-                      utils.get_task_name(task), task_id, flow, state)
+            LOG.debug("Recording %s of %s has finished state %s",
+                      runner, flow, state)
             # TODO(harlowja): switch to using uuids
             flow_id = flow.name
             metadata = {}
             flow_details = self._logbook[flow_id]
             if state in (states.SUCCESS, states.FAILURE):
-                metadata['result'] = details['result']
-            if task_id not in flow_details:
+                metadata['result'] = runner.result
+            if runner.uuid not in flow_details:
                 metadata['states'] = [state]
-                metadata['version'] = utils.get_task_version(task)
-                flow_details.add_task(task_id, metadata)
+                metadata['version'] = runner.version
+                flow_details.add_task(runner.uuid, metadata)
             else:
-                details = flow_details[task_id]
-                immediate_version = utils.get_task_version(task)
+                details = flow_details[runner.uuid]
+                immediate_version = runner.version
                 recorded_version = details.metadata.get('version')
                 if recorded_version is not None:
                     if not utils.is_version_compatible(recorded_version,

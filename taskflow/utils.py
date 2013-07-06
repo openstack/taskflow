@@ -200,11 +200,19 @@ class Runner(object):
         self.runs_before = []
         self.result = None
 
+    @property
+    def version(self):
+        return get_task_version(self.task)
+
+    @property
+    def name(self):
+        return get_task_name(self.task)
+
     def reset(self):
         self.result = None
 
     def __str__(self):
-        return "%s:%s" % (self.task, self.uuid)
+        return "Runner %s: %s; %s" % (self.name, self.uuid, self.version)
 
     def __call__(self, *args, **kwargs):
         # Find all of our inputs first.
