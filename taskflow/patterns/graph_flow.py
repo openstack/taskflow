@@ -95,29 +95,36 @@ class Flow(linear_flow.Flow):
         if self._runners:
             return self._runners
 
+        # Clear out all edges (since we want to do a fresh connection)
+        for (u, v) in self._graph.edges():
+            self._graph.remove_edge(u, v)
+
         # Link providers to requirers.
         #
         # TODO(harlowja): allow for developers to manually establish these
         # connections instead of automatically doing it for them??
         for n in self._graph.nodes_iter():
+            n_providers = {}
             n_requires = set(utils.get_attr(n.task, 'requires', []))
-            LOG.debug("Finding providers of %s for %s", n_requires, n)
-            for p in self._graph.nodes_iter():
-                if not n_requires:
-                    break
-                if n is p:
-                    continue
-                p_provides = set(utils.get_attr(p.task, 'provides', []))
-                p_satisfies = n_requires & p_provides
-                if p_satisfies:
-                    # P produces for N so thats why we link P->N and not N->P
-                    self._add_dependency(p, n)
-                    for k in p_satisfies:
-                        n.providers[k] = p
-                    LOG.debug("Found provider of %s from %s", p_satisfies, p)
-                    n_requires = n_requires - p_satisfies
             if n_requires:
-                raise exc.MissingDependencies(n, sorted(n_requires))
+                LOG.debug("Finding providers of %s for %s", n_requires, n)
+                for p in self._graph.nodes_iter():
+                    if n is p:
+                        continue
+                    p_provides = set(utils.get_attr(p.task, 'provides', []))
+                    p_satisfies = n_requires & p_provides
+                    if p_satisfies:
+                        # P produces for N so thats why we link P->N
+                        # and not N->P
+                        self._add_dependency(p, n)
+                        for k in p_satisfies:
+                            n_providers[k] = p
+                        LOG.debug("Found provider of %s from %s",
+                                  p_satisfies, p)
+                        n_requires = n_requires - p_satisfies
+                if n_requires:
+                    raise exc.MissingDependencies(n, sorted(n_requires))
+            n.providers = n_providers
 
         # Now figure out the order so that we can give the runners there
         # optional item providers as well as figure out the topological run
