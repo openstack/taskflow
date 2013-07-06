@@ -103,17 +103,26 @@ class Flow(base.Flow):
         return "; ".join(lines)
 
     @decorators.locked
-    def remove(self, task_uuid):
-        removed = False
+    def remove(self, uuid):
+        index_removed = -1
         for (i, r) in enumerate(self._runners):
-            if r.uuid == task_uuid:
-                self._runners.pop(i)
-                self._connected = False
-                self._leftoff_at = None
-                removed = True
+            if r.uuid == uuid:
+                index_removed = i
                 break
-        if not removed:
-            raise IndexError("No task found with uuid %s" % (task_uuid))
+        if index_removed == -1:
+            raise ValueError("No runner found with uuid %s" % (uuid))
+        else:
+            # Ensure that we reset out internal state after said removal.
+            removed = self._runners.pop(index_removed)
+            self._connected = False
+            self._leftoff_at = None
+            # Go and remove it from any runner after the removed runner since
+            # those runners may have had an attachment to it.
+            for r in self._runners[index_removed:]:
+                try:
+                    r.runs_before.remove(removed)
+                except (IndexError, ValueError):
+                    pass
 
     def _connect(self):
         if self._connected:
