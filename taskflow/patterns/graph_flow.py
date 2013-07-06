@@ -65,18 +65,19 @@ class Flow(linear_flow.Flow):
         return "; ".join(lines)
 
     @decorators.locked
-    def remove(self, task_uuid):
-        remove_nodes = []
+    def remove(self, uuid):
+        runner = None
         for r in self._graph.nodes_iter():
-            if r.uuid == task_uuid:
-                remove_nodes.append(r)
-        if not remove_nodes:
-            raise IndexError("No task found with uuid %s" % (task_uuid))
+            if r.uuid == uuid:
+                runner = r
+                break
+        if not runner:
+            raise ValueError("No runner found with uuid %s" % (uuid))
         else:
-            for r in remove_nodes:
-                self._graph.remove_node(r)
-                self._runners = []
-                self._leftoff_at = None
+            # Ensure that we reset out internal state after said removal
+            self._graph.remove_node(runner)
+            self._runners = []
+            self._leftoff_at = None
 
     def _ordering(self):
         try:
