@@ -40,10 +40,8 @@ class Resumption(object):
             flow = details['flow']
             LOG.debug("Recording %s of %s has finished state %s",
                       runner, flow, state)
-            # TODO(harlowja): switch to using uuids
-            flow_id = flow.name
             metadata = {}
-            flow_details = self._logbook[flow_id]
+            flow_details = self._logbook[flow.uuid]
             if state in (states.SUCCESS, states.FAILURE):
                 metadata['result'] = runner.result
             if runner.uuid not in flow_details:
@@ -74,11 +72,9 @@ class Resumption(object):
             old_state = details['old_state']
             LOG.debug("%s has transitioned from %s to %s", flow, old_state,
                       state)
-            # TODO(harlowja): switch to using uuids
-            flow_id = flow.name
-            if flow_id in self._logbook:
+            if flow.uuid in self._logbook:
                 return
-            self._logbook.add_flow(flow_id)
+            self._logbook.add_flow(flow.uuid)
 
         flow.task_notifier.register('*', _task_listener)
         flow.notifier.register('*', _workflow_listener)
@@ -119,8 +115,7 @@ class Resumption(object):
         has already completed (or errored) and the second which has not
         completed or errored."""
 
-        # TODO(harlowja): switch to using uuids
-        flow_id = flow.name
+        flow_id = flow.uuid
         if flow_id not in self._logbook:
             LOG.debug("No record of %s", flow)
             return ([], ordering)

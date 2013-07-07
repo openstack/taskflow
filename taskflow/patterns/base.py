@@ -19,6 +19,8 @@
 import abc
 import threading
 
+from taskflow.openstack.common import uuidutils
+
 from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
@@ -47,14 +49,17 @@ class Flow(object):
         states.PENDING,
     ])
 
-    def __init__(self, name, parents=None):
-        self.name = name
+    def __init__(self, name, parents=None, uuid=None):
+        self._name = str(name)
         # The state of this flow.
         self._state = states.PENDING
         # If this flow has a parent flow/s which need to be reverted if
         # this flow fails then please include them here to allow this child
         # to call the parents...
-        self.parents = parents
+        if parents:
+            self.parents = list(parents)
+        else:
+            self.parents = []
         # Any objects that want to listen when a wf/task starts/stops/completes
         # or errors should be registered here. This can be used to monitor
         # progress and record tasks finishing (so that it becomes possible to
@@ -65,6 +70,19 @@ class Flow(object):
         # Ensure that modifications and/or multiple runs aren't happening
         # at the same time in the same flow at the same time.
         self._lock = threading.RLock()
+        # Assign this flow a unique identifer.
+        if uuid:
+            self._id = str(uuid)
+        else:
+            self._id = uuidutils.generate_uuid()
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def uuid(self):
+        return "f-%s" % (self._id)
 
     @property
     def state(self):
@@ -89,6 +107,8 @@ class Flow(object):
 
     def __str__(self):
         lines = ["Flow: %s" % (self.name)]
+        lines.append("%s" % (self.uuid))
+        lines.append("%s" % (len(self.parents)))
         lines.append("%s" % (self.state))
         return "; ".join(lines)
 

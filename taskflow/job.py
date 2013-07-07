@@ -56,7 +56,7 @@ class Job(object):
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name, context, catalog, claimer, jid=None):
+    def __init__(self, name, context, catalog, claimer, uuid=None):
         self.name = name
         self.context = context
         self.owner = None
@@ -64,14 +64,17 @@ class Job(object):
         self._catalog = catalog
         self._claimer = claimer
         self._logbook = None
-        if not jid:
+        if not uuid:
             self._id = uuidutils.generate_uuid()
         else:
-            self._id = str(jid)
+            self._id = str(uuid)
         self._state = states.UNCLAIMED
 
     def __str__(self):
-        return "Job (%s, %s): %s" % (self.name, self.tracking_id, self.state)
+        lines = ['Job: %s' % (self.name)]
+        lines.append("%s" % (self.uuid))
+        lines.append("%s" % (self.state))
+        return "; ".join(lines)
 
     @property
     def state(self):
@@ -143,7 +146,7 @@ class Job(object):
         return utils.await(check_functor, timeout)
 
     @property
-    def tracking_id(self):
+    def uuid(self):
         """Returns a tracking *unique* identifier that can be used to identify
         this job among other jobs."""
-        return "j-%s-%s" % (self.name, self._id)
+        return "j-%s" % (self._id)

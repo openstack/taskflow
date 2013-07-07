@@ -40,8 +40,8 @@ class Flow(base.Flow):
        Note(harlowja): Each task in the chain must have requirements
        which are satisfied by the previous task/s in the chain."""
 
-    def __init__(self, name, parents=None):
-        super(Flow, self).__init__(name, parents)
+    def __init__(self, name, parents=None, uuid=None):
+        super(Flow, self).__init__(name, parents, uuid)
         # The tasks which have been applied will be collected here so that they
         # can be reverted in the correct order on failure.
         self._accumulator = utils.RollbackAccumulator()
@@ -98,7 +98,9 @@ class Flow(base.Flow):
 
     def __str__(self):
         lines = ["LinearFlow: %s" % (self.name)]
+        lines.append("%s" % (self.uuid))
         lines.append("%s" % (len(self._runners)))
+        lines.append("%s" % (len(self.parents)))
         lines.append("%s" % (self.state))
         return "; ".join(lines)
 
@@ -279,7 +281,6 @@ class Flow(base.Flow):
             self._accumulator.rollback(cause)
         finally:
             self._change_state(context, states.FAILURE)
-        if self.parents:
-            # Rollback any parents flows if they exist...
-            for p in self.parents:
-                p.rollback(context, cause)
+        # Rollback any parents flows if they exist...
+        for p in self.parents:
+            p.rollback(context, cause)
