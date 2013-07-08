@@ -58,13 +58,6 @@ class Flow(base.Flow):
         self.resumer = None
 
     @decorators.locked
-    def add_many(self, tasks):
-        uuids = []
-        for t in tasks:
-            uuids.append(self.add(t))
-        return uuids
-
-    @decorators.locked
     def add(self, task):
         """Adds a given task to this flow."""
         assert isinstance(task, collections.Callable)

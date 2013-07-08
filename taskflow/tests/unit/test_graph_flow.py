@@ -128,6 +128,50 @@ class GraphFlowTest(unittest2.TestCase):
 
         self.assertRaises(excp.InvalidStateException, flo.run, {})
 
+    def test_manual_dependencies(self):
+        flo = gw.Flow("test-flow")
+        run_order = []
+
+        def run1(context):  # pylint: disable=W0613,C0103
+            run_order.append('ran1')
+
+        def run2(context):  # pylint: disable=W0613,C0103
+            run_order.append('ran2')
+
+        def run3(context):  # pylint: disable=W0613,C0103
+            run_order.append('ran3')
+
+        (uuid1, uuid2, uuid3) = flo.add_many([run1, run2, run3])
+        flo.add_dependency(uuid3, uuid2)
+        flo.add_dependency(uuid2, uuid1)
+        self.assertRaises(ValueError, flo.add_dependency, uuid2, uuid2)
+        self.assertRaises(ValueError, flo.add_dependency,
+                          uuid2 + "blah", uuid3)
+
+        flo.run({})
+        self.assertEquals(['ran3', 'ran2', 'ran1'], run_order)
+
+    def test_manual_providing_dependencies(self):
+        flo = gw.Flow("test-flow")
+
+        @decorators.task(provides=['a'])
+        def run1(context):
+            return {
+                'a': 2,
+            }
+
+        @decorators.task
+        def run2(context, a):
+            pass
+
+        uuid1 = flo.add(run1)
+        uuid2 = flo.add(run2, infer=False)
+        self.assertRaises(excp.MissingDependencies,
+                          flo.run, {})
+        flo.reset()
+        flo.add_dependency(uuid1, uuid2)
+        flo.run({})
+
     def test_happy_flow(self):
         flo = gw.Flow("test-flow")
 

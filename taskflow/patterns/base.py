@@ -120,13 +120,16 @@ class Flow(object):
         before and after it is ran."""
         raise NotImplementedError()
 
-    @abc.abstractmethod
+    @decorators.locked
     def add_many(self, tasks):
         """Adds many tasks to this flow.
 
         Returns a list of uuids (one for each task added).
         """
-        raise NotImplementedError()
+        uuids = []
+        for t in tasks:
+            uuids.append(self.add(t))
+        return uuids
 
     def interrupt(self):
         """Attempts to interrupt the current flow and any tasks that are

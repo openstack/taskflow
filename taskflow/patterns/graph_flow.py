@@ -25,6 +25,7 @@ from networkx import exception as g_exc
 
 from taskflow import decorators
 from taskflow import exceptions as exc
+from taskflow import graph_utils
 from taskflow.patterns import linear_flow
 from taskflow import utils
 
@@ -41,20 +42,42 @@ class Flow(linear_flow.Flow):
         self._graph = digraph.DiGraph()
 
     @decorators.locked
-    def add(self, task):
+    def add(self, task, infer=True):
         # Only insert the node to start, connect all the edges
         # together later after all nodes have been added since if we try
         # to infer the edges at this stage we likely will fail finding
         # dependencies from nodes that don't exist.
         assert isinstance(task, collections.Callable)
         r = utils.Runner(task)
-        self._graph.add_node(r, uuid=r.uuid)
+        self._graph.add_node(r, uuid=r.uuid, infer=infer)
         self._reset_internals()
         return r.uuid
 
-    def _add_dependency(self, provider, requirer):
-        if not self._graph.has_edge(provider, requirer):
-            self._graph.add_edge(provider, requirer)
+    def _find_uuid(self, uuid):
+        runner = None
+        for r in self._graph.nodes_iter():
+            if r.uuid == uuid:
+                runner = r
+                break
+        return runner
+
+    @decorators.locked
+    def add_dependency(self, provider_uuid, requirer_uuid):
+        """Connects provider to requirer where provider will now be required
+        to run before requirer does."""
+        if provider_uuid == requirer_uuid:
+            raise ValueError("Unable to link %s to itself" % provider_uuid)
+        provider = self._find_uuid(provider_uuid)
+        if not provider:
+            raise ValueError("No provider found with uuid %s" % provider_uuid)
+        requirer = self._find_uuid(requirer_uuid)
+        if not requirer:
+            raise ValueError("No requirer found with uuid %s" % requirer_uuid)
+        self._add_dependency(provider, requirer, reason='manual')
+        self._reset_internals()
+
+    def _add_dependency(self, provider, requirer, reason):
+        self._graph.add_edge(provider, requirer, reason=reason)
 
     def __str__(self):
         lines = ["GraphFlow: %s" % (self.name)]
@@ -71,13 +94,9 @@ class Flow(linear_flow.Flow):
 
     @decorators.locked
     def remove(self, uuid):
-        runner = None
-        for r in self._graph.nodes_iter():
-            if r.uuid == uuid:
-                runner = r
-                break
+        runner = self._find_uuid(uuid)
         if not runner:
-            raise ValueError("No runner found with uuid %s" % (uuid))
+            raise ValueError("No uuid %s found" % (uuid))
         else:
             self._graph.remove_node(runner)
             self._reset_internals()
@@ -100,36 +119,16 @@ class Flow(linear_flow.Flow):
         if self._connected:
             return self._runners
 
-        # Clear out all edges (since we want to do a fresh connection)
-        for (u, v) in self._graph.edges():
-            self._graph.remove_edge(u, v)
+        # Clear out all automatically added edges since we want to do a fresh
+        # connections. Leave the manually connected ones intact so that users
+        # still retain the dependencies they established themselves.
+        def discard_edge_func(u, v, e_data):
+            if e_data and e_data.get('reason') != 'manual':
+                return True
+            return False
 
         # Link providers to requirers.
-        #
-        # TODO(harlowja): allow for developers to manually establish these
-        # connections instead of automatically doing it for them??
-        for n in self._graph.nodes_iter():
-            n_providers = {}
-            n_requires = n.requires
-            if n_requires:
-                LOG.debug("Finding providers of %s for %s", n_requires, n)
-                for p in self._graph.nodes_iter():
-                    if n is p:
-                        continue
-                    p_provides = p.provides
-                    p_satisfies = n_requires & p_provides
-                    if p_satisfies:
-                        # P produces for N so thats why we link P->N
-                        # and not N->P
-                        self._add_dependency(p, n)
-                        for k in p_satisfies:
-                            n_providers[k] = p
-                        LOG.debug("Found provider of %s from %s",
-                                  p_satisfies, p)
-                        n_requires = n_requires - p_satisfies
-                if n_requires:
-                    raise exc.MissingDependencies(n, sorted(n_requires))
-            n.providers = n_providers
+        graph_utils.connect(self._graph, discard_func=discard_edge_func)
 
         # Now figure out the order so that we can give the runners there
         # optional item providers as well as figure out the topological run
