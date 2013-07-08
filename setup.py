@@ -1,48 +1,24 @@
-#!/usr/bin/env python
+# Copyright 2011 OpenStack Foundation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-import os
 import setuptools
 
 
-def _clean_line(line):
-    line = line.strip()
-    line = line.split("#")[0]
-    line = line.strip()
-    return line
-
-
-def read_requires(base):
-    path = os.path.join('tools', base)
-    requires = []
-    if not os.path.isfile(path):
-        return requires
-    with open(path, 'rb') as h:
-        for line in h.read().splitlines():
-            line = _clean_line(line)
-            if not line:
-                continue
-            requires.append(line)
-    return requires
-
-
 setuptools.setup(
-    name='taskflow',
-    version='0.0.1',
-    author='OpenStack',
-    license='Apache Software License',
-    description='Taskflow structured state management library.',
-    long_description='The taskflow library provides core functionality that '
-                     'can be used to build [resumable, reliable, '
-                     'easily understandable, ...] highly available '
-                     'systems which process workflows in a structured manner.',
-    author_email='openstack-dev@lists.openstack.org',
-    url='http://www.openstack.org/',
-    packages=setuptools.find_packages(),
-    tests_require=read_requires('test-requires'),
-    install_requires=read_requires('pip-requires'),
-    classifiers=[
-        'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: Apache Software License',
-        'Operating System :: POSIX :: Linux',
-        'Programming Language :: Python :: 2.6', ],
+    setup_requires=[
+        'd2to1>=0.2.10,<0.3',
+        'pbr>=0.5,<0.6'
+    ],
+    d2to1=True
 )
