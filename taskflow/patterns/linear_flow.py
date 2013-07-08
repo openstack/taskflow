@@ -70,10 +70,13 @@ class Flow(base.Flow):
         assert isinstance(task, collections.Callable)
         r = utils.Runner(task)
         r.runs_before = list(reversed(self._runners))
+        self._runners.append(r)
+        self._reset_internals()
+        return r.uuid
+
+    def _reset_internals(self):
         self._connected = False
         self._leftoff_at = None
-        self._runners.append(r)
-        return r.uuid
 
     def _associate_providers(self, runner):
         # Ensure that some previous task provides this input.
@@ -112,10 +115,8 @@ class Flow(base.Flow):
         if index_removed == -1:
             raise ValueError("No runner found with uuid %s" % (uuid))
         else:
-            # Ensure that we reset out internal state after said removal.
             removed = self._runners.pop(index_removed)
-            self._connected = False
-            self._leftoff_at = None
+            self._reset_internals()
             # Go and remove it from any runner after the removed runner since
             # those runners may have had an attachment to it.
             for r in self._runners[index_removed:]:
@@ -257,8 +258,7 @@ class Flow(base.Flow):
         self.results = {}
         self.resumer = None
         self._accumulator.reset()
-        self._leftoff_at = None
-        self._connected = False
+        self._reset_internals()
 
     @decorators.locked
     def rollback(self, context, cause):
