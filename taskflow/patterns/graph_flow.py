@@ -61,6 +61,9 @@ class Flow(linear_flow.Flow):
                 break
         return runner
 
+    def __len__(self):
+        return len(self._graph)
+
     @decorators.locked
     def add_dependency(self, provider_uuid, requirer_uuid):
         """Connects provider to requirer where provider will now be required
