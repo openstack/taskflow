@@ -41,3 +41,8 @@ nosetests.xml
 
 # Modified Files
 *.swp
+
+# PBR
+build
+AUTHORS
+ChangeLog
