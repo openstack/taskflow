@@ -87,10 +87,9 @@ class Resumption(object):
         return task_details
 
     def _get_details(self, flow_details, runner):
-        task_id = runner.uuid
-        if task_id not in flow_details:
+        if runner.uuid not in flow_details:
             return (False, None)
-        details = flow_details[task_id]
+        details = flow_details[runner.uuid]
         has_completed = False
         for state in details.metadata.get('states', []):
             if state in (states.SUCCESS, states.FAILURE):
@@ -98,7 +97,7 @@ class Resumption(object):
                 break
         if not has_completed:
             return (False, None)
-        immediate_version = utils.get_task_version(runner.task)
+        immediate_version = runner.version
         recorded_version = details.metadata.get('version')
         if recorded_version is not None:
             if not utils.is_version_compatible(recorded_version,

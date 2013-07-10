@@ -110,13 +110,13 @@ class Flow(linear_flow.Flow):
         # connections instead of automatically doing it for them??
         for n in self._graph.nodes_iter():
             n_providers = {}
-            n_requires = set(utils.get_attr(n.task, 'requires', []))
+            n_requires = n.requires
             if n_requires:
                 LOG.debug("Finding providers of %s for %s", n_requires, n)
                 for p in self._graph.nodes_iter():
                     if n is p:
                         continue
-                    p_provides = set(utils.get_attr(p.task, 'provides', []))
+                    p_provides = p.provides
                     p_satisfies = n_requires & p_provides
                     if p_satisfies:
                         # P produces for N so thats why we link P->N

@@ -81,12 +81,12 @@ class Flow(base.Flow):
     def _associate_providers(self, runner):
         # Ensure that some previous task provides this input.
         who_provides = {}
-        task_requires = set(utils.get_attr(runner.task, 'requires', []))
+        task_requires = runner.requires
         LOG.debug("Finding providers of %s for %s", task_requires, runner)
         for r in task_requires:
             provider = None
             for before_me in runner.runs_before:
-                if r in set(utils.get_attr(before_me.task, 'provides', [])):
+                if r in before_me.provides:
                     provider = before_me
                     break
             if provider:

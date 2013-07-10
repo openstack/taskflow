@@ -208,6 +208,18 @@ class Runner(object):
         return "r-%s" % (self._id)
 
     @property
+    def requires(self):
+        return set(get_attr(self.task, 'requires', []))
+
+    @property
+    def provides(self):
+        return set(get_attr(self.task, 'provides', []))
+
+    @property
+    def optional(self):
+        return set(get_attr(self.task, 'optional', []))
+
+    @property
     def version(self):
         return get_task_version(self.task)
 
@@ -232,12 +244,12 @@ class Runner(object):
                 kwargs[k] = who_made.result[k]
             else:
                 kwargs[k] = None
-        optional_keys = set(get_attr(self.task, 'optional', []))
+        optional_keys = self.optional
         optional_missing_keys = optional_keys - set(kwargs.keys())
         if optional_missing_keys:
             for k in optional_missing_keys:
                 for r in self.runs_before:
-                    r_provides = set(get_attr(r.task, 'provides', []))
+                    r_provides = r.provides
                     if k in r_provides and r.result and k in r.result:
                         kwargs[k] = r.result[k]
                         break
