@@ -36,8 +36,8 @@ class Flow(linear_flow.Flow):
     a linear topological ordering (and reverse using the same linear
     topological order)"""
 
-    def __init__(self, name, parents=None):
-        super(Flow, self).__init__(name, parents)
+    def __init__(self, name, parents=None, uuid=None):
+        super(Flow, self).__init__(name, parents, uuid)
         self._graph = digraph.DiGraph()
 
     @decorators.locked
@@ -58,8 +58,10 @@ class Flow(linear_flow.Flow):
 
     def __str__(self):
         lines = ["GraphFlow: %s" % (self.name)]
+        lines.append("%s" % (self.uuid))
         lines.append("%s" % (self._graph.number_of_nodes()))
         lines.append("%s" % (self._graph.number_of_edges()))
+        lines.append("%s" % (len(self.parents)))
         lines.append("%s" % (self.state))
         return "; ".join(lines)
 

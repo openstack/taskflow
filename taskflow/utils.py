@@ -192,13 +192,20 @@ class Runner(object):
     that???
     """
 
-    def __init__(self, task):
+    def __init__(self, task, uuid=None):
         assert isinstance(task, collections.Callable)
         self.task = task
         self.providers = {}
-        self.uuid = uuidutils.generate_uuid()
         self.runs_before = []
         self.result = None
+        if not uuid:
+            self._id = uuidutils.generate_uuid()
+        else:
+            self._id = str(uuid)
+
+    @property
+    def uuid(self):
+        return "r-%s" % (self._id)
 
     @property
     def version(self):
@@ -212,7 +219,10 @@ class Runner(object):
         self.result = None
 
     def __str__(self):
-        return "Runner %s: %s; %s" % (self.name, self.uuid, self.version)
+        lines = ["Runner: %s" % (self.name)]
+        lines.append("%s" % (self.uuid))
+        lines.append("%s" % (self.version))
+        return "; ".join(lines)
 
     def __call__(self, *args, **kwargs):
         # Find all of our inputs first.
