@@ -120,6 +120,9 @@ class Flow(base.Flow):
                 except (IndexError, ValueError):
                     pass
 
+    def __len__(self):
+        return len(self._runners)
+
     def _connect(self):
         if self._connected:
             return self._runners
