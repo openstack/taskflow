@@ -186,6 +186,7 @@ def _copy_file(path, dest, base, common_already=None):
             for (i, line) in enumerate(lines):
                 segments = _parse_import_line(line, i + 1, path)
                 if segments:
+                    old_line = line
                     (comment, prefix, postfix, alias) = segments
                     line = 'from %s import %s'
                     importing = _join_prefix_postfix(prefix, postfix)
@@ -202,8 +203,12 @@ def _copy_file(path, dest, base, common_already=None):
                     if comment:
                         line += ' #' + str(comment)
                     line += "\n"
+                    if old_line != line:
+                        print(" '%s' -> '%s'" % (old_line.strip(),
+                                                 line.strip()))
                 f.write(line)
 
+    print("Fixing up %s" % (dest))
     import_replace(dest)
     _replace(dest,
              'possible_topdir, "taskflow",$',
@@ -414,7 +419,7 @@ def main(argv):
 
     dest_dir = conf.dest_dir
     if not dest_dir and conf.config_file:
-        dest_dir = os.path.dirname(conf.config_file[-1])
+        dest_dir = os.path.dirname(os.path.abspath(conf.config_file[-1]))
 
     if not dest_dir or not os.path.isdir(dest_dir):
         print("A valid destination dir is required", file=sys.stderr)
