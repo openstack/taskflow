@@ -59,7 +59,7 @@ class Flow(object):
         if parents:
             self.parents = tuple(parents)
         else:
-            self.parents = tuple([])
+            self.parents = ()
         # Any objects that want to listen when a wf/task starts/stops/completes
         # or errors should be registered here. This can be used to monitor
         # progress and record tasks finishing (so that it becomes possible to
