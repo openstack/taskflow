@@ -4,10 +4,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-if not os.path.isfile(os.path.join(os.getcwd(), "taskflow", '__init__.py')):
-    sys.path.insert(0, os.path.join(os.path.abspath(os.getcwd()), os.pardir))
-else:
-    sys.path.insert(0, os.path.abspath(os.getcwd()))
+my_dir_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
+                                os.pardir))
 
 from taskflow.patterns import linear_flow as lf
 
