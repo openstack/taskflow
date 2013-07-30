@@ -34,11 +34,12 @@ LOG = logging.getLogger(__name__)
 
 class Flow(base.Flow):
     """"A linear chain of tasks that can be applied in order as one unit and
-       rolled back as one unit using the reverse order that the tasks have
-       been applied in.
+    rolled back as one unit using the reverse order that the tasks have
+    been applied in.
 
-       Note(harlowja): Each task in the chain must have requirements
-       which are satisfied by the previous task/s in the chain."""
+    Note(harlowja): Each task in the chain must have requirements
+    which are satisfied by the previous task/s in the chain.
+    """
 
     def __init__(self, name, parents=None, uuid=None):
         super(Flow, self).__init__(name, parents, uuid)

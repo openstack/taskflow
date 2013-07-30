@@ -48,13 +48,15 @@ class FlowDetail(object):
     def __iter__(self):
         """Iterates over all task details.
 
-        The order will be in the same order that they were added."""
+        The order will be in the same order that they were added.
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def __contains__(self, task_name):
         """Determines if any task details with the given name exists in this
-        flow details."""
+        flow details.
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -65,7 +67,8 @@ class FlowDetail(object):
     @abc.abstractmethod
     def add_task(self, task_name, metadata=None):
         """Atomically creates a new task detail entry to this flows details and
-        returns it for further use."""
+        returns it for further use.
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -98,27 +101,31 @@ class LogBook(object):
     @abc.abstractmethod
     def __getitem__(self, flow_name):
         """Fetches the given flow details object for the given flow
-        name or raises an exception if that flow name does not exist."""
+        name or raises an exception if that flow name does not exist.
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def __contains__(self, flow_name):
         """Determines if a flow details object with the given flow name
-        exists in this logbook."""
+        exists in this logbook.
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def __delitem__(self, flow_name):
         """Removes the given flow details object that matches the provided
         flow name or raises an exception if that flow name does not
-        exist."""
+        exist.
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def __iter__(self):
         """Iterates over all the contained flow details.
 
-        The order will be in the same order that they were added."""
+        The order will be in the same order that they were added.
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod

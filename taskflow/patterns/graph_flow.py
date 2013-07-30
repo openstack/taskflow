@@ -35,7 +35,8 @@ LOG = logging.getLogger(__name__)
 class Flow(linear_flow.Flow):
     """A extension of the linear flow which will run the associated tasks in
     a linear topological ordering (and reverse using the same linear
-    topological order)"""
+    topological order).
+    """
 
     def __init__(self, name, parents=None, uuid=None):
         super(Flow, self).__init__(name, parents, uuid)
@@ -67,7 +68,8 @@ class Flow(linear_flow.Flow):
     @decorators.locked
     def add_dependency(self, provider_uuid, requirer_uuid):
         """Connects provider to requirer where provider will now be required
-        to run before requirer does."""
+        to run before requirer does.
+        """
         if provider_uuid == requirer_uuid:
             raise ValueError("Unable to link %s to itself" % provider_uuid)
         provider = self._find_uuid(provider_uuid)
@@ -116,7 +118,8 @@ class Flow(linear_flow.Flow):
     def _connect(self):
         """Connects the nodes & edges of the graph together by examining who
         the requirements of each node and finding another node that will
-        create said dependency."""
+        create said dependency.
+        """
         if len(self._graph) == 0:
             return []
         if self._connected:

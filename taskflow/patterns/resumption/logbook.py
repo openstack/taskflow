@@ -35,7 +35,8 @@ class Resumption(object):
 
         def _task_listener(state, details):
             """Store the result of the task under the given flow in the log
-            book so that it can be retrieved later."""
+            book so that it can be retrieved later.
+            """
             runner = details['runner']
             flow = details['flow']
             LOG.debug("Recording %s of %s has finished state %s",
@@ -67,7 +68,8 @@ class Resumption(object):
 
         def _workflow_listener(state, details):
             """Ensure that when we receive an event from said workflow that we
-            make sure a logbook entry exists for that flow."""
+            make sure a logbook entry exists for that flow.
+            """
             flow = details['flow']
             old_state = details['old_state']
             LOG.debug("%s has transitioned from %s to %s", flow, old_state,
@@ -112,7 +114,8 @@ class Resumption(object):
     def resume(self, flow, ordering):
         """Splits the initial ordering into two segments, the first which
         has already completed (or errored) and the second which has not
-        completed or errored."""
+        completed or errored.
+        """
 
         flow_id = flow.uuid
         if flow_id not in self._logbook:

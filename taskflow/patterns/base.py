@@ -28,9 +28,28 @@ from taskflow import utils
 
 
 class Flow(object):
-    """The base abstract class of all flow implementations."""
+    """The base abstract class of all flow implementations.
+
+    It provides a set of parents to flows that have a concept of parent flows
+    as well as a state and state utility functions to the deriving classes. It
+    also provides a name and an identifier (uuid or other) to the flow so that
+    it can be uniquely identifed among many flows.
+
+    Flows are expected to provide (if desired) the following methods:
+    - add
+    - add_many
+    - interrupt
+    - reset
+    - rollback
+    - run
+    - soft_reset
+    """
+
     __metaclass__ = abc.ABCMeta
 
+    # Common states that certain actions can be performed in. If the flow
+    # is not in these sets of states then it is likely that the flow operation
+    # can not succeed.
     RESETTABLE_STATES = set([
         states.INTERRUPTED,
         states.SUCCESS,
@@ -78,10 +97,12 @@ class Flow(object):
 
     @property
     def name(self):
+        """A non-unique name for this flow (human readable)"""
         return self._name
 
     @property
     def uuid(self):
+        """Uniquely identifies this flow"""
         return "f-%s" % (self._id)
 
     @property
@@ -117,7 +138,8 @@ class Flow(object):
         """Adds a given task to this flow.
 
         Returns the uuid that is associated with the task for later operations
-        before and after it is ran."""
+        before and after it is ran.
+        """
         raise NotImplementedError()
 
     @decorators.locked
@@ -156,7 +178,10 @@ class Flow(object):
     @decorators.locked
     def reset(self):
         """Fully resets the internal state of this flow, allowing for the flow
-        to be ran again. *Listeners are also reset*"""
+        to be ran again.
+
+        Note: Listeners are also reset.
+        """
         if self.state not in self.RESETTABLE_STATES:
             raise exc.InvalidStateException(("Can not reset when"
                                              " in state %s") % (self.state))
@@ -167,7 +192,8 @@ class Flow(object):
     @decorators.locked
     def soft_reset(self):
         """Partially resets the internal state of this flow, allowing for the
-        flow to be ran again from an interrupted state *only*"""
+        flow to be ran again from an interrupted state only.
+        """
         if self.state not in self.SOFT_RESETTABLE_STATES:
             raise exc.InvalidStateException(("Can not soft reset when"
                                              " in state %s") % (self.state))
@@ -183,5 +209,6 @@ class Flow(object):
     @decorators.locked
     def rollback(self, context, cause):
         """Performs rollback of this workflow and any attached parent workflows
-        if present."""
+        if present.
+        """
         pass

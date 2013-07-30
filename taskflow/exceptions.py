@@ -41,7 +41,8 @@ class ClosedException(TaskFlowException):
 
 class InvalidStateException(TaskFlowException):
     """Raised when a task/job/workflow is in an invalid state when an
-    operation is attempting to apply to said task/job/workflow."""
+    operation is attempting to apply to said task/job/workflow.
+    """
     pass
 
 
