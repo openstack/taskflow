@@ -21,19 +21,27 @@ def call_joe(context):
     print("Context = %s" % (context))
 
 
-def flow_watch(context, flow, old_state):
-    print("%s moved from %s => %s" % (flow, old_state, flow.state))
+def flow_watch(state, details):
+    flow = details['flow']
+    old_state = details['old_state']
+    context = details['context']
+    print('Flow "%s": %s => %s' % (flow.name, old_state, flow.state))
+    print('Flow "%s": context=%s' % (flow.name, context))
 
 
-def task_watch(context, state, flow, task, result=None):
-    print("%s of %s moved into state %s" % (task, flow, state))
+def task_watch(state, details):
+    flow = details['flow']
+    runner = details['runner']
+    context = details['context']
+    print('Flow "%s": runner "%s"' % (flow.name, runner.name))
+    print('Flow "%s": context=%s' % (flow.name, context))
 
 
-flow = lf.Flow("call-them")
+flow = lf.Flow("Call-them")
 flow.add(call_jim)
 flow.add(call_joe)
-flow.task_notifier.register('*', task_watch)
 flow.notifier.register('*', flow_watch)
+flow.task_notifier.register('*', task_watch)
 
 context = {
     "joe_number": 444,

@@ -51,7 +51,7 @@ class LinearFlowTest(unittest2.TestCase):
             do_apply.name += str(token)
             return do_apply
 
-    def make_interrupt_task(self, token, wf):
+    def make_interrupt_task(self, wf):
 
         @decorators.task
         def do_interrupt(context, *args, **kwargs):
@@ -225,8 +225,8 @@ class LinearFlowTest(unittest2.TestCase):
         wf.resumer = tracker
 
         wf.add(self.make_reverting_task(1))
-        wf.add(self.make_interrupt_task(2, wf))
-        wf.add(self.make_reverting_task(3))
+        wf.add(self.make_interrupt_task(wf))
+        wf.add(self.make_reverting_task(2))
 
         self.assertEquals(states.PENDING, wf.state)
         context = {}
