@@ -17,7 +17,6 @@
 #    under the License.
 
 import collections
-import copy
 import logging
 
 from taskflow.openstack.common import excutils
@@ -193,18 +192,9 @@ class Flow(base.Flow):
                 # notifying others that the task has finished to
                 # avoid the case where a listener might throw an
                 # exception.
-                #
-                # Note(harlowja): Keep the original result in the
-                # accumulator only and give a duplicated copy to
-                # avoid the original result being altered by other
-                # tasks.
-                #
-                # This is due to python being by reference (which means
-                # some task could alter this result intentionally or not
-                # intentionally).
                 rb.result = result
                 runner.result = result
-                self.results[runner.uuid] = copy.deepcopy(result)
+                self.results[runner.uuid] = result
                 self.task_notifier.notify(states.SUCCESS, details={
                     'context': context,
                     'flow': self,
