@@ -75,7 +75,6 @@ class Flow(base.Flow):
         # Ensure that some previous task provides this input.
         who_provides = {}
         task_requires = runner.requires
-        LOG.debug("Finding providers of %s for %s", task_requires, runner)
         for r in task_requires:
             provider = None
             for before_me in runner.runs_before:
@@ -83,7 +82,6 @@ class Flow(base.Flow):
                     provider = before_me
                     break
             if provider:
-                LOG.debug("Found provider of %s from %s", r, provider)
                 who_provides[r] = provider
         # Ensure that the last task provides all the needed input for this
         # task to run correctly.
