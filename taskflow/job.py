@@ -30,7 +30,8 @@ LOG = logging.getLogger(__name__)
 
 class Claimer(object):
     """A base class for objects that can attempt to claim a given
-    job, so that said job can be worked on."""
+    job, so that said job can be worked on.
+    """
 
     __metaclass__ = abc.ABCMeta
 
@@ -38,21 +39,24 @@ class Claimer(object):
     def claim(self, job, owner):
         """This method will attempt to claim said job and must
         either succeed at this or throw an exception signaling the job can not
-        be claimed."""
+        be claimed.
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def unclaim(self, job, owner):
         """This method will attempt to unclaim said job and must
         either succeed at this or throw an exception signaling the job can not
-        be unclaimed."""
+        be unclaimed.
+        """
         raise NotImplementedError()
 
 
 class Job(object):
     """A job is connection to some set of work to be done by some agent. Basic
     information is provided about said work to be able to attempt to
-    fullfill said work."""
+    fullfill said work.
+    """
 
     __metaclass__ = abc.ABCMeta
 
@@ -103,7 +107,8 @@ class Job(object):
         This must be done in a way that likely uses some type of locking or
         ownership transfer so that only a single entity gets this job to work
         on. This will avoid multi-job ownership, which can lead to
-        inconsistent state."""
+        inconsistent state.
+        """
         if self.state != states.UNCLAIMED:
             raise exc.UnclaimableJobException("Unable to claim job when job is"
                                               " in state %s" % (self.state))
@@ -136,7 +141,8 @@ class Job(object):
 
     def await(self, timeout=None):
         """Awaits until either the job fails or succeeds or the provided
-        timeout is reached."""
+        timeout is reached.
+        """
 
         def check_functor():
             if self.state not in (states.FAILURE, states.SUCCESS):
@@ -148,5 +154,6 @@ class Job(object):
     @property
     def uuid(self):
         """Returns a tracking *unique* identifier that can be used to identify
-        this job among other jobs."""
+        this job among other jobs.
+        """
         return "j-%s" % (self._id)

@@ -26,7 +26,8 @@ LOG = logging.getLogger(__name__)
 
 def connect(graph, infer_key='infer', auto_reason='auto', discard_func=None):
     """Connects a graphs runners to other runners in the graph which provide
-    outputs for each runners requirements."""
+    outputs for each runners requirements.
+    """
 
     if len(graph) == 0:
         return

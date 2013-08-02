@@ -44,27 +44,31 @@ class JobBoard(object):
     def _notify_posted(self, job):
         """When a job is received, by whichever mechanism the underlying
         implementation provides, the job should be given to said listeners
-        for them to know that a job has arrived."""
+        for them to know that a job has arrived.
+        """
         for f in self._listeners:
             f(job, POSTED)
 
     def _notify_erased(self, job):
         """When a job is erased, by whichever mechanism the underlying
         implementation provides, the job should be given to said listeners
-        for them to know that a job has been erased."""
+        for them to know that a job has been erased.
+        """
         for f in self._listeners:
             f(job, ERASED)
 
     @abc.abstractmethod
     def posted_after(self, date_posted=None):
         """Gets the jobs posted after (or equal to) the given datetime object
-        (or all jobs if none)."""
+        (or all jobs if none).
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
     def posted_before(self, date_posted=None):
         """Gets the jobs posted before the given datetime object
-        (or all jobs if none)."""
+        (or all jobs if none).
+        """
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -84,7 +88,8 @@ class JobBoard(object):
 
     def unsubscribe(self, listener):
         """Removes a given listener from notifications about job
-        updates/postings."""
+        updates/postings.
+        """
         if listener in self._listeners:
             self._listeners.remove(listener)
 

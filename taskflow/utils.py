@@ -142,7 +142,8 @@ def await(check_functor, timeout=None):
 
 class LastFedIter(object):
     """An iterator which yields back the first item and then yields back
-    results from the provided iterator."""
+    results from the provided iterator.
+    """
 
     def __init__(self, first, rest_itr):
         self.first = first
@@ -156,7 +157,8 @@ class LastFedIter(object):
 
 class FlowFailure(object):
     """When a task failure occurs the following object will be given to revert
-       and can be used to interrogate what caused the failure."""
+       and can be used to interrogate what caused the failure.
+    """
 
     def __init__(self, runner, flow, exception):
         self.runner = runner
@@ -167,7 +169,8 @@ class FlowFailure(object):
 
 class RollbackTask(object):
     """A helper task that on being called will call the underlying callable
-    tasks revert method (if said method exists)"""
+    tasks revert method (if said method exists).
+    """
 
     def __init__(self, context, task, result):
         self.task = task
@@ -261,7 +264,8 @@ class Runner(object):
 class TransitionNotifier(object):
     """A utility helper class that can be used to subscribe to
     notifications of events occuring as well as allow a entity to post said
-    notifications to subscribers."""
+    notifications to subscribers.
+    """
 
     RESERVED_KEYS = ('details',)
     ANY = '*'
@@ -319,7 +323,8 @@ class RollbackAccumulator(object):
     """A utility class that can help in organizing 'undo' like code
     so that said code be rolled back on failure (automatically or manually)
     by activating rollback callables that were inserted during said codes
-    progression."""
+    progression.
+    """
 
     def __init__(self):
         self._rollbacks = []
@@ -387,7 +392,8 @@ class ReaderWriterLock(object):
         """Acquire a read lock.
 
         Several threads can hold this typeof lock.
-        It is exclusive with write locks."""
+        It is exclusive with write locks.
+        """
 
         self.monitor.acquire()
         while self.rwlock < 0 or self.writers_waiting:
@@ -399,7 +405,8 @@ class ReaderWriterLock(object):
         """Acquire a write lock.
 
         Only one thread can hold this lock, and only when no read locks
-        are also held."""
+        are also held.
+        """
 
         self.monitor.acquire()
         while self.rwlock != 0:

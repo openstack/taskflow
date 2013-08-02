@@ -54,11 +54,13 @@ class Task(object):
            This method can be used to apply some given context and given set
            of args and kwargs to accomplish some goal. Note that the result
            that is returned needs to be serializable so that it can be passed
-           back into this task if reverting is triggered."""
+           back into this task if reverting is triggered.
+        """
         raise NotImplementedError()
 
     def revert(self, context, result, cause):
         """Revert this task using the given context, result that the apply
            provided as well as any information which may have caused
-           said reversion."""
+           said reversion.
+        """
         pass

@@ -27,8 +27,14 @@ LOG = logging.getLogger(__name__)
 
 
 class Flow(object):
-    """A linear chain of independent tasks that can be applied as one unit or
-       rolled back as one unit."""
+    """A flow that can paralleize task running by using celery.
+
+    This flow backs running tasks (and associated dependencies) by using celery
+    as the runtime framework to accomplish execution (and status reporting) of
+    said tasks that compose the flow. It allows for parallel execution where
+    possible (data/task dependency dependent) without having to worry about how
+    this is accomplished in celery.
+    """
 
     def __init__(self, name, parents=None):
         self.name = name

@@ -86,7 +86,8 @@ def _take_arg(a):
 
 def wraps(fn):
     """This will not be needed in python 3.2 or greater which already has this
-    built-in to its functools.wraps method."""
+    built-in to its functools.wraps method.
+    """
 
     def wrapper(f):
         f = functools.wraps(fn)(f)
@@ -108,7 +109,8 @@ def locked(f):
 
 def task(*args, **kwargs):
     """Decorates a given function and ensures that all needed attributes of
-    that function are set so that the function can be used as a task."""
+    that function are set so that the function can be used as a task.
+    """
 
     def decorator(f):
         w_f = extract(f)
@@ -160,7 +162,8 @@ def task(*args, **kwargs):
 
 def _versionize(major, minor=None):
     """A decorator that marks the wrapped function with a major & minor version
-    number."""
+    number.
+    """
 
     if minor is None:
         minor = 0
@@ -180,7 +183,8 @@ def _versionize(major, minor=None):
 
 def _optional(*args, **kwargs):
     """Attaches a set of items that the decorated function would like as input
-    to the functions underlying dictionary."""
+    to the functions underlying dictionary.
+    """
 
     def decorator(f):
         w_f = extract(f)
@@ -209,7 +213,8 @@ def _optional(*args, **kwargs):
 
 def _requires(*args, **kwargs):
     """Attaches a set of items that the decorated function requires as input
-    to the functions underlying dictionary."""
+    to the functions underlying dictionary.
+    """
 
     def decorator(f):
         w_f = extract(f)
@@ -243,7 +248,8 @@ def _requires(*args, **kwargs):
 
 def _provides(*args, **kwargs):
     """Attaches a set of items that the decorated function provides as output
-    to the functions underlying dictionary."""
+    to the functions underlying dictionary.
+    """
 
     def decorator(f):
         w_f = extract(f)

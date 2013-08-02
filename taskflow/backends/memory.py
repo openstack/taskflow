@@ -22,10 +22,9 @@ import logging
 import threading
 import weakref
 
-import taskflow.job
-
 from taskflow import catalog
 from taskflow import exceptions as exc
+from taskflow import job as t_job
 from taskflow import jobboard
 from taskflow import logbook
 from taskflow import states
@@ -46,7 +45,7 @@ def check_not_closed(meth):
     return check
 
 
-class MemoryClaimer(taskflow.job.Claimer):
+class MemoryClaimer(t_job.Claimer):
     def claim(self, job, owner):
         job.owner = owner
 
