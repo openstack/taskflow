@@ -16,7 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow import task
+from taskflow.generics import task
 
 ARGS_KEY = '__args__'
 KWARGS_KEY = '__kwargs__'
@@ -32,6 +32,11 @@ def close_all(*args):
 
 def null_functor(*args, **kwargs):  # pylint: disable=W0613
     return None
+
+
+def drain(lst):
+    while len(lst):
+        lst.pop()
 
 
 class ProvidesRequiresTask(task.Task):
@@ -51,3 +56,11 @@ class ProvidesRequiresTask(task.Task):
         for v in self.provides:
             outs[v] = True
         return outs
+
+
+class DummyTask(task.Task):
+    def __init__(self, name, task_id=None):
+        super(DummyTask, self).__init__(name, task_id)
+
+    def __call__(self, context, *args, **kwargs):
+        pass

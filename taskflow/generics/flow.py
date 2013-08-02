@@ -78,7 +78,7 @@ class Flow(object):
         if parents:
             self.parents = tuple(parents)
         else:
-            self.parents = ()
+            self.parents = tuple([])
         # Any objects that want to listen when a wf/task starts/stops/completes
         # or errors should be registered here. This can be used to monitor
         # progress and record tasks finishing (so that it becomes possible to
@@ -102,8 +102,7 @@ class Flow(object):
 
     @property
     def uuid(self):
-        """Uniquely identifies this flow"""
-        return "f-%s" % (self._id)
+        return self._id
 
     @property
     def state(self):
