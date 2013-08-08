@@ -22,10 +22,9 @@ import unittest2
 
 from os import path
 
-from taskflow.openstack.common import exception
-
 from taskflow.db import api as db_api
 from taskflow.db.sqlalchemy import models
+from taskflow import exceptions
 from taskflow import states
 
 db_api.configure()
@@ -92,7 +91,7 @@ class JobTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.job_get, '', 9001)
+        self.assertRaises(exceptions.NotFound, db_api.job_get, '', 9001)
 
     def test_job_update(self):
         db_api.job_update('', 1, dict(owner='OwnerTest', state=states.CLAIMED))
@@ -108,7 +107,7 @@ class JobTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.job_update, '', 9001,
+        self.assertRaises(exceptions.NotFound, db_api.job_update, '', 9001,
                           dict(owner='OwnerTest', state=states.CLAIMED))
 
     def test_job_add_workflow(self):
@@ -125,9 +124,9 @@ class JobTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.job_add_workflow, '',
+        self.assertRaises(exceptions.NotFound, db_api.job_add_workflow, '',
                           9001, u'workflow_10')
-        self.assertRaises(exception.NotFound, db_api.job_add_workflow, '',
+        self.assertRaises(exceptions.NotFound, db_api.job_add_workflow, '',
                           1, u'workflow_9001')
 
     def test_job_get_owner(self):
@@ -135,7 +134,7 @@ class JobTest(unittest2.TestCase):
 
         self.assertIsNone(actual)
 
-        self.assertRaises(exception.NotFound, db_api.job_get_owner, '', 9001)
+        self.assertRaises(exceptions.NotFound, db_api.job_get_owner, '', 9001)
 
     def test_job_get_state(self):
         expected = states.UNCLAIMED
@@ -143,7 +142,7 @@ class JobTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.job_get_state, '', 9001)
+        self.assertRaises(exceptions.NotFound, db_api.job_get_state, '', 9001)
 
     def test_job_get_logbook(self):
         expected = self.lb_names[0]
@@ -151,7 +150,8 @@ class JobTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.job_get_logbook, '', 9001)
+        self.assertRaises(exceptions.NotFound, db_api.job_get_logbook,
+                          '', 9001)
 
     def test_job_create(self):
         id = 1
@@ -169,7 +169,7 @@ class JobTest(unittest2.TestCase):
         db_api.job_destroy('', id)
         self.job_names.pop()
 
-        self.assertRaises(exception.NotFound, db_api.job_get, '', id)
+        self.assertRaises(exceptions.NotFound, db_api.job_get, '', id)
 
 """
 LogBookTest
@@ -213,7 +213,7 @@ class LogBookTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.logbook_get, '', 9001)
+        self.assertRaises(exceptions.NotFound, db_api.logbook_get, '', 9001)
 
     def test_logbook_get_by_name(self):
         expected = [self.lb_ids[0]]
@@ -223,7 +223,7 @@ class LogBookTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.logbook_get_by_name, '',
+        self.assertRaises(exceptions.NotFound, db_api.logbook_get_by_name, '',
                           u'logbook_9001')
 
     def test_logbook_create(self):
@@ -248,7 +248,7 @@ class LogBookTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.logbook_get_workflows,
+        self.assertRaises(exceptions.NotFound, db_api.logbook_get_workflows,
                           '', 9001)
 
     def test_logbook_add_workflow(self):
@@ -265,9 +265,9 @@ class LogBookTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.logbook_add_workflow, '',
+        self.assertRaises(exceptions.NotFound, db_api.logbook_add_workflow, '',
                           9001, u'workflow_10')
-        self.assertRaises(exception.NotFound, db_api.logbook_add_workflow, '',
+        self.assertRaises(exceptions.NotFound, db_api.logbook_add_workflow, '',
                           1, u'workflow_9001')
 
     def test_logbook_destroy(self):
@@ -275,7 +275,7 @@ class LogBookTest(unittest2.TestCase):
         db_api.logbook_destroy('', id)
         self.lb_names.pop()
 
-        self.assertRaises(exception.NotFound, db_api.logbook_get, '', id)
+        self.assertRaises(exceptions.NotFound, db_api.logbook_get, '', id)
 
 """
 WorkflowTest
@@ -320,7 +320,7 @@ class WorkflowTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.workflow_get, '',
+        self.assertRaises(exceptions.NotFound, db_api.workflow_get, '',
                           u'workflow_9001')
 
     def test_workflow_get_all(self):
@@ -353,7 +353,7 @@ class WorkflowTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.workflow_get_tasks, '',
+        self.assertRaises(exceptions.NotFound, db_api.workflow_get_tasks, '',
                           u'workflow_9001')
 
     def test_workflow_add_task(self):
@@ -367,9 +367,9 @@ class WorkflowTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.workflow_add_task, '',
+        self.assertRaises(exceptions.NotFound, db_api.workflow_add_task, '',
                           u'workflow_9001', 10)
-        self.assertRaises(exception.NotFound, db_api.workflow_add_task, '',
+        self.assertRaises(exceptions.NotFound, db_api.workflow_add_task, '',
                           u'workflow_1', 9001)
 
     def test_workflow_create(self):
@@ -388,7 +388,7 @@ class WorkflowTest(unittest2.TestCase):
         db_api.workflow_destroy('', name)
         self.wf_ids.pop()
 
-        self.assertRaises(exception.NotFound, db_api.workflow_get, '', name)
+        self.assertRaises(exceptions.NotFound, db_api.workflow_get, '', name)
 
 """
 TaskTest
@@ -420,7 +420,7 @@ class TaskTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual.name)
 
-        self.assertRaises(exception.NotFound, db_api.task_get, '', 9001)
+        self.assertRaises(exceptions.NotFound, db_api.task_get, '', 9001)
 
     def test_task_create(self):
         id = 1
@@ -447,7 +447,7 @@ class TaskTest(unittest2.TestCase):
 
         self.assertEquals(expected, actual)
 
-        self.assertRaises(exception.NotFound, db_api.task_update, '', 9001,
+        self.assertRaises(exceptions.NotFound, db_api.task_update, '', 9001,
                           dict(exception='ExceptionTest',
                                stacktrace='StacktraceTest'))
 
@@ -456,4 +456,4 @@ class TaskTest(unittest2.TestCase):
         db_api.task_destroy('', id)
         self.tsk_names.pop()
 
-        self.assertRaises(exception.NotFound, db_api.task_get, '', id)
+        self.assertRaises(exceptions.NotFound, db_api.task_get, '', id)

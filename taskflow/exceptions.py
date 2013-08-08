@@ -16,11 +16,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.openstack.common import exception as exc
 
-
-class TaskFlowException(exc.Error):
+class TaskFlowException(Exception):
     """Base class for exceptions emitted from this library."""
+    pass
+
+
+class Duplicate(TaskFlowException):
+    """Raised when a duplicate entry is found."""
     pass
 
 

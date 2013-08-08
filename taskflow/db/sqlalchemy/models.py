@@ -30,7 +30,7 @@ from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy import types as types
 
 from taskflow.db.sqlalchemy import session as sql_session
-from taskflow.openstack.common import exception
+from taskflow import exceptions
 from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 
@@ -64,7 +64,7 @@ class TaskFlowBase(object):
             session.flush()
         except IntegrityError, e:
             if str(e).endswith('is not unique'):
-                raise exception.Duplicate(str(e))
+                raise exceptions.Duplicate(str(e))
             else:
                 raise
 
@@ -100,9 +100,9 @@ class TaskFlowBase(object):
             setattr(self, k, v)
 
     def iteritems(self):
-        """Make the model object behave like a dict
+        """Make the model object behave like a dict.
 
-           Includes attributes from joins.
+        Includes attributes from joins.
         """
         local = dict(self)
         joined = dict([k, v] for k, v in self.__dict__.iteritems()

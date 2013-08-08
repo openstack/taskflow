@@ -21,12 +21,12 @@
 
 import logging
 
+from taskflow import exceptions
 from taskflow import states
 
 from taskflow.db.sqlalchemy import models
 from taskflow.db.sqlalchemy import session as sql_session
 
-from taskflow.openstack.common import exception
 
 LOG = logging.getLogger(__name__)
 
@@ -49,8 +49,8 @@ def logbook_get(context, lb_id, session=None):
         filter_by(logbook_id=lb_id)
 
     if not query.first():
-        raise exception.NotFound("No LogBook found with id "
-                                 "%s." % (lb_id,))
+        raise exceptions.NotFound("No LogBook found with id "
+                                  "%s." % (lb_id,))
 
     return query.first()
 
@@ -61,8 +61,8 @@ def logbook_get_by_name(context, lb_name):
         filter_by(name=lb_name)
 
     if not query.all():
-        raise exception.NotFound("LogBook %s not found."
-                                 % (lb_name,))
+        raise exceptions.NotFound("LogBook %s not found."
+                                  % (lb_name,))
 
     return query.all()
 
@@ -118,8 +118,8 @@ def job_get(context, job_id, session=None):
         filter_by(job_id=job_id)
 
     if not query.first():
-        raise exception.NotFound("No Job with id %s found"
-                                 % (job_id,))
+        raise exceptions.NotFound("No Job with id %s found"
+                                  % (job_id,))
 
     return query.first()
 
@@ -194,7 +194,7 @@ def workflow_get(context, wf_name, session=None):
         filter_by(name=wf_name)
 
     if not query.first():
-        raise exception.NotFound("Workflow %s not found." % (wf_name,))
+        raise exceptions.NotFound("Workflow %s not found." % (wf_name,))
 
     return query.first()
 
@@ -204,7 +204,7 @@ def workflow_get_all(context):
     results = model_query(context, models.Workflow).all()
 
     if not results:
-        raise exception.NotFound("No Workflows were found.")
+        raise exceptions.NotFound("No Workflows were found.")
 
     return results
 
@@ -263,8 +263,8 @@ def task_get(context, task_id, session=None):
         filter_by(task_id=task_id)
 
     if not query.first():
-        raise exception.NotFound("No Task found with id "
-                                 "%s." % (task_id,))
+        raise exceptions.NotFound("No Task found with id "
+                                  "%s." % (task_id,))
 
     return query.first()
 
