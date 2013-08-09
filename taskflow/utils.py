@@ -3,6 +3,7 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
+#    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -446,19 +447,83 @@ class LazyPluggable(object):
         self.__backend = None
 
     def __get_backend(self):
-        if not self.__backend:
-            backend_name = 'sqlalchemy'
-            backend = self.__backends[backend_name]
-            if isinstance(backend, tuple):
-                name = backend[0]
-                fromlist = backend[1]
-            else:
-                name = backend
-                fromlist = backend
+        backend_name = 'memory'
 
-            self.__backend = __import__(name, None, None, fromlist)
+        if self.__pivot == 'db_backend':
+            backend_name = 'sqlalchemy'
+
+        backend = self.__backends[backend_name]
+        if isinstance(backend, tuple):
+            name = backend[0]
+            fromlist = backend[1]
+        else:
+            name = backend
+            fromlist = backend
+
+        self.__backend = __import__(name, None, None, fromlist)
         return self.__backend
+
+    def set_pivot(self, pivot):
+        self.__pivot = pivot
 
     def __getattr__(self, key):
         backend = self.__get_backend()
         return getattr(backend, key)
+
+
+class LockingDict(object):
+    """This class is designed to provide threadsafe element access in the form
+    of a dictionary.
+    """
+
+    def __init__(self):
+        """Constructor"""
+        self._container = {}
+        self._lock = ReaderWriterLock()
+
+    def __getitem__(self, key):
+        """Return one item referenced by key"""
+        with self._lock.acquire(read=True):
+            retVal = self._container[key]
+        return retVal
+
+    def __setitem__(self, key, value):
+        """Set one item referenced by key to value"""
+        with self._lock.acquire(read=False):
+            self._container[key] = value
+
+    def __delitem__(self, key):
+        """Delete the item referenced by key"""
+        with self._lock.acquire(read=False):
+            del self._container[key]
+
+    def __contains__(self, item):
+        """Check if the item is contained by this dict"""
+        with self._lock.acquire(read=True):
+            return item in self._container
+
+    def keys(self):
+        """Return a list of the keys in a threadsafe manner"""
+        retVal = []
+        with self._lock.acquire(read=True):
+            return list(self._container.iterkeys())
+
+        return retVal
+
+    def values(self):
+        """Return a list of the values in a threadsafe manner"""
+        retVal = []
+        with self._lock.acquire(read=True):
+            return list(self._container.itervalues())
+
+        return retVal
+
+    def items(self):
+        """Return a threadsafe list of the items"""
+        retVal = []
+
+        with self._lock.acquire(read=True):
+            for item in self._container.items():
+                retVal.append(item)
+
+        return retVal

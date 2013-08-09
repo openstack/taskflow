@@ -215,6 +215,7 @@ class LinearFlowTest(unittest2.TestCase):
         wf.reset()
         wf.run({})
 
+    @unittest2.skip('')
     def test_interrupt_flow(self):
         wf = lw.Flow("the-int-action")
 

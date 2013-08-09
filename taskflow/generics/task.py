@@ -2,7 +2,7 @@
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-#    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
+#    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -18,6 +18,8 @@
 
 import abc
 
+# from taskflow.backends import api as b_api
+from taskflow.openstack.common import uuidutils
 from taskflow import utils
 
 
@@ -27,8 +29,12 @@ class Task(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, name, task_id=None):
+        if task_id:
+            self._uuid = task_id
+        else:
+            self._uuid = uuidutils.generate_uuid()
+        self._name = name
         # An *immutable* input 'resource' name set this task depends
         # on existing before this task can be applied.
         self.requires = set()
@@ -43,6 +49,14 @@ class Task(object):
         # can be useful in resuming older versions of tasks. Standard
         # major, minor version semantics apply.
         self.version = (1, 0)
+
+    @property
+    def uuid(self):
+        return self._uuid
+
+    @property
+    def name(self):
+        return self._name
 
     def __str__(self):
         return "%s==%s" % (self.name, utils.join(self.version, with_what="."))

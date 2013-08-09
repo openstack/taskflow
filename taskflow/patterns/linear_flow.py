@@ -26,12 +26,12 @@ from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import utils
 
-from taskflow.patterns import base
+from taskflow.generics import flow
 
 LOG = logging.getLogger(__name__)
 
 
-class Flow(base.Flow):
+class Flow(flow.Flow):
     """"A linear chain of tasks that can be applied in order as one unit and
     rolled back as one unit using the reverse order that the tasks have
     been applied in.
