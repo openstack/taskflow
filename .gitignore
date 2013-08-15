@@ -39,6 +39,9 @@ nosetests.xml
 # DS_STORE
 .DS_Store
 
+# Sqlite databases
+*.sqlite
+
 # Modified Files
 *.swp
 

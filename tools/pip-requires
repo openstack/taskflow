@@ -1,6 +1,9 @@
 # Packages needed for using this library.
+anyjson>=0.2.4
 oslo.config>=1.1.0
+eventlet>=0.9.17
 iso8601
+netaddr>=0.7.6
 # Very nice graph library
 networkx>=1.5
 six
