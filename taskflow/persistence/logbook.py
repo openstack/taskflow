@@ -18,43 +18,42 @@
 
 from datetime import datetime
 
-from taskflow.backends import api as b_api
 from taskflow.openstack.common import uuidutils
+from taskflow.persistence.backends import api as b_api
 
 
-class FlowDetail(object):
+class LogBook(object):
     """Generic backend class that contains TaskDetail snapshots from when
     the FlowDetail is gotten. The data contained within this class is
     not backed by the backend storage in real time.
     The data in this class will only be persisted by the backend when
-    the save() method is called.
+    the save method is called.
     """
-    def __init__(self, name, wf, fd_id=None):
-        if fd_id:
-            self._uuid = fd_id
+    def __init__(self, name, lb_id=None):
+        if lb_id:
+            self._uuid = lb_id
         else:
             self._uuid = uuidutils.generate_uuid()
         self._name = name
-        self._flow = wf
         self.updated_at = datetime.now()
-        self._taskdetails = []
+        self._flowdetails = []
 
     def save(self):
-        b_api.flowdetail_save(self)
+        b_api.logbook_save(self)
 
     def delete(self):
-        b_api.flowdetail_delete(self)
+        b_api.logbook_delete(self)
 
-    def add_task_detail(self, td):
-        self._taskdetails.append(td)
+    def add_flow_detail(self, fd):
+        self._flowdetails.append(fd)
 
-    def remove_task_detail(self, td):
-        self._taskdetails = [d for d in self._taskdetails
-                             if d.uuid != td.uuid]
+    def remove_flow_detail(self, fd):
+        self._flowdetails = [d for d in self._flowdetails
+                             if d.uuid != fd.uuid]
 
-    def __contains__(self, td):
-        for self_td in self:
-            if self_td.taskdetail_id == td.taskdetail_id:
+    def __contains__(self, fd):
+        for self_fd in self:
+            if self_fd.flowdetail_id == fd.flowdetail_id:
                 return True
         return False
 
@@ -66,13 +65,9 @@ class FlowDetail(object):
     def name(self):
         return self._name
 
-    @property
-    def flow(self):
-        return self._flow
-
     def __iter__(self):
-        for td in self._taskdetails:
-            yield td
+        for fd in self._flowdetails:
+            yield fd
 
     def __len__(self):
-        return len(self._taskdetails)
+        return len(self._flowdetails)

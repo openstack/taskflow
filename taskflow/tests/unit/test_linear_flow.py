@@ -22,9 +22,9 @@ from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
 
-from taskflow.backends import memory
 from taskflow.patterns import linear_flow as lw
 from taskflow.patterns.resumption import logbook as lr
+from taskflow.persistence.backends import memory
 from taskflow.tests import utils
 
 

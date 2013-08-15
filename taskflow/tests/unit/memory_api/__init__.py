@@ -17,7 +17,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.backends import api as b_api
+from taskflow.persistence.backends import api as b_api
 
 
 def setUpModule():

@@ -18,13 +18,13 @@
 
 import contextlib
 
-from taskflow.generics import flow
-from taskflow.generics import flowdetail
-from taskflow.generics import job
-from taskflow.generics import jobboard
-from taskflow.generics import logbook
-from taskflow.generics import task
-from taskflow.generics import taskdetail
+from taskflow import flow
+from taskflow.jobs import job
+from taskflow.jobs import jobboard
+from taskflow.persistence import flowdetail
+from taskflow.persistence import logbook
+from taskflow.persistence import taskdetail
+from taskflow import task
 from taskflow import utils
 
 

@@ -38,8 +38,9 @@ CONF.register_opts(db_opts)
 CONF.register_opts(mem_opts)
 
 IMPL = utils.LazyPluggable('mem_backend',
-                           memory='taskflow.backends.memory.api',
-                           sqlalchemy='taskflow.backends.sqlalchemy.api')
+                           memory='taskflow.persistence.backends.memory.api',
+                           sqlalchemy='taskflow.persistence.backends'
+                                      '.sqlalchemy.api')
 
 
 def configure(pivot='mem_backend'):

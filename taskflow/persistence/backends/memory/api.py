@@ -21,11 +21,11 @@
 
 import logging
 
-from taskflow.backends.memory import memory
 from taskflow import exceptions as exception
-from taskflow.generics import flowdetail
-from taskflow.generics import logbook
-from taskflow.generics import taskdetail
+from taskflow.persistence.backends.memory import memory
+from taskflow.persistence import flowdetail
+from taskflow.persistence import logbook
+from taskflow.persistence import taskdetail
 from taskflow.utils import LockingDict
 
 LOG = logging.getLogger(__name__)

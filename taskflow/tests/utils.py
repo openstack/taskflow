@@ -16,7 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.generics import task
+from taskflow import task
 
 ARGS_KEY = '__args__'
 KWARGS_KEY = '__kwargs__'

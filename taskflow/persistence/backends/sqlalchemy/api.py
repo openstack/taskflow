@@ -22,12 +22,12 @@
 import logging
 
 from sqlalchemy import exc
-from taskflow.backends.sqlalchemy import models
-from taskflow.backends.sqlalchemy import session as sql_session
 from taskflow import exceptions as exception
-from taskflow.generics import flowdetail
-from taskflow.generics import logbook
-from taskflow.generics import taskdetail
+from taskflow.persistence.backends.sqlalchemy import models
+from taskflow.persistence.backends.sqlalchemy import session as sql_session
+from taskflow.persistence import flowdetail
+from taskflow.persistence import logbook
+from taskflow.persistence import taskdetail
 
 
 LOG = logging.getLogger(__name__)

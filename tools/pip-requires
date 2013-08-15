@@ -3,8 +3,7 @@ oslo.config>=1.1.0
 iso8601
 # Very nice graph library
 networkx>=1.5
-# Only needed if celery/distributed flows used.
-celery
+six
 # Only needed if database backend used.
 sqlalchemy>=0.7,<=0.7.99
 sqlalchemy-migrate>=0.7

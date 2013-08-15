@@ -29,10 +29,10 @@ from sqlalchemy.orm import object_mapper, relationship
 from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy import types as types
 
-from taskflow.backends.sqlalchemy import session as sql_session
 from taskflow import exceptions as exception
 from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
+from taskflow.persistence.backends.sqlalchemy import session as sql_session
 
 CONF = cfg.CONF
 BASE = declarative_base()

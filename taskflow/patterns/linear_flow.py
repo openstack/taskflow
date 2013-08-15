@@ -26,7 +26,7 @@ from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import utils
 
-from taskflow.generics import flow
+from taskflow import flow
 
 LOG = logging.getLogger(__name__)
 

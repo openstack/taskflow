@@ -19,10 +19,10 @@
 """Import required libraries"""
 import unittest2
 
-from taskflow.backends import api as b_api
 from taskflow import exceptions as exception
-from taskflow.generics import taskdetail
 from taskflow.openstack.common import uuidutils
+from taskflow.persistence.backends import api as b_api
+from taskflow.persistence import taskdetail
 from taskflow.tests import utils
 
 

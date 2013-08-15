@@ -29,7 +29,7 @@ from sqlalchemy.pool import NullPool
 
 from sqlalchemy import exc
 
-from taskflow.backends import api as b_api
+from taskflow.persistence.backends import api as b_api
 
 LOG = logging.getLogger(__name__)
 

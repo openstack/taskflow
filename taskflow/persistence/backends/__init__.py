@@ -2,7 +2,6 @@
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-#    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may

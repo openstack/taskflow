@@ -20,8 +20,8 @@
 import os
 
 from os import path
-from taskflow.backends import api as b_api
-from taskflow.backends.sqlalchemy import models
+from taskflow.persistence.backends import api as b_api
+from taskflow.persistence.backends.sqlalchemy import models
 
 
 def setUpModule():
