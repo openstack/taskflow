@@ -1,0 +1,9 @@
+Please see https://alembic.readthedocs.org/en/latest/index.html for general documentation
+
+To create alembic migrations you need to have alembic installed and available in PATH:
+# pip install alembic
+$ cd ./taskflow/persistence/backends/sqlalchemy/alembic
+$ alembic revision -m "migration_description"
+
+See Operation Reference https://alembic.readthedocs.org/en/latest/ops.html#ops
+for a short list of commands

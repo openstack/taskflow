@@ -19,435 +19,148 @@
 
 """Implementation of in-memory backend."""
 
+import copy
 import logging
+import sys
+import threading
 
-from taskflow import exceptions as exception
-from taskflow.persistence.backends.memory import memory
-from taskflow.persistence import flowdetail
-from taskflow.persistence import logbook
-from taskflow.persistence import taskdetail
-from taskflow.utils import LockingDict
+from taskflow import exceptions as exc
+from taskflow.openstack.common import timeutils
+from taskflow import utils
 
 LOG = logging.getLogger(__name__)
 
-logbooks = LockingDict()
-flowdetails = LockingDict()
-taskdetails = LockingDict()
+# TODO(harlowja): we likely need to figure out a better place to put these
+# rather than globals.
+LOG_BOOKS = {}
+FLOW_DETAILS = {}
+TASK_DETAILS = {}
+
+# For now this will be a pretty big lock, since it is not expected that saves
+# will be that frequent this seems ok for the time being. I imagine that this
+# can be done better but it will require much more careful usage of a dict as
+# a key/value map. Aka I wish python had a concurrent dict that was safe and
+# known good to use.
+SAVE_LOCK = threading.RLock()
+READ_LOCK = threading.RLock()
+READ_SAVE_ORDER = (READ_LOCK, SAVE_LOCK,)
 
 
-"""
-LOGBOOK
-"""
+def get_backend():
+    """The backend is this module itself."""
+    return sys.modules[__name__]
 
 
-def logbook_create(name, lb_id=None):
-    """Creates a new LogBook model with matching lb_id"""
-    # Create the LogBook model
-    lb = memory.MemoryLogBook(name, lb_id)
+def _taskdetails_merge(td_e, td_new):
+    """Merges an existing taskdetails with a new one."""
+    if td_e.state != td_new.state:
+        td_e.state = td_new.state
+    if td_e.results != td_new.results:
+        td_e.results = td_new.results
+    if td_e.exception != td_new.exception:
+        td_e.exception = td_new.exception
+    if td_e.stacktrace != td_new.stacktrace:
+        td_e.stacktrace = td_new.stacktrace
+    if td_e.meta != td_new.meta:
+        td_e.meta = td_new.meta
+    return td_e
 
-    # Store it in the LockingDict for LogBooks
-    logbooks[lb_id] = lb
+
+def taskdetails_save(td):
+    with utils.MultiLock(READ_SAVE_ORDER):
+        try:
+            return _taskdetails_merge(TASK_DETAILS[td.uuid], td)
+        except KeyError:
+            raise exc.NotFound("No task details found with id: %s" % td.uuid)
 
 
-def logbook_destroy(lb_id):
-    """Deletes the LogBook model with matching lb_id"""
-    # Try deleting the LogBook
+def flowdetails_save(fd):
     try:
-        del logbooks[lb_id]
-    # Raise a NotFound error if the LogBook doesn't exist
+        with utils.MultiLock(READ_SAVE_ORDER):
+            e_fd = FLOW_DETAILS[fd.uuid]
+            if e_fd.meta != fd.meta:
+                e_fd.meta = fd.meta
+            if e_fd.state != fd.state:
+                e_fd.state = fd.state
+            for td in fd:
+                if td not in e_fd:
+                    td = copy.deepcopy(td)
+                    TASK_DETAILS[td.uuid] = td
+                    e_fd.add(td)
+                else:
+                    # Previously added but not saved into the taskdetails
+                    # 'permanent' storage.
+                    if td.uuid not in TASK_DETAILS:
+                        TASK_DETAILS[td.uuid] = copy.deepcopy(td)
+                    taskdetails_save(td)
+            return e_fd
     except KeyError:
-        raise exception.NotFound("No Logbook found with id "
-                                 "%s." % (lb_id,))
+        raise exc.NotFound("No flow details found with id: %s" % fd.uuid)
 
 
-def logbook_save(lb):
-    """Saves a generic LogBook object to the db"""
-    # Create a LogBook model if one doesn't exist
-    if not _logbook_exists(lb.uuid):
-        logbook_create(lb.name, lb.uuid)
-
-    # Get a copy of the LogBook model in the LockingDict
-    ld_lb = logbook_get(lb.uuid)
-
-    for fd in lb:
-        # Save each FlowDetail the LogBook to save has
-        fd.save()
-
-        # Add the FlowDetail to the LogBook model if not already there
-        if fd not in ld_lb:
-            logbook_add_flow_detail(lb.uuid, fd.uuid)
-
-
-def logbook_delete(lb):
-    """Deletes a LogBook from db based on a generic type"""
-    # Try to get the LogBook
-    try:
-        ld_lb = logbooks[lb.uuid]
-    # Raise a NotFound exception if the LogBook cannot be found
-    except KeyError:
-        raise exception.NotFound("No Logbook found with id "
-                                 "%s." % (lb.uuid,))
-
-    # Raise an error if the LogBook still has FlowDetails
-    if len(ld_lb):
-        raise exception.Error("Logbook <%s> still has "
-                              "dependents." % (lb.uuid,))
-    # Destroy the LogBook model if it is safe
-    else:
-        logbook_destroy(lb.uuid)
+def clear_all():
+    with utils.MultiLock(READ_SAVE_ORDER):
+        count = 0
+        for lb_id in list(LOG_BOOKS.iterkeys()):
+            logbook_destroy(lb_id)
+            count += 1
+        return count
 
 
 def logbook_get(lb_id):
-    """Gets a LogBook with matching lb_id, if it exists"""
-    # Try to get the LogBook
     try:
-        ld_lb = logbooks[lb_id]
-    # Raise a NotFound exception if the LogBook is not there
+        with READ_LOCK:
+            return LOG_BOOKS[lb_id]
     except KeyError:
-        raise exception.NotFound("No Logbook found with id "
-                                 "%s." % (lb_id,))
-
-    # Acquire a read lock on the LogBook
-    with ld_lb.acquire_lock(read=True):
-        # Create a generic type LogBook to return
-        retVal = logbook.LogBook(ld_lb.name, ld_lb.uuid)
-
-        # Attach the appropriate generic FlowDetails to the generic LogBook
-        for fd in ld_lb:
-            retVal.add_flow_detail(flowdetail_get(fd.uuid))
-
-    return retVal
+        raise exc.NotFound("No logbook found with id: %s" % lb_id)
 
 
-def logbook_add_flow_detail(lb_id, fd_id):
-    """Adds a FlowDetail with id fd_id to a LogBook with id lb_id"""
-    # Try to get the LogBook
+def logbook_destroy(lb_id):
     try:
-        ld_lb = logbooks[lb_id]
-    # Raise a NotFound exception if the LogBook is not there
+        with utils.MultiLock(READ_SAVE_ORDER):
+            # Do the same cascading delete that the sql layer does.
+            lb = LOG_BOOKS.pop(lb_id)
+            for fd in lb:
+                FLOW_DETAILS.pop(fd.uuid, None)
+                for td in fd:
+                    TASK_DETAILS.pop(td.uuid, None)
     except KeyError:
-        raise exception.NotFound("No Logbook found with id "
-                                 "%s." % (lb_id,))
-
-    # Try to get the FlowDetail to add
-    try:
-        ld_fd = flowdetails[fd_id]
-    # Raise a NotFound exception if the FlowDetail is not there
-    except KeyError:
-        raise exception.NotFound("No FlowDetail found with id "
-                                 "%s." % (fd_id,))
-
-    # Acquire a write lock on the LogBook
-    with ld_lb.acquire_lock(read=False):
-        # Add the FlowDetail model to the LogBook model
-        ld_lb.add_flow_detail(ld_fd)
-
-
-def logbook_remove_flowdetail(lb_id, fd_id):
-    """Removes a FlowDetail with id fd_id from a LogBook with id lb_id"""
-    # Try to get the LogBook
-    try:
-        ld_lb = logbooks[lb_id]
-    # Raise a NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No Logbook found with id "
-                                 "%s." % (lb_id,))
-
-    # Try to get the FlowDetail to remove
-    try:
-        ld_fd = flowdetails[fd_id]
-    # Raise a NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No FlowDetail found with id "
-                                 "%s." % (fd_id,))
-
-    # Acquire a write lock on the LogBook model
-    with ld_lb.acquire_lock(read=False):
-        # Remove the FlowDetail from the LogBook model
-        ld_lb.remove_flow_detail(ld_fd)
-
-
-def logbook_get_ids_names():
-    """Returns all LogBook ids and names"""
-    lb_ids = []
-    lb_names = []
-
-    # Iterate through the LockingDict and append to the Lists
-    for (k, v) in logbooks.items():
-        lb_ids.append(k)
-        lb_names.append(v.name)
-
-    # Return a dict of the ids and names
-    return dict(zip(lb_ids, lb_names))
-
-
-def _logbook_exists(lb_id, session=None):
-    """Check if a LogBook with lb_id exists"""
-    return lb_id in logbooks.keys()
-
-
-"""
-FLOWDETAIL
-"""
-
-
-def flowdetail_create(name, wf, fd_id=None):
-    """Create a new FlowDetail model with matching fd_id"""
-    # Create a FlowDetail model to save
-    fd = memory.MemoryFlowDetail(name, wf, fd_id)
-
-    #Save the FlowDetail model to the LockingDict
-    flowdetails[fd_id] = fd
-
-
-def flowdetail_destroy(fd_id):
-    """Deletes the FlowDetail model with matching fd_id"""
-    # Try to delete the FlowDetail model
-    try:
-        del flowdetails[fd_id]
-    # Raise a NotFound exception if the FlowDetail is not there
-    except KeyError:
-        raise exception.NotFound("No FlowDetail found with id "
-                                 "%s." % (fd_id,))
-
-
-def flowdetail_save(fd):
-    """Saves a generic FlowDetail object to the db"""
-    # Create a FlowDetail model if one does not exist
-    if not _flowdetail_exists(fd.uuid):
-        flowdetail_create(fd.name, fd.flow, fd.uuid)
-
-    # Get a copy of the FlowDetail model in the LockingDict
-    ld_fd = flowdetail_get(fd.uuid)
-
-    for td in fd:
-        # Save the TaskDetails in the FlowDetail to save
-        td.save()
-
-        # Add the TaskDetail model to the FlowDetail model if it is not there
-        if td not in ld_fd:
-            flowdetail_add_task_detail(fd.uuid, td.uuid)
-
-
-def flowdetail_delete(fd):
-    """Deletes a FlowDetail from db based on a generic type"""
-    # Try to get the FlowDetails
-    try:
-        ld_fd = flowdetails[fd.uuid]
-    # Raise a NotFound exception if the FlowDetail is not there
-    except KeyError:
-        raise exception.NotFound("No FlowDetail found with id "
-                                 "%s." % (fd.uuid,))
-
-    # Raise an error if the FlowDetail still has TaskDetails
-    if len(ld_fd):
-        raise exception.Error("FlowDetail <%s> still has "
-                              "dependents." % (fd.uuid,))
-    # If it is safe, delete the FlowDetail model
-    else:
-        flowdetail_destroy(fd.uuid)
-
-
-def flowdetail_get(fd_id):
-    """Gets a FlowDetail with matching fd_id, if it exists"""
-    # Try to get the FlowDetail
-    try:
-        fd = flowdetails[fd_id]
-    # Raise a NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No FlowDetail found with id "
-                                 "%s." % (fd_id,))
-
-    # Acquire a read lock on the FlowDetail
-    with fd.acquire_lock(read=True):
-        # Get the Flow this FlowDetail represents
-        wf = fd.flow
-
-        # Create a FlowDetail to return
-        retVal = flowdetail.FlowDetail(fd.name, wf, fd.uuid)
-
-        # Change updated_at to reflect the current data
-        retVal.updated_at = fd.updated_at
-
-        # Add the generic TaskDetails to the FlowDetail to return
-        for td in fd:
-            retVal.add_task_detail(taskdetail_get(td.uuid))
-
-    return retVal
-
-
-def flowdetail_add_task_detail(fd_id, td_id):
-    """Adds a TaskDetail with id td_id to a Flowdetail with id fd_id"""
-    # Try to get the FlowDetail
-    try:
-        fd = flowdetails[fd_id]
-    # Raise a NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No FlowDetail found with id "
-                                 "%s." % (fd_id,))
-
-    # Try to get the TaskDetail to add
-    try:
-        td = taskdetails[td_id]
-    # Raise a NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No TaskDetail found with id "
-                                 "%s." % (td_id,))
-
-    # Acquire a write lock on the FlowDetail model
-    with fd.acquire_lock(read=False):
-        # Add the TaskDetail to the FlowDetail model
-        fd.add_task_detail(td)
-
-
-def flowdetail_remove_taskdetail(fd_id, td_id):
-    """Removes a TaskDetail with id td_id from a FlowDetail with id fd_id"""
-    # Try to get the FlowDetail
-    try:
-        fd = flowdetails[fd_id]
-    # Raise a NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No FlowDetail found with id "
-                                 "%s." % (fd_id,))
-
-    # Try to get the TaskDetail to remove
-    try:
-        td = taskdetails[td_id]
-    # Raise a NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No TaskDetail found with id "
-                                 "%s." % (td_id,))
-
-    # Acquire a write lock on the FlowDetail
-    with fd.acquire_lock(read=False):
-        # Remove the TaskDetail model from the FlowDetail model
-        fd.remove_task_detail(td)
-
-
-def flowdetail_get_ids_names():
-    """Returns all FlowDetail ids and names"""
-    fd_ids = []
-    fd_names = []
-
-    # Iterate through the LockingDict and append to lists
-    for (k, v) in flowdetails.items():
-        fd_ids.append(k)
-        fd_names.append(v.name)
-
-    # Return a dict of the uuids and names
-    return dict(zip(fd_ids, fd_names))
-
-
-def _flowdetail_exists(fd_id):
-    """Checks if a FlowDetail with fd_id exists"""
-    return fd_id in flowdetails.keys()
-
-
-"""
-TASKDETAIL
-"""
-
-
-def taskdetail_create(name, tsk, td_id=None):
-    """Create a new TaskDetail model with matching td_id"""
-    # Create a TaskDetail model to save
-    td = memory.MemoryTaskDetail(name, tsk, td_id)
-    # Save the TaskDetail model to the LockingDict
-    taskdetails[td_id] = td
-
-
-def taskdetail_destroy(td_id):
-    """Deletes the TaskDetail model with matching td_id"""
-    # Try to delete the TaskDetails
-    try:
-        del taskdetails[td_id]
-    # Raise a NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No TaskDetail found with id "
-                                 "%s." % (td_id,))
-
-
-def taskdetail_save(td):
-    """Saves a generic TaskDetail object to the db"""
-    # Create a TaskDetail model if it doesn't exist
-    if not _taskdetail_exists(td.uuid):
-        taskdetail_create(td.name, td.task, td.uuid)
-
-    # Prepare values for updating
-    values = dict(state=td.state,
-                  results=td.results,
-                  exception=td.exception,
-                  stacktrace=td.stacktrace,
-                  meta=td.meta)
-
-    # Update the values of the TaskDetail model
-    taskdetail_update(td.uuid, values)
-
-
-def taskdetail_delete(td):
-    """Deletes a TaskDetail from db based on a generic type"""
-    # Destroy the TaskDetail model
-    taskdetail_destroy(td.uuid)
-
-
-def taskdetail_get(td_id):
-    """Gets a TaskDetail with matching td_id, if it exists"""
-    # Try to get the TaskDetail
-    try:
-        ld_td = taskdetails[td_id]
-    # Raise NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No TaskDetail found with id "
-                                 "%s." % (td_id,))
-
-    # Acquire a read lock
-    with ld_td.acquire_lock(read=True):
-        # Get the Task this TaskDetail represents
-        tsk = ld_td.task
-
-        # Update TaskDetail to return
-        retVal = taskdetail.TaskDetail(ld_td.name, tsk, ld_td.uuid)
-        retVal.updated_at = ld_td.updated_at
-        retVal.state = ld_td.state
-        retVal.results = ld_td.results
-        retVal.exception = ld_td.exception
-        retVal.stacktrace = ld_td.stacktrace
-        retVal.meta = ld_td.meta
-
-    return retVal
-
-
-def taskdetail_update(td_id, values):
-    """Updates a TaskDetail with matching td_id"""
-    # Try to get the TaskDetail
-    try:
-        ld_td = taskdetails[td_id]
-    # Raise a NotFound exception if it is not there
-    except KeyError:
-        raise exception.NotFound("No TaskDetail found with id "
-                                 "%s." % (td_id,))
-
-    # Acquire a write lock for the TaskDetail
-    with ld_td.acquire_lock(read=False):
-        # Write the values to the TaskDetail
-        for k, v in values.iteritems():
-            setattr(ld_td, k, v)
-
-
-def taskdetail_get_ids_names():
-    """Returns all TaskDetail ids and names"""
-    td_ids = []
-    td_names = []
-
-    # Iterate through the LockingDict and append to Lists
-    for (k, v) in taskdetails.items():
-        td_ids.append(k)
-        td_names.append(v.name)
-
-    # Return a dict of uuids and names
-    return dict(zip(td_ids, td_names))
-
-
-def _taskdetail_exists(td_id, session=None):
-    """Check if a TaskDetail with td_id exists"""
-    return td_id in taskdetails.keys()
+        raise exc.NotFound("No logbook found with id: %s" % lb_id)
+
+
+def logbook_save(lb):
+    # Acquire all the locks that will be needed to perform this operation with
+    # out being affected by other threads doing it at the same time.
+    with utils.MultiLock(READ_SAVE_ORDER):
+        # Get a existing logbook model (or create it if it isn't there).
+        try:
+            backing_lb = LOG_BOOKS[lb.uuid]
+            if backing_lb.meta != lb.meta:
+                backing_lb.meta = lb.meta
+            # Add anything on to the existing loaded logbook that isn't already
+            # in the existing logbook.
+            for fd in lb:
+                if fd not in backing_lb:
+                    FLOW_DETAILS[fd.uuid] = copy.deepcopy(fd)
+                    backing_lb.add(flowdetails_save(fd))
+                else:
+                    # Previously added but not saved into the flowdetails
+                    # 'permanent' storage.
+                    if fd.uuid not in FLOW_DETAILS:
+                        FLOW_DETAILS[fd.uuid] = copy.deepcopy(fd)
+                    flowdetails_save(fd)
+            # TODO(harlowja): figure out a better way to set this property
+            # without actually letting others set it external.
+            backing_lb._updated_at = timeutils.utcnow()
+        except KeyError:
+            backing_lb = copy.deepcopy(lb)
+            # TODO(harlowja): figure out a better way to set this property
+            # without actually letting others set it external.
+            backing_lb._created_at = timeutils.utcnow()
+            # Record all the pieces as being saved.
+            LOG_BOOKS[lb.uuid] = backing_lb
+            for fd in backing_lb:
+                FLOW_DETAILS[fd.uuid] = fd
+                for td in fd:
+                    TASK_DETAILS[td.uuid] = td
+        return backing_lb

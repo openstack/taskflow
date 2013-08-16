@@ -27,6 +27,14 @@ class Duplicate(TaskFlowException):
     pass
 
 
+class StorageError(TaskFlowException):
+    """Raised when logbook can not be read/saved/deleted."""
+
+    def __init__(self, message, cause=None):
+        super(StorageError, self).__init__(message)
+        self.cause = cause
+
+
 class NotFound(TaskFlowException):
     """Raised when some entry in some object doesn't exist."""
     pass

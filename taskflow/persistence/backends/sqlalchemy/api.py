@@ -17,14 +17,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Implementation of SQLAlchemy backend."""
+"""Implementation of a SQLAlchemy storage backend."""
 
 import logging
+import sys
 
-from sqlalchemy import exc
-from taskflow import exceptions as exception
+from sqlalchemy import exceptions as sql_exc
+
+from taskflow import exceptions as exc
+from taskflow.openstack.common.db.sqlalchemy import session as db_session
 from taskflow.persistence.backends.sqlalchemy import models
-from taskflow.persistence.backends.sqlalchemy import session as sql_session
 from taskflow.persistence import flowdetail
 from taskflow.persistence import logbook
 from taskflow.persistence import taskdetail
@@ -33,452 +35,212 @@ from taskflow.persistence import taskdetail
 LOG = logging.getLogger(__name__)
 
 
-def model_query(*args, **kwargs):
-    session = kwargs.get('session') or sql_session.get_session()
-    query = session.query(*args)
-
-    return query
+def get_backend():
+    """The backend is this module itself."""
+    return sys.modules[__name__]
 
 
-"""
-LOGBOOK
-"""
+def _convert_fd_to_external(fd):
+    fd_c = flowdetail.FlowDetail(fd.name, uuid=fd.uuid, backend='sqlalchemy')
+    fd_c.meta = fd.meta
+    fd_c.state = fd.state
+    for td in fd.taskdetails:
+        fd_c.add(_convert_td_to_external(td))
+    return fd_c
 
 
-def logbook_create(name, lb_id=None):
-    """Creates a new LogBook model with matching lb_id"""
-    # Create a LogBook model to save
-    lb_ref = models.LogBook()
-    # Update attributes of the LogBook model
-    lb_ref.name = name
-    if lb_id:
-        lb_ref.logbook_id = lb_id
-    # Save the LogBook to the database
-    lb_ref.save()
+def _convert_fd_to_internal(fd, lb_uuid):
+    fd_m = models.FlowDetail(name=fd.name, uuid=fd.uuid, parent_uuid=lb_uuid,
+                             meta=fd.meta, state=fd.state)
+    fd_m.taskdetails = []
+    for td in fd:
+        fd_m.taskdetails.append(_convert_td_to_internal(td, fd_m.uuid))
+    return fd_m
+
+
+def _convert_td_to_internal(td, parent_uuid):
+    return models.TaskDetail(name=td.name, uuid=td.uuid,
+                             state=td.state, results=td.results,
+                             exception=td.exception, meta=td.meta,
+                             stacktrace=td.stacktrace,
+                             version=td.version, parent_uuid=parent_uuid)
+
+
+def _convert_td_to_external(td):
+    # Convert from sqlalchemy model -> external model, this allows us
+    # to change the internal sqlalchemy model easily by forcing a defined
+    # interface (that isn't the sqlalchemy model itself).
+    td_c = taskdetail.TaskDetail(td.name, uuid=td.uuid, backend='sqlalchemy')
+    td_c.state = td.state
+    td_c.results = td.results
+    td_c.exception = td.exception
+    td_c.stacktrace = td.stacktrace
+    td_c.meta = td.meta
+    td_c.version = td.version
+    return td_c
+
+
+def _convert_lb_to_external(lb_m):
+    """Don't expose the internal sqlalchemy ORM model to the external api."""
+    lb_c = logbook.LogBook(lb_m.name, lb_m.uuid,
+                           updated_at=lb_m.updated_at,
+                           created_at=lb_m.created_at,
+                           backend='sqlalchemy')
+    lb_c.meta = lb_m.meta
+    for fd_m in lb_m.flowdetails:
+        lb_c.add(_convert_fd_to_external(fd_m))
+    return lb_c
+
+
+def _convert_lb_to_internal(lb_c):
+    """Don't expose the external model to the sqlalchemy ORM model."""
+    lb_m = models.LogBook(uuid=lb_c.uuid, meta=lb_c.meta, name=lb_c.name)
+    lb_m.flowdetails = []
+    for fd_c in lb_c:
+        lb_m.flowdetails.append(_convert_fd_to_internal(fd_c, lb_c.uuid))
+    return lb_m
+
+
+def _logbook_get_model(lb_id, session):
+    entry = session.query(models.LogBook).filter_by(uuid=lb_id).first()
+    if entry is None:
+        raise exc.NotFound("No logbook found with id: %s" % lb_id)
+    return entry
+
+
+def _flow_details_get_model(f_id, session):
+    entry = session.query(models.FlowDetail).filter_by(uuid=f_id).first()
+    if entry is None:
+        raise exc.NotFound("No flow details found with id: %s" % f_id)
+    return entry
+
+
+def _task_details_get_model(t_id, session):
+    entry = session.query(models.TaskDetail).filter_by(uuid=t_id).first()
+    if entry is None:
+        raise exc.NotFound("No task details found with id: %s" % t_id)
+    return entry
+
+
+def _taskdetails_merge(td_m, td):
+    if td_m.state != td.state:
+        td_m.state = td.state
+    if td_m.results != td.results:
+        td_m.results = td.results
+    if td_m.exception != td.exception:
+        td_m.exception = td.exception
+    if td_m.stacktrace != td.stacktrace:
+        td_m.stacktrace = td.stacktrace
+    if td_m.meta != td.meta:
+        td_m.meta = td.meta
+    return td_m
+
+
+def clear_all():
+    session = db_session.get_session()
+    with session.begin():
+        # NOTE(harlowja): due to how we have our relationship setup and
+        # cascading deletes are enabled, this will cause all associated task
+        # details and flow details to automatically be purged.
+        try:
+            return session.query(models.LogBook).delete()
+        except sql_exc.DBAPIError as e:
+            raise exc.StorageError("Failed clearing all entries: %s" % e, e)
+
+
+def taskdetails_save(td):
+    # Must already exist since a tasks details has a strong connection to
+    # a flow details, and tasks details can not be saved on there own since
+    # they *must* have a connection to an existing flow details.
+    session = db_session.get_session()
+    with session.begin():
+        td_m = _task_details_get_model(td.uuid, session=session)
+        td_m = _taskdetails_merge(td_m, td)
+        td_m = session.merge(td_m)
+        return _convert_td_to_external(td_m)
+
+
+def flowdetails_save(fd):
+    # Must already exist since a flow details has a strong connection to
+    # a logbook, and flow details can not be saved on there own since they
+    # *must* have a connection to an existing logbook.
+    session = db_session.get_session()
+    with session.begin():
+        fd_m = _flow_details_get_model(fd.uuid, session=session)
+        if fd_m.meta != fd.meta:
+            fd_m.meta = fd.meta
+        if fd_m.state != fd.state:
+            fd_m.state = fd.state
+        for td in fd:
+            updated = False
+            for td_m in fd_m.taskdetails:
+                if td_m.uuid == td.uuid:
+                    updated = True
+                    td_m = _taskdetails_merge(td_m, td)
+                    break
+            if not updated:
+                fd_m.taskdetails.append(_convert_td_to_internal(td, fd_m.uuid))
+        fd_m = session.merge(fd_m)
+        return _convert_fd_to_external(fd_m)
 
 
 def logbook_destroy(lb_id):
-    """Deletes the LogBook model with matching lb_id"""
-    # Get the session to interact with the database
-    session = sql_session.get_session()
+    session = db_session.get_session()
     with session.begin():
-        # Get the LogBook model
-        lb = _logbook_get_model(lb_id, session=session)
-        # Delete the LogBook model from the database
-        lb.delete(session=session)
+        try:
+            lb = _logbook_get_model(lb_id, session=session)
+            session.delete(lb)
+        except sql_exc.DBAPIError as e:
+            raise exc.StorageError("Failed destroying"
+                                   " logbook %s: %s" % (lb_id, e), e)
 
 
 def logbook_save(lb):
-    """Saves a generic LogBook object to the db"""
-    # Try to create the LogBook model
-    try:
-        logbook_create(lb.name, lb.uuid)
-    # Do nothing if it is already there
-    except exc.IntegrityError:
-        pass
-
-    # Get a copy of the LogBook in the database
-    db_lb = logbook_get(lb.uuid)
-
-    for fd in lb:
-        # Save each FlowDetail
-        flowdetail_save(fd)
-
-        # Add the FlowDetail model to the LogBook model if it is not there
-        if fd not in db_lb:
-            logbook_add_flow_detail(lb.uuid, fd.uuid)
-
-
-def logbook_delete(lb):
-    """Deletes a LogBook from db based on a generic type"""
-    # Get a session to interact with the database
-    session = sql_session.get_session()
+    session = db_session.get_session()
     with session.begin():
-        # Get the LogBook model
-        lb_model = _logbook_get_model(lb.uuid, session=session)
-
-    # Raise an error if the LogBook model still has FlowDetails
-    if lb_model.flowdetails:
-        raise exception.Error("Logbook <%s> still has "
-                              "dependents." % (lb.uuid,))
-    # Destroy the model if it is safe
-    else:
-        logbook_destroy(lb.uuid)
+        try:
+            lb_m = _logbook_get_model(lb.uuid, session=session)
+            # NOTE(harlowja): Merge them (note that this doesn't provide 100%
+            # correct update semantics due to how databases have MVCC). This
+            # is where a stored procedure or a better backing store would
+            # handle this better (something more suited to this type of data).
+            for fd in lb:
+                existing_fd = False
+                for fd_m in lb_m.flowdetails:
+                    if fd_m.uuid == fd.uuid:
+                        existing_fd = True
+                        if fd_m.meta != fd.meta:
+                            fd_m.meta = fd.meta
+                        if fd_m.state != fd.state:
+                            fd_m.state = fd.state
+                        for td in fd:
+                            existing_td = False
+                            for td_m in fd_m.taskdetails:
+                                if td_m.uuid == td.uuid:
+                                    existing_td = True
+                                    td_m = _taskdetails_merge(td_m, td)
+                                    break
+                            if not existing_td:
+                                td_m = _convert_td_to_internal(td, fd_m.uuid)
+                                fd_m.taskdetails.append(td_m)
+                if not existing_fd:
+                    lb_m.flowdetails.append(_convert_fd_to_internal(fd,
+                                                                    lb_m.uuid))
+        except exc.NotFound:
+            lb_m = _convert_lb_to_internal(lb)
+        try:
+            lb_m = session.merge(lb_m)
+            return _convert_lb_to_external(lb_m)
+        except sql_exc.DBAPIError as e:
+            raise exc.StorageError("Failed saving"
+                                   " logbook %s: %s" % (lb.uuid, e), e)
 
 
 def logbook_get(lb_id):
-    """Gets a LogBook with matching lb_id, if it exists"""
-    # Get a session to interact with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the LogBook model from the database
-        lb = _logbook_get_model(lb_id, session=session)
-
-    # Create a generic LogBook to return
-    retVal = logbook.LogBook(lb.name, lb.logbook_id)
-
-    # Add the generic FlowDetails associated with this LogBook
-    for fd in lb.flowdetails:
-        retVal.add_flow_detail(flowdetail_get(fd.flowdetail_id))
-
-    return retVal
-
-
-def logbook_add_flow_detail(lb_id, fd_id):
-    """Adds a FlowDetail with id fd_id to a LogBook with id lb_id"""
-    # Get a session to interact with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the LogBook model from the database
-        lb = _logbook_get_model(lb_id, session=session)
-        # Get the FlowDetail model from the database
-        fd = _flowdetail_get_model(fd_id, session=session)
-        # Add the FlowDetail model to the LogBook model
-        lb.flowdetails.append(fd)
-
-
-def logbook_remove_flowdetail(lb_id, fd_id):
-    """Removes a FlowDetail with id fd_id from a LogBook with id lb_id"""
-    # Get a session to interact with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the LogBook model
-        lb = _logbook_get_model(lb_id, session=session)
-        # Remove the FlowDetail model from the LogBook model
-        lb.flowdetails = [fd for fd in lb.flowdetails
-                          if fd.flowdetail_id != fd_id]
-
-
-def logbook_get_ids_names():
-    """Returns all LogBook ids and names"""
-    # Get a List of all LogBook models
-    lbs = model_query(models.LogBook).all()
-
-    # Get all of the LogBook uuids
-    lb_ids = [lb.logbook_id for lb in lbs]
-    # Get all of the LogBook names
-    names = [lb.name for lb in lbs]
-
-    # Return a dict with uuids and names
-    return dict(zip(lb_ids, names))
-
-
-def _logbook_get_model(lb_id, session=None):
-    """Gets a LogBook model with matching lb_id, if it exists"""
-    # Get a query of LogBooks by uuid
-    query = model_query(models.LogBook, session=session).\
-        filter_by(logbook_id=lb_id)
-
-    # If there are no elements in the Query, raise a NotFound exception
-    if not query.first():
-        raise exception.NotFound("No LogBook found with id "
-                                 "%s." % (lb_id,))
-
-    # Return the first item in the Query
-    return query.first()
-
-
-def _logbook_exists(lb_id, session=None):
-    """Check if a LogBook with lb_id exists"""
-    # Gets a Query of all LogBook models
-    query = model_query(models.LogBook, session=session).\
-        filter_by(logbook_id=lb_id)
-
-    # Return False if the query is empty
-    if not query.first():
-        return False
-
-    # Return True if there is something in the query
-    return True
-
-
-"""
-FLOWDETAIL
-"""
-
-
-def flowdetail_create(name, wf, fd_id=None):
-    """Create a new FlowDetail model with matching fd_id"""
-    # Create a FlowDetail model to be saved
-    fd_ref = models.FlowDetail()
-    # Update attributes of FlowDetail model to be saved
-    fd_ref.name = name
-    if fd_id:
-        fd_ref.flowdetail_id = fd_id
-    # Save FlowDetail model to database
-    fd_ref.save()
-
-
-def flowdetail_destroy(fd_id):
-    """Deletes the FlowDetail model with matching fd_id"""
-    # Get a session for interaction with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the FlowDetail model
-        fd = _flowdetail_get_model(fd_id, session=session)
-        # Delete the FlowDetail from the database
-        fd.delete(session=session)
-
-
-def flowdetail_save(fd):
-    """Saves a generic FlowDetail object to the db"""
-    # Try to create the FlowDetail model
+    session = db_session.get_session()
     try:
-        flowdetail_create(fd.name, fd.flow, fd.uuid)
-    # Do nothing if it is already there
-    except exc.IntegrityError:
-        pass
-
-    # Get a copy of the FlowDetail in the database
-    db_fd = flowdetail_get(fd.uuid)
-
-    for td in fd:
-        # Save each TaskDetail
-        taskdetail_save(td)
-
-        # Add the TaskDetail model to the FlowDetail model if it is not there
-        if td not in db_fd:
-            flowdetail_add_task_detail(fd.uuid, td.uuid)
-
-
-def flowdetail_delete(fd):
-    """Deletes a FlowDetail from db based on a generic type"""
-    # Get a session to interact with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the FlowDetail model
-        fd_model = _flowdetail_get_model(fd.uuid, session=session)
-
-    # Raise an error if the FlowDetail model still has TaskDetails
-    if fd_model.taskdetails:
-        raise exception.Error("FlowDetail <%s> still has "
-                              "dependents." % (fd.uuid,))
-    # If it is safe, destroy the FlowDetail model from the database
-    else:
-        flowdetail_destroy(fd.uuid)
-
-
-def flowdetail_get(fd_id):
-    """Gets a FlowDetail with matching fd_id, if it exists"""
-    # Get a session for interaction with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the FlowDetail model from the database
-        fd = _flowdetail_get_model(fd_id, session=session)
-
-    # Create a generic FlowDetail to return
-    retVal = flowdetail.FlowDetail(fd.name, None, fd.flowdetail_id)
-
-    # Update attributes to match
-    retVal.updated_at = fd.updated_at
-
-    # Add the TaskDetails belonging to this FlowDetail to itself
-    for td in fd.taskdetails:
-        retVal.add_task_detail(taskdetail_get(td.taskdetail_id))
-
-    return retVal
-
-
-def flowdetail_add_task_detail(fd_id, td_id):
-    """Adds a TaskDetail with id td_id to a Flowdetail with id fd_id"""
-    # Get a session for interaction with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the FlowDetail model
-        fd = _flowdetail_get_model(fd_id, session=session)
-        # Get the TaskDetail model
-        td = _taskdetail_get_model(td_id, session=session)
-        # Add the TaskDetail model to the FlowDetail model
-        fd.taskdetails.append(td)
-
-
-def flowdetail_remove_taskdetail(fd_id, td_id):
-    """Removes a TaskDetail with id td_id from a FlowDetail with id fd_id"""
-    # Get a session for interaction with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the FlowDetail model
-        fd = _flowdetail_get_model(fd_id, session=session)
-        # Remove the TaskDetail from the FlowDetail model
-        fd.taskdetails = [td for td in fd.taskdetails
-                          if td.taskdetail_id != td_id]
-
-
-def flowdetail_get_ids_names():
-    """Returns all FlowDetail ids and names"""
-    # Get all FlowDetail models
-    fds = model_query(models.FlowDetail).all()
-
-    # Get the uuids of all FlowDetail models
-    fd_ids = [fd.flowdetail_id for fd in fds]
-    # Get the names of all FlowDetail models
-    names = [fd.name for fd in fds]
-
-    # Return a dict of uuids and names
-    return dict(zip(fd_ids, names))
-
-
-def _flowdetail_get_model(fd_id, session=None):
-    """Gets a FlowDetail model with matching fd_id, if it exists"""
-    # Get a query of FlowDetails by uuid
-    query = model_query(models.FlowDetail, session=session).\
-        filter_by(flowdetail_id=fd_id)
-
-    # Raise a NotFound exception if the query is empty
-    if not query.first():
-        raise exception.NotFound("No FlowDetail found with id "
-                                 "%s." % (fd_id,))
-
-    # Return the first entry in the query
-    return query.first()
-
-
-def _flowdetail_exists(fd_id, session=None):
-    """Checks if a FlowDetail with fd_id exists"""
-    # Get a query of FlowDetails by uuid
-    query = model_query(models.FlowDetail, session=session).\
-        filter_by(flowdetail_id=fd_id)
-
-    # Return False if the query is empty
-    if not query.first():
-        return False
-
-    # Return True if there is something in the query
-    return True
-
-
-"""
-TASKDETAIL
-"""
-
-
-def taskdetail_create(name, tsk, td_id=None):
-    """Create a new TaskDetail model with matching td_id"""
-    # Create a TaskDetail model to add
-    td_ref = models.TaskDetail()
-    # Update the attributes of the TaskDetail model to add
-    td_ref.name = name
-    if td_id:
-        td_ref.taskdetail_id = td_id
-
-    td_ref.task_id = tsk.uuid
-    td_ref.task_name = tsk.name
-    td_ref.task_provides = list(tsk.provides)
-    td_ref.task_requires = list(tsk.requires)
-    td_ref.task_optional = list(tsk.optional)
-    # Save the TaskDetail model to the database
-    td_ref.save()
-
-
-def taskdetail_destroy(td_id):
-    """Deletes the TaskDetail model with matching td_id"""
-    # Get a session for interaction with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the TaskDetail model to delete
-        td = _taskdetail_get_model(td_id, session=session)
-        # Delete the TaskDetail model from the database
-        td.delete(session=session)
-
-
-def taskdetail_save(td):
-    """Saves a generic TaskDetail object to the db"""
-    # Create a TaskDetail model if it does not already exist
-    if not _taskdetail_exists(td.uuid):
-        taskdetail_create(td.name, td.task, td.uuid)
-
-    # Prepare values to be saved to the TaskDetail model
-    values = dict(state=td.state,
-                  results=td.results,
-                  exception=td.exception,
-                  stacktrace=td.stacktrace,
-                  meta=td.meta)
-
-    # Update the TaskDetail model with the values of the generic TaskDetail
-    taskdetail_update(td.uuid, values)
-
-
-def taskdetail_delete(td):
-    """Deletes a TaskDetail from db based on a generic type"""
-    # Destroy the TaskDetail if it exists
-    taskdetail_destroy(td.uuid)
-
-
-def taskdetail_get(td_id):
-    """Gets a TaskDetail with matching td_id, if it exists"""
-    # Get a session for interaction with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the TaskDetail model
-        td = _taskdetail_get_model(td_id, session=session)
-
-    # Create a generic type Task to return as part of the TaskDetail
-    tsk = None
-
-    # Create a generic type TaskDetail to return
-    retVal = taskdetail.TaskDetail(td.name, tsk, td.taskdetail_id)
-    # Update the TaskDetail to reflect the data in the database
-    retVal.updated_at = td.updated_at
-    retVal.state = td.state
-    retVal.results = td.results
-    retVal.exception = td.exception
-    retVal.stacktrace = td.stacktrace
-    retVal.meta = td.meta
-
-    return retVal
-
-
-def taskdetail_update(td_id, values):
-    """Updates a TaskDetail with matching td_id"""
-    # Get a session for interaction with the database
-    session = sql_session.get_session()
-    with session.begin():
-        # Get the TaskDetail model
-        td = _taskdetail_get_model(td_id, session=session)
-
-        # Update the TaskDetail model with values
-        td.update(values)
-        # Write the TaskDetail model changes to the database
-        td.save(session=session)
-
-
-def taskdetail_get_ids_names():
-    """Returns all TaskDetail ids and names"""
-    # Get all TaskDetail models
-    tds = model_query(models.TaskDetail).all()
-
-    # Get the list of TaskDetail uuids
-    td_ids = [td.taskdetail_id for td in tds]
-    # Get the list of TaskDetail names
-    names = [td.name for td in tds]
-
-    #Return a dict of uuids and names
-    return dict(zip(td_ids, names))
-
-
-def _taskdetail_get_model(td_id, session=None):
-    """Gets a TaskDetail model with matching td_id, if it exists"""
-    # Get a query of TaskDetails by uuid
-    query = model_query(models.TaskDetail, session=session).\
-        filter_by(taskdetail_id=td_id)
-
-    # Raise a NotFound exception if the query is empty
-    if not query.first():
-        raise exception.NotFound("No TaskDetail found with id "
-                                 "%s." % (td_id,))
-
-    return query.first()
-
-
-def _taskdetail_exists(td_id, session=None):
-    """Check if a TaskDetail with td_id exists"""
-    # Get a query of TaskDetails by uuid
-    query = model_query(models.TaskDetail, session=session).\
-        filter_by(taskdetail_id=td_id)
-
-    # Return False if the query is empty
-    if not query.first():
-        return False
-
-    # Return True if there is something in the query
-    return True
+        lb_m = _logbook_get_model(lb_id, session=session)
+        return _convert_lb_to_external(lb_m)
+    except sql_exc.DBAPIError as e:
+        raise exc.StorageError("Failed getting"
+                               " logbook %s: %s" % (lb_id, e), e)

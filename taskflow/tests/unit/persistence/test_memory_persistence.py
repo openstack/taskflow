@@ -2,7 +2,6 @@
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-#    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -18,11 +17,15 @@
 #    under the License.
 
 from taskflow.persistence.backends import api as b_api
+from taskflow.tests.unit.persistence import base
+
+import unittest2
 
 
-def setUpModule():
-    b_api.configure('mem_backend')
+class MemoryPersistenceTest(unittest2.TestCase, base.PersistenceTestMixin):
+    def _get_backend(self):
+        return 'memory'
 
-
-def tearDownModule():
-    pass
+    def tearDown(self):
+        b_api.fetch(self._get_backend()).clear_all()
+        super(MemoryPersistenceTest, self).tearDown()

@@ -399,6 +399,45 @@ class ReaderWriterLock(object):
             self.readers_ok.release()
 
 
+class MultiLock(object):
+    """A class which can attempt to obtain many locks at once and release
+    said locks when exiting.
+
+    Useful as a context manager around many locks (instead of having to nest
+    said individual context managers).
+    """
+
+    def __init__(self, locks):
+        self._locks = locks
+        self._locked = list([False] * len(locks))
+
+    def __enter__(self):
+
+        def is_locked(lock):
+            # NOTE(harlowja): the threading2 lock doesn't seem to have this
+            # attribute, so thats why we are checking it existing first.
+            if hasattr(lock, 'locked'):
+                return lock.locked()
+            return False
+
+        for i in xrange(0, len(self._locked)):
+            if self._locked[i] or is_locked(self._locks[i]):
+                raise threading.ThreadError("Lock %s not previously released"
+                                            % (i + 1))
+            self._locked[i] = False
+        for (i, lock) in enumerate(self._locks):
+            self._locked[i] = lock.acquire()
+
+    def __exit__(self, type, value, traceback):
+        for (i, locked) in enumerate(self._locked):
+            try:
+                if locked:
+                    self._locks[i].release()
+                    self._locked[i] = False
+            except threading.ThreadError:
+                LOG.exception("Unable to release lock %s", i + 1)
+
+
 class LazyPluggable(object):
     """A pluggable backend loaded lazily based on some value."""
 
@@ -430,61 +469,3 @@ class LazyPluggable(object):
     def __getattr__(self, key):
         backend = self.__get_backend()
         return getattr(backend, key)
-
-
-class LockingDict(object):
-    """This class is designed to provide threadsafe element access in the form
-    of a dictionary.
-    """
-
-    def __init__(self):
-        """Constructor"""
-        self._container = {}
-        self._lock = ReaderWriterLock()
-
-    def __getitem__(self, key):
-        """Return one item referenced by key"""
-        with self._lock.acquire(read=True):
-            retVal = self._container[key]
-        return retVal
-
-    def __setitem__(self, key, value):
-        """Set one item referenced by key to value"""
-        with self._lock.acquire(read=False):
-            self._container[key] = value
-
-    def __delitem__(self, key):
-        """Delete the item referenced by key"""
-        with self._lock.acquire(read=False):
-            del self._container[key]
-
-    def __contains__(self, item):
-        """Check if the item is contained by this dict"""
-        with self._lock.acquire(read=True):
-            return item in self._container
-
-    def keys(self):
-        """Return a list of the keys in a threadsafe manner"""
-        retVal = []
-        with self._lock.acquire(read=True):
-            return list(self._container.iterkeys())
-
-        return retVal
-
-    def values(self):
-        """Return a list of the values in a threadsafe manner"""
-        retVal = []
-        with self._lock.acquire(read=True):
-            return list(self._container.itervalues())
-
-        return retVal
-
-    def items(self):
-        """Return a threadsafe list of the items"""
-        retVal = []
-
-        with self._lock.acquire(read=True):
-            for item in self._container.items():
-                retVal.append(item)
-
-        return retVal
