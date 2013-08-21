@@ -132,12 +132,15 @@ class GraphFlowTest(unittest2.TestCase):
         flo = gw.Flow("test-flow")
         run_order = []
 
+        @decorators.task
         def run1(context):  # pylint: disable=W0613,C0103
             run_order.append('ran1')
 
+        @decorators.task
         def run2(context):  # pylint: disable=W0613,C0103
             run_order.append('ran2')
 
+        @decorators.task
         def run3(context):  # pylint: disable=W0613,C0103
             run_order.append('ran3')
 

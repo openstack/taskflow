@@ -34,21 +34,16 @@ class LinearFlowTest(unittest2.TestCase):
         def do_revert(context, *args, **kwargs):
             context[token] = 'reverted'
 
-        @decorators.task(revert_with=do_revert)
-        def do_apply(context, *args, **kwargs):
-            context[token] = 'passed'
-
-        @decorators.task
-        def blow_up(context, *args, **kwargs):
-            raise Exception("I blew up")
-
         if blowup:
-            # Alter the task name so that its unique by including the token.
-            blow_up.name += str(token)
+            @decorators.task(name='blowup %s' % token)
+            def blow_up(context, *args, **kwargs):
+                raise Exception("I blew up")
             return blow_up
         else:
-            # Alter the task name so that its unique by including the token.
-            do_apply.name += str(token)
+            @decorators.task(revert_with=do_revert,
+                             name='do_apply %s' % token)
+            def do_apply(context, *args, **kwargs):
+                context[token] = 'passed'
             return do_apply
 
     def make_interrupt_task(self, wf):

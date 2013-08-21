@@ -25,64 +25,21 @@ import re
 import sys
 import threading
 import time
-import types
 
 from taskflow.openstack.common import uuidutils
 
-from taskflow import decorators
-
+TASK_FACTORY_ATTRIBUTE = '_TaskFlow_task_factory'
 LOG = logging.getLogger(__name__)
-
-
-def get_attr(task, field, default=None):
-    if decorators.is_decorated(task):
-        # If its a decorated functor then the attributes will be either
-        # in the underlying function of the instancemethod or the function
-        # itself.
-        task = decorators.extract(task)
-    return getattr(task, field, default)
-
-
-def join(itr, with_what=","):
-    pieces = [str(i) for i in itr]
-    return with_what.join(pieces)
-
-
-def get_many_attr(obj, *attrs):
-    many = []
-    for a in attrs:
-        many.append(get_attr(obj, a, None))
-    return many
 
 
 def get_task_version(task):
     """Gets a tasks *string* version, whether it is a task object/function."""
-    task_version = get_attr(task, 'version')
+    task_version = getattr(task, 'version')
     if isinstance(task_version, (list, tuple)):
-        task_version = join(task_version, with_what=".")
+        task_version = '.'.join(str(item) for item in task_version)
     if task_version is not None and not isinstance(task_version, basestring):
         task_version = str(task_version)
     return task_version
-
-
-def get_task_name(task):
-    """Gets a tasks *string* name, whether it is a task object/function."""
-    task_name = ""
-    if isinstance(task, (types.MethodType, types.FunctionType)):
-        # If its a function look for the attributes that should have been
-        # set using the task() decorator provided in the decorators file. If
-        # those have not been set, then we should at least have enough basic
-        # information (not a version) to form a useful task name.
-        task_name = get_attr(task, 'name')
-        if not task_name:
-            name_pieces = [a for a in get_many_attr(task,
-                                                    '__module__',
-                                                    '__name__')
-                           if a is not None]
-            task_name = join(name_pieces, ".")
-    else:
-        task_name = str(task)
-    return task_name
 
 
 def is_version_compatible(version_1, version_2):
@@ -198,7 +155,11 @@ class Runner(object):
 
     def __init__(self, task, uuid=None):
         assert isinstance(task, collections.Callable)
-        self.task = task
+        task_factory = getattr(task, TASK_FACTORY_ATTRIBUTE, None)
+        if task_factory:
+            self.task = task_factory(task)
+        else:
+            self.task = task
         self.providers = {}
         self.runs_before = []
         self.result = None
@@ -213,15 +174,15 @@ class Runner(object):
 
     @property
     def requires(self):
-        return set(get_attr(self.task, 'requires', []))
+        return self.task.requires
 
     @property
     def provides(self):
-        return set(get_attr(self.task, 'provides', []))
+        return self.task.provides
 
     @property
     def optional(self):
-        return set(get_attr(self.task, 'optional', []))
+        return self.task.optional
 
     @property
     def version(self):
@@ -229,7 +190,7 @@ class Runner(object):
 
     @property
     def name(self):
-        return get_task_name(self.task)
+        return self.task.name
 
     def reset(self):
         self.result = None

@@ -18,7 +18,6 @@
 
 import abc
 
-# from taskflow.backends import api as b_api
 from taskflow.openstack.common import uuidutils
 from taskflow import utils
 
@@ -59,7 +58,7 @@ class Task(object):
         return self._name
 
     def __str__(self):
-        return "%s==%s" % (self.name, utils.join(self.version, with_what="."))
+        return "%s==%s" % (self.name, utils.get_task_version(self))
 
     @abc.abstractmethod
     def __call__(self, context, *args, **kwargs):
@@ -70,11 +69,9 @@ class Task(object):
            that is returned needs to be serializable so that it can be passed
            back into this task if reverting is triggered.
         """
-        raise NotImplementedError()
 
     def revert(self, context, result, cause):
         """Revert this task using the given context, result that the apply
            provided as well as any information which may have caused
            said reversion.
         """
-        pass
