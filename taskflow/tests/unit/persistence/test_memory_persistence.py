@@ -17,12 +17,11 @@
 #    under the License.
 
 from taskflow.persistence.backends import api as b_api
+from taskflow import test
 from taskflow.tests.unit.persistence import base
 
-import unittest2
 
-
-class MemoryPersistenceTest(unittest2.TestCase, base.PersistenceTestMixin):
+class MemoryPersistenceTest(test.TestCase, base.PersistenceTestMixin):
     def _get_backend(self):
         return 'memory'
 

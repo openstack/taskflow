@@ -16,13 +16,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import unittest2
-
 from taskflow import decorators
 from taskflow.patterns import linear_flow
+from taskflow import test
 
 
-class WrapableObjectsTest(unittest2.TestCase):
+class WrapableObjectsTest(test.TestCase):
 
     def test_simple_function(self):
         values = []

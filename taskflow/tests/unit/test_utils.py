@@ -17,12 +17,12 @@
 #    under the License.
 
 import functools
-import unittest
 
+from taskflow import test
 from taskflow import utils
 
 
-class UtilTest(unittest.TestCase):
+class UtilTest(test.TestCase):
     def test_rollback_accum(self):
         context = {}
 

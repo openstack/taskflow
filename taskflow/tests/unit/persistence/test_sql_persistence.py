@@ -22,12 +22,11 @@ import tempfile
 from taskflow.openstack.common.db.sqlalchemy import session
 from taskflow.persistence.backends import api as b_api
 from taskflow.persistence.backends.sqlalchemy import migration
+from taskflow import test
 from taskflow.tests.unit.persistence import base
 
-import unittest2
 
-
-class SqlPersistenceTest(unittest2.TestCase, base.PersistenceTestMixin):
+class SqlPersistenceTest(test.TestCase, base.PersistenceTestMixin):
     """Inherits from the base test and sets up a sqlite temporary db."""
     def _get_backend(self):
         return 'sqlalchemy'

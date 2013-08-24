@@ -18,13 +18,13 @@
 
 import threading
 import time
-import unittest2
 
 from taskflow import decorators
 from taskflow import exceptions as excp
 from taskflow import states
 
 from taskflow.patterns import threaded_flow as tf
+from taskflow import test
 from taskflow.tests import utils
 
 
@@ -35,7 +35,7 @@ def _find_idx(what, search_where):
     return -1
 
 
-class ThreadedFlowTest(unittest2.TestCase):
+class ThreadedFlowTest(test.TestCase):
     def _make_tracking_flow(self, name):
         notify_lock = threading.RLock()
         flo = tf.Flow(name)

@@ -16,10 +16,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import unittest2
-
 from taskflow import functor_task
 from taskflow.patterns import linear_flow
+from taskflow import test
 
 
 def add(a, b):
@@ -42,7 +41,7 @@ class BunchOfFunctions(object):
         raise RuntimeError('Woot!')
 
 
-class FunctorTaskTest(unittest2.TestCase):
+class FunctorTaskTest(test.TestCase):
 
     def test_simple(self):
         task = functor_task.FunctorTask(add)

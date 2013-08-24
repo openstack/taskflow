@@ -16,19 +16,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import unittest2
-
 from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
+from taskflow import test
 
 from taskflow.patterns import linear_flow as lw
-from taskflow.patterns.resumption import logbook as lr
-from taskflow.persistence.backends import memory
 from taskflow.tests import utils
 
 
-class LinearFlowTest(unittest2.TestCase):
+class LinearFlowTest(test.TestCase):
     def make_reverting_task(self, token, blowup=False):
 
         def do_revert(context, *args, **kwargs):
@@ -210,35 +207,34 @@ class LinearFlowTest(unittest2.TestCase):
         wf.reset()
         wf.run({})
 
-    @unittest2.skip('')
-    def test_interrupt_flow(self):
-        wf = lw.Flow("the-int-action")
-
-        # If we interrupt we need to know how to resume so attach the needed
-        # parts to do that...
-        tracker = lr.Resumption(memory.MemoryLogBook())
-        tracker.record_for(wf)
-        wf.resumer = tracker
-
-        wf.add(self.make_reverting_task(1))
-        wf.add(self.make_interrupt_task(wf))
-        wf.add(self.make_reverting_task(2))
-
-        self.assertEquals(states.PENDING, wf.state)
-        context = {}
-        wf.run(context)
-
-        # Interrupt should have been triggered after task 1
-        self.assertEquals(1, len(context))
-        self.assertEquals(states.INTERRUPTED, wf.state)
-
-        # And now reset and resume.
-        wf.reset()
-        tracker.record_for(wf)
-        wf.resumer = tracker
-        self.assertEquals(states.PENDING, wf.state)
-        wf.run(context)
-        self.assertEquals(2, len(context))
+#   def test_interrupt_flow(self):
+#       wf = lw.Flow("the-int-action")
+#
+#       # If we interrupt we need to know how to resume so attach the needed
+#       # parts to do that...
+#       tracker = lr.Resumption(memory.MemoryLogBook())
+#       tracker.record_for(wf)
+#       wf.resumer = tracker
+#
+#       wf.add(self.make_reverting_task(1))
+#       wf.add(self.make_interrupt_task(wf))
+#       wf.add(self.make_reverting_task(2))
+#
+#       self.assertEquals(states.PENDING, wf.state)
+#       context = {}
+#       wf.run(context)
+#
+#       # Interrupt should have been triggered after task 1
+#       self.assertEquals(1, len(context))
+#       self.assertEquals(states.INTERRUPTED, wf.state)
+#
+#       # And now reset and resume.
+#       wf.reset()
+#       tracker.record_for(wf)
+#       wf.resumer = tracker
+#       self.assertEquals(states.PENDING, wf.state)
+#       wf.run(context)
+#       self.assertEquals(2, len(context))
 
     def test_parent_reverting_flow(self):
         happy_wf = lw.Flow("the-happy-action")
