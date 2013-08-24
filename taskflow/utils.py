@@ -170,7 +170,7 @@ class Runner(object):
 
     @property
     def uuid(self):
-        return "r-%s" % (self._id)
+        return str(self._id)
 
     @property
     def requires(self):
