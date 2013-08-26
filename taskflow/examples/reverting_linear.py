@@ -30,6 +30,7 @@ def call_joe(context):
     return context['joe_number']
 
 
+@decorators.task
 def call_suzzie(context):
     raise IOError("Suzzie not home right now.")
 
@@ -47,4 +48,4 @@ context = {
 try:
     flow.run(context)
 except Exception as e:
-    print("Flow failed: %s" % (e))
+    print "Flow failed: %r" % e

@@ -8,14 +8,17 @@ my_dir_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
                                 os.pardir))
 
+from taskflow import decorators
 from taskflow.patterns import linear_flow as lf
 
 
+@decorators.task
 def call_jim(context):
     print("Calling jim.")
     print("Context = %s" % (context))
 
 
+@decorators.task
 def call_joe(context):
     print("Calling joe.")
     print("Context = %s" % (context))
