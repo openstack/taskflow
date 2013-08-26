@@ -17,7 +17,9 @@
 #    under the License.
 
 import collections
+import functools
 import logging
+import threading
 
 from taskflow.openstack.common import excutils
 
@@ -54,6 +56,7 @@ class Flow(flow.Flow):
         # All runners to run are collected here.
         self._runners = []
         self._connected = False
+        self._lock = threading.RLock()
         # The resumption strategy to use.
         self.resumer = None
 
@@ -61,7 +64,7 @@ class Flow(flow.Flow):
     def add(self, task):
         """Adds a given task to this flow."""
         assert isinstance(task, collections.Callable)
-        r = utils.Runner(task)
+        r = utils.AOTRunner(task)
         r.runs_before = list(reversed(self._runners))
         self._runners.append(r)
         self._reset_internals()
@@ -136,20 +139,27 @@ class Flow(flow.Flow):
 
     @decorators.locked
     def run(self, context, *args, **kwargs):
-        super(Flow, self).run(context, *args, **kwargs)
+
+        def abort_if(current_state, ok_states):
+            if current_state not in ok_states:
+                return False
+            return True
 
         def resume_it():
             if self._leftoff_at is not None:
                 return ([], self._leftoff_at)
             if self.resumer:
-                (finished, leftover) = self.resumer.resume(self,
-                                                           self._ordering())
+                (finished, leftover) = self.resumer(self, self._ordering())
             else:
                 finished = []
                 leftover = self._ordering()
             return (finished, leftover)
 
-        self._change_state(context, states.STARTED)
+        start_check_functor = functools.partial(abort_if,
+                                                ok_states=self.RUNNABLE_STATES)
+        if not self._change_state(context, states.STARTED,
+                                  check_func=start_check_functor):
+            return
         try:
             those_finished, leftover = resume_it()
         except Exception:
@@ -211,8 +221,13 @@ class Flow(flow.Flow):
                     })
                     self.rollback(context, cause)
 
+        run_check_functor = functools.partial(abort_if,
+                                              ok_states=[states.STARTED,
+                                                         states.RESUMING])
         if len(those_finished):
-            self._change_state(context, states.RESUMING)
+            if not self._change_state(context, states.RESUMING,
+                                      check_func=run_check_functor):
+                return
             for (r, details) in those_finished:
                 # Fake running the task so that we trigger the same
                 # notifications and state changes (and rollback that
@@ -222,8 +237,8 @@ class Flow(flow.Flow):
                 run_it(r, failed=failed, result=result, simulate_run=True)
 
         self._leftoff_at = leftover
-        self._change_state(context, states.RUNNING)
-        if self.state == states.INTERRUPTED:
+        if not self._change_state(context, states.RUNNING,
+                                  check_func=run_check_functor):
             return
 
         was_interrupted = False

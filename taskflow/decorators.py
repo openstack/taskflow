@@ -35,14 +35,28 @@ def wraps(fn):
     return wrapper
 
 
-def locked(f):
+def locked(*args, **kwargs):
 
-    @wraps(f)
-    def wrapper(self, *args, **kwargs):
-        with self._lock:
-            return f(self, *args, **kwargs)
+    def decorator(f):
+        attr_name = kwargs.get('lock', '_lock')
 
-    return wrapper
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            lock = getattr(args[0], attr_name)
+            with lock:
+                return f(*args, **kwargs)
+
+        return wrapper
+
+    # This is needed to handle when the decorator has args or the decorator
+    # doesn't have args, python is rather weird here...
+    if kwargs or not args:
+        return decorator
+    else:
+        if len(args) == 1:
+            return decorator(args[0])
+        else:
+            return decorator
 
 
 def _original_function(fun):
