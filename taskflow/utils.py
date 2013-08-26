@@ -25,12 +25,14 @@ import logging
 import threading
 import time
 import types
+import weakref
 
 import threading2
 
 from distutils import version
 
 from taskflow.openstack.common import uuidutils
+from taskflow import states
 
 TASK_FACTORY_ATTRIBUTE = '_TaskFlow_task_factory'
 LOG = logging.getLogger(__name__)
@@ -263,32 +265,10 @@ class FlowFailure(object):
         return self.runner.exc_info[1]
 
 
-class RollbackTask(object):
-    """A helper task that on being called will call the underlying callable
-    tasks revert method (if said method exists).
-    """
-
-    def __init__(self, context, task, result):
-        self.task = task
-        self.result = result
-        self.context = context
-
-    def __str__(self):
-        return str(self.task)
-
-    def __call__(self, cause):
-        if ((hasattr(self.task, "revert") and
-             isinstance(self.task.revert, collections.Callable))):
-            self.task.revert(self.context, self.result, cause)
-
-
 class Runner(object):
     """A helper class that wraps a task and can find the needed inputs for
     the task to run, as well as providing a uuid and other useful functionality
     for users of the task.
-
-    TODO(harlowja): replace with the task details object or a subclass of
-    that???
     """
 
     def __init__(self, task, uuid=None):
@@ -332,7 +312,9 @@ class Runner(object):
 
     @property
     def name(self):
-        return self.task.name
+        if hasattr(self.task, 'name'):
+            return self.task.name
+        return '?'
 
     def reset(self):
         self.result = None
@@ -450,6 +432,43 @@ class TransitionNotifier(object):
             if cb is callback:
                 self._listeners[state].pop(i)
                 break
+
+
+class Rollback(object):
+    """A helper functor object that on being called will call the underlying
+    runners tasks revert method (if said method exists) and do the appropriate
+    notification to signal to others that the reverting is underway.
+    """
+
+    def __init__(self, context, runner, flow, notifier):
+        self.runner = runner
+        self.context = context
+        self.notifier = notifier
+        # Use weak references to give the GC a break.
+        self.flow = weakref.proxy(flow)
+
+    def __str__(self):
+        return "Rollback: %s" % (self.runner)
+
+    def _fire_notify(self, has_reverted):
+        if self.notifier:
+            if has_reverted:
+                state = states.REVERTED
+            else:
+                state = states.REVERTING
+            self.notifier.notify(state, details={
+                'context': self.context,
+                'flow': self.flow,
+                'runner': self.runner,
+            })
+
+    def __call__(self, cause):
+        self._fire_notify(False)
+        task = self.runner.task
+        if ((hasattr(task, "revert") and
+             isinstance(task.revert, collections.Callable))):
+            task.revert(self.context, self.runner.result, cause)
+        self._fire_notify(True)
 
 
 class RollbackAccumulator(object):

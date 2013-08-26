@@ -327,7 +327,7 @@ class ThreadedFlowTest(test.TestCase):
         context = {}
         self.assertRaises(IOError, flo.run, context)
         self.assertEquals(states.FAILURE, flo.state)
-        self.assertEquals(states.FAILURE, history[f_uuid][-1])
+        self.assertEquals(states.REVERTED, history[f_uuid][-1])
         self.assertTrue(context.get('reverted'))
 
     def test_failure_cancel_successors(self):
@@ -351,7 +351,7 @@ class ThreadedFlowTest(test.TestCase):
         context = {}
         self.assertRaises(IOError, flo.run, context)
         self.assertEquals(states.FAILURE, flo.state)
-        self.assertEquals(states.FAILURE, history[fq][-1])
+        self.assertEquals(states.REVERTED, history[fq][-1])
         self.assertEquals(states.CANCELLED, history[af][-1])
         self.assertEquals(states.CANCELLED, history[af2][-1])
 

@@ -423,7 +423,8 @@ class Flow(flow.Flow):
             accum = utils.RollbackAccumulator()
             for r in self._graph.nodes_iter():
                 if r.has_ran():
-                    accum.add(utils.RollbackTask(context, r.task, r.result))
+                    accum.add(utils.Rollback(context, r,
+                                             self, self.task_notifier))
             try:
                 self._change_state(context, states.REVERTING)
                 accum.rollback(cause)

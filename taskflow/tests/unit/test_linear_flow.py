@@ -16,6 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+
 from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
@@ -135,21 +137,43 @@ class LinearFlowTest(test.TestCase):
             wf.add(self.make_reverting_task(i))
 
         run_context = {}
+        capture_func, captured = self._capture_states()
+        wf.task_notifier.register('*', capture_func)
         wf.run(run_context)
 
         self.assertEquals(10, len(run_context))
+        self.assertEquals(10, len(captured))
         for _k, v in run_context.items():
             self.assertEquals('passed', v)
+        for _uuid, u_states in captured.items():
+            self.assertEquals([states.STARTED, states.SUCCESS], u_states)
+
+    def _capture_states(self):
+        capture_where = collections.defaultdict(list)
+
+        def do_capture(state, details):
+            runner = details.get('runner')
+            if not runner:
+                return
+            capture_where[runner.uuid].append(state)
+
+        return (do_capture, capture_where)
 
     def test_reverting_flow(self):
         wf = lw.Flow("the-test-action")
-        wf.add(self.make_reverting_task(1))
-        wf.add(self.make_reverting_task(2, True))
+        ok_uuid = wf.add(self.make_reverting_task(1))
+        broke_uuid = wf.add(self.make_reverting_task(2, True))
+        capture_func, captured = self._capture_states()
+        wf.task_notifier.register('*', capture_func)
 
         run_context = {}
         self.assertRaises(Exception, wf.run, run_context)
         self.assertEquals('reverted', run_context[1])
         self.assertEquals(1, len(run_context))
+        self.assertEquals([states.STARTED, states.SUCCESS, states.REVERTING,
+                           states.REVERTED], captured[ok_uuid])
+        self.assertEquals([states.STARTED, states.FAILURE, states.REVERTING,
+                           states.REVERTED], captured[broke_uuid])
 
     def test_not_satisfied_inputs_previous(self):
         wf = lw.Flow("the-test-action")

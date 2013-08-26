@@ -172,7 +172,7 @@ class Flow(flow.Flow):
                 # Add the task to be rolled back *immediately* so that even if
                 # the task fails while producing results it will be given a
                 # chance to rollback.
-                rb = utils.RollbackTask(context, runner.task, result=None)
+                rb = utils.Rollback(context, runner, self, self.task_notifier)
                 self._accumulator.add(rb)
                 self.task_notifier.notify(states.STARTED, details={
                     'context': context,
@@ -198,13 +198,7 @@ class Flow(flow.Flow):
                                      " object: %s", result)
                             result = exc.InvalidStateException()
                         raise result
-                # Adjust the task result in the accumulator before
-                # notifying others that the task has finished to
-                # avoid the case where a listener might throw an
-                # exception.
-                rb.result = result
-                runner.result = result
-                self.results[runner.uuid] = result
+                self.results[runner.uuid] = runner.result
                 self.task_notifier.notify(states.SUCCESS, details={
                     'context': context,
                     'flow': self,
