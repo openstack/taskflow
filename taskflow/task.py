@@ -88,16 +88,6 @@ class FunctorTask(Task):
 
     Take any callable and make a task from it.
     """
-    @staticmethod
-    def _get_callable_name(execute_with):
-        """Generate a name from callable"""
-        im_class = getattr(execute_with, 'im_class', None)
-        if im_class is not None:
-            parts = (im_class.__module__, im_class.__name__,
-                     execute_with.__name__)
-        else:
-            parts = (execute_with.__module__, execute_with.__name__)
-        return '.'.join(parts)
 
     def __init__(self, execute_with, **kwargs):
         """Initialize FunctorTask instance with given callable and kwargs
@@ -115,7 +105,7 @@ class FunctorTask(Task):
         """
         name = kwargs.pop('name', None)
         if name is None:
-            name = self._get_callable_name(execute_with)
+            name = utils.get_callable_name(execute_with)
         super(FunctorTask, self).__init__(name)
         self._execute_with = execute_with
         self._revert_with = kwargs.pop('revert_with', None)
