@@ -3,7 +3,6 @@ import os
 import random
 import sys
 import time
-import traceback
 import uuid
 
 logging.basicConfig(level=logging.ERROR)
@@ -173,12 +172,12 @@ print '-' * 7
 try:
     flo.run(context)
 except Exception as e:
-    traceback.print_exc()
+    print 'Flow failed: %r' % e
 
 print '-- Flow state %s' % (flo.state)
 
 print '-' * 11
 print 'All results'
 print '-' * 11
-for (tid, v) in flo.results.items():
+for (tid, v) in sorted(flo.results.items()):
     print '%s => %s' % (tid, v)

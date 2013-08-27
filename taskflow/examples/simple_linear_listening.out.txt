@@ -1,0 +1,18 @@
+Flow "Call-them": PENDING => STARTED
+Flow "Call-them": context={'joe_number': 444, 'jim_number': 555}
+Flow "Call-them": STARTED => RUNNING
+Flow "Call-them": context={'joe_number': 444, 'jim_number': 555}
+Flow "Call-them": runner "__main__.call_jim"
+Flow "Call-them": context={'joe_number': 444, 'jim_number': 555}
+Calling jim.
+Context = {'joe_number': 444, 'jim_number': 555}
+Flow "Call-them": runner "__main__.call_jim"
+Flow "Call-them": context={'joe_number': 444, 'jim_number': 555}
+Flow "Call-them": runner "__main__.call_joe"
+Flow "Call-them": context={'joe_number': 444, 'jim_number': 555}
+Calling joe.
+Context = {'joe_number': 444, 'jim_number': 555}
+Flow "Call-them": runner "__main__.call_joe"
+Flow "Call-them": context={'joe_number': 444, 'jim_number': 555}
+Flow "Call-them": RUNNING => SUCCESS
+Flow "Call-them": context={'joe_number': 444, 'jim_number': 555}
