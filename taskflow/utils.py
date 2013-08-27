@@ -20,6 +20,7 @@
 import collections
 import contextlib
 import copy
+import inspect
 import logging
 import re
 import sys
@@ -73,6 +74,32 @@ def get_callable_name(function):
             im_class = function
         parts = (im_class.__module__, im_class.__name__)
     return '.'.join(parts)
+
+
+def is_bound_method(method):
+    return getattr(method, 'im_self', None) is not None
+
+
+def get_required_callable_args(function):
+    """Get names of argument required by callable"""
+
+    if isinstance(function, type):
+        bound = True
+        function = function.__init__
+    elif isinstance(function, (types.FunctionType, types.MethodType)):
+        bound = is_bound_method(function)
+        function = getattr(function, '__wrapped__', function)
+    else:
+        function = function.__call__
+        bound = is_bound_method(function)
+
+    argspec = inspect.getargspec(function)
+    f_args = argspec.args
+    if argspec.defaults:
+        f_args = f_args[:-len(argspec.defaults)]
+    if bound:
+        f_args = f_args[1:]
+    return f_args
 
 
 def get_task_version(task):

@@ -17,13 +17,8 @@
 #    under the License.
 
 import abc
-import inspect
 
 from taskflow import utils
-
-# These arguments are ones that we will skip when parsing for requirements
-# for a function to operate (when used as a task).
-AUTO_ARGS = ('self', 'context', 'cls')
 
 
 class Task(object):
@@ -73,16 +68,6 @@ class Task(object):
         """
 
 
-def _filter_arg(arg):
-    if arg in AUTO_ARGS:
-        return False
-    # In certain decorator cases it seems like we get the function to be
-    # decorated as an argument, we don't want to take that as a real argument.
-    if not isinstance(arg, basestring):
-        return False
-    return True
-
-
 class FunctorTask(Task):
     """Adaptor to make task from a callable
 
@@ -114,8 +99,8 @@ class FunctorTask(Task):
         self.provides.update(kwargs.pop('provides', ()))
         self.requires.update(kwargs.pop('requires', ()))
         if kwargs.pop('auto_extract', True):
-            f_args = inspect.getargspec(execute_with).args
-            self.requires.update([arg for arg in f_args if _filter_arg(arg)])
+            f_args = utils.get_required_callable_args(execute_with)
+            self.requires.update(a for a in f_args if a != 'context')
         if kwargs:
             raise TypeError('__init__() got an unexpected keyword argument %r'
                             % kwargs.keys[0])
