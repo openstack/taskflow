@@ -19,6 +19,7 @@
 import collections
 import functools
 import logging
+import sys
 import threading
 
 from taskflow.openstack.common import excutils
@@ -209,9 +210,9 @@ class Flow(flow.Flow):
                     'flow': self,
                     'runner': runner,
                 })
-            except Exception as e:
-                runner.result = e
-                cause = utils.FlowFailure(runner, self, e)
+            except Exception:
+                runner.result = None
+                runner.exc_info = sys.exc_info()
                 with excutils.save_and_reraise_exception():
                     # Notify any listeners that the task has errored.
                     self.task_notifier.notify(states.FAILURE, details={
@@ -219,7 +220,7 @@ class Flow(flow.Flow):
                         'flow': self,
                         'runner': runner,
                     })
-                    self.rollback(context, cause)
+                    self.rollback(context, utils.FlowFailure(runner, self))
 
         run_check_functor = functools.partial(abort_if,
                                               ok_states=[states.STARTED,

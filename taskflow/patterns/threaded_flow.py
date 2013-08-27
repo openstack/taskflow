@@ -342,8 +342,7 @@ class Flow(flow.Flow):
                 return
             causes = []
             for r in failures:
-                causes.append(utils.FlowFailure(r, self,
-                                                r.exc, r.exc_info))
+                causes.append(utils.FlowFailure(r, self))
             try:
                 self.rollback(context, causes)
             except exc.InvalidStateException:
@@ -470,9 +469,6 @@ class ThreadRunner(utils.Runner):
         self._predecessors = []
         self._successors = []
         self._siblings = []
-        # Ensure we capture any exceptions that may have been triggered.
-        self.exc = None
-        self.exc_info = (None, None, None)
         # This callback will be called before the underlying task is actually
         # returned and it should either return a tuple of (has_result, result)
         self._result_cb = None
@@ -538,10 +534,10 @@ class ThreadRunner(utils.Runner):
                                                 " state: %s" % (self.state))
 
         def do_reset():
+            super(ThreadRunner, self).reset()
             self._latch.count = len(self._predecessors)
-            self.exc = None
-            self.exc_info = (None, None, None)
-            self.result = None
+
+        def change_state():
             self._change_state(None, states.PENDING)
 
         # We need to acquire both locks here so that we can not be running
@@ -552,6 +548,7 @@ class ThreadRunner(utils.Runner):
             with self._cancel_lock:
                 check()
                 do_reset()
+                change_state()
 
     @property
     def runs_before(self):
@@ -583,10 +580,10 @@ class ThreadRunner(utils.Runner):
                 if not has_result:
                     super(ThreadRunner, self).__call__(*args, **kwargs)
                 self._change_state(context, states.SUCCESS)
-            except Exception as e:
-                self._change_state(context, states.FAILURE)
-                self.exc = e
+            except Exception:
+                self.result = None
                 self.exc_info = sys.exc_info()
+                self._change_state(context, states.FAILURE)
 
         def signal():
             if not self._successors:

@@ -22,11 +22,11 @@ import contextlib
 import copy
 import inspect
 import logging
-import sys
 import threading
-import threading2
 import time
 import types
+
+import threading2
 
 from distutils import version
 
@@ -250,14 +250,17 @@ class FlowFailure(object):
        and can be used to interrogate what caused the failure.
     """
 
-    def __init__(self, runner, flow, exc, exc_info=None):
+    def __init__(self, runner, flow):
         self.runner = runner
         self.flow = flow
-        self.exc = exc
-        if not exc_info:
-            self.exc_info = sys.exc_info()
-        else:
-            self.exc_info = exc_info
+
+    @property
+    def exc_info(self):
+        return self.runner.exc_info
+
+    @property
+    def exc(self):
+        return self.runner.exc_info[1]
 
 
 class RollbackTask(object):
@@ -301,6 +304,7 @@ class Runner(object):
             self._id = uuidutils.generate_uuid()
         else:
             self._id = str(uuid)
+        self.exc_info = (None, None, None)
 
     @property
     def uuid(self):
@@ -332,6 +336,7 @@ class Runner(object):
 
     def reset(self):
         self.result = None
+        self.exc_info = (None, None, None)
 
     def __str__(self):
         lines = ["Runner: %s" % (self.name)]
