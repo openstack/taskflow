@@ -26,6 +26,7 @@ import sys
 import threading
 import threading2
 import time
+import types
 
 from taskflow.openstack.common import uuidutils
 
@@ -50,6 +51,28 @@ def await(check_functor, timeout=None):
         else:
             delay = min(delay * 2, 0.05)
     return True
+
+
+def get_callable_name(function):
+    """Generate a name from callable
+
+    Tries to do the best to guess fully qualified callable name.
+    """
+    im_class = getattr(function, 'im_class', None)
+    if im_class is not None:
+        if im_class is type:
+            # this is bound class method
+            im_class = function.im_self
+        parts = (im_class.__module__, im_class.__name__,
+                 function.__name__)
+    elif isinstance(function, types.FunctionType):
+        parts = (function.__module__, function.__name__)
+    else:
+        im_class = type(function)
+        if im_class is type:
+            im_class = function
+        parts = (im_class.__module__, im_class.__name__)
+    return '.'.join(parts)
 
 
 def get_task_version(task):
