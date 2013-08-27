@@ -18,7 +18,7 @@
 
 import functools
 
-from taskflow import functor_task
+from taskflow import task as base
 from taskflow import utils
 
 
@@ -78,7 +78,7 @@ def task(*args, **kwargs):
             # NOTE(imelnikov): we can't capture f here because for
             # bound methods and bound class methods the object it
             # is bound to is yet unknown at the moment
-            return functor_task.FunctorTask(execute_with, **merged)
+            return base.FunctorTask(execute_with, **merged)
         w_f = _original_function(f)
         setattr(w_f, utils.TASK_FACTORY_ATTRIBUTE, task_factory)
         return f

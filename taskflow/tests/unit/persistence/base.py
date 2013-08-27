@@ -56,7 +56,7 @@ class PersistenceTestMixin(object):
         lb = logbook.LogBook(name=lb_name, uuid=lb_id,
                              backend=self._get_backend())
 
-        fd = flowdetail.FlowDetail('test')
+        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
 
         # Ensure we can't save it since its owning logbook hasn't been
@@ -73,9 +73,9 @@ class PersistenceTestMixin(object):
         lb = logbook.LogBook(name=lb_name, uuid=lb_id,
                              backend=self._get_backend())
 
-        fd = flowdetail.FlowDetail('test')
+        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        td = taskdetail.TaskDetail("detail-1")
+        td = taskdetail.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         fd.add(td)
 
         # Ensure we can't save it since its owning logbook hasn't been
@@ -94,13 +94,13 @@ class PersistenceTestMixin(object):
         lb = logbook.LogBook(name=lb_name, uuid=lb_id,
                              backend=self._get_backend())
 
-        fd = flowdetail.FlowDetail('test')
+        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
         lb.save()
 
         lb2 = logbook.LogBook(name=lb_name, uuid=lb_id,
                               backend=self._get_backend())
-        fd = flowdetail.FlowDetail('test2')
+        fd = flowdetail.FlowDetail('test2', uuid=uuidutils.generate_uuid())
         lb2.add(fd)
         lb2.save()
 
@@ -113,7 +113,7 @@ class PersistenceTestMixin(object):
         lb = logbook.LogBook(name=lb_name, uuid=lb_id,
                              backend=self._get_backend())
 
-        fd = flowdetail.FlowDetail('test')
+        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
         lb.save()
 
@@ -129,8 +129,8 @@ class PersistenceTestMixin(object):
         lb = logbook.LogBook(name=lb_name, uuid=lb_id,
                              backend=self._get_backend())
 
-        fd = flowdetail.FlowDetail('test')
-        td = taskdetail.TaskDetail("detail-1")
+        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        td = taskdetail.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         fd.add(td)
         lb.add(fd)
         lb.save()

@@ -16,7 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.openstack.common import uuidutils
 from taskflow.persistence.backends import api as b_api
 
 
@@ -33,12 +32,10 @@ class TaskDetail(object):
     persisted when the logbook that contains this task detail is saved or when
     the save() method is called directly.
     """
-    def __init__(self, name, task=None, uuid=None, backend='memory'):
-        if uuid:
-            self._uuid = uuid
-        else:
-            self._uuid = uuidutils.generate_uuid()
+    def __init__(self, name, uuid, backend='memory'):
+        self._uuid = uuid
         self._name = name
+        self.backend = backend
         # TODO(harlowja): decide if these should be passed in and therefore
         # immutable or let them be assigned?
         #
@@ -60,12 +57,6 @@ class TaskDetail(object):
         # is quite useful for determining what versions of tasks this detail
         # information can be associated with.
         self.version = None
-        if task and task.version:
-            if isinstance(task.version, basestring):
-                self.version = str(task.version)
-            elif isinstance(task.version, (tuple, list)):
-                self.version = '.'.join([str(p) for p in task.version])
-        self.backend = backend
 
     def save(self):
         """Saves *most* of the components of this given object.

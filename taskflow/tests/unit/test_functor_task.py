@@ -16,8 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow import functor_task
 from taskflow.patterns import linear_flow
+from taskflow import task as base
 from taskflow import test
 
 
@@ -44,17 +44,17 @@ class BunchOfFunctions(object):
 class FunctorTaskTest(test.TestCase):
 
     def test_simple(self):
-        task = functor_task.FunctorTask(add)
+        task = base.FunctorTask(add)
         self.assertEquals(task.name, __name__ + '.add')
 
     def test_other_name(self):
-        task = functor_task.FunctorTask(add, name='my task')
+        task = base.FunctorTask(add, name='my task')
         self.assertEquals(task.name, 'my task')
 
     def test_it_runs(self):
         values = []
         bof = BunchOfFunctions(values)
-        t = functor_task.FunctorTask
+        t = base.FunctorTask
 
         flow = linear_flow.Flow('test')
         flow.add_many((

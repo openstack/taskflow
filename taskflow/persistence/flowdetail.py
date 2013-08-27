@@ -16,7 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.openstack.common import uuidutils
 from taskflow.persistence.backends import api as b_api
 
 
@@ -29,11 +28,8 @@ class FlowDetail(object):
     persisted when the logbook that contains this flow detail is saved or when
     the save() method is called directly.
     """
-    def __init__(self, name, uuid=None, backend='memory'):
-        if uuid:
-            self._uuid = uuid
-        else:
-            self._uuid = uuidutils.generate_uuid()
+    def __init__(self, name, uuid, backend='memory'):
+        self._uuid = uuid
         self._name = name
         self._taskdetails = []
         self.state = None
