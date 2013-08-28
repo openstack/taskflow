@@ -22,12 +22,13 @@ import contextlib
 import copy
 import inspect
 import logging
-import re
 import sys
 import threading
 import threading2
 import time
 import types
+
+from distutils import version
 
 from taskflow.openstack.common import uuidutils
 
@@ -114,39 +115,17 @@ def get_task_version(task):
 
 def is_version_compatible(version_1, version_2):
     """Checks for major version compatibility of two *string" versions."""
-    if version_1 == version_2:
-        # Equivalent exactly, so skip the rest.
+    try:
+        version_1_tmp = version.StrictVersion(version_1)
+        version_2_tmp = version.StrictVersion(version_2)
+    except ValueError:
+        version_1_tmp = version.LooseVersion(version_1)
+        version_2_tmp = version.LooseVersion(version_2)
+    version_1 = version_1_tmp
+    version_2 = version_2_tmp
+    if version_1 == version_2 or version_1.version[0] == version_2.version[0]:
         return True
-
-    def _convert_to_pieces(version):
-        try:
-            pieces = []
-            for p in version.split("."):
-                p = p.strip()
-                if not len(p):
-                    pieces.append(0)
-                    continue
-                # Clean off things like 1alpha, or 2b and just select the
-                # digit that starts that entry instead.
-                p_match = re.match(r"(\d+)([A-Za-z]*)(.*)", p)
-                if p_match:
-                    p = p_match.group(1)
-                pieces.append(int(p))
-        except (AttributeError, TypeError, ValueError):
-            pieces = []
-        return pieces
-
-    version_1_pieces = _convert_to_pieces(version_1)
-    version_2_pieces = _convert_to_pieces(version_2)
-    if len(version_1_pieces) == 0 or len(version_2_pieces) == 0:
-        return False
-
-    # Ensure major version compatibility to start.
-    major1 = version_1_pieces[0]
-    major2 = version_2_pieces[0]
-    if major1 != major2:
-        return False
-    return True
+    return False
 
 
 class MultiLock(object):
