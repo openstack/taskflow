@@ -18,6 +18,7 @@
 
 import functools
 
+from taskflow import decorators
 from taskflow import test
 from taskflow import utils
 
@@ -58,29 +59,35 @@ class UtilTest(test.TestCase):
         self.assertEquals(10, len(context))
 
 
-def mere_function():
+def mere_function(a, b):
+    pass
+
+
+def function_with_defaults(a, b, optional=None):
     pass
 
 
 class Class(object):
 
-    def __init__(self):
-        pass
-
-    def method(self):
+    def method(self, c, d):
         pass
 
     @staticmethod
-    def static_method():
+    def static_method(e, f):
         pass
 
     @classmethod
-    def class_method():
+    def class_method(cls, g, h):
         pass
 
 
 class CallableClass(object):
-    def __call__(self):
+    def __call__(self, i, j):
+        pass
+
+
+class ClassWithInit(object):
+    def __init__(self, k, l):
         pass
 
 
@@ -120,3 +127,45 @@ class GetCallableNameTest(test.TestCase):
         name = utils.get_callable_name(CallableClass().__call__)
         self.assertEquals(name, '.'.join((__name__, 'CallableClass',
                                           '__call__')))
+
+
+class GetRequiredCallableArgsTest(test.TestCase):
+
+    def test_mere_function(self):
+        self.assertEquals(['a', 'b'],
+                          utils.get_required_callable_args(mere_function))
+
+    def test_function_with_defaults(self):
+        self.assertEquals(['a', 'b'],
+                          utils.get_required_callable_args(
+                              function_with_defaults))
+
+    def test_method(self):
+        self.assertEquals(['self', 'c', 'd'],
+                          utils.get_required_callable_args(Class.method))
+
+    def test_instance_method(self):
+        self.assertEquals(['c', 'd'],
+                          utils.get_required_callable_args(Class().method))
+
+    def test_class_method(self):
+        self.assertEquals(['g', 'h'],
+                          utils.get_required_callable_args(
+                              Class.class_method))
+
+    def test_class_constructor(self):
+        self.assertEquals(['k', 'l'],
+                          utils.get_required_callable_args(
+                              ClassWithInit))
+
+    def test_class_with_call(self):
+        self.assertEquals(['i', 'j'],
+                          utils.get_required_callable_args(
+                              CallableClass()))
+
+    def test_decorators_work(self):
+        @decorators.locked
+        def locked_fun(x, y):
+            pass
+        self.assertEquals(['x', 'y'],
+                          utils.get_required_callable_args(locked_fun))

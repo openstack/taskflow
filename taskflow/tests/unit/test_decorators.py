@@ -26,15 +26,15 @@ class WrapableObjectsTest(test.TestCase):
     def test_simple_function(self):
         values = []
 
-        def revert_one(self, *args, **kwargs):
+        def revert_one(*args, **kwargs):
             values.append('revert one')
 
         @decorators.task(revert_with=revert_one)
-        def run_one(self, *args, **kwargs):
+        def run_one(*args, **kwargs):
             values.append('one')
 
         @decorators.task
-        def run_fail(self, *args, **kwargs):
+        def run_fail(*args, **kwargs):
             values.append('fail')
             raise RuntimeError('Woot!')
 
