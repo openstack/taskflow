@@ -271,7 +271,6 @@ class Runner(object):
     """
 
     def __init__(self, task, uuid=None):
-        assert isinstance(task, collections.Callable)
         task_factory = getattr(task, TASK_FACTORY_ATTRIBUTE, None)
         if task_factory:
             self.task = task_factory(task)
@@ -353,7 +352,7 @@ class Runner(object):
             if k not in kwargs:
                 kwargs[k] = None
         # And now finally run.
-        self.result = self.task(*args, **kwargs)
+        self.result = self.task.execute(*args, **kwargs)
         return self.result
 
 

@@ -22,7 +22,7 @@ from taskflow import test
 
 
 class MyTask(task.Task):
-    def __call__(self, context, spam, eggs):
+    def execute(self, context, spam, eggs):
         pass
 
 

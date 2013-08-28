@@ -52,7 +52,7 @@ class ValidateAPIInputs(task.Task):
         super(ValidateAPIInputs, self).__init__('validates-api-inputs')
         self.provides.update(['vm_spec'])
 
-    def __call__(self, context):
+    def execute(self, context):
         print "Validating api inputs for %s" % (context)
         return {
             'vm_spec': {
@@ -83,7 +83,7 @@ class PeformReservation(task.Task):
             MY_DB['space'][k] += vm_spec[k]
         print 'Space after: %s' % (MY_DB['space'])
 
-    def __call__(self, context, vm_spec):
+    def execute(self, context, vm_spec):
         print 'Reserving %s for %s' % (vm_spec, context)
         # Reserve 'atomically'
         print 'Space before: %s' % (MY_DB['space'])
@@ -120,7 +120,7 @@ class ScheduleVM(task.Task):
         MY_DB['vms'][vm_uuid]['scheduled'] = False
         MY_DB['places'].append(vm_place)
 
-    def __call__(self, context, vm_reservation_spec):
+    def execute(self, context, vm_reservation_spec):
         print "Finding a place to put %s" % (vm_reservation_spec)
         vm_uuid = vm_reservation_spec['uuid']
         MY_DB['vms'][vm_uuid]['scheduled'] = True
@@ -141,7 +141,7 @@ class BootVM(task.Task):
         self.provides.update(['vm_booted'])
         self.requires.update(['vm_reservation_spec', 'vm_hole'])
 
-    def __call__(self, context, vm_reservation_spec, vm_hole):
+    def execute(self, context, vm_reservation_spec, vm_hole):
         raise RuntimeError("Failed booting")
 
 

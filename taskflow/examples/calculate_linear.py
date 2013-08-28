@@ -30,7 +30,7 @@ class Provider(task.Task):
         self.provides.update(kwargs.keys())
         self._provide = kwargs
 
-    def __call__(self, context):
+    def execute(self, context):
         return self._provide
 
 
@@ -41,7 +41,7 @@ class Adder(task.Task):
         self.provides.update([provides_name])
         self._provides_name = provides_name
 
-    def __call__(self, context, **kwargs):
+    def execute(self, context, **kwargs):
         return {
             self._provides_name: sum(kwargs.values()),
         }
@@ -54,7 +54,7 @@ class Multiplier(task.Task):
         self._by_how_much = by_how_much
         self._z_name = z_name
 
-    def __call__(self, context, **kwargs):
+    def execute(self, context, **kwargs):
         return kwargs.pop(self._z_name) * self._by_how_much
 
 

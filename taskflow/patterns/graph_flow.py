@@ -16,7 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
 import logging
 
 from networkx.algorithms import dag
@@ -48,7 +47,6 @@ class Flow(linear_flow.Flow):
         # together later after all nodes have been added since if we try
         # to infer the edges at this stage we likely will fail finding
         # dependencies from nodes that don't exist.
-        assert isinstance(task, collections.Callable)
         r = utils.AOTRunner(task)
         self._graph.add_node(r, uuid=r.uuid, infer=infer)
         self._reset_internals()

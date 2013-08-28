@@ -45,7 +45,7 @@ class ProvidesRequiresTask(task.Task):
         self.provides.update(provides)
         self.requires.update(requires)
 
-    def __call__(self, context, *args, **kwargs):
+    def execute(self, context, *args, **kwargs):
         outs = {
             KWARGS_KEY: dict(kwargs),
             ARGS_KEY: list(args),
@@ -62,5 +62,5 @@ class DummyTask(task.Task):
     def __init__(self, name, task_id=None):
         super(DummyTask, self).__init__(name, task_id)
 
-    def __call__(self, context, *args, **kwargs):
+    def execute(self, context, *args, **kwargs):
         pass

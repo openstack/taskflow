@@ -16,7 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
 import functools
 import logging
 import sys
@@ -64,7 +63,6 @@ class Flow(flow.Flow):
     @decorators.locked
     def add(self, task):
         """Adds a given task to this flow."""
-        assert isinstance(task, collections.Callable)
         r = utils.AOTRunner(task)
         r.runs_before = list(reversed(self._runners))
         self._runners.append(r)
