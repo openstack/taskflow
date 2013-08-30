@@ -95,7 +95,7 @@ def trash(context, result, cause):
     print("Throwing away pieces of car!")
 
 
-@decorators.task(revert_with=trash)
+@decorators.task(revert=trash)
 def startup(context, **kwargs):
     pass
     # TODO(harlowja): try triggering reversion here!

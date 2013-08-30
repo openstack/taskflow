@@ -29,7 +29,7 @@ class WrapableObjectsTest(test.TestCase):
         def revert_one(*args, **kwargs):
             values.append('revert one')
 
-        @decorators.task(revert_with=revert_one)
+        @decorators.task(revert=revert_one)
         def run_one(*args, **kwargs):
             values.append('one')
 

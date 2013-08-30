@@ -72,13 +72,13 @@ def task(*args, **kwargs):
     """Decorates a given function so that it can be used as a task"""
 
     def decorator(f):
-        def task_factory(execute_with, **factory_kwargs):
+        def task_factory(execute, **factory_kwargs):
             merged = kwargs.copy()
             merged.update(factory_kwargs)
             # NOTE(imelnikov): we can't capture f here because for
             # bound methods and bound class methods the object it
             # is bound to is yet unknown at the moment
-            return base.FunctorTask(execute_with, **merged)
+            return base.FunctorTask(execute, **merged)
         w_f = _original_function(f)
         setattr(w_f, utils.TASK_FACTORY_ATTRIBUTE, task_factory)
         return f

@@ -39,7 +39,7 @@ class LinearFlowTest(test.TestCase):
                 raise Exception("I blew up")
             return blow_up
         else:
-            @decorators.task(revert_with=do_revert,
+            @decorators.task(revert=do_revert,
                              name='do_apply %s' % token)
             def do_apply(context, *args, **kwargs):
                 context[token] = 'passed'

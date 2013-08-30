@@ -36,7 +36,7 @@ class GraphFlowTest(test.TestCase):
             self.assertEquals(states.REVERTING, cause.flow.state)
             self.assertEquals(result, {'a': 1})
 
-        @decorators.task(revert_with=run1_revert, provides=['a'])
+        @decorators.task(revert=run1_revert, provides=['a'])
         def run1(context):  # pylint: disable=W0613
             return {
                 'a': 1,

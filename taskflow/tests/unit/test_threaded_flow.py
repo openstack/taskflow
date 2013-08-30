@@ -318,7 +318,7 @@ class ThreadedFlowTest(test.TestCase):
         def reverter(context, result, cause):
             context['reverted'] = True
 
-        @decorators.task(revert_with=reverter)
+        @decorators.task(revert=reverter)
         def fail_quick(context):
             raise IOError("Broken")
 

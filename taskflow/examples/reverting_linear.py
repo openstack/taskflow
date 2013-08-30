@@ -16,14 +16,14 @@ def undo_call(context, result, cause):
     print("Calling %s and apologizing." % result)
 
 
-@decorators.task(revert_with=undo_call)
+@decorators.task(revert=undo_call)
 def call_jim(context):
     print("Calling jim.")
     print("Context = %s" % (context))
     return context['jim_number']
 
 
-@decorators.task(revert_with=undo_call)
+@decorators.task(revert=undo_call)
 def call_joe(context):
     print("Calling joe.")
     print("Context = %s" % (context))

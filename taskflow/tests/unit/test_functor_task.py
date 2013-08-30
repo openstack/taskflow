@@ -58,7 +58,7 @@ class FunctorTaskTest(test.TestCase):
 
         flow = linear_flow.Flow('test')
         flow.add_many((
-            t(bof.run_one, revert_with=bof.revert_one),
+            t(bof.run_one, revert=bof.revert_one),
             t(bof.run_fail)
         ))
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):

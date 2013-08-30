@@ -99,42 +99,42 @@ class FunctorTask(BaseTask):
     Take any callable and make a task from it.
     """
 
-    def __init__(self, execute_with, **kwargs):
+    def __init__(self, execute, **kwargs):
         """Initialize FunctorTask instance with given callable and kwargs
 
-        :param execute_with: the callable
+        :param execute: the callable
         :param kwargs: reserved keywords (all optional) are
             name: name of the task, default None (auto generate)
-            revert_with: the callable to revert, default None
+            revert: the callable to revert, default None
             version: version of the task, default Task's version 1.0
             optionals: optionals of the task, default ()
             provides: provides of the task, default ()
             requires: requires of the task, default ()
-            auto_extract: auto extract execute_with's args and put it into
+            auto_extract: auto extract execute's args and put it into
                 requires, default True
         """
         name = kwargs.pop('name', None)
         if name is None:
-            name = utils.get_callable_name(execute_with)
+            name = utils.get_callable_name(execute)
         super(FunctorTask, self).__init__(name)
-        self._execute_with = execute_with
-        self._revert_with = kwargs.pop('revert_with', None)
+        self._execute = execute
+        self._revert = kwargs.pop('revert', None)
         self.version = kwargs.pop('version', self.version)
         self.optional.update(kwargs.pop('optional', ()))
         self.provides.update(kwargs.pop('provides', ()))
         self.requires.update(kwargs.pop('requires', ()))
         if kwargs.pop('auto_extract', True):
-            f_args = utils.get_required_callable_args(execute_with)
+            f_args = utils.get_required_callable_args(execute)
             self.requires.update(a for a in f_args if a != 'context')
         if kwargs:
             raise TypeError('__init__() got an unexpected keyword argument %r'
                             % kwargs.keys[0])
 
     def __call__(self, *args, **kwargs):
-        return self._execute_with(*args, **kwargs)
+        return self._execute(*args, **kwargs)
 
     def revert(self, *args, **kwargs):
-        if self._revert_with:
-            return self._revert_with(*args, **kwargs)
+        if self._revert:
+            return self._revert(*args, **kwargs)
         else:
             return None
