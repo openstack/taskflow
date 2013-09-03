@@ -26,7 +26,7 @@ from taskflow.openstack.common import excutils
 from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
-from taskflow import utils
+from taskflow.utils import flow_utils
 
 from taskflow import flow
 
@@ -46,7 +46,7 @@ class Flow(flow.Flow):
         super(Flow, self).__init__(name, parents, uuid)
         # The tasks which have been applied will be collected here so that they
         # can be reverted in the correct order on failure.
-        self._accumulator = utils.RollbackAccumulator()
+        self._accumulator = flow_utils.RollbackAccumulator()
         # Tasks results are stored here. Lookup is by the uuid that was
         # returned from the add function.
         self.results = {}
@@ -63,7 +63,7 @@ class Flow(flow.Flow):
     @decorators.locked
     def add(self, task):
         """Adds a given task to this flow."""
-        r = utils.AOTRunner(task)
+        r = flow_utils.AOTRunner(task)
         r.runs_before = list(reversed(self._runners))
         self._runners.append(r)
         self._reset_internals()
@@ -170,7 +170,8 @@ class Flow(flow.Flow):
                 # Add the task to be rolled back *immediately* so that even if
                 # the task fails while producing results it will be given a
                 # chance to rollback.
-                rb = utils.Rollback(context, runner, self, self.task_notifier)
+                rb = flow_utils.Rollback(context, runner, self,
+                                         self.task_notifier)
                 self._accumulator.add(rb)
                 self.task_notifier.notify(states.STARTED, details={
                     'context': context,
@@ -212,7 +213,8 @@ class Flow(flow.Flow):
                         'flow': self,
                         'runner': runner,
                     })
-                    self.rollback(context, utils.FlowFailure(runner, self))
+                    self.rollback(context,
+                                  flow_utils.FlowFailure(runner, self))
 
         run_check_functor = functools.partial(abort_if,
                                               ok_states=[states.STARTED,

@@ -19,7 +19,8 @@
 
 import abc
 
-from taskflow import utils
+from taskflow.utils import misc
+from taskflow.utils import reflection
 
 
 class BaseTask(object):
@@ -50,7 +51,7 @@ class BaseTask(object):
         return self._name
 
     def __str__(self):
-        return "%s==%s" % (self.name, utils.get_task_version(self))
+        return "%s==%s" % (self.name, misc.get_task_version(self))
 
     @abc.abstractmethod
     def execute(self, context, *args, **kwargs):
@@ -86,10 +87,10 @@ class Task(BaseTask):
             arguments names will be added to task requirements
         """
         if name is None:
-            name = utils.get_callable_name(self)
+            name = reflection.get_callable_name(self)
         super(Task, self).__init__(name)
         if requires_from_args:
-            f_args = utils.get_required_callable_args(self.execute)
+            f_args = reflection.get_required_callable_args(self.execute)
             self.requires.update(a for a in f_args if a != 'context')
 
 
@@ -115,7 +116,7 @@ class FunctorTask(BaseTask):
         """
         name = kwargs.pop('name', None)
         if name is None:
-            name = utils.get_callable_name(execute)
+            name = reflection.get_callable_name(execute)
         super(FunctorTask, self).__init__(name)
         self._execute = execute
         self._revert = kwargs.pop('revert', None)
@@ -124,7 +125,7 @@ class FunctorTask(BaseTask):
         self.provides.update(kwargs.pop('provides', ()))
         self.requires.update(kwargs.pop('requires', ()))
         if kwargs.pop('auto_extract', True):
-            f_args = utils.get_required_callable_args(execute)
+            f_args = reflection.get_required_callable_args(execute)
             self.requires.update(a for a in f_args if a != 'context')
         if kwargs:
             raise TypeError('__init__() got an unexpected keyword argument %r'

@@ -23,7 +23,7 @@ from taskflow.openstack.common import uuidutils
 
 from taskflow import exceptions as exc
 from taskflow import states
-from taskflow import utils
+from taskflow.utils import flow_utils
 
 
 class Flow(object):
@@ -83,8 +83,8 @@ class Flow(object):
         # progress and record tasks finishing (so that it becomes possible to
         # store the result of a task in some persistent or semi-persistent
         # storage backend).
-        self.notifier = utils.TransitionNotifier()
-        self.task_notifier = utils.TransitionNotifier()
+        self.notifier = flow_utils.TransitionNotifier()
+        self.task_notifier = flow_utils.TransitionNotifier()
         # Assign this flow a unique identifer.
         if uuid:
             self._id = str(uuid)

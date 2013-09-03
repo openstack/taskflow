@@ -19,7 +19,7 @@
 import logging
 
 from taskflow import states
-from taskflow import utils
+from taskflow.utils import misc as utils
 
 LOG = logging.getLogger(__name__)
 

@@ -26,7 +26,7 @@ import threading
 
 from taskflow import exceptions as exc
 from taskflow.openstack.common import timeutils
-from taskflow import utils
+from taskflow.utils import threading_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def _taskdetails_merge(td_e, td_new):
 
 
 def taskdetails_save(td):
-    with utils.MultiLock(READ_SAVE_ORDER):
+    with threading_utils.MultiLock(READ_SAVE_ORDER):
         try:
             return _taskdetails_merge(TASK_DETAILS[td.uuid], td)
         except KeyError:
@@ -76,7 +76,7 @@ def taskdetails_save(td):
 
 def flowdetails_save(fd):
     try:
-        with utils.MultiLock(READ_SAVE_ORDER):
+        with threading_utils.MultiLock(READ_SAVE_ORDER):
             e_fd = FLOW_DETAILS[fd.uuid]
             if e_fd.meta != fd.meta:
                 e_fd.meta = fd.meta
@@ -99,7 +99,7 @@ def flowdetails_save(fd):
 
 
 def clear_all():
-    with utils.MultiLock(READ_SAVE_ORDER):
+    with threading_utils.MultiLock(READ_SAVE_ORDER):
         count = 0
         for lb_id in list(LOG_BOOKS.iterkeys()):
             logbook_destroy(lb_id)
@@ -117,7 +117,7 @@ def logbook_get(lb_id):
 
 def logbook_destroy(lb_id):
     try:
-        with utils.MultiLock(READ_SAVE_ORDER):
+        with threading_utils.MultiLock(READ_SAVE_ORDER):
             # Do the same cascading delete that the sql layer does.
             lb = LOG_BOOKS.pop(lb_id)
             for fd in lb:
@@ -131,7 +131,7 @@ def logbook_destroy(lb_id):
 def logbook_save(lb):
     # Acquire all the locks that will be needed to perform this operation with
     # out being affected by other threads doing it at the same time.
-    with utils.MultiLock(READ_SAVE_ORDER):
+    with threading_utils.MultiLock(READ_SAVE_ORDER):
         # Get a existing logbook model (or create it if it isn't there).
         try:
             backing_lb = LOG_BOOKS[lb.uuid]

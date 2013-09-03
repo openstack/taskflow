@@ -20,7 +20,8 @@ import functools
 
 from taskflow import decorators
 from taskflow import test
-from taskflow import utils
+from taskflow.utils import flow_utils
+from taskflow.utils import reflection
 
 
 class UtilTest(test.TestCase):
@@ -30,7 +31,7 @@ class UtilTest(test.TestCase):
         def caller(token, e):
             context[token] = True
 
-        accum = utils.RollbackAccumulator()
+        accum = flow_utils.RollbackAccumulator()
 
         def blowup():
             for i in range(0, 10):
@@ -94,37 +95,37 @@ class ClassWithInit(object):
 class GetCallableNameTest(test.TestCase):
 
     def test_mere_function(self):
-        name = utils.get_callable_name(mere_function)
+        name = reflection.get_callable_name(mere_function)
         self.assertEquals(name, '.'.join((__name__, 'mere_function')))
 
     def test_method(self):
-        name = utils.get_callable_name(Class.method)
+        name = reflection.get_callable_name(Class.method)
         self.assertEquals(name, '.'.join((__name__, 'Class', 'method')))
 
     def test_instance_method(self):
-        name = utils.get_callable_name(Class().method)
+        name = reflection.get_callable_name(Class().method)
         self.assertEquals(name, '.'.join((__name__, 'Class', 'method')))
 
     def test_static_method(self):
         # NOTE(imelnikov): static method are just functions, class name
         #   is not recorded anywhere in them
-        name = utils.get_callable_name(Class.static_method)
+        name = reflection.get_callable_name(Class.static_method)
         self.assertEquals(name, '.'.join((__name__, 'static_method')))
 
     def test_class_method(self):
-        name = utils.get_callable_name(Class.class_method)
+        name = reflection.get_callable_name(Class.class_method)
         self.assertEquals(name, '.'.join((__name__, 'Class', 'class_method')))
 
     def test_constructor(self):
-        name = utils.get_callable_name(Class)
+        name = reflection.get_callable_name(Class)
         self.assertEquals(name, '.'.join((__name__, 'Class')))
 
     def test_callable_class(self):
-        name = utils.get_callable_name(CallableClass())
+        name = reflection.get_callable_name(CallableClass())
         self.assertEquals(name, '.'.join((__name__, 'CallableClass')))
 
     def test_callable_class_call(self):
-        name = utils.get_callable_name(CallableClass().__call__)
+        name = reflection.get_callable_name(CallableClass().__call__)
         self.assertEquals(name, '.'.join((__name__, 'CallableClass',
                                           '__call__')))
 
@@ -132,40 +133,36 @@ class GetCallableNameTest(test.TestCase):
 class GetRequiredCallableArgsTest(test.TestCase):
 
     def test_mere_function(self):
-        self.assertEquals(['a', 'b'],
-                          utils.get_required_callable_args(mere_function))
+        result = reflection.get_required_callable_args(mere_function)
+        self.assertEquals(['a', 'b'], result)
 
     def test_function_with_defaults(self):
-        self.assertEquals(['a', 'b'],
-                          utils.get_required_callable_args(
-                              function_with_defaults))
+        result = reflection.get_required_callable_args(function_with_defaults)
+        self.assertEquals(['a', 'b'], result)
 
     def test_method(self):
-        self.assertEquals(['self', 'c', 'd'],
-                          utils.get_required_callable_args(Class.method))
+        result = reflection.get_required_callable_args(Class.method)
+        self.assertEquals(['self', 'c', 'd'], result)
 
     def test_instance_method(self):
-        self.assertEquals(['c', 'd'],
-                          utils.get_required_callable_args(Class().method))
+        result = reflection.get_required_callable_args(Class().method)
+        self.assertEquals(['c', 'd'], result)
 
     def test_class_method(self):
-        self.assertEquals(['g', 'h'],
-                          utils.get_required_callable_args(
-                              Class.class_method))
+        result = reflection.get_required_callable_args(Class.class_method)
+        self.assertEquals(['g', 'h'], result)
 
     def test_class_constructor(self):
-        self.assertEquals(['k', 'l'],
-                          utils.get_required_callable_args(
-                              ClassWithInit))
+        result = reflection.get_required_callable_args(ClassWithInit)
+        self.assertEquals(['k', 'l'], result)
 
     def test_class_with_call(self):
-        self.assertEquals(['i', 'j'],
-                          utils.get_required_callable_args(
-                              CallableClass()))
+        result = reflection.get_required_callable_args(CallableClass())
+        self.assertEquals(['i', 'j'], result)
 
     def test_decorators_work(self):
         @decorators.locked
         def locked_fun(x, y):
             pass
-        self.assertEquals(['x', 'y'],
-                          utils.get_required_callable_args(locked_fun))
+        result = reflection.get_required_callable_args(locked_fun)
+        self.assertEquals(['x', 'y'], result)

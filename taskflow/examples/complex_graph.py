@@ -10,7 +10,6 @@ sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
 
 from taskflow import decorators
 from taskflow.patterns import graph_flow as gf
-from taskflow import utils
 
 
 def flow_notify(state, details):
@@ -105,15 +104,10 @@ def startup(context, **kwargs):
     }
 
 
-flow_notifier = utils.TransitionNotifier()
-flow_notifier.register('*', flow_notify)
-
-task_notifier = utils.TransitionNotifier()
-task_notifier.register('*', task_notify)
-
 flow = gf.Flow("make-auto")
-flow.notifier = flow_notifier
-flow.task_notifier = task_notifier
+flow.notifier.register('*', flow_notify)
+flow.task_notifier.register('*', task_notify)
+
 
 # Lets build a car!!
 flow.add(build_spec)

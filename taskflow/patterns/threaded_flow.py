@@ -18,9 +18,11 @@
 
 from taskflow import exceptions as exc
 from taskflow import flow
-from taskflow import graph_utils
 from taskflow import states
-from taskflow import utils
+from taskflow.utils import flow_utils
+from taskflow.utils import graph_utils
+from taskflow.utils import threading_utils
+
 
 import collections
 import functools
@@ -122,7 +124,7 @@ class Flow(flow.Flow):
     def reset(self):
         # All locks are used so that resets can not happen while running or
         # cancelling or modifying.
-        with utils.MultiLock(self._core_locks):
+        with threading_utils.MultiLock(self._core_locks):
             super(Flow, self).reset()
             self.results = {}
             self.resumer = None
@@ -143,7 +145,7 @@ class Flow(flow.Flow):
         # running. Further state management logic is then used while running
         # to verify that the flow should still be running when it has been
         # cancelled.
-        with utils.MultiLock(self._cancel_locks):
+        with threading_utils.MultiLock(self._cancel_locks):
             check()
             if len(self._graph) == 0:
                 was_empty = True
@@ -184,7 +186,7 @@ class Flow(flow.Flow):
 
         # All locks must be acquired so that modifications can not be made
         # while running, cancelling or performing a simultaneous mutation.
-        with utils.MultiLock(self._core_locks):
+        with threading_utils.MultiLock(self._core_locks):
             check()
             runner = ThreadRunner(task, self, timeout)
             self._graph.add_node(runner, infer=infer)
@@ -236,7 +238,7 @@ class Flow(flow.Flow):
 
         # All locks must be acquired so that modifications can not be made
         # while running, cancelling or performing a simultaneous mutation.
-        with utils.MultiLock(self._core_locks):
+        with threading_utils.MultiLock(self._core_locks):
             check()
             added = []
             for t in tasks:
@@ -271,7 +273,7 @@ class Flow(flow.Flow):
 
         # All locks must be acquired so that modifications can not be made
         # while running, cancelling or performing a simultaneous mutation.
-        with utils.MultiLock(self._core_locks):
+        with threading_utils.MultiLock(self._core_locks):
             (provider, consumer) = check_and_fetch()
             self._graph.add_edge(provider, consumer, reason='manual')
             LOG.debug("Connecting %s as a manual provider for %s",
@@ -332,7 +334,7 @@ class Flow(flow.Flow):
                 for r in self._graph.nodes_iter():
                     r.reset()
                     r._result_cb = result_cb
-                executor = utils.ThreadGroupExecutor()
+                executor = threading_utils.ThreadGroupExecutor()
                 for r in self._graph.nodes_iter():
                     executor.submit(r, *args, **kwargs)
                 executor.await_termination()
@@ -342,7 +344,7 @@ class Flow(flow.Flow):
                 return
             causes = []
             for r in failures:
-                causes.append(utils.FlowFailure(r, self))
+                causes.append(flow_utils.FlowFailure(r, self))
             try:
                 self.rollback(context, causes)
             except exc.InvalidStateException:
@@ -396,7 +398,7 @@ class Flow(flow.Flow):
         # mutation lock to stop simultaneous running and simultaneous mutating
         # which are not allowed on a running flow. Allow simultaneous cancel
         # by performing repeated state checking while running.
-        with utils.MultiLock(self._run_locks):
+        with threading_utils.MultiLock(self._run_locks):
             check()
             connect_and_verify()
             try:
@@ -418,13 +420,13 @@ class Flow(flow.Flow):
         # All locks must be acquired so that modifications can not be made
         # while another entity is running, rolling-back, cancelling or
         # performing a mutation operation.
-        with utils.MultiLock(self._core_locks):
+        with threading_utils.MultiLock(self._core_locks):
             check()
-            accum = utils.RollbackAccumulator()
+            accum = flow_utils.RollbackAccumulator()
             for r in self._graph.nodes_iter():
                 if r.has_ran():
-                    accum.add(utils.Rollback(context, r,
-                                             self, self.task_notifier))
+                    accum.add(flow_utils.Rollback(context, r,
+                                                  self, self.task_notifier))
             try:
                 self._change_state(context, states.REVERTING)
                 accum.rollback(cause)
@@ -432,7 +434,7 @@ class Flow(flow.Flow):
                 self._change_state(context, states.FAILURE)
 
 
-class ThreadRunner(utils.Runner):
+class ThreadRunner(flow_utils.Runner):
     """A helper class that will use a countdown latch to avoid calling its
     callable object until said countdown latch has emptied. After it has
     been emptied the predecessor tasks will be examined for dependent results
@@ -465,7 +467,7 @@ class ThreadRunner(utils.Runner):
         # simultaneously for a given flow.
         self._state_lock = flow._state_lock
         self._cancel_lock = threading.RLock()
-        self._latch = utils.CountDownLatch()
+        self._latch = threading_utils.CountDownLatch()
         # Any related family.
         self._predecessors = []
         self._successors = []

@@ -2,8 +2,7 @@
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-#    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
-#    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
+#    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -19,231 +18,16 @@
 
 import collections
 import copy
-import inspect
 import logging
-import threading
-import time
-import types
 import weakref
-
-import threading2
-
-from distutils import version
 
 from taskflow.openstack.common import uuidutils
 from taskflow import states
+from taskflow import utils
+from taskflow.utils import misc
 
-TASK_FACTORY_ATTRIBUTE = '_TaskFlow_task_factory'
+
 LOG = logging.getLogger(__name__)
-
-
-def await(check_functor, timeout=None):
-    if timeout is not None:
-        end_time = time.time() + max(0, timeout)
-    else:
-        end_time = None
-    # Use the same/similar scheme that the python condition class uses.
-    delay = 0.0005
-    while not check_functor():
-        time.sleep(delay)
-        if end_time is not None:
-            remaining = end_time - time.time()
-            if remaining <= 0:
-                return False
-            delay = min(delay * 2, remaining, 0.05)
-        else:
-            delay = min(delay * 2, 0.05)
-    return True
-
-
-def get_callable_name(function):
-    """Generate a name from callable
-
-    Tries to do the best to guess fully qualified callable name.
-    """
-    im_class = getattr(function, 'im_class', None)
-    if im_class is not None:
-        if im_class is type:
-            # this is bound class method
-            im_class = function.im_self
-        parts = (im_class.__module__, im_class.__name__,
-                 function.__name__)
-    elif isinstance(function, types.FunctionType):
-        parts = (function.__module__, function.__name__)
-    else:
-        im_class = type(function)
-        if im_class is type:
-            im_class = function
-        parts = (im_class.__module__, im_class.__name__)
-    return '.'.join(parts)
-
-
-def is_bound_method(method):
-    return getattr(method, 'im_self', None) is not None
-
-
-def get_required_callable_args(function):
-    """Get names of argument required by callable"""
-
-    if isinstance(function, type):
-        bound = True
-        function = function.__init__
-    elif isinstance(function, (types.FunctionType, types.MethodType)):
-        bound = is_bound_method(function)
-        function = getattr(function, '__wrapped__', function)
-    else:
-        function = function.__call__
-        bound = is_bound_method(function)
-
-    argspec = inspect.getargspec(function)
-    f_args = argspec.args
-    if argspec.defaults:
-        f_args = f_args[:-len(argspec.defaults)]
-    if bound:
-        f_args = f_args[1:]
-    return f_args
-
-
-def get_task_version(task):
-    """Gets a tasks *string* version, whether it is a task object/function."""
-    task_version = getattr(task, 'version')
-    if isinstance(task_version, (list, tuple)):
-        task_version = '.'.join(str(item) for item in task_version)
-    if task_version is not None and not isinstance(task_version, basestring):
-        task_version = str(task_version)
-    return task_version
-
-
-def is_version_compatible(version_1, version_2):
-    """Checks for major version compatibility of two *string" versions."""
-    try:
-        version_1_tmp = version.StrictVersion(version_1)
-        version_2_tmp = version.StrictVersion(version_2)
-    except ValueError:
-        version_1_tmp = version.LooseVersion(version_1)
-        version_2_tmp = version.LooseVersion(version_2)
-    version_1 = version_1_tmp
-    version_2 = version_2_tmp
-    if version_1 == version_2 or version_1.version[0] == version_2.version[0]:
-        return True
-    return False
-
-
-class MultiLock(object):
-    """A class which can attempt to obtain many locks at once and release
-    said locks when exiting.
-
-    Useful as a context manager around many locks (instead of having to nest
-    said individual context managers).
-    """
-
-    def __init__(self, locks):
-        assert len(locks) > 0, "Zero locks requested"
-        self._locks = locks
-        self._locked = [False] * len(locks)
-
-    def __enter__(self):
-
-        def is_locked(lock):
-            # NOTE(harlowja): the threading2 lock doesn't seem to have this
-            # attribute, so thats why we are checking it existing first.
-            if hasattr(lock, 'locked'):
-                return lock.locked()
-            return False
-
-        for i in xrange(0, len(self._locked)):
-            if self._locked[i] or is_locked(self._locks[i]):
-                raise threading.ThreadError("Lock %s not previously released"
-                                            % (i + 1))
-            self._locked[i] = False
-        for (i, lock) in enumerate(self._locks):
-            self._locked[i] = lock.acquire()
-
-    def __exit__(self, type, value, traceback):
-        for (i, locked) in enumerate(self._locked):
-            try:
-                if locked:
-                    self._locks[i].release()
-                    self._locked[i] = False
-            except threading.ThreadError:
-                LOG.exception("Unable to release lock %s", i + 1)
-
-
-class CountDownLatch(object):
-    """Similar in concept to the java count down latch."""
-
-    def __init__(self, count=0):
-        self.count = count
-        self.lock = threading.Condition()
-
-    def countDown(self):
-        with self.lock:
-            self.count -= 1
-            if self.count <= 0:
-                self.lock.notifyAll()
-
-    def await(self, timeout=None):
-        end_time = None
-        if timeout is not None:
-            timeout = max(0, timeout)
-            end_time = time.time() + timeout
-        time_up = False
-        with self.lock:
-            while True:
-                # Stop waiting on these 2 conditions.
-                if time_up or self.count <= 0:
-                    break
-                # Was this a spurious wakeup or did we really end??
-                self.lock.wait(timeout=timeout)
-                if end_time is not None:
-                    if time.time() >= end_time:
-                        time_up = True
-                    else:
-                        # Reduce the timeout so that we don't wait extra time
-                        # over what we initially were requested to.
-                        timeout = end_time - time.time()
-            return self.count <= 0
-
-
-class LastFedIter(object):
-    """An iterator which yields back the first item and then yields back
-    results from the provided iterator.
-    """
-
-    def __init__(self, first, rest_itr):
-        self.first = first
-        self.rest_itr = rest_itr
-
-    def __iter__(self):
-        yield self.first
-        for i in self.rest_itr:
-            yield i
-
-
-class ThreadGroupExecutor(object):
-    """A simple thread executor that spins up new threads (or greenthreads) for
-    each task to be completed (no pool limit is enforced).
-
-    TODO(harlowja): Likely if we use the more advanced executors that come with
-    the concurrent.futures library we can just get rid of this.
-    """
-
-    def __init__(self, daemonize=True):
-        self._threads = []
-        self._group = threading2.ThreadGroup()
-        self._daemonize = daemonize
-
-    def submit(self, fn, *args, **kwargs):
-        t = threading2.Thread(target=fn, group=self._group,
-                              args=args, kwargs=kwargs)
-        t.daemon = self._daemonize
-        self._threads.append(t)
-        t.start()
-
-    def await_termination(self, timeout=None):
-        if not self._threads:
-            return
-        return self._group.join(timeout)
 
 
 class FlowFailure(object):
@@ -271,7 +55,7 @@ class Runner(object):
     """
 
     def __init__(self, task, uuid=None):
-        task_factory = getattr(task, TASK_FACTORY_ATTRIBUTE, None)
+        task_factory = getattr(task, utils.TASK_FACTORY_ATTRIBUTE, None)
         if task_factory:
             self.task = task_factory(task)
         else:
@@ -306,7 +90,7 @@ class Runner(object):
 
     @property
     def version(self):
-        return get_task_version(self.task)
+        return misc.get_task_version(self.task)
 
     @property
     def name(self):
