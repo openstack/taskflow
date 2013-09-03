@@ -20,8 +20,6 @@
 import celery
 import logging
 
-from taskflow import logbook
-
 
 LOG = logging.getLogger(__name__)
 
@@ -40,7 +38,6 @@ class Flow(object):
         self.name = name
         self.root = None
         self._tasks = []
-        logbook.add_workflow(name)
 
     def chain_listeners(self, context, initial_task, callback_task):
         """Register one listener for a task."""
