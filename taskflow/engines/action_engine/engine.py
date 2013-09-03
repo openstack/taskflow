@@ -23,6 +23,7 @@ from taskflow.engines.action_engine import task_action
 
 from taskflow import blocks
 from taskflow import states
+from taskflow import storage
 
 
 class ActionEngine(object):
@@ -34,6 +35,7 @@ class ActionEngine(object):
     def __init__(self, flow, action_map):
         self._action_map = action_map
         self._root = self._to_action(flow)
+        self.storage = storage.Storage()
 
     def _to_action(self, pattern):
         try:

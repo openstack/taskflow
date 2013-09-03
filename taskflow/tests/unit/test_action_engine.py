@@ -34,7 +34,8 @@ class TestTask(task.Task):
         return 5
 
     def revert(self, **kwargs):
-        self.values.append(self.name + ' reverted')
+        self.values.append(self.name + ' reverted(%s)'
+                           % kwargs.get('result'))
 
 
 class FailingTask(TestTask):
@@ -71,8 +72,10 @@ class EngineTaskTest(EngineTestBase):
 
     def test_run_task_as_flow(self):
         flow = blocks.Task(TestTask(self.values, name='task1'))
-        self._make_engine(flow).run()
+        engine = self._make_engine(flow)
+        engine.run()
         self.assertEquals(self.values, ['task1'])
+        self.assertEquals(engine.storage.get(flow.uuid), 5)
 
     def test_invalid_block_raises(self):
         value = 'i am string, not block, sorry'
@@ -124,7 +127,8 @@ class EngineLinearFlowTest(EngineTestBase):
             blocks.Task(NeverRunningTask)
         )
         self._make_engine(flow).run()
-        self.assertEquals(self.values, ['fail reverted'])
+        self.assertEquals(self.values,
+                          ['fail reverted(Failure: RuntimeError: Woot!)'])
 
     def test_correctly_reverts_children(self):
         flow = blocks.LinearFlow().add(
@@ -136,9 +140,10 @@ class EngineLinearFlowTest(EngineTestBase):
         )
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEquals(self.values, ['task1', 'task2',
-                                        'fail reverted',
-                                        'task2 reverted', 'task1 reverted'])
+        self.assertEquals(self.values,
+                          ['task1', 'task2',
+                           'fail reverted(Failure: RuntimeError: Woot!)',
+                           'task2 reverted(5)', 'task1 reverted(5)'])
 
 
 class SingleThreadedEngineTest(EngineTaskTest,

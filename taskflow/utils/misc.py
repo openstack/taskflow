@@ -18,6 +18,7 @@
 #    under the License.
 
 from distutils import version
+import sys
 
 
 def get_task_version(task):
@@ -58,3 +59,33 @@ class LastFedIter(object):
         yield self.first
         for i in self.rest_itr:
             yield i
+
+
+class Failure(object):
+    """Indicates failure"""
+    # NOTE(imelnikov): flow_utils.FlowFailure uses runner, but
+    #   engine code does not, so we need separate class
+
+    def __init__(self, exc_info=None):
+        if exc_info is not None:
+            self._exc_info = exc_info
+        else:
+            self._exc_info = sys.exc_info()
+
+    @property
+    def exc_info(self):
+        return self._exc_info
+
+    @property
+    def exc(self):
+        return self._exc_info[1]
+
+    def reraise(self):
+        raise self.exc_info[0], self.exc_info[1], self.exc_info[2]
+
+    def __str__(self):
+        try:
+            exc_name = self.exc_info[0].__name__
+        except AttributeError:
+            exc_name = str(self.exc_info)
+        return 'Failure: %s: %s' % (exc_name, self.exc_info[1])

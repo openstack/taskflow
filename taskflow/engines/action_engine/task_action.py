@@ -18,8 +18,7 @@
 
 from taskflow.engines.action_engine import base_action as base
 from taskflow import states
-
-import sys
+from taskflow.utils import misc
 
 
 class TaskAction(base.Action):
@@ -28,6 +27,7 @@ class TaskAction(base.Action):
         self._task = block.task
         if isinstance(self._task, type):
             self._task = self._task()
+        self._id = block.uuid
         self.state = states.PENDING
 
     def execute(self, engine):
@@ -35,10 +35,12 @@ class TaskAction(base.Action):
         self.state = states.RUNNING
         try:
             # TODO(imelnikov): pass only necessary args to task
-            self._task.execute()
+            result = self._task.execute()
         except Exception:
-            # TODO(imelnikov): save exception information
-            print sys.exc_info()
+            result = misc.Failure()
+
+        engine.storage.save(self._id, result)
+        if isinstance(result, misc.Failure):
             self.state = states.FAILURE
         else:
             self.state = states.SUCCESS
@@ -51,9 +53,10 @@ class TaskAction(base.Action):
             #  task a chance for cleanup
             return
         try:
-            self._task.revert()
+            self._task.revert(result=engine.storage.get(self._id))
         except Exception:
             self.state = states.FAILURE
             raise
         else:
+            engine.storage.reset(self._id)
             self.state = states.PENDING
