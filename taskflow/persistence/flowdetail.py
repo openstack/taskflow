@@ -58,6 +58,12 @@ class FlowDetail(object):
                 return self_td
         return None
 
+    def find_by_name(self, td_name):
+        for self_td in self:
+            if self_td.name == td_name:
+                return self_td
+        return None
+
     def save(self):
         """Saves *most* of the components of this given object.
 

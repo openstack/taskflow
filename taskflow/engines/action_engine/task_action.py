@@ -17,46 +17,75 @@
 #    under the License.
 
 from taskflow.engines.action_engine import base_action as base
+from taskflow import exceptions
+from taskflow.openstack.common import excutils
+from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow.utils import misc
 
 
 class TaskAction(base.Action):
 
-    def __init__(self, block, _to_action):
+    def __init__(self, block, engine):
         self._task = block.task
-        if isinstance(self._task, type):
-            self._task = self._task()
-        self._id = block.uuid
-        self.state = states.PENDING
+        self._result_mapping = block.result_mapping
+        self._args_mapping = block.args_mapping
+        try:
+            self._id = engine.storage.get_uuid_by_name(self._task.name)
+        except exceptions.NotFound:
+            self._id = uuidutils.generate_uuid()
+            engine.storage.add_task(task_name=self.name, uuid=self.uuid)
+        engine.storage.set_result_mapping(self.uuid, self._result_mapping)
+
+    @property
+    def name(self):
+        return self._task.name
+
+    @property
+    def uuid(self):
+        return self._id
+
+    def _change_state(self, engine, state):
+        """Check and update state of task."""
+        engine.storage.set_task_state(self.uuid, state)
+        engine.on_task_state_change(self, state)
+
+    def _update_result(self, engine, state, result=None):
+        """Update result and change state."""
+        if state == states.PENDING:
+            engine.storage.reset(self.uuid)
+        else:
+            engine.storage.save(self.uuid, result, state)
+        engine.on_task_state_change(self, state, result)
 
     def execute(self, engine):
-        # TODO(imelnikov): notifications
-        self.state = states.RUNNING
-        try:
-            # TODO(imelnikov): pass only necessary args to task
-            result = self._task.execute()
-        except Exception:
-            result = misc.Failure()
+        if engine.storage.get_task_state(self.uuid) == states.SUCCESS:
+            return
+        kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
 
-        engine.storage.save(self._id, result)
-        if isinstance(result, misc.Failure):
-            self.state = states.FAILURE
+        self._change_state(engine, states.RUNNING)
+        try:
+            result = self._task.execute(**kwargs)
+        except Exception:
+            failure = misc.Failure()
+            self._update_result(engine, states.FAILURE, failure)
+            failure.reraise()
         else:
-            self.state = states.SUCCESS
-        return self.state
+            self._update_result(engine, states.SUCCESS, result)
 
     def revert(self, engine):
-        if self.state == states.PENDING:  # pragma: no cover
+        if engine.storage.get_task_state(self.uuid) == states.PENDING:
             # NOTE(imelnikov): in all the other states, the task
             #  execution was at least attempted, so we should give
             #  task a chance for cleanup
             return
+        kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
+        self._change_state(engine, states.REVERTING)
         try:
-            self._task.revert(result=engine.storage.get(self._id))
+            self._task.revert(result=engine.storage.get(self._id),
+                              **kwargs)
         except Exception:
-            self.state = states.FAILURE
-            raise
+            with excutils.save_and_reraise_exception():
+                self._change_state(engine, states.FAILURE)
         else:
-            engine.storage.reset(self._id)
-            self.state = states.PENDING
+            self._update_result(engine, states.PENDING)

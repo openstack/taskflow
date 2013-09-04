@@ -54,7 +54,7 @@ class BaseTask(object):
         return "%s==%s" % (self.name, misc.get_task_version(self))
 
     @abc.abstractmethod
-    def execute(self, context, *args, **kwargs):
+    def execute(self, *args, **kwargs):
         """Activate a given task which will perform some operation and return.
 
            This method can be used to apply some given context and given set
@@ -63,7 +63,7 @@ class BaseTask(object):
            back into this task if reverting is triggered.
         """
 
-    def revert(self, context, result, cause):
+    def revert(self, *args, **kwargs):
         """Revert this task using the given context, result that the apply
            provided as well as any information which may have caused
            said reversion.

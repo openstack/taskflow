@@ -17,27 +17,17 @@
 #    under the License.
 
 from taskflow.engines.action_engine import base_action as base
-from taskflow import states
 
 
 class SequentialAction(base.Action):
 
-    def __init__(self, pattern, to_action):
-        self._history = []
-        self._actions = [to_action(pat) for pat in pattern.children]
+    def __init__(self, pattern, engine):
+        self._actions = [engine.to_action(pat) for pat in pattern.children]
 
     def execute(self, engine):
-        state = states.SUCCESS
         for action in self._actions:
-            #TODO(imelnikov): save history to storage
-            self._history.append(action)
-            state = action.execute(engine)
-            if state != states.SUCCESS:
-                break
-        return state
+            action.execute(engine)  # raises on failure
 
     def revert(self, engine):
-        while self._history:
-            action = self._history[-1]
+        for action in reversed(self._actions):
             action.revert(engine)
-            self._history.pop()
