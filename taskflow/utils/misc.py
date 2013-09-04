@@ -18,7 +18,14 @@
 #    under the License.
 
 from distutils import version
+
+import collections
+import copy
+import logging
 import sys
+
+
+LOG = logging.getLogger(__name__)
 
 
 def get_task_version(task):
@@ -44,6 +51,64 @@ def is_version_compatible(version_1, version_2):
     if version_1 == version_2 or version_1.version[0] == version_2.version[0]:
         return True
     return False
+
+
+class TransitionNotifier(object):
+    """A utility helper class that can be used to subscribe to
+    notifications of events occuring as well as allow a entity to post said
+    notifications to subscribers.
+    """
+
+    RESERVED_KEYS = ('details',)
+    ANY = '*'
+
+    def __init__(self):
+        self._listeners = collections.defaultdict(list)
+
+    def reset(self):
+        self._listeners = collections.defaultdict(list)
+
+    def notify(self, state, details):
+        listeners = list(self._listeners.get(self.ANY, []))
+        for i in self._listeners[state]:
+            if i not in listeners:
+                listeners.append(i)
+        if not listeners:
+            return
+        for (callback, args, kwargs) in listeners:
+            if args is None:
+                args = []
+            if kwargs is None:
+                kwargs = {}
+            kwargs['details'] = details
+            try:
+                callback(state, *args, **kwargs)
+            except Exception:
+                LOG.exception(("Failure calling callback %s to notify about"
+                               " state transition %s"), callback, state)
+
+    def register(self, state, callback, args=None, kwargs=None):
+        assert isinstance(callback, collections.Callable)
+        for i, (cb, args, kwargs) in enumerate(self._listeners.get(state, [])):
+            if cb is callback:
+                raise ValueError("Callback %s already registered" % (callback))
+        if kwargs:
+            for k in self.RESERVED_KEYS:
+                if k in kwargs:
+                    raise KeyError(("Reserved key '%s' not allowed in "
+                                    "kwargs") % k)
+            kwargs = copy.copy(kwargs)
+        if args:
+            args = copy.copy(args)
+        self._listeners[state].append((callback, args, kwargs))
+
+    def deregister(self, state, callback):
+        if state not in self._listeners:
+            return
+        for i, (cb, args, kwargs) in enumerate(self._listeners[state]):
+            if cb is callback:
+                self._listeners[state].pop(i)
+                break
 
 
 class LastFedIter(object):

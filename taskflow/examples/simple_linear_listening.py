@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
                                 os.pardir))
 
 from taskflow import decorators
+from taskflow.engines.action_engine import engine as eng
 from taskflow.patterns import linear_flow as lf
 
 
@@ -26,31 +27,25 @@ def call_joe(context):
 
 @decorators.task
 def flow_watch(state, details):
-    flow = details['flow']
-    old_state = details['old_state']
-    context = details['context']
-    print('Flow "%s": %s => %s' % (flow.name, old_state, flow.state))
-    print('Flow "%s": context=%s' % (flow.name, context))
+    print('Flow => %s' % state)
 
 
 @decorators.task
 def task_watch(state, details):
-    flow = details['flow']
-    runner = details['runner']
-    context = details['context']
-    print('Flow "%s": runner "%s"' % (flow.name, runner.name))
-    print('Flow "%s": context=%s' % (flow.name, context))
+    print('Task %s => %s' % (details.get('task_name'), state))
 
 
 flow = lf.Flow("Call-them")
 flow.add(call_jim)
 flow.add(call_joe)
-flow.notifier.register('*', flow_watch)
-flow.task_notifier.register('*', task_watch)
 
+engine = eng.SingleThreadedActionEngine(flow)
+engine.notifier.register('*', flow_watch)
+engine.task_notifier.register('*', task_watch)
 
 context = {
     "joe_number": 444,
     "jim_number": 555,
 }
-flow.run(context)
+engine.storage.inject({'context': context})
+engine.run()

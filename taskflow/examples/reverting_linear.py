@@ -8,8 +8,8 @@ my_dir_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
                                 os.pardir))
 
-from taskflow import blocks
 from taskflow.engines.action_engine import engine as eng
+from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
 
@@ -38,9 +38,11 @@ class CallSuzzie(task.Task):
         pass
 
 
-flow = blocks.LinearFlow().add(blocks.Task(CallJim),
-                               blocks.Task(CallJoe),
-                               blocks.Task(CallSuzzie))
+flow = lf.Flow('simple-linear').add(
+    CallJim(),
+    CallJoe(),
+    CallSuzzie()
+)
 engine = eng.SingleThreadedActionEngine(flow)
 
 engine.storage.inject({

@@ -5,6 +5,10 @@ import sys
 import time
 import uuid
 
+print('GraphFlow is under refactoring now, so this example '
+      'is temporarily broken')
+sys.exit(0)
+
 logging.basicConfig(level=logging.ERROR)
 
 my_dir_path = os.path.dirname(os.path.abspath(__file__))

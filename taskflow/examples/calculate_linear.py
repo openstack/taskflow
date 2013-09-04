@@ -8,8 +8,8 @@ my_dir_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
                                 os.pardir))
 
-from taskflow import blocks
 from taskflow.engines.action_engine import engine as eng
+from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
 
@@ -23,8 +23,8 @@ from taskflow import task
 
 class Provider(task.Task):
 
-    def __init__(self, name, *args):
-        super(Provider, self).__init__(name)
+    def __init__(self, name, *args, **kwargs):
+        super(Provider, self).__init__(name=name, **kwargs)
         self._provide = args
 
     def execute(self):
@@ -33,31 +33,34 @@ class Provider(task.Task):
 
 class Adder(task.Task):
 
-    def __init__(self, name):
-        super(Adder, self).__init__(name)
+    def __init__(self, name, provides=None, rebind=None):
+        super(Adder, self).__init__(name=name, provides=provides,
+                                    rebind=rebind)
 
     def execute(self, x, y):
         return x + y
 
 
 class Multiplier(task.Task):
-    def __init__(self, name, multiplier):
-        super(Multiplier, self).__init__(name)
+    def __init__(self, name, multiplier, provides=None, rebind=None):
+        super(Multiplier, self).__init__(name=name, provides=provides,
+                                         rebind=rebind)
         self._multiplier = multiplier
 
     def execute(self, z):
         return z * self._multiplier
 
 
-flow = blocks.LinearFlow().add(
+flow = lf.Flow('root').add(
     # x = 2, y = 3, d = 5
-    blocks.Task(Provider("provide-adder", 2, 3, 5), save_as=('x', 'y', 'd')),
+    Provider("provide-adder", 2, 3, 5, provides=('x', 'y', 'd')),
     # z = x+y = 5
-    blocks.Task(Adder("add"), save_as='z'),
+    Adder("add-1", provides='z'),
     # a = z+d = 10
-    blocks.Task(Adder("add"), save_as='a', rebind_args=['z', 'd']),
+    Adder("add-2", provides='a', rebind=['z', 'd']),
     # r = a*3 = 30
-    blocks.Task(Multiplier("multi", 3), save_as='r', rebind_args={'z': 'a'}))
+    Multiplier("multi", 3, provides='r', rebind={'z': 'a'})
+)
 
 engine = eng.SingleThreadedActionEngine(flow)
 engine.run()

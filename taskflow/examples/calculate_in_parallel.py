@@ -8,8 +8,9 @@ my_dir_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
                                 os.pardir))
 
-from taskflow import blocks
 from taskflow.engines.action_engine import engine as eng
+from taskflow.patterns import linear_flow as lf
+from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 
 # This examples shows how LinearFlow and ParallelFlow can be used
@@ -20,8 +21,8 @@ from taskflow import task
 
 class Provider(task.Task):
 
-    def __init__(self, name, *args):
-        super(Provider, self).__init__(name)
+    def __init__(self, name, *args, **kwargs):
+        super(Provider, self).__init__(name=name, **kwargs)
         self._provide = args
 
     def execute(self):
@@ -30,24 +31,26 @@ class Provider(task.Task):
 
 class Adder(task.Task):
 
-    def __init__(self, name):
-        super(Adder, self).__init__(name)
+    def __init__(self, name, provides, rebind):
+        super(Adder, self).__init__(name=name, provides=provides,
+                                    rebind=rebind)
 
     def execute(self, x, y):
         return x + y
 
 
-flow = blocks.LinearFlow().add(
+flow = lf.Flow('root').add(
     # x1 = 2, y1 = 3, x2 = 5, x3 = 8
-    blocks.Task(Provider("provide-adder", 2, 3, 5, 8),
-                save_as=('x1', 'y1', 'x2', 'y2')),
-    blocks.ParallelFlow().add(
+    Provider("provide-adder", 2, 3, 5, 8,
+             provides=('x1', 'y1', 'x2', 'y2')),
+    uf.Flow('adders').add(
         # z1 = x1+y1 = 5
-        blocks.Task(Adder("add"), save_as='z1', rebind_args=['x1', 'y1']),
+        Adder(name="add", provides='z1', rebind=['x1', 'y1']),
         # z2 = x2+y2 = 13
-        blocks.Task(Adder("add"), save_as='z2', rebind_args=['x2', 'y2'])),
+        Adder(name="add-2", provides='z2', rebind=['x2', 'y2']),
+    ),
     # r = z1+z2 = 18
-    blocks.Task(Adder("add"), save_as='r', rebind_args=['z1', 'z2']))
+    Adder(name="sum-1", provides='r', rebind=['z1', 'z2']))
 
 engine = eng.MultiThreadedActionEngine(flow)
 engine.run()

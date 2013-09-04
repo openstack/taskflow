@@ -22,8 +22,11 @@ from taskflow.utils import misc
 
 class ParallelAction(base.Action):
 
-    def __init__(self, pattern, engine):
-        self._actions = [engine.to_action(pat) for pat in pattern.children]
+    def __init__(self):
+        self._actions = []
+
+    def add(self, action):
+        self._actions.append(action)
 
     def _map(self, engine, fn):
         pool = engine.thread_pool

@@ -16,55 +16,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import functools
-
 from taskflow import decorators
 from taskflow import test
-from taskflow.utils import flow_utils
 from taskflow.utils import reflection
-
-
-class UtilTest(test.TestCase):
-    def test_rollback_accum(self):
-        context = {}
-
-        def caller(token, e):
-            context[token] = True
-
-        accum = flow_utils.RollbackAccumulator()
-
-        def blowup():
-            for i in range(0, 10):
-                accum.add(functools.partial(caller, i))
-            self.assertEquals(0, len(context))
-            raise Exception
-
-        # Test manual triggering
-        self.assertEquals(0, len(accum))
-        self.assertRaises(Exception, blowup)
-        self.assertEquals(10, len(accum))
-        self.assertEquals(0, len(context))
-        accum.rollback(Exception())
-        self.assertEquals(10, len(context))
-
-        # Test context manager triggering
-        context = {}
-        accum.reset()
-        self.assertEquals(0, len(accum))
-        try:
-            with accum:
-                blowup()
-        except Exception:
-            pass
-        self.assertEquals(10, len(accum))
-        self.assertEquals(10, len(context))
 
 
 def mere_function(a, b):
     pass
 
 
-def function_with_defaults(a, b, optional=None):
+def function_with_defs(a, b, optional=None):
+    pass
+
+
+def function_with_kwargs(a, b, **kwargs):
     pass
 
 
@@ -137,7 +102,7 @@ class GetRequiredCallableArgsTest(test.TestCase):
         self.assertEquals(['a', 'b'], result)
 
     def test_function_with_defaults(self):
-        result = reflection.get_required_callable_args(function_with_defaults)
+        result = reflection.get_required_callable_args(function_with_defs)
         self.assertEquals(['a', 'b'], result)
 
     def test_method(self):
@@ -166,3 +131,14 @@ class GetRequiredCallableArgsTest(test.TestCase):
             pass
         result = reflection.get_required_callable_args(locked_fun)
         self.assertEquals(['x', 'y'], result)
+
+
+class AcceptsKwargsTest(test.TestCase):
+
+    def test_no_kwargs(self):
+        self.assertEquals(
+            reflection.accepts_kwargs(mere_function), False)
+
+    def test_with_kwargs(self):
+        self.assertEquals(
+            reflection.accepts_kwargs(function_with_kwargs), True)

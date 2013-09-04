@@ -46,9 +46,7 @@ def is_bound_method(method):
     return getattr(method, 'im_self', None) is not None
 
 
-def get_required_callable_args(function):
-    """Get names of argument required by callable"""
-
+def _get_arg_spec(function):
     if isinstance(function, type):
         bound = True
         function = function.__init__
@@ -58,11 +56,21 @@ def get_required_callable_args(function):
     else:
         function = function.__call__
         bound = is_bound_method(function)
+    return inspect.getargspec(function), bound
 
-    argspec = inspect.getargspec(function)
+
+def get_required_callable_args(function):
+    """Get names of argument required by callable"""
+    argspec, bound = _get_arg_spec(function)
     f_args = argspec.args
     if argspec.defaults:
         f_args = f_args[:-len(argspec.defaults)]
     if bound:
         f_args = f_args[1:]
     return f_args
+
+
+def accepts_kwargs(function):
+    """Returns True if function accepts kwargs"""
+    argspec, _bound = _get_arg_spec(function)
+    return bool(argspec.keywords)

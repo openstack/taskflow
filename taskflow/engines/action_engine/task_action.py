@@ -26,10 +26,10 @@ from taskflow.utils import misc
 
 class TaskAction(base.Action):
 
-    def __init__(self, block, engine):
-        self._task = block.task
-        self._result_mapping = block.result_mapping
-        self._args_mapping = block.args_mapping
+    def __init__(self, task, engine):
+        self._task = task
+        self._result_mapping = task.provides
+        self._args_mapping = task.requires
         try:
             self._id = engine.storage.get_uuid_by_name(self._task.name)
         except exceptions.NotFound:
@@ -61,10 +61,9 @@ class TaskAction(base.Action):
     def execute(self, engine):
         if engine.storage.get_task_state(self.uuid) == states.SUCCESS:
             return
-        kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
-
-        self._change_state(engine, states.RUNNING)
         try:
+            kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
+            self._change_state(engine, states.RUNNING)
             result = self._task.execute(**kwargs)
         except Exception:
             failure = misc.Failure()
@@ -84,6 +83,7 @@ class TaskAction(base.Action):
         try:
             self._task.revert(result=engine.storage.get(self._id),
                               **kwargs)
+            self._change_state(engine, states.REVERTED)
         except Exception:
             with excutils.save_and_reraise_exception():
                 self._change_state(engine, states.FAILURE)

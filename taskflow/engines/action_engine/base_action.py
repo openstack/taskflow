@@ -21,8 +21,7 @@ import abc
 
 
 class Action(object):
-    """Basic action class
-    """
+    """Base action class"""
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod

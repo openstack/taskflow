@@ -41,26 +41,20 @@ def drain(lst):
 
 class ProvidesRequiresTask(task.Task):
     def __init__(self, name, provides, requires):
-        super(ProvidesRequiresTask, self).__init__(name)
-        self.provides.update(provides)
-        self.requires.update(requires)
+        super(ProvidesRequiresTask, self).__init__(name=name,
+                                                   provides=provides,
+                                                   requires=requires)
 
     def execute(self, context, *args, **kwargs):
-        outs = {
-            KWARGS_KEY: dict(kwargs),
-            ARGS_KEY: list(args),
-        }
         if ORDER_KEY not in context:
             context[ORDER_KEY] = []
         context[ORDER_KEY].append(self.name)
-        for v in self.provides:
-            outs[v] = True
+        outs = []
+        for i in xrange(0, len(self.provides)):
+            outs.append(i)
         return outs
 
 
 class DummyTask(task.Task):
-    def __init__(self, name, task_id=None):
-        super(DummyTask, self).__init__(name, task_id)
-
     def execute(self, context, *args, **kwargs):
         pass

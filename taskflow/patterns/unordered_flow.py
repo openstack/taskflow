@@ -16,32 +16,40 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+
 from taskflow import flow
 
 
 class Flow(flow.Flow):
-    """"Linear Flow pattern.
+    """"Unordered Flow pattern.
 
-    A linear (potentially nested) flow of *tasks/flows* that can be
-    applied in order as one unit and rolled back as one unit using
-    the reverse order that the *tasks/flows* have been applied in.
+    A unordered (potentially nested) flow of *tasks/flows* that can be
+    executed in any order as one unit and rolled back as one unit.
 
-    NOTE(harlowja): Each task in the chain must have requirements which
-    are satisfied by a previous tasks outputs.
+    NOTE(harlowja): Since the flow is unordered there can *not* be any
+    dependency between task inputs and task outputs.
     """
 
     def __init__(self, name, uuid=None):
         super(Flow, self).__init__(name, uuid)
-        self._children = []
+        # A unordered flow is unordered so use a dict that is indexed by
+        # names instead of a list so that people using this flow don't depend
+        # on the ordering.
+        self._children = collections.defaultdict(list)
+        self._count = 0
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
-        self._children.extend(self._extract_item(item) for item in items)
+        for e in [self._extract_item(item) for item in items]:
+            self._children[e.name].append(e)
+            self._count += 1
         return self
 
     def __len__(self):
-        return len(self._children)
+        return self._count
 
     def __iter__(self):
-        for child in self._children:
-            yield child
+        for _n, group in self._children.iteritems():
+            for g in group:
+                yield g

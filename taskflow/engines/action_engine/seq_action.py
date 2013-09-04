@@ -21,8 +21,11 @@ from taskflow.engines.action_engine import base_action as base
 
 class SequentialAction(base.Action):
 
-    def __init__(self, pattern, engine):
-        self._actions = [engine.to_action(pat) for pat in pattern.children]
+    def __init__(self):
+        self._actions = []
+
+    def add(self, action):
+        self._actions.append(action)
 
     def execute(self, engine):
         for action in self._actions:

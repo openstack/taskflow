@@ -19,8 +19,8 @@
 from taskflow import exceptions as exc
 from taskflow import flow
 from taskflow import states
-from taskflow.utils import flow_utils
 from taskflow.utils import graph_utils
+from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
 
@@ -344,7 +344,7 @@ class Flow(flow.Flow):
                 return
             causes = []
             for r in failures:
-                causes.append(flow_utils.FlowFailure(r, self))
+                causes.append(misc.FlowFailure(r, self))
             try:
                 self.rollback(context, causes)
             except exc.InvalidStateException:
@@ -423,11 +423,11 @@ class Flow(flow.Flow):
         # performing a mutation operation.
         with threading_utils.MultiLock(self._core_locks):
             check()
-            accum = flow_utils.RollbackAccumulator()
+            accum = misc.RollbackAccumulator()
             for r in self._graph.nodes_iter():
                 if r.has_ran():
-                    accum.add(flow_utils.Rollback(context, r,
-                                                  self, self.task_notifier))
+                    accum.add(misc.Rollback(context, r,
+                                            self, self.task_notifier))
             try:
                 self._change_state(context, states.REVERTING)
                 accum.rollback(cause)
@@ -435,7 +435,7 @@ class Flow(flow.Flow):
                 self._change_state(context, states.FAILURE)
 
 
-class ThreadRunner(flow_utils.Runner):
+class ThreadRunner(misc.Runner):
     """A helper class that will use a countdown latch to avoid calling its
     callable object until said countdown latch has emptied. After it has
     been emptied the predecessor tasks will be examined for dependent results

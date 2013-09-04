@@ -20,6 +20,14 @@ from taskflow import decorators
 from taskflow.patterns import linear_flow
 from taskflow import test
 
+from taskflow.engines.action_engine import engine as eng
+
+
+def _make_engine(flow):
+    e = eng.SingleThreadedActionEngine(flow)
+    e.compile()
+    return e
+
 
 class WrapableObjectsTest(test.TestCase):
 
@@ -39,12 +47,13 @@ class WrapableObjectsTest(test.TestCase):
             raise RuntimeError('Woot!')
 
         flow = linear_flow.Flow('test')
-        flow.add_many((
+        flow.add(
             run_one,
             run_fail
-        ))
+        )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            flow.run(None)
+            e = _make_engine(flow)
+            e.run()
         self.assertEquals(values, ['one', 'fail', 'revert one'])
 
     def test_simple_method(self):
@@ -66,12 +75,13 @@ class WrapableObjectsTest(test.TestCase):
 
         tasks = MyTasks()
         flow = linear_flow.Flow('test')
-        flow.add_many((
+        flow.add(
             tasks.run_one,
             tasks.run_fail
-        ))
+        )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            flow.run(None)
+            e = _make_engine(flow)
+            e.run()
         self.assertEquals(tasks.values, ['one', 'fail'])
 
     def test_static_method(self):
@@ -91,12 +101,13 @@ class WrapableObjectsTest(test.TestCase):
                 raise RuntimeError('Woot!')
 
         flow = linear_flow.Flow('test')
-        flow.add_many((
+        flow.add(
             MyTasks.run_one,
             MyTasks.run_fail
-        ))
+        )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            flow.run(None)
+            e = _make_engine(flow)
+            e.run()
         self.assertEquals(values, ['one', 'fail'])
 
     def test_class_method(self):
@@ -117,10 +128,11 @@ class WrapableObjectsTest(test.TestCase):
                 raise RuntimeError('Woot!')
 
         flow = linear_flow.Flow('test')
-        flow.add_many((
+        flow.add(
             MyTasks.run_one,
             MyTasks.run_fail
-        ))
+        )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            flow.run(None)
+            e = _make_engine(flow)
+            e.run()
         self.assertEquals(MyTasks.values, ['one', 'fail'])

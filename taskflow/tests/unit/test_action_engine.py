@@ -19,7 +19,9 @@
 from multiprocessing import pool
 import time
 
-from taskflow import blocks
+from taskflow.patterns import linear_flow as lf
+from taskflow.patterns import unordered_flow as uf
+
 from taskflow import exceptions
 from taskflow.persistence import taskdetail
 from taskflow import states
@@ -32,8 +34,10 @@ from taskflow.engines.action_engine import engine as eng
 
 class TestTask(task.Task):
 
-    def __init__(self, values=None, name=None, sleep=None):
-        super(TestTask, self).__init__(name)
+    def __init__(self, values=None, name=None,
+                 sleep=None, provides=None, rebind=None):
+        super(TestTask, self).__init__(name=name, provides=provides,
+                                       rebind=rebind)
         if values is None:
             self.values = []
         else:
@@ -99,8 +103,10 @@ class EngineTestBase(object):
 class EngineTaskTest(EngineTestBase):
 
     def test_run_task_as_flow(self):
-        flow = blocks.Task(TestTask(self.values, name='task1'))
+        flow = lf.Flow('test-1')
+        flow.add(TestTask(self.values, name='task1'))
         engine = self._make_engine(flow)
+        engine.compile()
         engine.run()
         self.assertEquals(self.values, ['task1'])
 
@@ -114,7 +120,7 @@ class EngineTaskTest(EngineTestBase):
         values.append('flow %s' % state)
 
     def test_run_task_with_notifications(self):
-        flow = blocks.Task(TestTask(self.values, name='task1'))
+        flow = TestTask(self.values, name='task1')
         engine = self._make_engine(flow)
         engine.notifier.register('*', self._flow_callback,
                                  kwargs={'values': self.values})
@@ -129,7 +135,7 @@ class EngineTaskTest(EngineTestBase):
                            'flow SUCCESS'])
 
     def test_failing_task_with_notifications(self):
-        flow = blocks.Task(FailingTask(self.values, 'fail'))
+        flow = FailingTask(self.values, 'fail')
         engine = self._make_engine(flow)
         engine.notifier.register('*', self._flow_callback,
                                  kwargs={'values': self.values})
@@ -144,34 +150,34 @@ class EngineTaskTest(EngineTestBase):
                            'flow REVERTING',
                            'fail REVERTING',
                            'fail reverted(Failure: RuntimeError: Woot!)',
+                           'fail REVERTED',
                            'fail PENDING',
-                           'flow REVERTED'])
+                           'flow REVERTED',
+                           'flow FAILURE'])
 
     def test_invalid_block_raises(self):
-        value = 'i am string, not block, sorry'
-        flow = blocks.LinearFlow().add(value)
-        with self.assertRaises(ValueError) as err:
-            self._make_engine(flow)
+        value = 'i am string, not task/flow, sorry'
+        with self.assertRaises(TypeError) as err:
+            engine = self._make_engine(value)
+            engine.compile()
         self.assertIn(value, str(err.exception))
 
     def test_save_as(self):
-        flow = blocks.Task(TestTask(self.values, name='task1'),
-                           save_as='first_data')
+        flow = TestTask(self.values, name='task1', provides='first_data')
         engine = self._make_engine(flow)
         engine.run()
         self.assertEquals(self.values, ['task1'])
         self.assertEquals(engine.storage.fetch_all(), {'first_data': 5})
 
     def test_save_all_in_one(self):
-        flow = blocks.Task(MultiReturnTask, save_as='all_data')
+        flow = MultiReturnTask(provides='all_data')
         engine = self._make_engine(flow)
         engine.run()
         self.assertEquals(engine.storage.fetch_all(),
                           {'all_data': (12, 2, 1)})
 
     def test_save_several_values(self):
-        flow = blocks.Task(MultiReturnTask,
-                           save_as=('badger', 'mushroom', 'snake'))
+        flow = MultiReturnTask(provides=('badger', 'mushroom', 'snake'))
         engine = self._make_engine(flow)
         engine.run()
         self.assertEquals(engine.storage.fetch_all(), {
@@ -182,11 +188,10 @@ class EngineTaskTest(EngineTestBase):
 
     def test_bad_save_as_value(self):
         with self.assertRaises(TypeError):
-            blocks.Task(TestTask(name='task1'),
-                        save_as=object())
+            TestTask(name='task1', provides=object())
 
     def test_arguments_passing(self):
-        flow = blocks.Task(MultiargsTask, save_as='result')
+        flow = MultiargsTask(provides='result')
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'c': 9, 'x': 17})
         engine.run()
@@ -196,7 +201,7 @@ class EngineTaskTest(EngineTestBase):
         })
 
     def test_arguments_missing(self):
-        flow = blocks.Task(MultiargsTask, save_as='result')
+        flow = MultiargsTask(provides='result')
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'x': 17})
         with self.assertRaisesRegexp(exceptions.NotFound,
@@ -204,9 +209,9 @@ class EngineTaskTest(EngineTestBase):
             engine.run()
 
     def test_partial_arguments_mapping(self):
-        flow = blocks.Task(MultiargsTask(name='task1'),
-                           save_as='result',
-                           rebind_args={'b': 'x'})
+        flow = MultiargsTask(name='task1',
+                             provides='result',
+                             rebind={'b': 'x'})
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'c': 9, 'x': 17})
         engine.run()
@@ -216,9 +221,9 @@ class EngineTaskTest(EngineTestBase):
         })
 
     def test_all_arguments_mapping(self):
-        flow = blocks.Task(MultiargsTask(name='task1'),
-                           save_as='result',
-                           rebind_args=['x', 'y', 'z'])
+        flow = MultiargsTask(name='task1',
+                             provides='result',
+                             rebind=['x', 'y', 'z'])
         engine = self._make_engine(flow)
         engine.storage.inject({
             'a': 1, 'b': 2, 'c': 3, 'x': 4, 'y': 5, 'z': 6
@@ -229,17 +234,9 @@ class EngineTaskTest(EngineTestBase):
             'result': 15,
         })
 
-    def test_not_enough_arguments_for_task(self):
-        msg = '^Task task1 takes 3 positional arguments'
-        with self.assertRaisesRegexp(ValueError, msg):
-            blocks.Task(MultiargsTask(name='task1'),
-                        save_as='result',
-                        rebind_args=['x', 'y'])
-
     def test_invalid_argument_name_map(self):
-        flow = blocks.Task(MultiargsTask(name='task1'),
-                           save_as='result',
-                           rebind_args={'b': 'z'})
+        flow = MultiargsTask(name='task1', provides='result',
+                             rebind={'b': 'z'})
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'c': 9, 'x': 17})
         with self.assertRaisesRegexp(exceptions.NotFound,
@@ -247,9 +244,9 @@ class EngineTaskTest(EngineTestBase):
             engine.run()
 
     def test_invalid_argument_name_list(self):
-        flow = blocks.Task(MultiargsTask(name='task1'),
-                           save_as='result',
-                           rebind_args=['a', 'z', 'b'])
+        flow = MultiargsTask(name='task1',
+                             provides='result',
+                             rebind=['a', 'z', 'b'])
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'c': 9, 'x': 17})
         with self.assertRaisesRegexp(exceptions.NotFound,
@@ -258,32 +255,32 @@ class EngineTaskTest(EngineTestBase):
 
     def test_bad_rebind_args_value(self):
         with self.assertRaises(TypeError):
-            blocks.Task(TestTask(name='task1'),
-                        rebind_args=object())
+            TestTask(name='task1',
+                     rebind=object())
 
 
 class EngineLinearFlowTest(EngineTestBase):
 
     def test_sequential_flow_one_task(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(TestTask(self.values, name='task1'))
+        flow = lf.Flow('flow-1').add(
+            TestTask(self.values, name='task1')
         )
         self._make_engine(flow).run()
         self.assertEquals(self.values, ['task1'])
 
     def test_sequential_flow_two_tasks(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(TestTask(self.values, name='task1')),
-            blocks.Task(TestTask(self.values, name='task2'))
+        flow = lf.Flow('flow-2').add(
+            TestTask(self.values, name='task1'),
+            TestTask(self.values, name='task2')
         )
         self._make_engine(flow).run()
         self.assertEquals(self.values, ['task1', 'task2'])
 
     def test_revert_removes_data(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(TestTask, save_as='one'),
-            blocks.Task(MultiReturnTask, save_as=('a', 'b', 'c')),
-            blocks.Task(FailingTask(name='fail'))
+        flow = lf.Flow('revert-removes').add(
+            TestTask(provides='one'),
+            MultiReturnTask(provides=('a', 'b', 'c')),
+            FailingTask(name='fail')
         )
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
@@ -291,28 +288,28 @@ class EngineLinearFlowTest(EngineTestBase):
         self.assertEquals(engine.storage.fetch_all(), {})
 
     def test_sequential_flow_nested_blocks(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(TestTask(self.values, 'task1')),
-            blocks.LinearFlow().add(
-                blocks.Task(TestTask(self.values, 'task2'))
+        flow = lf.Flow('nested-1').add(
+            TestTask(self.values, 'task1'),
+            lf.Flow('inner-1').add(
+                TestTask(self.values, 'task2')
             )
         )
         self._make_engine(flow).run()
         self.assertEquals(self.values, ['task1', 'task2'])
 
     def test_revert_exception_is_reraised(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(NastyTask),
-            blocks.Task(FailingTask(name='fail'))
+        flow = lf.Flow('revert-1').add(
+            NastyTask(),
+            FailingTask(name='fail')
         )
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
             engine.run()
 
     def test_revert_not_run_task_is_not_reverted(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(FailingTask(self.values, 'fail')),
-            blocks.Task(NeverRunningTask)
+        flow = lf.Flow('revert-not-run').add(
+            FailingTask(self.values, 'fail'),
+            NeverRunningTask(),
         )
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
@@ -321,11 +318,11 @@ class EngineLinearFlowTest(EngineTestBase):
                           ['fail reverted(Failure: RuntimeError: Woot!)'])
 
     def test_correctly_reverts_children(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(TestTask(self.values, 'task1')),
-            blocks.LinearFlow().add(
-                blocks.Task(TestTask(self.values, 'task2')),
-                blocks.Task(FailingTask(self.values, 'fail'))
+        flow = lf.Flow('root-1').add(
+            TestTask(self.values, 'task1'),
+            lf.Flow('child-1').add(
+                TestTask(self.values, 'task2'),
+                FailingTask(self.values, 'fail')
             )
         )
         engine = self._make_engine(flow)
@@ -340,16 +337,16 @@ class EngineLinearFlowTest(EngineTestBase):
 class EngineParallelFlowTest(EngineTestBase):
 
     def test_parallel_flow_one_task(self):
-        flow = blocks.ParallelFlow().add(
-            blocks.Task(TestTask(self.values, name='task1', sleep=0.01))
+        flow = uf.Flow('p-1').add(
+            TestTask(self.values, name='task1', sleep=0.01)
         )
         self._make_engine(flow).run()
         self.assertEquals(self.values, ['task1'])
 
     def test_parallel_flow_two_tasks(self):
-        flow = blocks.ParallelFlow().add(
-            blocks.Task(TestTask(self.values, name='task1', sleep=0.01)),
-            blocks.Task(TestTask(self.values, name='task2', sleep=0.01))
+        flow = uf.Flow('p-2').add(
+            TestTask(self.values, name='task1', sleep=0.01),
+            TestTask(self.values, name='task2', sleep=0.01)
         )
         self._make_engine(flow).run()
 
@@ -357,29 +354,29 @@ class EngineParallelFlowTest(EngineTestBase):
         self.assertEquals(result, set(['task1', 'task2']))
 
     def test_parallel_revert_common(self):
-        flow = blocks.ParallelFlow().add(
-            blocks.Task(TestTask(self.values, name='task1')),
-            blocks.Task(FailingTask(self.values, sleep=0.01)),
-            blocks.Task(TestTask(self.values, name='task2'))
+        flow = uf.Flow('p-r-3').add(
+            TestTask(self.values, name='task1'),
+            FailingTask(self.values, sleep=0.01),
+            TestTask(self.values, name='task2')
         )
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
 
     def test_parallel_revert_exception_is_reraised(self):
-        flow = blocks.ParallelFlow().add(
-            blocks.Task(TestTask(self.values, name='task1')),
-            blocks.Task(NastyTask()),
-            blocks.Task(FailingTask(self.values, sleep=0.1))
+        flow = uf.Flow('p-r-r').add(
+            TestTask(self.values, name='task1'),
+            NastyTask(),
+            FailingTask(self.values, sleep=0.1)
         )
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
             engine.run()
 
     def test_sequential_flow_two_tasks_with_resumption(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(TestTask(self.values, name='task1'), save_as='x1'),
-            blocks.Task(TestTask(self.values, name='task2'), save_as='x2')
+        flow = lf.Flow('lf-2-r').add(
+            TestTask(self.values, name='task1', provides='x1'),
+            TestTask(self.values, name='task2', provides='x2')
         )
 
         # Create FlowDetail as if we already run task1
@@ -425,17 +422,17 @@ class MultiThreadedEngineTest(EngineTaskTest,
                                              thread_pool=self.thread_pool)
 
     def test_using_common_pool(self):
-        flow = blocks.Task(TestTask(self.values, name='task1'))
+        flow = TestTask(self.values, name='task1')
         thread_pool = pool.ThreadPool()
         e1 = eng.MultiThreadedActionEngine(flow, thread_pool=thread_pool)
         e2 = eng.MultiThreadedActionEngine(flow, thread_pool=thread_pool)
         self.assertIs(e1.thread_pool, e2.thread_pool)
 
     def test_parallel_revert_specific(self):
-        flow = blocks.ParallelFlow().add(
-            blocks.Task(TestTask(self.values, name='task1', sleep=0.01)),
-            blocks.Task(FailingTask(sleep=0.01)),
-            blocks.Task(TestTask(self.values, name='task2', sleep=0.01))
+        flow = uf.Flow('p-r-r').add(
+            TestTask(self.values, name='task1', sleep=0.01),
+            FailingTask(sleep=0.01),
+            TestTask(self.values, name='task2', sleep=0.01)
         )
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
@@ -446,11 +443,11 @@ class MultiThreadedEngineTest(EngineTaskTest,
                                'task2 reverted(5)', 'task1 reverted(5)']))
 
     def test_parallel_revert_exception_is_reraised_(self):
-        flow = blocks.ParallelFlow().add(
-            blocks.Task(TestTask(self.values, name='task1', sleep=0.01)),
-            blocks.Task(NastyTask()),
-            blocks.Task(FailingTask(sleep=0.01)),
-            blocks.Task(TestTask)  # this should not get reverted
+        flow = uf.Flow('p-r-reraise').add(
+            TestTask(self.values, name='task1', sleep=0.01),
+            NastyTask(),
+            FailingTask(sleep=0.01),
+            TestTask()  # this should not get reverted
         )
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
@@ -459,13 +456,13 @@ class MultiThreadedEngineTest(EngineTaskTest,
         self.assertEquals(result, set(['task1', 'task1 reverted(5)']))
 
     def test_nested_parallel_revert_exception_is_reraised(self):
-        flow = blocks.ParallelFlow().add(
-            blocks.Task(TestTask(self.values, name='task1')),
-            blocks.Task(TestTask(self.values, name='task2')),
-            blocks.ParallelFlow().add(
-                blocks.Task(TestTask(self.values, name='task3', sleep=0.1)),
-                blocks.Task(NastyTask()),
-                blocks.Task(FailingTask(sleep=0.01))
+        flow = uf.Flow('p-root').add(
+            TestTask(self.values, name='task1'),
+            TestTask(self.values, name='task2'),
+            uf.Flow('p-inner').add(
+                TestTask(self.values, name='task3', sleep=0.1),
+                NastyTask(),
+                FailingTask(sleep=0.01)
             )
         )
         engine = self._make_engine(flow)
@@ -477,13 +474,13 @@ class MultiThreadedEngineTest(EngineTaskTest,
                                        'task3', 'task3 reverted(5)']))
 
     def test_parallel_revert_exception_do_not_revert_linear_tasks(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(TestTask(self.values, name='task1')),
-            blocks.Task(TestTask(self.values, name='task2')),
-            blocks.ParallelFlow().add(
-                blocks.Task(TestTask(self.values, name='task3', sleep=0.1)),
-                blocks.Task(NastyTask()),
-                blocks.Task(FailingTask(sleep=0.01))
+        flow = lf.Flow('l-root').add(
+            TestTask(self.values, name='task1'),
+            TestTask(self.values, name='task2'),
+            uf.Flow('p-inner').add(
+                TestTask(self.values, name='task3', sleep=0.1),
+                NastyTask(),
+                FailingTask(sleep=0.01)
             )
         )
         engine = self._make_engine(flow)
@@ -494,12 +491,12 @@ class MultiThreadedEngineTest(EngineTaskTest,
                                        'task3', 'task3 reverted(5)']))
 
     def test_parallel_nested_to_linear_revert(self):
-        flow = blocks.LinearFlow().add(
-            blocks.Task(TestTask(self.values, name='task1')),
-            blocks.Task(TestTask(self.values, name='task2')),
-            blocks.ParallelFlow().add(
-                blocks.Task(TestTask(self.values, name='task3', sleep=0.1)),
-                blocks.Task(FailingTask(sleep=0.01))
+        flow = lf.Flow('l-root').add(
+            TestTask(self.values, name='task1'),
+            TestTask(self.values, name='task2'),
+            uf.Flow('p-inner').add(
+                TestTask(self.values, name='task3', sleep=0.1),
+                FailingTask(sleep=0.01)
             )
         )
         engine = self._make_engine(flow)
@@ -511,12 +508,12 @@ class MultiThreadedEngineTest(EngineTaskTest,
                                        'task3', 'task3 reverted(5)']))
 
     def test_linear_nested_to_parallel_revert(self):
-        flow = blocks.ParallelFlow().add(
-            blocks.Task(TestTask(self.values, name='task1')),
-            blocks.Task(TestTask(self.values, name='task2')),
-            blocks.LinearFlow().add(
-                blocks.Task(TestTask(self.values, name='task3', sleep=0.1)),
-                blocks.Task(FailingTask(self.values, name='fail', sleep=0.01))
+        flow = uf.Flow('p-root').add(
+            TestTask(self.values, name='task1'),
+            TestTask(self.values, name='task2'),
+            lf.Flow('l-inner').add(
+                TestTask(self.values, name='task3', sleep=0.1),
+                FailingTask(self.values, name='fail', sleep=0.01)
             )
         )
         engine = self._make_engine(flow)
@@ -530,13 +527,13 @@ class MultiThreadedEngineTest(EngineTaskTest,
                                'fail reverted(Failure: RuntimeError: Woot!)']))
 
     def test_linear_nested_to_parallel_revert_exception(self):
-        flow = blocks.ParallelFlow().add(
-            blocks.Task(TestTask(self.values, name='task1', sleep=0.01)),
-            blocks.Task(TestTask(self.values, name='task2', sleep=0.01)),
-            blocks.LinearFlow().add(
-                blocks.Task(TestTask(self.values, name='task3')),
-                blocks.Task(NastyTask()),
-                blocks.Task(FailingTask(sleep=0.01))
+        flow = uf.Flow('p-root').add(
+            TestTask(self.values, name='task1', sleep=0.01),
+            TestTask(self.values, name='task2', sleep=0.01),
+            lf.Flow('l-inner').add(
+                TestTask(self.values, name='task3'),
+                NastyTask(),
+                FailingTask(sleep=0.01)
             )
         )
         engine = self._make_engine(flow)

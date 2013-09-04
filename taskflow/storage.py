@@ -134,8 +134,9 @@ class Storage(object):
         injector_uuid = uuidutils.generate_uuid()
         self.add_task(injector_uuid, self.injector_name)
         self.save(injector_uuid, pairs)
-        self._reverse_mapping.update((name, (injector_uuid, name))
-                                     for name in pairs)
+        for name in pairs.iterkeys():
+            entries = self._reverse_mapping.setdefault(name, [])
+            entries.append((injector_uuid, name))
 
     def set_result_mapping(self, uuid, mapping):
         """Set mapping for naming task results
@@ -149,19 +150,26 @@ class Storage(object):
             return
         self._result_mappings[uuid] = mapping
         for name, index in mapping.iteritems():
-            self._reverse_mapping[name] = (uuid, index)
+            entries = self._reverse_mapping.setdefault(name, [])
+            entries.append((uuid, index))
 
     def fetch(self, name):
         """Fetch named task result"""
         try:
-            uuid, index = self._reverse_mapping[name]
+            indexes = self._reverse_mapping[name]
         except KeyError:
             raise exceptions.NotFound("Name %r is not mapped" % name)
-        result = self.get(uuid)
-        if index is None:
-            return result
-        else:
-            return result[index]
+        # Return the first one that is found.
+        for uuid, index in indexes:
+            try:
+                result = self.get(uuid)
+                if index is None:
+                    return result
+                else:
+                    return result[index]
+            except exceptions.NotFound:
+                pass
+        raise exceptions.NotFound("Unable to find result %r" % name)
 
     def fetch_all(self):
         """Fetch all named task results known so far

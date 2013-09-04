@@ -25,8 +25,8 @@ from networkx import exception as g_exc
 from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow.patterns import linear_flow
-from taskflow.utils import flow_utils
 from taskflow.utils import graph_utils
+from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class Flow(linear_flow.Flow):
         # together later after all nodes have been added since if we try
         # to infer the edges at this stage we likely will fail finding
         # dependencies from nodes that don't exist.
-        r = flow_utils.AOTRunner(task)
+        r = misc.AOTRunner(task)
         self._graph.add_node(r, uuid=r.uuid, infer=infer)
         self._reset_internals()
         return r.uuid

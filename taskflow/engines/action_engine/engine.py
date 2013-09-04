@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
@@ -17,16 +16,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import threading
+
 from multiprocessing import pool
 
 from taskflow.engines.action_engine import parallel_action
 from taskflow.engines.action_engine import seq_action
 from taskflow.engines.action_engine import task_action
 
-from taskflow import blocks
+from taskflow.patterns import linear_flow as lf
+from taskflow.patterns import unordered_flow as uf
+
+from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import storage as t_storage
-from taskflow.utils import flow_utils
+from taskflow import task
+
 from taskflow.utils import misc
 
 
@@ -36,39 +41,43 @@ class ActionEngine(object):
     Converts the flow to recursive structure of actions.
     """
 
-    def __init__(self, flow, action_map, storage):
-        self._action_map = action_map
-        self.notifier = flow_utils.TransitionNotifier()
-        self.task_notifier = flow_utils.TransitionNotifier()
+    def __init__(self, flow, storage):
+        self._failures = []
+        self._root = None
+        self._flow = flow
+        self._run_lock = threading.RLock()
+        self.notifier = misc.TransitionNotifier()
+        self.task_notifier = misc.TransitionNotifier()
         self.storage = storage
-        self.failures = []
-        self._root = self.to_action(flow)
-
-    def to_action(self, pattern):
-        try:
-            factory = self._action_map[type(pattern)]
-        except KeyError:
-            raise ValueError('Action of unknown type: %s (type %s)'
-                             % (pattern, type(pattern)))
-        return factory(pattern, self)
 
     def _revert(self, current_failure):
         self._change_state(states.REVERTING)
         self._root.revert(self)
         self._change_state(states.REVERTED)
-        if self.failures:
-            self.failures[0].reraise()
+        self._change_state(states.FAILURE)
+        if self._failures:
+            if len(self._failures) == 1:
+                self._failures[0].reraise()
+            else:
+                exc_infos = [f.exc_info for f in self._failures]
+                raise exc.LinkedException.link(exc_infos)
         else:
             current_failure.reraise()
 
+    def _reset(self):
+        self._failures = []
+
     def run(self):
-        self._change_state(states.RUNNING)
-        try:
-            self._root.execute(self)
-        except Exception:
-            self._revert(misc.Failure())
-        else:
-            self._change_state(states.SUCCESS)
+        with self._run_lock:
+            self.compile()
+            self._reset()
+            self._change_state(states.RUNNING)
+            try:
+                self._root.execute(self)
+            except Exception:
+                self._revert(misc.Failure())
+            else:
+                self._change_state(states.SUCCESS)
 
     def _change_state(self, state):
         self.storage.set_flow_state(state)
@@ -77,30 +86,89 @@ class ActionEngine(object):
 
     def on_task_state_change(self, task_action, state, result=None):
         if isinstance(result, misc.Failure):
-            self.failures.append(result)
+            self._failures.append(result)
         details = dict(engine=self,
                        task_name=task_action.name,
                        task_uuid=task_action.uuid,
                        result=result)
         self.task_notifier.notify(state, details)
 
+    def compile(self):
+        if self._root is None:
+            translator = self.translator_cls(self)
+            self._root = translator.translate(self._flow)
+
+
+class Translator(object):
+
+    def __init__(self, engine):
+        self.engine = engine
+
+    def _factory_map(self):
+        return []
+
+    def translate(self, pattern):
+        """Translates the pattern into an engine runnable action"""
+        if isinstance(pattern, task.BaseTask):
+            # Wrap the task into something more useful.
+            return task_action.TaskAction(pattern, self.engine)
+
+        # Decompose the flow into something more useful:
+        for cls, factory in self._factory_map():
+            if isinstance(pattern, cls):
+                return factory(pattern)
+
+        raise TypeError('Unknown pattern type: %s (type %s)'
+                        % (pattern, type(pattern)))
+
+
+class SingleThreadedTranslator(Translator):
+
+    def _factory_map(self):
+        return [(lf.Flow, self._translate_sequential),
+                (uf.Flow, self._translate_sequential)]
+
+    def _translate_sequential(self, pattern):
+        action = seq_action.SequentialAction()
+        for p in pattern:
+            action.add(self.translate(p))
+        return action
+
 
 class SingleThreadedActionEngine(ActionEngine):
+    translator_cls = SingleThreadedTranslator
+
     def __init__(self, flow, flow_detail=None):
-        ActionEngine.__init__(self, flow, {
-            blocks.Task: task_action.TaskAction,
-            blocks.LinearFlow: seq_action.SequentialAction,
-            blocks.ParallelFlow: seq_action.SequentialAction
-        }, t_storage.Storage(flow_detail))
+        ActionEngine.__init__(self, flow,
+                              storage=t_storage.Storage(flow_detail))
+
+
+class MultiThreadedTranslator(Translator):
+
+    def _factory_map(self):
+        return [(lf.Flow, self._translate_sequential),
+                # unordered can be run in parallel
+                (uf.Flow, self._translate_parallel)]
+
+    def _translate_sequential(self, pattern):
+        action = seq_action.SequentialAction()
+        for p in pattern:
+            action.add(self.translate(p))
+        return action
+
+    def _translate_parallel(self, pattern):
+        action = parallel_action.ParallelAction()
+        for p in pattern:
+            action.add(self.translate(p))
+        return action
 
 
 class MultiThreadedActionEngine(ActionEngine):
+    translator_cls = MultiThreadedTranslator
+
     def __init__(self, flow, flow_detail=None, thread_pool=None):
-        ActionEngine.__init__(self, flow, {
-            blocks.Task: task_action.TaskAction,
-            blocks.LinearFlow: seq_action.SequentialAction,
-            blocks.ParallelFlow: parallel_action.ParallelAction
-        }, t_storage.ThreadSafeStorage(flow_detail))
+        ActionEngine.__init__(self, flow,
+                              storage=t_storage.ThreadSafeStorage(flow_detail))
         if thread_pool:
             self._thread_pool = thread_pool
         else:

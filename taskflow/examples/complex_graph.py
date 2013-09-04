@@ -1,6 +1,13 @@
+
+
 import logging
 import os
 import sys
+
+
+print('GraphFlow is under refactoring now, so this example '
+      'is temporarily broken')
+sys.exit(0)
 
 logging.basicConfig(level=logging.ERROR)
 
