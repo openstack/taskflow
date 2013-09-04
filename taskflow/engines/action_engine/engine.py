@@ -17,6 +17,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from multiprocessing import pool
+
+from taskflow.engines.action_engine import parallel_action
 from taskflow.engines.action_engine import seq_action
 from taskflow.engines.action_engine import task_action
 
@@ -89,3 +92,20 @@ class SingleThreadedActionEngine(ActionEngine):
             blocks.LinearFlow: seq_action.SequentialAction,
             blocks.ParallelFlow: seq_action.SequentialAction
         }, t_storage.Storage(flow_detail))
+
+
+class MultiThreadedActionEngine(ActionEngine):
+    def __init__(self, flow, flow_detail=None, thread_pool=None):
+        ActionEngine.__init__(self, flow, {
+            blocks.Task: task_action.TaskAction,
+            blocks.LinearFlow: seq_action.SequentialAction,
+            blocks.ParallelFlow: parallel_action.ParallelAction
+        }, t_storage.ThreadSafeStorage(flow_detail))
+        if thread_pool:
+            self._thread_pool = thread_pool
+        else:
+            self._thread_pool = pool.ThreadPool()
+
+    @property
+    def thread_pool(self):
+        return self._thread_pool

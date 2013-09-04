@@ -22,6 +22,7 @@ from taskflow.persistence import flowdetail
 from taskflow.persistence import logbook
 from taskflow.persistence import taskdetail
 from taskflow import states
+from taskflow.utils import threading_utils
 
 
 def temporary_flow_detail():
@@ -188,3 +189,7 @@ class Storage(object):
     def get_flow_state(self):
         """Set state from flowdetails"""
         return self._flowdetail.state
+
+
+class ThreadSafeStorage(Storage):
+    __metaclass__ = threading_utils.ThreadSafeMeta

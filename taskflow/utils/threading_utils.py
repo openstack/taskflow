@@ -20,6 +20,7 @@ import logging
 import threading
 import threading2
 import time
+import types
 
 
 LOG = logging.getLogger(__name__)
@@ -144,3 +145,21 @@ class ThreadGroupExecutor(object):
         if not self._threads:
             return
         return self._group.join(timeout)
+
+
+class ThreadSafeMeta(type):
+    """Metaclass that adds locking to all pubic methods of a class"""
+
+    def __new__(cls, name, bases, attrs):
+        from taskflow import decorators
+        for attr_name, attr_value in attrs.iteritems():
+            if isinstance(attr_value, types.FunctionType):
+                if attr_name[0] != '_':
+                    attrs[attr_name] = decorators.locked(attr_value)
+        return super(ThreadSafeMeta, cls).__new__(cls, name, bases, attrs)
+
+    def __call__(cls, *args, **kwargs):
+        instance = super(ThreadSafeMeta, cls).__call__(*args, **kwargs)
+        if not hasattr(instance, '_lock'):
+            instance._lock = threading.RLock()
+        return instance
