@@ -350,11 +350,12 @@ class Flow(flow.Flow):
             except exc.InvalidStateException:
                 pass
             finally:
-                # TODO(harlowja): re-raise a combined exception when
-                # there are more than one failures??
-                for f in failures:
-                    if all(f.exc_info):
-                        raise f.exc_info[0], f.exc_info[1], f.exc_info[2]
+                if len(failures) > 1:
+                    exc_infos = [f.exc_info for f in failures]
+                    raise exc.LinkedException.link(exc_infos)
+                else:
+                    f = failures[0]
+                    raise f.exc_info[0], f.exc_info[1], f.exc_info[2]
 
         def handle_results():
             # Isolate each runner state into groups so that we can easily tell

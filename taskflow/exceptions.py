@@ -16,6 +16,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import StringIO
+
+import traceback
+
 
 class TaskFlowException(Exception):
     """Base class for exceptions emitted from this library."""
@@ -25,6 +29,33 @@ class TaskFlowException(Exception):
 class Duplicate(TaskFlowException):
     """Raised when a duplicate entry is found."""
     pass
+
+
+class LinkedException(TaskFlowException):
+    """A linked chain of many exceptions."""
+    def __init__(self, message, cause, tb):
+        super(LinkedException, self).__init__(message)
+        self.cause = cause
+        self.tb = tb
+        self.next = None
+
+    @classmethod
+    def link(cls, exc_infos):
+        first = None
+        previous = None
+        for exc_info in exc_infos:
+            if not all(exc_info) or not len(exc_infos) == 3:
+                raise ValueError("Invalid exc_info")
+            buf = StringIO.StringIO()
+            traceback.print_exception(exc_info[0], exc_info[1], exc_info[2],
+                                      file=buf)
+            exc = cls(str(exc_info[1]), exc_info[1], buf.getvalue())
+            if previous is not None:
+                previous.next = exc
+            else:
+                first = exc
+            previous = exc
+        return first
 
 
 class StorageError(TaskFlowException):
