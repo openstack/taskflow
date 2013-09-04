@@ -8,28 +8,35 @@ my_dir_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
                                 os.pardir))
 
-from taskflow import decorators
-from taskflow.patterns import linear_flow as lf
+from taskflow import blocks
+from taskflow.engines.action_engine import engine as eng
+from taskflow import task
 
 
-@decorators.task
-def call_jim(context):
-    print("Calling jim.")
-    print("Context = %s" % (context))
+class CallJim(task.Task):
+
+    def __init__(self):
+        super(CallJim, self).__init__()
+
+    def execute(self, jim_number, *args, **kwargs):
+        print("Calling jim %s." % jim_number)
 
 
-@decorators.task
-def call_joe(context):
-    print("Calling joe.")
-    print("Context = %s" % (context))
+class CallJoe(task.Task):
 
+    def __init__(self):
+        super(CallJoe, self).__init__()
 
-flow = lf.Flow("call-them")
-flow.add(call_jim)
-flow.add(call_joe)
+    def execute(self, joe_number, *args, **kwargs):
+        print("Calling joe %s." % joe_number)
 
-context = {
+flow = blocks.LinearFlow().add(blocks.Task(CallJim),
+                               blocks.Task(CallJoe))
+engine = eng.SingleThreadedActionEngine(flow)
+
+engine.storage.inject({
     "joe_number": 444,
     "jim_number": 555,
-}
-flow.run(context)
+})
+
+engine.run()
