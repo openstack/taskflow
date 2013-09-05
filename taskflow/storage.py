@@ -26,10 +26,7 @@ from taskflow import states
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
-
 LOG = logging.getLogger(__name__)
-
-
 STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
 
 
@@ -214,9 +211,9 @@ class Storage(object):
         injector_uuid = uuidutils.generate_uuid()
         self.add_task(injector_uuid, self.injector_name)
         self.save(injector_uuid, pairs)
-        for name in pairs.iterkeys():
-            entries = self._reverse_mapping.setdefault(name, [])
-            entries.append((injector_uuid, name))
+        self.set_result_mapping(injector_uuid,
+                                dict((name, name)
+                                     for name in pairs.iterkeys()))
 
     def set_result_mapping(self, uuid, mapping):
         """Set mapping for naming task results
@@ -232,6 +229,9 @@ class Storage(object):
         for name, index in mapping.iteritems():
             entries = self._reverse_mapping.setdefault(name, [])
             entries.append((uuid, index))
+            if len(entries) > 1:
+                LOG.warning("Multiple provider mappings being created for %r",
+                            name)
 
     def fetch(self, name):
         """Fetch named task result"""
@@ -240,7 +240,7 @@ class Storage(object):
         except KeyError:
             raise exceptions.NotFound("Name %r is not mapped" % name)
         # Return the first one that is found.
-        for uuid, index in indexes:
+        for uuid, index in reversed(indexes):
             try:
                 result = self.get(uuid)
                 return _item_from_result(result, index, name)
