@@ -78,6 +78,8 @@ def task(*args, **kwargs):
             # NOTE(imelnikov): we can't capture f here because for
             # bound methods and bound class methods the object it
             # is bound to is yet unknown at the moment
+            #
+            # See: http://bit.ly/15Cfbjh
             return base.FunctorTask(execute, **merged)
         w_f = _original_function(f)
         setattr(w_f, utils.TASK_FACTORY_ATTRIBUTE, task_factory)
