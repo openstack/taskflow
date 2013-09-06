@@ -408,18 +408,8 @@ class MultiThreadedEngineTest(EngineTaskTest,
                               EngineParallelFlowTest,
                               test.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.thread_pool = pool.ThreadPool()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.thread_pool.close()
-        cls.thread_pool.join()
-
     def _make_engine(self, flow, flow_detail=None):
-        return eng.MultiThreadedActionEngine(flow, flow_detail=flow_detail,
-                                             thread_pool=self.thread_pool)
+        return eng.MultiThreadedActionEngine(flow, flow_detail=flow_detail)
 
     def test_using_common_pool(self):
         flow = TestTask(self.values, name='task1')

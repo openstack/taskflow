@@ -27,6 +27,7 @@ from taskflow.engines.action_engine import task_action
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 
+from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import storage as t_storage
@@ -45,7 +46,7 @@ class ActionEngine(object):
         self._failures = []
         self._root = None
         self._flow = flow
-        self._run_lock = threading.RLock()
+        self._lock = threading.RLock()
         self.notifier = misc.TransitionNotifier()
         self.task_notifier = misc.TransitionNotifier()
         self.storage = storage
@@ -67,17 +68,17 @@ class ActionEngine(object):
     def _reset(self):
         self._failures = []
 
+    @decorators.locked
     def run(self):
-        with self._run_lock:
-            self.compile()
-            self._reset()
-            self._change_state(states.RUNNING)
-            try:
-                self._root.execute(self)
-            except Exception:
-                self._revert(misc.Failure())
-            else:
-                self._change_state(states.SUCCESS)
+        self.compile()
+        self._reset()
+        self._change_state(states.RUNNING)
+        try:
+            self._root.execute(self)
+        except Exception:
+            self._revert(misc.Failure())
+        else:
+            self._change_state(states.SUCCESS)
 
     def _change_state(self, state):
         self.storage.set_flow_state(state)
@@ -93,6 +94,7 @@ class ActionEngine(object):
                        result=result)
         self.task_notifier.notify(state, details)
 
+    @decorators.locked
     def compile(self):
         if self._root is None:
             translator = self.translator_cls(self)
@@ -171,8 +173,28 @@ class MultiThreadedActionEngine(ActionEngine):
                               storage=t_storage.ThreadSafeStorage(flow_detail))
         if thread_pool:
             self._thread_pool = thread_pool
+            self._owns_thread_pool = False
         else:
+            self._thread_pool = None
+            self._owns_thread_pool = True
+
+    @decorators.locked
+    def compile(self):
+        ActionEngine.compile(self)
+        if self._thread_pool is None:
             self._thread_pool = pool.ThreadPool()
+
+    @decorators.locked
+    def run(self):
+        try:
+            ActionEngine.run(self)
+        finally:
+            # Ensure we close then join on the thread pool to make sure its
+            # resources get cleaned up correctly.
+            if self._owns_thread_pool:
+                self._thread_pool.close()
+                self._thread_pool.join()
+                self._thread_pool = None
 
     @property
     def thread_pool(self):
