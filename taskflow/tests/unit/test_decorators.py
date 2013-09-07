@@ -23,13 +23,11 @@ from taskflow import test
 from taskflow.engines.action_engine import engine as eng
 
 
-def _make_engine(flow):
-    e = eng.SingleThreadedActionEngine(flow)
-    e.compile()
-    return e
-
-
 class WrapableObjectsTest(test.TestCase):
+    def _make_engine(self, flow):
+        e = eng.SingleThreadedActionEngine(flow)
+        e.compile()
+        return e
 
     def test_simple_function(self):
         values = []
@@ -52,7 +50,7 @@ class WrapableObjectsTest(test.TestCase):
             run_fail
         )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            e = _make_engine(flow)
+            e = self._make_engine(flow)
             e.run()
         self.assertEquals(values, ['one', 'fail', 'revert one'])
 
@@ -80,7 +78,7 @@ class WrapableObjectsTest(test.TestCase):
             tasks.run_fail
         )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            e = _make_engine(flow)
+            e = self._make_engine(flow)
             e.run()
         self.assertEquals(tasks.values, ['one', 'fail'])
 
@@ -106,7 +104,7 @@ class WrapableObjectsTest(test.TestCase):
             MyTasks.run_fail
         )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            e = _make_engine(flow)
+            e = self._make_engine(flow)
             e.run()
         self.assertEquals(values, ['one', 'fail'])
 
@@ -133,6 +131,6 @@ class WrapableObjectsTest(test.TestCase):
             MyTasks.run_fail
         )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            e = _make_engine(flow)
+            e = self._make_engine(flow)
             e.run()
         self.assertEquals(MyTasks.values, ['one', 'fail'])

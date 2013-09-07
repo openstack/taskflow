@@ -18,38 +18,12 @@
 
 import unittest2
 
-from oslo.config import cfg
-
-CONF = cfg.CONF
-
 
 class TestCase(unittest2.TestCase):
     """Test case base class for all unit tests."""
 
     def setUp(self):
-        """Run before each test method to initialize test environment."""
         super(TestCase, self).setUp()
-        self.overriden = []
-        self.addCleanup(self._clear_attrs)
 
     def tearDown(self):
         super(TestCase, self).tearDown()
-        self._reset_flags()
-
-    def _reset_flags(self):
-        for k, group in self.overriden:
-            CONF.clear_override(k, group=group)
-
-    def _clear_attrs(self):
-        # Delete attributes that don't start with _ so they don't pin
-        # memory around unnecessarily for the duration of the test
-        # suite
-        for key in [k for k in self.__dict__.keys() if k[0] != '_']:
-            del self.__dict__[key]
-
-    def flags(self, **kw):
-        """Override flag variables for a test."""
-        group = kw.pop('group', None)
-        for k, v in kw.iteritems():
-            CONF.set_override(k, v, group)
-            self.overriden.append((k, group))

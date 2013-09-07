@@ -20,25 +20,25 @@
 
 import os
 
-from oslo.config import cfg
-
-import alembic
-from alembic import config as alembic_config
-
-CONF = cfg.CONF
-CONF.import_opt('connection',
-                'taskflow.openstack.common.db.sqlalchemy.session',
-                group='database')
+from alembic import config as a_config
+from alembic import environment as a_env
+from alembic import script as a_script
 
 
 def _alembic_config():
     path = os.path.join(os.path.dirname(__file__), 'alembic', 'alembic.ini')
-    config = alembic_config.Config(path)
-    if not config.get_main_option('url'):
-        config.set_main_option('sqlalchemy.url', CONF.database.connection)
-    return config
+    return a_config.Config(path)
 
 
-def db_sync():
+def db_sync(connection, revision='head'):
+    script = a_script.ScriptDirectory.from_config(_alembic_config())
+
+    def upgrade(rev, context):
+        return script._upgrade_revs(revision, rev)
+
     config = _alembic_config()
-    alembic.command.upgrade(config, "head")
+    with a_env.EnvironmentContext(config, script, fn=upgrade, as_sql=False,
+                                  starting_rev=None, destination_rev=revision,
+                                  tag=None) as context:
+        context.configure(connection=connection)
+        context.run_migrations()

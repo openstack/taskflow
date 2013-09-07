@@ -19,24 +19,22 @@
 import collections
 
 from taskflow import decorators
+from taskflow.engines.action_engine import engine as eng
 from taskflow import exceptions as exc
+from taskflow.patterns import linear_flow as lw
 from taskflow import states
 from taskflow import test
 
-from taskflow.patterns import linear_flow as lw
 from taskflow.tests import utils
-
-from taskflow.engines.action_engine import engine as eng
-
-
-def _make_engine(flow):
-    e = eng.SingleThreadedActionEngine(flow)
-    e.compile()
-    e.storage.inject([('context', {})])
-    return e
 
 
 class LinearFlowTest(test.TestCase):
+    def _make_engine(self, flow):
+        e = eng.SingleThreadedActionEngine(flow)
+        e.compile()
+        e.storage.inject([('context', {})])
+        return e
+
     def make_reverting_task(self, token, blowup=False):
 
         def do_revert(context, *args, **kwargs):
@@ -67,7 +65,7 @@ class LinearFlowTest(test.TestCase):
         wf = lw.Flow("the-test-action")
         wf.add(do_apply1)
 
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         e.run()
         data = e.storage.fetch_all()
         self.assertIn('a', data)
@@ -92,7 +90,7 @@ class LinearFlowTest(test.TestCase):
         wf.add(do_apply1)
         wf.add(do_apply2)
 
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         e.run()
         self.assertEquals(2, len(e.storage.fetch('context')))
 
@@ -111,7 +109,7 @@ class LinearFlowTest(test.TestCase):
         wf.add(self.make_reverting_task(2, False))
         wf.add(self.make_reverting_task(1, True))
 
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         e.notifier.register('*', listener)
         e.task_notifier.register('*', task_listener)
         self.assertRaises(Exception, e.run)
@@ -148,7 +146,7 @@ class LinearFlowTest(test.TestCase):
         wf = lw.Flow("the-test-action")
         wf.add(self.make_reverting_task(1))
 
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         e.notifier.register('*', listener)
         e.run()
 
@@ -159,7 +157,7 @@ class LinearFlowTest(test.TestCase):
         for i in range(0, 10):
             wf.add(self.make_reverting_task(i))
 
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         capture_func, captured = self._capture_states()
         e.task_notifier.register('*', capture_func)
         e.run()
@@ -189,7 +187,7 @@ class LinearFlowTest(test.TestCase):
         wf.add(self.make_reverting_task(2, True))
 
         capture_func, captured = self._capture_states()
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         e.task_notifier.register('*', capture_func)
 
         self.assertRaises(Exception, e.run)
@@ -225,7 +223,7 @@ class LinearFlowTest(test.TestCase):
         wf = lw.Flow("the-test-action")
         wf.add(task_a)
         wf.add(task_b)
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         self.assertRaises(exc.NotFound, e.run)
 
     def test_flow_bad_order(self):
@@ -239,7 +237,7 @@ class LinearFlowTest(test.TestCase):
         no_req_task = utils.ProvidesRequiresTask('test-2', requires=['c'],
                                                  provides=[])
         wf.add(no_req_task)
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         self.assertRaises(exc.NotFound, e.run)
 
     def test_flow_set_order(self):
@@ -250,7 +248,7 @@ class LinearFlowTest(test.TestCase):
         wf.add(utils.ProvidesRequiresTask('test-2',
                                           requires=set(['a', 'b']),
                                           provides=set([])))
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         e.run()
         run_context = e.storage.fetch('context')
         ordering = run_context[utils.ORDER_KEY]
@@ -283,7 +281,7 @@ class LinearFlowTest(test.TestCase):
                                           requires=['d'],
                                           provides=[]))
 
-        e = _make_engine(wf)
+        e = self._make_engine(wf)
         e.run()
         run_context = e.storage.fetch('context')
         ordering = run_context[utils.ORDER_KEY]

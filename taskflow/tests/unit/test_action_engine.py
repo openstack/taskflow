@@ -16,20 +16,21 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 from multiprocessing import pool
 import time
 
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 
+from taskflow.engines.action_engine import engine as eng
 from taskflow import exceptions
-from taskflow.persistence import taskdetail
+from taskflow.persistence.backends import impl_memory
+from taskflow.persistence import logbook
+from taskflow.persistence import utils as p_utils
 from taskflow import states
-from taskflow import storage
 from taskflow import task
 from taskflow import test
-
-from taskflow.engines.action_engine import engine as eng
 
 
 class TestTask(task.Task):
@@ -103,8 +104,17 @@ class EngineTestBase(object):
     def setUp(self):
         super(EngineTestBase, self).setUp()
         self.values = []
+        self.backend = impl_memory.MemoryBackend(conf={})
+        self.book = p_utils.temporary_log_book(self.backend)
 
-    def _make_engine(self, _flow, _flow_detail=None):
+    def tearDown(self):
+        super(EngineTestBase, self).tearDown()
+        with contextlib.closing(self.backend) as be:
+            with contextlib.closing(be.get_connection()) as conn:
+                conn.clear_all()
+        self.book = None
+
+    def _make_engine(self, flow, flow_detail=None):
         raise NotImplementedError()
 
 
@@ -114,7 +124,6 @@ class EngineTaskTest(EngineTestBase):
         flow = lf.Flow('test-1')
         flow.add(TestTask(self.values, name='task1'))
         engine = self._make_engine(flow)
-        engine.compile()
         engine.run()
         self.assertEquals(self.values, ['task1'])
 
@@ -405,13 +414,15 @@ class EngineParallelFlowTest(EngineTestBase):
         )
 
         # Create FlowDetail as if we already run task1
-        fd = storage.temporary_flow_detail()
-        td = taskdetail.TaskDetail(name='task1', uuid='42')
+        _lb, fd = p_utils.temporary_flow_detail(self.backend)
+        td = logbook.TaskDetail(name='task1', uuid='42')
         td.state = states.SUCCESS
         td.results = 17
         fd.add(td)
-        fd.save()
-        td.save()
+
+        with contextlib.closing(self.backend.get_connection()) as conn:
+            fd.update(conn.update_flow_details(fd))
+            td.update(conn.update_task_details(td))
 
         engine = self._make_engine(flow, fd)
         engine.run()
@@ -425,22 +436,30 @@ class SingleThreadedEngineTest(EngineTaskTest,
                                EngineParallelFlowTest,
                                test.TestCase):
     def _make_engine(self, flow, flow_detail=None):
-        return eng.SingleThreadedActionEngine(flow, flow_detail=flow_detail)
+        if flow_detail is None:
+            flow_detail = p_utils.create_flow_detail(flow, self.book,
+                                                     self.backend)
+        return eng.SingleThreadedActionEngine(flow, backend=self.backend,
+                                              flow_detail=flow_detail)
 
 
 class MultiThreadedEngineTest(EngineTaskTest,
                               EngineLinearFlowTest,
                               EngineParallelFlowTest,
                               test.TestCase):
-
-    def _make_engine(self, flow, flow_detail=None):
-        return eng.MultiThreadedActionEngine(flow, flow_detail=flow_detail)
+    def _make_engine(self, flow, flow_detail=None, thread_pool=None):
+        if flow_detail is None:
+            flow_detail = p_utils.create_flow_detail(flow, self.book,
+                                                     self.backend)
+        return eng.MultiThreadedActionEngine(flow, backend=self.backend,
+                                             flow_detail=flow_detail,
+                                             thread_pool=thread_pool)
 
     def test_using_common_pool(self):
         flow = TestTask(self.values, name='task1')
         thread_pool = pool.ThreadPool()
-        e1 = eng.MultiThreadedActionEngine(flow, thread_pool=thread_pool)
-        e2 = eng.MultiThreadedActionEngine(flow, thread_pool=thread_pool)
+        e1 = self._make_engine(flow, thread_pool=thread_pool)
+        e2 = self._make_engine(flow, thread_pool=thread_pool)
         self.assertIs(e1.thread_pool, e2.thread_pool)
 
     def test_parallel_revert_specific(self):

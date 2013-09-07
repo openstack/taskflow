@@ -16,34 +16,33 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+
 from taskflow import exceptions as exc
 from taskflow.openstack.common import uuidutils
-from taskflow.persistence import flowdetail
 from taskflow.persistence import logbook
-from taskflow.persistence import taskdetail
 
 
 class PersistenceTestMixin(object):
-    def _get_backend():
+    def _get_connection():
         raise NotImplementedError()
 
-    def test_logbook_simple_save(self):
+    def test_logbook_save_retrieve(self):
         lb_id = uuidutils.generate_uuid()
         lb_meta = {'1': 2}
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id,
-                             backend=self._get_backend())
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
         lb.meta = lb_meta
 
         # Should not already exist
-        self.assertRaises(exc.NotFound, logbook.load, lb_id,
-                          backend=self._get_backend())
+        with contextlib.closing(self._get_connection()) as conn:
+            self.assertRaises(exc.NotFound, conn.get_logbook, lb_id)
+            conn.save_logbook(lb)
 
-        lb.save()
-        del lb
-        lb = None
-
-        lb = logbook.load(lb_id, backend=self._get_backend())
+        # Make sure we can reload it (and all of its attributes are what
+        # we expect them to be).
+        with contextlib.closing(self._get_connection()) as conn:
+            lb = conn.get_logbook(lb_id)
         self.assertEquals(lb_name, lb.name)
         self.assertEquals(0, len(lb))
         self.assertEquals(lb_meta, lb.meta)
@@ -53,109 +52,104 @@ class PersistenceTestMixin(object):
     def test_flow_detail_save(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id,
-                             backend=self._get_backend())
-
-        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
 
         # Ensure we can't save it since its owning logbook hasn't been
-        # saved.
-        self.assertRaises(exc.NotFound, fd.save)
+        # saved (flow details can not exist on there own without a connection
+        # to a logbook).
+        with contextlib.closing(self._get_connection()) as conn:
+            self.assertRaises(exc.NotFound, conn.get_logbook, lb_id)
+            self.assertRaises(exc.NotFound, conn.update_flow_details, fd)
 
-        # Ok now we should be able to save it
-        lb.save()
-        fd.save()
+        # Ok now we should be able to save both.
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+            conn.update_flow_details(fd)
 
     def test_task_detail_save(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id,
-                             backend=self._get_backend())
-
-        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        td = taskdetail.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         fd.add(td)
 
         # Ensure we can't save it since its owning logbook hasn't been
-        # saved.
-        self.assertRaises(exc.NotFound, fd.save)
-        self.assertRaises(exc.NotFound, td.save)
+        # saved (flow details/task details can not exist on there own without
+        # there parent existing).
+        with contextlib.closing(self._get_connection()) as conn:
+            self.assertRaises(exc.NotFound, conn.update_flow_details, fd)
+            self.assertRaises(exc.NotFound, conn.update_task_details, td)
 
-        # Ok now we should be able to save it
-        lb.save()
-        fd.save()
-        td.save()
+        # Ok now we should be able to save them.
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+            conn.update_flow_details(fd)
+            conn.update_task_details(td)
 
     def test_logbook_merge_flow_detail(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id,
-                             backend=self._get_backend())
-
-        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        lb.save()
-
-        lb2 = logbook.LogBook(name=lb_name, uuid=lb_id,
-                              backend=self._get_backend())
-        fd = flowdetail.FlowDetail('test2', uuid=uuidutils.generate_uuid())
-        lb2.add(fd)
-        lb2.save()
-
-        lb3 = logbook.load(lb_id, backend=self._get_backend())
-        self.assertEquals(2, len(lb3))
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+        lb2 = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd2 = logbook.FlowDetail('test2', uuid=uuidutils.generate_uuid())
+        lb2.add(fd2)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb2)
+        with contextlib.closing(self._get_connection()) as conn:
+            lb3 = conn.get_logbook(lb_id)
+            self.assertEquals(2, len(lb3))
 
     def test_logbook_add_flow_detail(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id,
-                             backend=self._get_backend())
-
-        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        lb.save()
-
-        lb2 = logbook.load(lb_id, backend=self._get_backend())
-        self.assertEquals(1, len(lb2))
-        self.assertEquals(1, len(lb))
-
-        self.assertEquals(fd.name, lb2.find(fd.uuid).name)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb_id)
+            self.assertEquals(1, len(lb2))
+            self.assertEquals(1, len(lb))
+            self.assertEquals(fd.name, lb2.find(fd.uuid).name)
 
     def test_logbook_add_task_detail(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id,
-                             backend=self._get_backend())
-
-        fd = flowdetail.FlowDetail('test', uuid=uuidutils.generate_uuid())
-        td = taskdetail.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         fd.add(td)
         lb.add(fd)
-        lb.save()
-
-        lb2 = logbook.load(lb_id, backend=self._get_backend())
-        self.assertEquals(1, len(lb2))
-        tasks = 0
-        for fd in lb:
-            tasks += len(fd)
-        self.assertEquals(1, tasks)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb_id)
+            self.assertEquals(1, len(lb2))
+            tasks = 0
+            for fd in lb:
+                tasks += len(fd)
+            self.assertEquals(1, tasks)
 
     def test_logbook_delete(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id,
-                             backend=self._get_backend())
-
-        # Ensure we can't delete it since it hasn't been saved
-        self.assertRaises(exc.NotFound, lb.delete)
-
-        lb.save()
-
-        lb2 = logbook.load(lb_id, backend=self._get_backend())
-        self.assertIsNotNone(lb2)
-
-        lb.delete()
-
-        self.assertRaises(exc.NotFound, lb.delete)
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        with contextlib.closing(self._get_connection()) as conn:
+            self.assertRaises(exc.NotFound, conn.destroy_logbook, lb_id)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb_id)
+            self.assertIsNotNone(lb2)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.destroy_logbook(lb_id)
+            self.assertRaises(exc.NotFound, conn.destroy_logbook, lb_id)

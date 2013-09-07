@@ -16,21 +16,38 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+
 from taskflow import exceptions
+from taskflow.persistence.backends import impl_memory
+from taskflow.persistence import utils as p_utils
 from taskflow import states
 from taskflow import storage
 from taskflow import test
 
 
 class StorageTest(test.TestCase):
+    def setUp(self):
+        super(StorageTest, self).setUp()
+        self.backend = impl_memory.MemoryBackend(conf={})
+
+    def _get_storage(self):
+        lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
+        return storage.Storage(backend=self.backend, flow_detail=flow_detail)
+
+    def tearDown(self):
+        super(StorageTest, self).tearDown()
+        with contextlib.closing(self.backend) as be:
+            with contextlib.closing(be.get_connection()) as conn:
+                conn.clear_all()
 
     def test_add_task(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         self.assertEquals(s.get_task_state('42'), states.PENDING)
 
     def test_save_and_get(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         s.save('42', 5)
         self.assertEquals(s.get('42'), 5)
@@ -38,20 +55,20 @@ class StorageTest(test.TestCase):
         self.assertEquals(s.get_task_state('42'), states.SUCCESS)
 
     def test_save_and_get_other_state(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         s.save('42', 5, states.FAILURE)
         self.assertEquals(s.get('42'), 5)
         self.assertEquals(s.get_task_state('42'), states.FAILURE)
 
     def test_get_non_existing_var(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         with self.assertRaises(exceptions.NotFound):
             s.get('42')
 
     def test_reset(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         s.save('42', 5)
         s.reset('42')
@@ -60,12 +77,12 @@ class StorageTest(test.TestCase):
             s.get('42')
 
     def test_reset_unknown_task(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         self.assertEquals(s.reset('42'), None)
 
     def test_fetch_by_name(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         name = 'my result'
         s.set_result_mapping('42', {name: None})
@@ -74,13 +91,13 @@ class StorageTest(test.TestCase):
         self.assertEquals(s.fetch_all(), {name: 5})
 
     def test_fetch_unknown_name(self):
-        s = storage.Storage()
+        s = self._get_storage()
         with self.assertRaisesRegexp(exceptions.NotFound,
                                      "^Name 'xxx' is not mapped"):
             s.fetch('xxx')
 
     def test_fetch_result_not_ready(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         name = 'my result'
         s.set_result_mapping('42', {name: None})
@@ -89,7 +106,7 @@ class StorageTest(test.TestCase):
         self.assertEquals(s.fetch_all(), {})
 
     def test_save_multiple_results(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         s.set_result_mapping('42', {'foo': 0, 'bar': 1, 'whole': None})
         s.save('42', ('spam', 'eggs'))
@@ -100,14 +117,14 @@ class StorageTest(test.TestCase):
         })
 
     def test_mapping_none(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         s.set_result_mapping('42', None)
         s.save('42', 5)
         self.assertEquals(s.fetch_all(), {})
 
     def test_inject(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
         self.assertEquals(s.fetch('spam'), 'eggs')
         self.assertEquals(s.fetch_all(), {
@@ -116,48 +133,49 @@ class StorageTest(test.TestCase):
         })
 
     def test_fetch_meapped_args(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
         self.assertEquals(s.fetch_mapped_args({'viking': 'spam'}),
                           {'viking': 'eggs'})
 
     def test_fetch_not_found_args(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
         with self.assertRaises(exceptions.NotFound):
             s.fetch_mapped_args({'viking': 'helmet'})
 
     def test_set_and_get_task_state(self):
-        s = storage.Storage()
+        s = self._get_storage()
         state = states.PENDING
         s.add_task('42', 'my task')
         s.set_task_state('42', state)
         self.assertEquals(s.get_task_state('42'), state)
 
     def test_get_state_of_unknown_task(self):
-        s = storage.Storage()
+        s = self._get_storage()
         with self.assertRaisesRegexp(exceptions.NotFound, '^Unknown'):
             s.get_task_state('42')
 
     def test_task_by_name(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.add_task('42', 'my task')
         self.assertEquals(s.get_uuid_by_name('my task'), '42')
 
     def test_unknown_task_by_name(self):
-        s = storage.Storage()
+        s = self._get_storage()
         with self.assertRaisesRegexp(exceptions.NotFound,
                                      '^Unknown task name:'):
             s.get_uuid_by_name('42')
 
     def test_get_flow_state(self):
-        fd = storage.temporary_flow_detail()
+        lb, fd = p_utils.temporary_flow_detail(backend=self.backend)
         fd.state = states.INTERRUPTED
-        fd.save()
-        s = storage.Storage(fd)
+        with contextlib.closing(self.backend.get_connection()) as conn:
+            fd.update(conn.update_flow_details(fd))
+        s = storage.Storage(flow_detail=fd, backend=self.backend)
         self.assertEquals(s.get_flow_state(), states.INTERRUPTED)
 
     def test_set_and_get_flow_state(self):
-        s = storage.Storage()
+        s = self._get_storage()
         s.set_flow_state(states.SUCCESS)
         self.assertEquals(s.get_flow_state(), states.SUCCESS)

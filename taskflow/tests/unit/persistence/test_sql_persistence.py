@@ -19,31 +19,29 @@
 import os
 import tempfile
 
-from taskflow.openstack.common.db.sqlalchemy import session
-from taskflow.persistence.backends import api as b_api
-from taskflow.persistence.backends.sqlalchemy import migration
+from taskflow.persistence.backends import impl_sqlalchemy
 from taskflow import test
 from taskflow.tests.unit.persistence import base
 
 
 class SqlPersistenceTest(test.TestCase, base.PersistenceTestMixin):
     """Inherits from the base test and sets up a sqlite temporary db."""
-    def _get_backend(self):
-        return 'sqlalchemy'
-
-    def setupDatabase(self):
-        _handle, db_location = tempfile.mkstemp()
-        db_uri = "sqlite:///%s" % (db_location)
-        session.set_defaults(db_uri, db_location)
-        migration.db_sync()
-        return db_location
+    def _get_connection(self):
+        conf = {
+            'connection': self.db_uri,
+        }
+        conn = impl_sqlalchemy.SQLAlchemyBackend(conf).get_connection()
+        return conn
 
     def setUp(self):
         super(SqlPersistenceTest, self).setUp()
-        self.db_location = self.setupDatabase()
+        self.db_location = tempfile.mktemp(suffix='.db')
+        self.db_uri = "sqlite:///%s" % (self.db_location)
+        # Ensure upgraded to the right schema
+        conn = self._get_connection()
+        conn.upgrade()
 
     def tearDown(self):
-        b_api.fetch(self._get_backend()).clear_all()
         super(SqlPersistenceTest, self).tearDown()
         if self.db_location and os.path.isfile(self.db_location):
             os.unlink(self.db_location)

@@ -25,6 +25,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import types as types
 
 from taskflow.openstack.common.db.sqlalchemy import models as c_models
+
 from taskflow.openstack.common import jsonutils
 from taskflow.openstack.common import uuidutils
 
@@ -41,8 +42,7 @@ class Json(types.TypeDecorator, types.MutableType):
         return jsonutils.loads(value)
 
 
-class ModelBase(c_models.ModelBase,
-                c_models.TimestampMixin):
+class ModelBase(c_models.ModelBase, c_models.TimestampMixin):
     """Base model for all taskflow objects"""
     uuid = Column(String, default=uuidutils.generate_uuid,
                   primary_key=True, nullable=False, unique=True)

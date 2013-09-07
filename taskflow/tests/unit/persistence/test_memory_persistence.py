@@ -16,15 +16,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.persistence.backends import api as b_api
+from taskflow.persistence.backends import impl_memory
 from taskflow import test
 from taskflow.tests.unit.persistence import base
 
 
 class MemoryPersistenceTest(test.TestCase, base.PersistenceTestMixin):
-    def _get_backend(self):
-        return 'memory'
+    def _get_connection(self):
+        return impl_memory.MemoryBackend({}).get_connection()
 
     def tearDown(self):
-        b_api.fetch(self._get_backend()).clear_all()
+        conn = self._get_connection()
+        conn.clear_all()
         super(MemoryPersistenceTest, self).tearDown()

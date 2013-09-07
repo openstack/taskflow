@@ -27,6 +27,8 @@ from taskflow.engines.action_engine import task_action
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 
+from taskflow.persistence import utils as p_utils
+
 from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
@@ -140,9 +142,13 @@ class SingleThreadedTranslator(Translator):
 class SingleThreadedActionEngine(ActionEngine):
     translator_cls = SingleThreadedTranslator
 
-    def __init__(self, flow, flow_detail=None):
+    def __init__(self, flow, flow_detail=None, book=None, backend=None):
+        if flow_detail is None:
+            flow_detail = p_utils.create_flow_detail(flow,
+                                                     book=book,
+                                                     backend=backend)
         ActionEngine.__init__(self, flow,
-                              storage=t_storage.Storage(flow_detail))
+                              storage=t_storage.Storage(flow_detail, backend))
 
 
 class MultiThreadedTranslator(Translator):
@@ -168,9 +174,15 @@ class MultiThreadedTranslator(Translator):
 class MultiThreadedActionEngine(ActionEngine):
     translator_cls = MultiThreadedTranslator
 
-    def __init__(self, flow, flow_detail=None, thread_pool=None):
+    def __init__(self, flow, flow_detail=None, book=None, backend=None,
+                 thread_pool=None):
+        if flow_detail is None:
+            flow_detail = p_utils.create_flow_detail(flow,
+                                                     book=book,
+                                                     backend=backend)
         ActionEngine.__init__(self, flow,
-                              storage=t_storage.ThreadSafeStorage(flow_detail))
+                              storage=t_storage.ThreadSafeStorage(flow_detail,
+                                                                  backend))
         if thread_pool:
             self._thread_pool = thread_pool
             self._owns_thread_pool = False

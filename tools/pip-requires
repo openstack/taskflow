@@ -15,3 +15,5 @@ alembic>=0.4.1
 networkx>=1.8.1
 threading2
 Babel>=0.9.6
+# Used for backend storage engine loading
+stevedore>=0.10

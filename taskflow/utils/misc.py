@@ -38,6 +38,49 @@ def get_task_version(task):
     return task_version
 
 
+class ExponentialBackoff(object):
+    def __init__(self, attempts, exponent=2):
+        self.attempts = int(attempts)
+        self.exponent = exponent
+
+    def __iter__(self):
+        if self.attempts <= 0:
+            raise StopIteration()
+        for i in xrange(0, self.attempts):
+            yield self.exponent ** i
+
+    def __str__(self):
+        return "ExponentialBackoff: %s" % ([str(v) for v in self])
+
+
+def as_bool(val):
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, basestring):
+        if val.lower() in ('f', 'false', '0', 'n', 'no'):
+            return False
+        if val.lower() in ('t', 'true', '1', 'y', 'yes'):
+            return True
+    return bool(val)
+
+
+def as_int(obj, quiet=False):
+    # Try "2" -> 2
+    try:
+        return int(obj)
+    except (ValueError, TypeError):
+        pass
+    # Try "2.5" -> 2
+    try:
+        return int(float(obj))
+    except (ValueError, TypeError):
+        pass
+    # Eck, not sure what this is then.
+    if not quiet:
+        raise TypeError("Can not translate %s to an integer." % (obj))
+    return obj
+
+
 def is_version_compatible(version_1, version_2):
     """Checks for major version compatibility of two *string" versions."""
     try:

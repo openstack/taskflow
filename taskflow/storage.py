@@ -16,31 +16,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+
 from taskflow import exceptions
 from taskflow.openstack.common import uuidutils
-from taskflow.persistence import flowdetail
 from taskflow.persistence import logbook
-from taskflow.persistence import taskdetail
 from taskflow import states
 from taskflow.utils import threading_utils
-
-
-def temporary_flow_detail():
-    """Creates flow detail class for temporary usage
-
-    Creates in-memory logbook and flow detail in it. Should
-    be useful for tests and other use cases where persistence
-    is not needed
-    """
-    lb = logbook.LogBook('tmp', backend='memory')
-    fd = flowdetail.FlowDetail(
-        name='tmp', uuid=uuidutils.generate_uuid(),
-        backend='memory')
-    lb.add(fd)
-    lb.save()
-    fd.save()
-    return fd
-
 
 STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
 
@@ -54,16 +36,17 @@ class Storage(object):
 
     injector_name = '_TaskFlow_INJECTOR'
 
-    def __init__(self, flow_detail=None):
+    def __init__(self, flow_detail, backend=None):
         self._result_mappings = {}
         self._reverse_mapping = {}
+        self._backend = backend
+        self._flowdetail = flow_detail
 
-        if flow_detail is None:
-            # TODO(imelnikov): this is useful mainly for tests;
-            #  maybe we should make flow_detail required parameter?
-            self._flowdetail = temporary_flow_detail()
-        else:
-            self._flowdetail = flow_detail
+    def _with_connection(self, functor, *args, **kwargs):
+        if self._backend is None:
+            return
+        with contextlib.closing(self._backend.get_connection()) as conn:
+            functor(conn, *args, **kwargs)
 
     def add_task(self, uuid, task_name):
         """Add the task to storage
@@ -72,12 +55,18 @@ class Storage(object):
         Task state is set to PENDING.
         """
         # TODO(imelnikov): check that task with same uuid or
-        #   task name does not exist
-        td = taskdetail.TaskDetail(name=task_name, uuid=uuid)
+        # task name does not exist
+        td = logbook.TaskDetail(name=task_name, uuid=uuid)
         td.state = states.PENDING
         self._flowdetail.add(td)
-        self._flowdetail.save()
-        td.save()
+        self._with_connection(self._save_flow_detail)
+        self._with_connection(self._save_task_detail, task_detail=td)
+
+    def _save_flow_detail(self, conn):
+        # NOTE(harlowja): we need to update our contained flow detail if
+        # the result of the update actually added more (aka another process
+        # added item to the flow detail).
+        self._flowdetail.update(conn.update_flow_details(self._flowdetail))
 
     def get_uuid_by_name(self, task_name):
         """Get uuid of task with given name"""
@@ -93,11 +82,17 @@ class Storage(object):
             raise exceptions.NotFound("Unknown task: %r" % uuid)
         return td
 
+    def _save_task_detail(self, conn, task_detail):
+        # NOTE(harlowja): we need to update our contained task detail if
+        # the result of the update actually added more (aka another process
+        # is also modifying the task detail).
+        task_detail.update(conn.update_task_details(task_detail))
+
     def set_task_state(self, uuid, state):
         """Set task state"""
         td = self._taskdetail_by_uuid(uuid)
         td.state = state
-        td.save()
+        self._with_connection(self._save_task_detail, task_detail=td)
 
     def get_task_state(self, uuid):
         """Get state of task with given uuid"""
@@ -108,7 +103,7 @@ class Storage(object):
         td = self._taskdetail_by_uuid(uuid)
         td.state = state
         td.results = data
-        td.save()
+        self._with_connection(self._save_task_detail, task_detail=td)
 
     def get(self, uuid):
         """Get result for task with id 'uuid' to storage"""
@@ -122,7 +117,7 @@ class Storage(object):
         td = self._taskdetail_by_uuid(uuid)
         td.results = None
         td.state = state
-        td.save()
+        self._with_connection(self._save_task_detail, task_detail=td)
 
     def inject(self, pairs):
         """Add values into storage
@@ -202,7 +197,7 @@ class Storage(object):
     def set_flow_state(self, state):
         """Set flowdetails state and save it"""
         self._flowdetail.state = state
-        self._flowdetail.save()
+        self._with_connection(self._save_flow_detail)
 
     def get_flow_state(self):
         """Set state from flowdetails"""
