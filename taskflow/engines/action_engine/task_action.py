@@ -33,6 +33,10 @@ class TaskAction(base.Action):
         try:
             self._id = engine.storage.get_uuid_by_name(self._task.name)
         except exceptions.NotFound:
+            # TODO(harlowja): we might need to save whether the results of this
+            # task will be a tuple + other additional metadata when doing this
+            # add to the underlying storage backend for later resumption of
+            # this task.
             self._id = uuidutils.generate_uuid()
             engine.storage.add_task(task_name=self.name, uuid=self.uuid)
         engine.storage.set_result_mapping(self.uuid, self._result_mapping)

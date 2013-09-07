@@ -168,6 +168,16 @@ class Storage(object):
                 else:
                     return result[index]
             except exceptions.NotFound:
+                # NOTE(harlowja): No result was found for the given uuid.
+                pass
+            except (KeyError, IndexError, TypeError):
+                # NOTE(harlowja): The result that the uuid returned can not be
+                # accessed in the manner that the index is requesting. Perhaps
+                # the result is a dictionary-like object and that key does
+                # not exist (key error), or the result is a tuple/list and a
+                # non-numeric key is being requested (index error), or there
+                # was no result and an attempt to index into None is being
+                # requested (type error).
                 pass
         raise exceptions.NotFound("Unable to find result %r" % name)
 

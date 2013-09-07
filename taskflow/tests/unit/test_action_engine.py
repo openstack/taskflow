@@ -91,6 +91,14 @@ class MultiargsTask(task.Task):
         return a + b + c
 
 
+class MultiDictTask(task.Task):
+    def execute(self):
+        output = {}
+        for i, k in enumerate(sorted(self.provides.keys())):
+            output[k] = i
+        return output
+
+
 class EngineTestBase(object):
     def setUp(self):
         super(EngineTestBase, self).setUp()
@@ -184,6 +192,16 @@ class EngineTaskTest(EngineTestBase):
             'badger': 12,
             'mushroom': 2,
             'snake': 1
+        })
+
+    def test_save_dict(self):
+        flow = MultiDictTask(provides=set(['badger', 'mushroom', 'snake']))
+        engine = self._make_engine(flow)
+        engine.run()
+        self.assertEquals(engine.storage.fetch_all(), {
+            'badger': 0,
+            'mushroom': 1,
+            'snake': 2,
         })
 
     def test_bad_save_as_value(self):

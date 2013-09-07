@@ -242,10 +242,30 @@ class LinearFlowTest(test.TestCase):
         e = _make_engine(wf)
         self.assertRaises(exc.NotFound, e.run)
 
-    def test_flow_good_order(self):
+    def test_flow_set_order(self):
         wf = lw.Flow("the-test-action")
         wf.add(utils.ProvidesRequiresTask('test-1',
-                                          requires=set(),
+                                          requires=[],
+                                          provides=set(['a', 'b'])))
+        wf.add(utils.ProvidesRequiresTask('test-2',
+                                          requires=set(['a', 'b']),
+                                          provides=set([])))
+        e = _make_engine(wf)
+        e.run()
+        run_context = e.storage.fetch('context')
+        ordering = run_context[utils.ORDER_KEY]
+        self.assertEquals(2, len(ordering))
+        self.assertEquals('test-1', ordering[0]['name'])
+        self.assertEquals('test-2', ordering[1]['name'])
+        self.assertEquals({'a': 'a', 'b': 'b'},
+                          ordering[1][utils.KWARGS_KEY])
+        self.assertEquals({},
+                          ordering[0][utils.KWARGS_KEY])
+
+    def test_flow_list_order(self):
+        wf = lw.Flow("the-test-action")
+        wf.add(utils.ProvidesRequiresTask('test-1',
+                                          requires=[],
                                           provides=['a', 'b']))
         wf.add(utils.ProvidesRequiresTask('test-2',
                                           requires=['a', 'b'],
@@ -265,3 +285,7 @@ class LinearFlowTest(test.TestCase):
 
         e = _make_engine(wf)
         e.run()
+        run_context = e.storage.fetch('context')
+        ordering = run_context[utils.ORDER_KEY]
+        for i, entry in enumerate(ordering):
+            self.assertEquals('test-%s' % (i + 1), entry['name'])
