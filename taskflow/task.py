@@ -28,14 +28,29 @@ def _save_as_to_mapping(save_as):
 
     Result should follow storage convention for mappings.
     """
+    # TODO(harlowja): we should probably document this behavior & convention
+    # outside of code so that its more easily understandable, since what a task
+    # returns is pretty crucial for other later operations.
     if save_as is None:
         return {}
     if isinstance(save_as, basestring):
+        # NOTE(harlowja): this means that your task will only return one item
+        # instead of a dictionary-like object or a indexable object (like a
+        # list or tuple).
         return {save_as: None}
     elif isinstance(save_as, (tuple, list)):
+        # NOTE(harlowja): this means that your task will return a indexable
+        # object, like a list or tuple and the results can be mapped by index
+        # to that tuple/list that is returned for others to use.
         return dict((key, num) for num, key in enumerate(save_as))
+    elif isinstance(save_as, set):
+        # NOTE(harlowja): in the case where a set is given we will not be
+        # able to determine the numeric ordering in a reliable way (since it is
+        # a unordered set) so the only way for us to easily map the result of
+        # the task will be via the key itself.
+        return dict((key, key) for key in save_as)
     raise TypeError('Task provides parameter '
-                    'should be str or tuple/list, not %r' % save_as)
+                    'should be str, set or tuple/list, not %r' % save_as)
 
 
 def _build_rebind_dict(args, rebind_args):

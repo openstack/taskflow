@@ -40,19 +40,30 @@ def drain(lst):
 
 
 class ProvidesRequiresTask(task.Task):
-    def __init__(self, name, provides, requires):
+    def __init__(self, name, provides, requires, return_tuple=True):
         super(ProvidesRequiresTask, self).__init__(name=name,
                                                    provides=provides,
                                                    requires=requires)
+        self.return_tuple = isinstance(provides, (tuple, list))
 
     def execute(self, context, *args, **kwargs):
         if ORDER_KEY not in context:
             context[ORDER_KEY] = []
-        context[ORDER_KEY].append(self.name)
-        outs = []
-        for i in xrange(0, len(self.provides)):
-            outs.append(i)
-        return outs
+        context[ORDER_KEY].append({
+            'name': self.name,
+            KWARGS_KEY: kwargs,
+            ARGS_KEY: args,
+        })
+        if self.return_tuple:
+            outs = []
+            for i in xrange(0, len(self.provides)):
+                outs.append(i)
+            return tuple(outs)
+        else:
+            outs = {}
+            for k in self.provides.keys():
+                outs[k] = k
+            return outs
 
 
 class DummyTask(task.Task):
