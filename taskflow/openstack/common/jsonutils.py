@@ -38,14 +38,18 @@ import functools
 import inspect
 import itertools
 import json
-import types
-import xmlrpclib
+try:
+    import xmlrpclib
+except ImportError:
+    # NOTE(jd): xmlrpclib is not shipped with Python 3
+    xmlrpclib = None
 
-import netaddr
 import six
 
+from taskflow.openstack.common import importutils
 from taskflow.openstack.common import timeutils
 
+netaddr = importutils.try_import("netaddr")
 
 _nasty_type_tests = [inspect.ismodule, inspect.isclass, inspect.ismethod,
                      inspect.isfunction, inspect.isgeneratorfunction,
@@ -53,7 +57,8 @@ _nasty_type_tests = [inspect.ismodule, inspect.isclass, inspect.ismethod,
                      inspect.iscode, inspect.isbuiltin, inspect.isroutine,
                      inspect.isabstract]
 
-_simple_types = (types.NoneType, int, basestring, bool, float, long)
+_simple_types = (six.string_types + six.integer_types
+                 + (type(None), bool, float))
 
 
 def to_primitive(value, convert_instances=False, convert_datetime=True,
@@ -125,7 +130,7 @@ def to_primitive(value, convert_instances=False, convert_datetime=True,
         # It's not clear why xmlrpclib created their own DateTime type, but
         # for our purposes, make it a datetime type which is explicitly
         # handled
-        if isinstance(value, xmlrpclib.DateTime):
+        if xmlrpclib and isinstance(value, xmlrpclib.DateTime):
             value = datetime.datetime(*tuple(value.timetuple())[:6])
 
         if convert_datetime and isinstance(value, datetime.datetime):
@@ -138,7 +143,7 @@ def to_primitive(value, convert_instances=False, convert_datetime=True,
             # Likely an instance of something. Watch for cycles.
             # Ignore class member vars.
             return recursive(value.__dict__, level=level + 1)
-        elif isinstance(value, netaddr.IPAddress):
+        elif netaddr and isinstance(value, netaddr.IPAddress):
             return six.text_type(value)
         else:
             if any(test(value) for test in _nasty_type_tests):

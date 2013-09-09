@@ -1,12 +1,6 @@
 # Packages needed for using this library.
 anyjson>=0.2.4
-eventlet>=0.9.17
 iso8601
-netaddr>=0.7.6
-# Need currently the newest version of oslo.config for the DeprecatedOpt
-# used inside oslo database layer.
--f http://tarballs.openstack.org/oslo.config/oslo.config-1.2.0a3.tar.gz#egg=oslo.config-1.2.0a3
-oslo.config>=1.2.0a3
 six
 # Only needed if database backend used.
 sqlalchemy>=0.7,<=0.7.99

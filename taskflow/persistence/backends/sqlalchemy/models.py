@@ -17,19 +17,24 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import backref
 from sqlalchemy.orm import relationship
 from sqlalchemy import types as types
 
-from taskflow.openstack.common.db.sqlalchemy import models as c_models
-
 from taskflow.openstack.common import jsonutils
+from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 
 BASE = declarative_base()
+
+
+# TODO(harlowja): remove when oslo.db exists
+class TimestampMixin(object):
+    created_at = Column(DateTime, default=timeutils.utcnow)
+    updated_at = Column(DateTime, onupdate=timeutils.utcnow)
 
 
 class Json(types.TypeDecorator, types.MutableType):
@@ -42,7 +47,7 @@ class Json(types.TypeDecorator, types.MutableType):
         return jsonutils.loads(value)
 
 
-class ModelBase(c_models.ModelBase, c_models.TimestampMixin):
+class ModelBase(TimestampMixin):
     """Base model for all taskflow objects"""
     uuid = Column(String, default=uuidutils.generate_uuid,
                   primary_key=True, nullable=False, unique=True)

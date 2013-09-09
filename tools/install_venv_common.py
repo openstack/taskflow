@@ -202,12 +202,13 @@ class Fedora(Distro):
         RHEL: https://bugzilla.redhat.com/958868
         """
 
-        # Install "patch" program if it's not there
-        if not self.check_pkg('patch'):
-            self.die("Please install 'patch'.")
+        if os.path.exists('contrib/redhat-eventlet.patch'):
+            # Install "patch" program if it's not there
+            if not self.check_pkg('patch'):
+                self.die("Please install 'patch'.")
 
-        # Apply the eventlet patch
-        self.apply_patch(os.path.join(self.venv, 'lib', self.py_version,
-                                      'site-packages',
-                                      'eventlet/green/subprocess.py'),
-                         'contrib/redhat-eventlet.patch')
+            # Apply the eventlet patch
+            self.apply_patch(os.path.join(self.venv, 'lib', self.py_version,
+                                          'site-packages',
+                                          'eventlet/green/subprocess.py'),
+                             'contrib/redhat-eventlet.patch')
