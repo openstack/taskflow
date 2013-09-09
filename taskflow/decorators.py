@@ -20,6 +20,7 @@ import functools
 
 from taskflow import task as base
 from taskflow import utils
+from taskflow.utils import threading_utils
 
 
 def wraps(fn):
@@ -43,6 +44,8 @@ def locked(*args, **kwargs):
         @wraps(f)
         def wrapper(*args, **kwargs):
             lock = getattr(args[0], attr_name)
+            if isinstance(lock, (tuple, list)):
+                lock = threading_utils.MultiLock(locks=list(lock))
             with lock:
                 return f(*args, **kwargs)
 
