@@ -94,7 +94,7 @@ class MultiargsTask(task.Task):
 class MultiDictTask(task.Task):
     def execute(self):
         output = {}
-        for i, k in enumerate(sorted(self.provides.keys())):
+        for i, k in enumerate(sorted(self.provides)):
             output[k] = i
         return output
 

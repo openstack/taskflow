@@ -105,12 +105,12 @@ class BaseTask(object):
         # on existing before this task can be applied.
         #
         # Format is input_name:arg_name
-        self.requires = {}
+        self.rebind = {}
         # An *immutable* output 'resource' name dict this task
         # produces that other tasks may depend on this task providing.
         #
         # Format is output index:arg_name
-        self.provides = _save_as_to_mapping(provides)
+        self.save_as = _save_as_to_mapping(provides)
         # This identifies the version of the task to be ran which
         # can be useful in resuming older versions of tasks. Standard
         # major, minor version semantics apply.
@@ -139,6 +139,14 @@ class BaseTask(object):
            said reversion.
         """
 
+    @property
+    def provides(self):
+        return set(self.save_as)
+
+    @property
+    def requires(self):
+        return set(self.rebind.values())
+
 
 class Task(BaseTask):
     """Base class for user-defined tasks
@@ -155,8 +163,8 @@ class Task(BaseTask):
             name = reflection.get_callable_name(self)
         super(Task, self).__init__(name,
                                    provides=provides)
-        self.requires = _build_arg_mapping(self.name, requires, rebind,
-                                           self.execute, auto_extract)
+        self.rebind = _build_arg_mapping(self.name, requires, rebind,
+                                         self.execute, auto_extract)
 
 
 class FunctorTask(BaseTask):
@@ -176,8 +184,8 @@ class FunctorTask(BaseTask):
         self._revert = revert
         if version is not None:
             self.version = version
-        self.requires = _build_arg_mapping(self.name, requires, rebind,
-                                           execute, auto_extract)
+        self.rebind = _build_arg_mapping(self.name, requires, rebind,
+                                         execute, auto_extract)
 
     def execute(self, *args, **kwargs):
         return self._execute(*args, **kwargs)

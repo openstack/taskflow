@@ -81,3 +81,11 @@ class Flow(object):
     def add(self, *items):
         """Adds a given item/items to this flow."""
         raise NotImplementedError()
+
+    @abc.abstractproperty
+    def requires(self):
+        """Browse flow requirements."""
+
+    @abc.abstractproperty
+    def provides(self):
+        """Browse values provided by the flow."""

@@ -61,7 +61,7 @@ class ProvidesRequiresTask(task.Task):
             return tuple(outs)
         else:
             outs = {}
-            for k in self.provides.keys():
+            for k in self.provides:
                 outs[k] = k
             return outs
 
