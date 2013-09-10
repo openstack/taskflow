@@ -18,6 +18,7 @@
 #    under the License.
 
 import abc
+import six
 
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -33,7 +34,7 @@ def _save_as_to_mapping(save_as):
     # returns is pretty crucial for other later operations.
     if save_as is None:
         return {}
-    if isinstance(save_as, basestring):
+    if isinstance(save_as, six.string_types):
         # NOTE(harlowja): this means that your task will only return one item
         # instead of a dictionary-like object or a indexable object (like a
         # list or tuple).

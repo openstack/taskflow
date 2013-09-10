@@ -22,8 +22,8 @@ from distutils import version
 import collections
 import copy
 import logging
+import six
 import sys
-
 
 LOG = logging.getLogger(__name__)
 
@@ -33,7 +33,8 @@ def get_task_version(task):
     task_version = getattr(task, 'version')
     if isinstance(task_version, (list, tuple)):
         task_version = '.'.join(str(item) for item in task_version)
-    if task_version is not None and not isinstance(task_version, basestring):
+    if task_version is not None and not isinstance(task_version,
+                                                   six.string_types):
         task_version = str(task_version)
     return task_version
 
@@ -56,7 +57,7 @@ class ExponentialBackoff(object):
 def as_bool(val):
     if isinstance(val, bool):
         return val
-    if isinstance(val, basestring):
+    if isinstance(val, six.string_types):
         if val.lower() in ('f', 'false', '0', 'n', 'no'):
             return False
         if val.lower() in ('t', 'true', '1', 'y', 'yes'):
