@@ -191,7 +191,7 @@ class MultiThreadedActionEngine(ActionEngine):
         finally:
             # Ensure we close then join on the thread pool to make sure its
             # resources get cleaned up correctly.
-            if self._owns_thread_pool:
+            if self._owns_thread_pool and self._thread_pool:
                 self._thread_pool.close()
                 self._thread_pool.join()
                 self._thread_pool = None

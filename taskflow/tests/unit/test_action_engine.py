@@ -163,11 +163,18 @@ class EngineTaskTest(EngineTestBase):
                            'flow REVERTED',
                            'flow FAILURE'])
 
-    def test_invalid_block_raises(self):
+    def test_invalid_flow_raises(self):
         value = 'i am string, not task/flow, sorry'
         with self.assertRaises(TypeError) as err:
             engine = self._make_engine(value)
             engine.compile()
+        self.assertIn(value, str(err.exception))
+
+    def test_invalid_flow_raises_from_run(self):
+        value = 'i am string, not task/flow, sorry'
+        with self.assertRaises(TypeError) as err:
+            engine = self._make_engine(value)
+            engine.run()
         self.assertIn(value, str(err.exception))
 
     def test_save_as(self):
