@@ -45,3 +45,19 @@ class Flow(flow.Flow):
     def __iter__(self):
         for child in self._children:
             yield child
+
+    @property
+    def provides(self):
+        provides = set()
+        for subflow in self._children:
+            provides.update(subflow.provides)
+        return provides
+
+    @property
+    def requires(self):
+        requires = set()
+        provides = set()
+        for subflow in self._children:
+            requires.update(subflow.requires - provides)
+            provides.update(subflow.provides)
+        return requires

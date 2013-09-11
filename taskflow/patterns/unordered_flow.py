@@ -46,6 +46,20 @@ class Flow(flow.Flow):
             self._count += 1
         return self
 
+    @property
+    def provides(self):
+        provides = set()
+        for subflow in self:
+            provides.update(subflow.provides)
+        return provides
+
+    @property
+    def requires(self):
+        requires = set()
+        for subflow in self:
+            requires.update(subflow.requires)
+        return requires
+
     def __len__(self):
         return self._count
 

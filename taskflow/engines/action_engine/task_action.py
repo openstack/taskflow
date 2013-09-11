@@ -28,8 +28,8 @@ class TaskAction(base.Action):
 
     def __init__(self, task, engine):
         self._task = task
-        self._result_mapping = task.provides
-        self._args_mapping = task.requires
+        self._result_mapping = task.save_as
+        self._args_mapping = task.rebind
         try:
             self._id = engine.storage.get_uuid_by_name(self._task.name)
         except exceptions.NotFound:
