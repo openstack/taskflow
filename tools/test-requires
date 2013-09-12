@@ -6,7 +6,7 @@ hacking>=0.5.3,<0.6
 
 coverage
 distribute>=0.6.24
-mox
+mock>=1.0
 nose
 nose-exclude
 openstack.nose_plugin>=0.7

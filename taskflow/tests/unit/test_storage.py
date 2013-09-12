@@ -17,6 +17,7 @@
 #    under the License.
 
 import contextlib
+import mock
 
 from taskflow import exceptions
 from taskflow.persistence.backends import impl_memory
@@ -40,6 +41,12 @@ class StorageTest(test.TestCase):
         with contextlib.closing(self.backend) as be:
             with contextlib.closing(be.get_connection()) as conn:
                 conn.clear_all()
+
+    def test_non_saving_storage(self):
+        _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
+        s = storage.Storage(flow_detail=flow_detail)  # no backend
+        s.add_task('42', 'my task')
+        self.assertEquals(s.get_uuid_by_name('my task'), '42')
 
     def test_add_task(self):
         s = self._get_storage()
@@ -179,3 +186,40 @@ class StorageTest(test.TestCase):
         s = self._get_storage()
         s.set_flow_state(states.SUCCESS)
         self.assertEquals(s.get_flow_state(), states.SUCCESS)
+
+    @mock.patch.object(storage.LOG, 'warning')
+    def test_result_is_checked(self, mocked_warning):
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        s.set_result_mapping('42', {'result': 'key'})
+        s.save('42', {})
+        mocked_warning.assert_called_once_with(
+            mock.ANY, 'my task', 'key', 'result')
+        with self.assertRaisesRegexp(exceptions.NotFound,
+                                     '^Unable to find result'):
+            s.fetch('result')
+
+    @mock.patch.object(storage.LOG, 'warning')
+    def test_empty_result_is_checked(self, mocked_warning):
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        s.set_result_mapping('42', {'a': 0})
+        s.save('42', ())
+        mocked_warning.assert_called_once_with(
+            mock.ANY, 'my task', 0, 'a')
+        with self.assertRaisesRegexp(exceptions.NotFound,
+                                     '^Unable to find result'):
+            s.fetch('a')
+
+    @mock.patch.object(storage.LOG, 'warning')
+    def test_short_result_is_checked(self, mocked_warning):
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        s.set_result_mapping('42', {'a': 0, 'b': 1})
+        s.save('42', ['result'])
+        mocked_warning.assert_called_once_with(
+            mock.ANY, 'my task', 1, 'b')
+        self.assertEquals(s.fetch('a'), 'result')
+        with self.assertRaisesRegexp(exceptions.NotFound,
+                                     '^Unable to find result'):
+            s.fetch('b')
