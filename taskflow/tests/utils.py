@@ -16,6 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from taskflow import decorators
 from taskflow import task
 
 ARGS_KEY = '__args__'
@@ -37,6 +38,27 @@ def null_functor(*args, **kwargs):  # pylint: disable=W0613
 def drain(lst):
     while len(lst):
         lst.pop()
+
+
+def make_reverting_task(token, blowup=False):
+
+    def do_revert(context, *args, **kwargs):
+        context[token] = 'reverted'
+
+    if blowup:
+
+        @decorators.task(name='blowup_%s' % token)
+        def blow_up(context, *args, **kwargs):
+            raise Exception("I blew up")
+
+        return blow_up
+    else:
+
+        @decorators.task(revert=do_revert, name='do_apply_%s' % token)
+        def do_apply(context, *args, **kwargs):
+            context[token] = 'passed'
+
+        return do_apply
 
 
 class ProvidesRequiresTask(task.Task):
