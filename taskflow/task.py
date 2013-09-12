@@ -100,6 +100,8 @@ class BaseTask(object):
     """
     __metaclass__ = abc.ABCMeta
 
+    TASK_EVENTS = ('update_progress', )
+
     def __init__(self, name, provides=None):
         self._name = name
         # An *immutable* input 'resource' name mapping this task depends
@@ -116,6 +118,9 @@ class BaseTask(object):
         # can be useful in resuming older versions of tasks. Standard
         # major, minor version semantics apply.
         self.version = (1, 0)
+        # List of callback functions to invoke when progress updated.
+        self._on_update_progress_notify = []
+        self._events_listeners = {}
 
     @property
     def name(self):
@@ -147,6 +152,50 @@ class BaseTask(object):
     @property
     def requires(self):
         return set(self.rebind.values())
+
+    def update_progress(self, progress, **kwargs):
+        """Update task progress and notify all registered listeners.
+
+        :param progress: task progress float value between 0 and 1
+        :param kwargs: task specific progress information
+        """
+        self._trigger('update_progress', progress, **kwargs)
+
+    def _trigger(self, event, *args, **kwargs):
+        """Execute all handlers for the given event type."""
+        if event in self._events_listeners:
+            for handler in self._events_listeners[event]:
+                event_data = self._events_listeners[event][handler]
+                handler(self, event_data, *args, **kwargs)
+
+    def bind(self, event, handler, **kwargs):
+        """Attach a handler to an event for the task.
+
+        :param event: event type
+        :param handler: function to execute each time event is triggered
+        :param kwargs: optional named parameters that will be passed to the
+                       event handler
+        :raises ValueError: if invalid event type passed
+        """
+        if event not in self.TASK_EVENTS:
+            raise ValueError("Unknown task event %s" % event)
+        if event not in self._events_listeners:
+            self._events_listeners[event] = {}
+        self._events_listeners[event][handler] = kwargs
+
+    def unbind(self, event, handler=None):
+        """Remove a previously-attached event handler from the task. If handler
+        function not passed, then unbind all event handlers.
+
+        :param event: event type
+        :param handler: previously attached to event function
+        """
+        if event in self._events_listeners:
+            if not handler:
+                self._events_listeners[event] = {}
+            else:
+                if handler in self._events_listeners[event]:
+                    self._events_listeners[event].pop(handler)
 
 
 class Task(BaseTask):

@@ -47,23 +47,29 @@ class TestTask(task.Task):
         self._sleep = sleep
 
     def execute(self, **kwargs):
+        self.update_progress(0.0)
         if self._sleep:
             time.sleep(self._sleep)
         self.values.append(self.name)
+        self.update_progress(1.0)
         return 5
 
     def revert(self, **kwargs):
+        self.update_progress(0)
         if self._sleep:
             time.sleep(self._sleep)
         self.values.append(self.name + ' reverted(%s)'
                            % kwargs.get('result'))
+        self.update_progress(1.0)
 
 
 class FailingTask(TestTask):
 
     def execute(self, **kwargs):
+        self.update_progress(0)
         if self._sleep:
             time.sleep(self._sleep)
+        self.update_progress(0.99)
         raise RuntimeError('Woot!')
 
 
@@ -95,9 +101,13 @@ class MultiargsTask(task.Task):
 
 class MultiDictTask(task.Task):
     def execute(self):
+        self.update_progress(0)
         output = {}
+        total = len(sorted(self.provides))
         for i, k in enumerate(sorted(self.provides)):
             output[k] = i
+            self.update_progress(i / total)
+        self.update_progress(1.0)
         return output
 
 
