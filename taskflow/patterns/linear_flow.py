@@ -16,6 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from taskflow import exceptions
 from taskflow import flow
 
 
@@ -26,8 +27,8 @@ class Flow(flow.Flow):
     applied in order as one unit and rolled back as one unit using
     the reverse order that the *tasks/flows* have been applied in.
 
-    NOTE(harlowja): Each task in the chain must have requirements which
-    are satisfied by a previous tasks outputs.
+    NOTE(imelnikov): Tasks in should not depend on outputs
+    of tasks that follow it in the flow.
     """
 
     def __init__(self, name, uuid=None):
@@ -36,7 +37,22 @@ class Flow(flow.Flow):
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
-        self._children.extend(self._extract_item(item) for item in items)
+        items = [self._extract_item(item) for item in items]
+
+        # NOTE(imelnikov): we add item to the end of flow, so it should
+        # not provide anything previous items of the flow require
+        requires = self.requires
+        for item in items:
+            requires |= item.requires
+            out_of_order = requires & item.provides
+            if out_of_order:
+                raise exceptions.InvariantViolationException(
+                    "%(item)s provides %(oo)s that are required "
+                    "by previous item(s) of linear flow %(flow)s"
+                    % dict(item=item.name, flow=self.name,
+                           oo=sorted(out_of_order)))
+
+        self._children.extend(items)
         return self
 
     def __len__(self):

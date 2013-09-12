@@ -224,7 +224,7 @@ class LinearFlowTest(test.TestCase):
         wf.add(task_a)
         wf.add(task_b)
         e = self._make_engine(wf)
-        self.assertRaises(exc.NotFound, e.run)
+        self.assertRaises(exc.MissingDependencies, e.run)
 
     def test_flow_bad_order(self):
         wf = lw.Flow("the-test-action")
@@ -238,7 +238,7 @@ class LinearFlowTest(test.TestCase):
                                                  provides=[])
         wf.add(no_req_task)
         e = self._make_engine(wf)
-        self.assertRaises(exc.NotFound, e.run)
+        self.assertRaises(exc.MissingDependencies, e.run)
 
     def test_flow_set_order(self):
         wf = lw.Flow("the-test-action")

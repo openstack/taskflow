@@ -16,8 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
-
+from taskflow import exceptions
 from taskflow import flow
 
 
@@ -33,17 +32,39 @@ class Flow(flow.Flow):
 
     def __init__(self, name, uuid=None):
         super(Flow, self).__init__(name, uuid)
-        # A unordered flow is unordered so use a dict that is indexed by
-        # names instead of a list so that people using this flow don't depend
-        # on the ordering.
-        self._children = collections.defaultdict(list)
-        self._count = 0
+        # NOTE(imelnikov): A unordered flow is unordered, so we use
+        # set instead of list to save children, children so that
+        # people using it don't depend on the ordering
+        self._children = set()
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
-        for e in [self._extract_item(item) for item in items]:
-            self._children[e.name].append(e)
-            self._count += 1
+        items = [self._extract_item(item) for item in items]
+
+        # check that items are actually independent
+        provides = self.provides
+        old_requires = self.requires
+        for item in items:
+            item_provides = item.provides
+            bad_provs = item_provides & old_requires
+            if bad_provs:
+                raise exceptions.InvariantViolationException(
+                    "%(item)s provides %(oo)s that are required "
+                    "by other item(s) of unordered flow %(flow)s"
+                    % dict(item=item.name, flow=self.name,
+                           oo=sorted(bad_provs)))
+            provides |= item_provides
+
+        for item in items:
+            bad_reqs = provides & item.requires
+            if bad_reqs:
+                raise exceptions.InvariantViolationException(
+                    "%(item)s requires %(oo)s that are provided "
+                    "by other item(s) of unordered flow %(flow)s"
+                    % dict(item=item.name, flow=self.name,
+                           oo=sorted(bad_reqs)))
+
+        self._children.update(items)
         return self
 
     @property
@@ -61,9 +82,8 @@ class Flow(flow.Flow):
         return requires
 
     def __len__(self):
-        return self._count
+        return len(self._children)
 
     def __iter__(self):
-        for _n, group in self._children.iteritems():
-            for g in group:
-                yield g
+        for child in self._children:
+            yield child

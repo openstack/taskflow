@@ -75,6 +75,12 @@ class ActionEngine(object):
     def run(self):
         self.compile()
         self._reset()
+
+        external_provides = set(self.storage.fetch_all().keys())
+        missing = self._flow.requires - external_provides
+        if missing:
+            raise exc.MissingDependencies(self._flow, sorted(missing))
+
         self._change_state(states.RUNNING)
         try:
             self._root.execute(self)

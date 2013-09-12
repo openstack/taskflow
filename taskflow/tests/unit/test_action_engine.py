@@ -239,8 +239,7 @@ class EngineTaskTest(EngineTestBase):
         flow = MultiargsTask(provides='result')
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'x': 17})
-        with self.assertRaisesRegexp(exceptions.NotFound,
-                                     "^Name 'c' is not mapped"):
+        with self.assertRaises(exceptions.MissingDependencies):
             engine.run()
 
     def test_partial_arguments_mapping(self):
@@ -274,8 +273,7 @@ class EngineTaskTest(EngineTestBase):
                              rebind={'b': 'z'})
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'c': 9, 'x': 17})
-        with self.assertRaisesRegexp(exceptions.NotFound,
-                                     "Name 'z' is not mapped"):
+        with self.assertRaises(exceptions.MissingDependencies):
             engine.run()
 
     def test_invalid_argument_name_list(self):
@@ -284,8 +282,7 @@ class EngineTaskTest(EngineTestBase):
                              rebind=['a', 'z', 'b'])
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'c': 9, 'x': 17})
-        with self.assertRaisesRegexp(exceptions.NotFound,
-                                     "Name 'z' is not mapped"):
+        with self.assertRaises(exceptions.MissingDependencies):
             engine.run()
 
     def test_bad_rebind_args_value(self):
@@ -399,9 +396,15 @@ class EngineParallelFlowTest(EngineTestBase):
             engine.run()
 
     def test_parallel_revert_exception_is_reraised(self):
-        flow = uf.Flow('p-r-r').add(
-            TestTask(self.values, name='task1'),
-            NastyTask(),
+        # NOTE(imelnikov): if we put NastyTask and FailingTask
+        # into the same unordered flow, it is not guaranteed
+        # that NastyTask execution would be attempted before
+        # FailingTask fails.
+        flow = lf.Flow('p-r-r-l').add(
+            uf.Flow('p-r-r').add(
+                TestTask(self.values, name='task1'),
+                NastyTask()
+            ),
             FailingTask(self.values, sleep=0.1)
         )
         engine = self._make_engine(flow)

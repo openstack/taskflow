@@ -88,6 +88,11 @@ class InvalidStateException(TaskFlowException):
     pass
 
 
+class InvariantViolationException(TaskFlowException):
+    """Raised when flow invariant violation is attempted."""
+    pass
+
+
 class UnclaimableJobException(TaskFlowException):
     """Raised when a job can not be claimed."""
     pass
@@ -106,3 +111,4 @@ class MissingDependencies(InvalidStateException):
     def __init__(self, who, requirements):
         message = self.message % {'who': who, 'requirements': requirements}
         super(MissingDependencies, self).__init__(message)
+        self.missing_requirements = requirements

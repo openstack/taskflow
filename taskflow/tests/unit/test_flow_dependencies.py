@@ -19,6 +19,7 @@
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 
+from taskflow import exceptions
 from taskflow import task
 from taskflow import test
 
@@ -146,6 +147,12 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEquals(flow.requires, set())
         self.assertEquals(flow.provides, set(['x', 'a', 'b', 'c']))
 
+    def test_linear_flow_provides_out_of_order(self):
+        with self.assertRaises(exceptions.InvariantViolationException):
+            lf.Flow('lf').add(
+                TaskOneArg('task2'),
+                TaskOneReturn('task1', provides='x'))
+
     def test_linear_flow_provides_required_values(self):
         flow = lf.Flow('lf').add(
             TaskOneReturn('task1', provides='x'),
@@ -163,12 +170,22 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEquals(flow.requires, set(['a', 'b', 'c', 'z']))
         self.assertEquals(flow.provides, set(['x', 'y', 'q', 'i', 'j', 'k']))
 
+    def test_linear_flow_self_requires(self):
+        flow = lf.Flow('uf')
+        with self.assertRaises(exceptions.InvariantViolationException):
+            flow.add(TaskNoRequiresNoReturns(rebind=['x'], provides='x'))
+
     def test_unordered_flow_without_dependencies(self):
         flow = uf.Flow('uf').add(
             TaskNoRequiresNoReturns('task1'),
             TaskNoRequiresNoReturns('task2'))
         self.assertEquals(flow.requires, set())
         self.assertEquals(flow.provides, set())
+
+    def test_unordered_flow_self_requires(self):
+        flow = uf.Flow('uf')
+        with self.assertRaises(exceptions.InvariantViolationException):
+            flow.add(TaskNoRequiresNoReturns(rebind=['x'], provides='x'))
 
     def test_unordered_flow_reuires_values(self):
         flow = uf.Flow('uf').add(
@@ -192,21 +209,32 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEquals(flow.provides, set(['x', 'a', 'b', 'c']))
 
     def test_unordered_flow_provides_required_values(self):
-        flow = uf.Flow('uf').add(
-            TaskOneReturn('task1', provides='x'),
-            TaskOneArg('task2'))
-        self.assertEquals(flow.requires, set(['x']))
-        self.assertEquals(flow.provides, set(['x']))
+        with self.assertRaises(exceptions.InvariantViolationException):
+            uf.Flow('uf').add(
+                TaskOneReturn('task1', provides='x'),
+                TaskOneArg('task2'))
+
+    def test_unordered_flow_requires_provided_value_other_call(self):
+        flow = uf.Flow('uf')
+        flow.add(TaskOneReturn('task1', provides='x'))
+        with self.assertRaises(exceptions.InvariantViolationException):
+            flow.add(TaskOneArg('task2'))
+
+    def test_unordered_flow_provides_required_value_other_call(self):
+        flow = uf.Flow('uf')
+        flow.add(TaskOneArg('task2'))
+        with self.assertRaises(exceptions.InvariantViolationException):
+            flow.add(TaskOneReturn('task1', provides='x'))
 
     def test_unordered_flow_multi_provides_and_requires_values(self):
         flow = uf.Flow('uf').add(
             TaskMultiArgMultiReturn('task1',
                                     rebind=['a', 'b', 'c'],
-                                    provides=['x', 'y', 'q']),
+                                    provides=['d', 'e', 'f']),
             TaskMultiArgMultiReturn('task2',
                                     provides=['i', 'j', 'k']))
         self.assertEquals(flow.requires, set(['a', 'b', 'c', 'x', 'y', 'z']))
-        self.assertEquals(flow.provides, set(['x', 'y', 'q', 'i', 'j', 'k']))
+        self.assertEquals(flow.provides, set(['d', 'e', 'f', 'i', 'j', 'k']))
 
     def test_nested_flows_requirements(self):
         flow = uf.Flow('uf').add(
