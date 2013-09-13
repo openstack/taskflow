@@ -26,6 +26,8 @@ from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 
+import taskflow.engines
+
 from taskflow.engines.action_engine import engine as eng
 from taskflow import exceptions as exc
 from taskflow.persistence.backends import impl_memory
@@ -139,14 +141,12 @@ class EngineTestBase(object):
         super(EngineTestBase, self).setUp()
         self.values = []
         self.backend = impl_memory.MemoryBackend(conf={})
-        self.book = p_utils.temporary_log_book(self.backend)
 
     def tearDown(self):
         super(EngineTestBase, self).tearDown()
         with contextlib.closing(self.backend) as be:
             with contextlib.closing(be.get_connection()) as conn:
                 conn.clear_all()
-        self.book = None
 
     def _make_engine(self, flow, flow_detail=None):
         raise NotImplementedError()
@@ -650,11 +650,18 @@ class SingleThreadedEngineTest(EngineTaskTest,
                                SuspendFlowTest,
                                test.TestCase):
     def _make_engine(self, flow, flow_detail=None):
-        if flow_detail is None:
-            flow_detail = p_utils.create_flow_detail(flow, self.book,
-                                                     self.backend)
-        return eng.SingleThreadedActionEngine(flow, backend=self.backend,
-                                              flow_detail=flow_detail)
+        return taskflow.engines.load(flow,
+                                     flow_detail=flow_detail,
+                                     engine_conf='serial',
+                                     backend=self.backend)
+
+    def test_correct_load(self):
+        engine = self._make_engine(TestTask)
+        self.assertIsInstance(engine, eng.SingleThreadedActionEngine)
+
+    def test_singlethreaded_is_the_default(self):
+        engine = taskflow.engines.load(TestTask)
+        self.assertIsInstance(engine, eng.SingleThreadedActionEngine)
 
 
 class MultiThreadedEngineTest(EngineTaskTest,
@@ -664,19 +671,26 @@ class MultiThreadedEngineTest(EngineTaskTest,
                               SuspendFlowTest,
                               test.TestCase):
     def _make_engine(self, flow, flow_detail=None, executor=None):
-        if flow_detail is None:
-            flow_detail = p_utils.create_flow_detail(flow, self.book,
-                                                     self.backend)
-        return eng.MultiThreadedActionEngine(flow, backend=self.backend,
-                                             flow_detail=flow_detail,
-                                             executor=executor)
+        engine_conf = dict(engine='parallel',
+                           executor=executor)
+        return taskflow.engines.load(flow, flow_detail=flow_detail,
+                                     engine_conf=engine_conf,
+                                     backend=self.backend)
 
-    def test_using_common_pool(self):
+    def test_correct_load(self):
+        engine = self._make_engine(TestTask)
+        self.assertIsInstance(engine, eng.MultiThreadedActionEngine)
+        self.assertIs(engine.executor, None)
+
+    def test_using_common_executor(self):
         flow = TestTask(self.values, name='task1')
         executor = futures.ThreadPoolExecutor(2)
-        e1 = self._make_engine(flow, executor=executor)
-        e2 = self._make_engine(flow, executor=executor)
-        self.assertIs(e1.executor, e2.executor)
+        try:
+            e1 = self._make_engine(flow, executor=executor)
+            e2 = self._make_engine(flow, executor=executor)
+            self.assertIs(e1.executor, e2.executor)
+        finally:
+            executor.shutdown(wait=True)
 
     def test_parallel_revert_specific(self):
         flow = uf.Flow('p-r-r').add(

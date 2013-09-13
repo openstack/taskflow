@@ -21,7 +21,7 @@ import contextlib
 from taskflow import task
 from taskflow import test
 
-from taskflow.engines.action_engine import engine as eng
+import taskflow.engines
 from taskflow.patterns import linear_flow as lf
 from taskflow.persistence.backends import impl_memory
 from taskflow.utils import persistence_utils as p_utils
@@ -41,8 +41,10 @@ class ProgressTask(task.Task):
 
 
 class TestProgress(test.TestCase):
-    def _make_engine(self, flow):
-        e = eng.SingleThreadedActionEngine(flow)
+    def _make_engine(self, flow, flow_detail=None, backend=None):
+        e = taskflow.engines.load(flow,
+                                  flow_detail=flow_detail,
+                                  backend=backend)
         e.compile()
         return e
 
@@ -91,9 +93,7 @@ class TestProgress(test.TestCase):
             flo = lf.Flow("test")
             flo.add(ProgressTask("test", 3))
             b, fd = p_utils.temporary_flow_detail(be)
-            e = eng.SingleThreadedActionEngine(flo,
-                                               book=b, flow_detail=fd,
-                                               backend=be)
+            e = self._make_engine(flo, flow_detail=fd, backend=be)
             e.run()
             t_uuid = e.storage.get_uuid_by_name("test")
             end_progress = e.storage.get_task_progress(t_uuid)
@@ -113,9 +113,7 @@ class TestProgress(test.TestCase):
             flo = lf.Flow("test")
             flo.add(t)
             b, fd = p_utils.temporary_flow_detail(be)
-            e = eng.SingleThreadedActionEngine(flo,
-                                               book=b, flow_detail=fd,
-                                               backend=be)
+            e = self._make_engine(flo, flow_detail=fd, backend=be)
             e.run()
 
             t_uuid = e.storage.get_uuid_by_name("test")

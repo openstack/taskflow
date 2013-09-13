@@ -17,6 +17,7 @@
 #    under the License.
 
 import logging
+import multiprocessing
 import threading
 import time
 import types
@@ -42,6 +43,17 @@ def await(check_functor, timeout=None):
         else:
             delay = min(delay * 2, 0.05)
     return True
+
+
+def get_optimal_thread_count():
+    """Try to guess optimal thread count for current system."""
+    try:
+        return multiprocessing.cpu_count() + 1
+    except NotImplementedError:
+        # NOTE(harlowja): apparently may raise so in this case we will
+        # just setup two threads since its hard to know what else we
+        # should do in this situation.
+        return 2
 
 
 class MultiLock(object):

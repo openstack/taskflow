@@ -18,7 +18,7 @@
 
 import collections
 
-from taskflow.engines.action_engine import engine as eng
+import taskflow.engines
 from taskflow import exceptions as exc
 from taskflow.patterns import linear_flow as lw
 from taskflow import states
@@ -30,10 +30,7 @@ from taskflow.tests import utils
 
 class LinearFlowTest(test.TestCase):
     def _make_engine(self, flow):
-        e = eng.SingleThreadedActionEngine(flow)
-        e.storage.inject([('context', {})])
-        e.compile()
-        return e
+        return taskflow.engines.load(flow, store={'context': {}})
 
     def test_result_access(self):
 

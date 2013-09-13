@@ -16,16 +16,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.engines.action_engine import engine as eng
+import taskflow.engines
+
 from taskflow.patterns import linear_flow
 from taskflow import task as base
 from taskflow import test
-
-
-def _make_engine(flow):
-    e = eng.SingleThreadedActionEngine(flow)
-    e.compile()
-    return e
 
 
 def add(a, b):
@@ -69,5 +64,5 @@ class FunctorTaskTest(test.TestCase):
             t(bof.run_fail)
         )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            _make_engine(flow).run()
+            taskflow.engines.run(flow)
         self.assertEquals(values, ['one', 'fail', 'revert one'])

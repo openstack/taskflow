@@ -4,11 +4,12 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-my_dir_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
-                                os.pardir))
+top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                       os.pardir,
+                                       os.pardir))
+sys.path.insert(0, top_dir)
 
-from taskflow.engines.action_engine import engine as eng
+import taskflow.engines
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
@@ -46,30 +47,20 @@ flow = gf.Flow('root').add(
     # x7 = x6+x6 = 82
     Adder("add7", provides='x7', rebind=['x6', 'x6']))
 
-single_threaded_engine = eng.SingleThreadedActionEngine(flow)
-single_threaded_engine.storage.inject({
+store = {
     "y1": 1,
     "y2": 3,
     "y3": 5,
     "y4": 7,
     "y5": 9,
-})
+}
 
-single_threaded_engine.run()
+result = taskflow.engines.run(
+    flow, engine_conf='serial', store=store)
 
-print ("Single threaded engine result %s" %
-       single_threaded_engine.storage.fetch_all())
+print("Single threaded engine result %s" % result)
 
-multi_threaded_engine = eng.MultiThreadedActionEngine(flow)
-multi_threaded_engine.storage.inject({
-    "y1": 1,
-    "y2": 3,
-    "y3": 5,
-    "y4": 7,
-    "y5": 9,
-})
+result = taskflow.engines.run(
+    flow, engine_conf='parallel', store=store)
 
-multi_threaded_engine.run()
-
-print ("Multi threaded engine result %s" %
-       multi_threaded_engine.storage.fetch_all())
+print("Multi threaded engine result %s" % result)

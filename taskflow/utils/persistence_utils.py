@@ -26,19 +26,20 @@ from taskflow.persistence import logbook
 LOG = logging.getLogger(__name__)
 
 
-def temporary_log_book(backend):
+def temporary_log_book(backend=None):
     """Creates a temporary logbook for temporary usage in the given backend.
 
     Mainly useful for tests and other use cases where a temporary logbook
     is needed for a short-period of time.
     """
     book = logbook.LogBook('tmp')
-    with contextlib.closing(backend.get_connection()) as conn:
-        conn.save_logbook(book)
-        return book
+    if backend is not None:
+        with contextlib.closing(backend.get_connection()) as conn:
+            conn.save_logbook(book)
+    return book
 
 
-def temporary_flow_detail(backend):
+def temporary_flow_detail(backend=None):
     """Creates a temporary flow detail and logbook for temporary usage in
     the given backend.
 
@@ -47,12 +48,13 @@ def temporary_flow_detail(backend):
     """
     flow_id = uuidutils.generate_uuid()
     book = temporary_log_book(backend)
-    with contextlib.closing(backend.get_connection()) as conn:
-        book.add(logbook.FlowDetail(name='tmp-flow-detail', uuid=flow_id))
-        conn.save_logbook(book)
-        # Return the one from the saved logbook instead of the local one so
-        # that the freshest version is given back.
-        return (book, book.find(flow_id))
+    book.add(logbook.FlowDetail(name='tmp-flow-detail', uuid=flow_id))
+    if backend is not None:
+        with contextlib.closing(backend.get_connection()) as conn:
+            conn.save_logbook(book)
+    # Return the one from the saved logbook instead of the local one so
+    # that the freshest version is given back.
+    return book, book.find(flow_id)
 
 
 def create_flow_detail(flow, book=None, backend=None):

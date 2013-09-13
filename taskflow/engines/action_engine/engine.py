@@ -16,13 +16,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import multiprocessing
 import threading
 
 from concurrent import futures
 
 from taskflow.engines.action_engine import graph_action
 from taskflow.engines.action_engine import task_action
+from taskflow.engines import base
 
 from taskflow import decorators
 from taskflow import exceptions as exc
@@ -31,25 +31,24 @@ from taskflow import storage as t_storage
 
 from taskflow.utils import flow_utils
 from taskflow.utils import misc
-from taskflow.utils import persistence_utils as p_utils
+from taskflow.utils import threading_utils
 
 
-class ActionEngine(object):
+class ActionEngine(base.EngineBase):
     """Generic action-based engine.
 
     Converts the flow to recursive structure of actions.
     """
     _graph_action = None
 
-    def __init__(self, flow, storage):
+    def __init__(self, flow, flow_detail, backend, conf):
+        super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
         self._failures = []
         self._root = None
-        self._flow = flow
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
         self.notifier = misc.TransitionNotifier()
         self.task_notifier = misc.TransitionNotifier()
-        self.storage = storage
 
     def _revert(self, current_failure):
         self._change_state(states.REVERTING)
@@ -145,62 +144,37 @@ class ActionEngine(object):
 class SingleThreadedActionEngine(ActionEngine):
     # This one attempts to run in a serial manner.
     _graph_action = graph_action.SequentialGraphAction
-
-    def __init__(self, flow, flow_detail=None, book=None, backend=None):
-        if flow_detail is None:
-            flow_detail = p_utils.create_flow_detail(flow,
-                                                     book=book,
-                                                     backend=backend)
-        ActionEngine.__init__(self, flow,
-                              storage=t_storage.Storage(flow_detail, backend))
+    _storage_cls = t_storage.Storage
 
 
 class MultiThreadedActionEngine(ActionEngine):
     # This one attempts to run in a parallel manner.
     _graph_action = graph_action.ParallelGraphAction
+    _storage_cls = t_storage.ThreadSafeStorage
 
-    def __init__(self, flow, flow_detail=None, book=None, backend=None,
-                 executor=None):
-        if flow_detail is None:
-            flow_detail = p_utils.create_flow_detail(flow,
-                                                     book=book,
-                                                     backend=backend)
-        ActionEngine.__init__(self, flow,
-                              storage=t_storage.ThreadSafeStorage(flow_detail,
-                                                                  backend))
-        if executor is not None:
-            self._executor = executor
-            self._owns_executor = False
-            self._thread_count = -1
-        else:
-            self._executor = None
-            self._owns_executor = True
-            # TODO(harlowja): allow this to be configurable??
-            try:
-                self._thread_count = multiprocessing.cpu_count() + 1
-            except NotImplementedError:
-                # NOTE(harlowja): apparently may raise so in this case we will
-                # just setup two threads since its hard to know what else we
-                # should do in this situation.
-                self._thread_count = 2
+    def __init__(self, flow, flow_detail, backend, conf):
+        super(MultiThreadedActionEngine, self).__init__(
+            flow, flow_detail, backend, conf)
+        self._executor = conf.get('executor', None)
 
     @decorators.locked
     def run(self):
-        if self._owns_executor:
-            if self._executor is not None:
-                # The previous shutdown failed, something is very wrong.
-                raise exc.InvalidStateException("The previous shutdown() of"
-                                                " the executor powering this"
-                                                " engine failed. Something is"
-                                                " very very wrong.")
-            self._executor = futures.ThreadPoolExecutor(self._thread_count)
+        if self._executor is None:
+            self._executor = futures.ThreadPoolExecutor(
+                threading_utils.get_optimal_thread_count())
+            owns_executor = True
+        else:
+            owns_executor = False
+
         try:
             ActionEngine.run(self)
         finally:
             # Don't forget to shutdown the executor!!
-            if self._owns_executor and self._executor is not None:
-                self._executor.shutdown(wait=True)
-                self._executor = None
+            if owns_executor:
+                try:
+                    self._executor.shutdown(wait=True)
+                finally:
+                    self._executor = None
 
     @property
     def executor(self):

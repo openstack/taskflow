@@ -16,7 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.engines.action_engine import engine as eng
+import taskflow.engines
+
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 from taskflow import test
@@ -26,10 +27,7 @@ from taskflow.tests import utils
 
 class UnorderedFlowTest(test.TestCase):
     def _make_engine(self, flow):
-        e = eng.SingleThreadedActionEngine(flow)
-        e.storage.inject([('context', {})])
-        e.compile()
-        return e
+        return taskflow.engines.load(flow, store={'context': {}})
 
     def test_result_access(self):
 

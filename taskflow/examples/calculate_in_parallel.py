@@ -4,11 +4,13 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-my_dir_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
-                                os.pardir))
+top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                       os.pardir,
+                                       os.pardir))
+sys.path.insert(0, top_dir)
 
-from taskflow.engines.action_engine import engine as eng
+import taskflow.engines
+
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
@@ -20,7 +22,6 @@ from taskflow import task
 
 
 class Provider(task.Task):
-
     def __init__(self, name, *args, **kwargs):
         super(Provider, self).__init__(name=name, **kwargs)
         self._provide = args
@@ -30,11 +31,6 @@ class Provider(task.Task):
 
 
 class Adder(task.Task):
-
-    def __init__(self, name, provides, rebind):
-        super(Adder, self).__init__(name=name, provides=provides,
-                                    rebind=rebind)
-
     def execute(self, x, y):
         return x + y
 
@@ -52,7 +48,6 @@ flow = lf.Flow('root').add(
     # r = z1+z2 = 18
     Adder(name="sum-1", provides='r', rebind=['z1', 'z2']))
 
-engine = eng.MultiThreadedActionEngine(flow)
-engine.run()
 
-print engine.storage.fetch_all()
+result = taskflow.engines.run(flow, engine_conf='parallel')
+print result

@@ -4,11 +4,12 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-my_dir_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
-                                os.pardir))
+top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                       os.pardir,
+                                       os.pardir))
+sys.path.insert(0, top_dir)
 
-from taskflow.engines.action_engine import engine as eng
+import taskflow.engines
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
@@ -30,16 +31,11 @@ class CallJoe(task.Task):
     def execute(self, joe_number, *args, **kwargs):
         print("Calling joe %s." % joe_number)
 
+
 flow = lf.Flow('simple-linear').add(
     CallJim(),
     CallJoe()
 )
 
-engine = eng.SingleThreadedActionEngine(flow)
-
-engine.storage.inject({
-    "joe_number": 444,
-    "jim_number": 555,
-})
-
-engine.run()
+taskflow.engines.run(flow, store=dict(joe_number=444,
+                                      jim_number=555))

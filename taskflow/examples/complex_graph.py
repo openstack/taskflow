@@ -7,11 +7,13 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-my_dir_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
-                                os.pardir))
+top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                       os.pardir,
+                                       os.pardir))
+sys.path.insert(0, top_dir)
 
-from taskflow.engines.action_engine import engine as eng
+
+import taskflow.engines
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
@@ -54,7 +56,6 @@ def trash(**kwargs):
 
 
 def startup(**kwargs):
-    pass
     # TODO(harlowja): try triggering reversion here!
     # raise ValueError("Car not verified")
     return True
@@ -95,11 +96,7 @@ flow = lf.Flow("make-auto").add(
                                        'windows_installed',
                                        'wheels_installed']))
 
-engine = eng.SingleThreadedActionEngine(flow)
-engine.notifier.register('*', flow_watch)
-engine.task_notifier.register('*', task_watch)
-
-engine.storage.inject({'spec': {
+spec = {
     "frame": 'steel',
     "engine": 'honda',
     "doors": '2',
@@ -108,28 +105,25 @@ engine.storage.inject({'spec': {
     "doors_installed": True,
     "windows_installed": True,
     "wheels_installed": True,
-}})
+}
 
-print "Build a car"
-engine.run()
 
-engine = eng.SingleThreadedActionEngine(flow)
+engine = taskflow.engines.load(flow, store={'spec': spec.copy()})
 engine.notifier.register('*', flow_watch)
 engine.task_notifier.register('*', task_watch)
 
-engine.storage.inject({'spec': {
-    "frame": 'steel',
-    "engine": 'honda',
-    "doors": '5',
-    "wheels": '4',
-    "engine_installed": True,
-    "doors_installed": True,
-    "windows_installed": True,
-    "wheels_installed": True,
-}})
+print("Build a car")
+engine.run()
+
+
+spec['doors'] = 5
+
+engine = taskflow.engines.load(flow, store={'spec': spec.copy()})
+engine.notifier.register('*', flow_watch)
+engine.task_notifier.register('*', task_watch)
 
 try:
-    print "Build a wrong car that doesn't match specification"
+    print("Build a wrong car that doesn't match specification")
     engine.run()
 except Exception as e:
-    print e
+    print("Flow failed: %s" % e)

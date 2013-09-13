@@ -2,7 +2,7 @@
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-#    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
+#    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -17,6 +17,24 @@
 #    under the License.
 
 
-# promote helpers to this module namespace
-from taskflow.engines.helpers import load  # noqa
-from taskflow.engines.helpers import run  # noqa
+import abc
+
+
+class EngineBase(object):
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, flow, flow_detail, backend, conf):
+        self._flow = flow
+        self.storage = self._storage_cls(flow_detail, backend)
+
+    @abc.abstractproperty
+    def _storage_cls(self):
+        """Storage class"""
+
+    @abc.abstractmethod
+    def compile(self):
+        """Check the flow and convert it to internal representation"""
+
+    @abc.abstractmethod
+    def run(self):
+        """Run the flow"""

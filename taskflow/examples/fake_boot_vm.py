@@ -8,11 +8,13 @@ import uuid
 
 logging.basicConfig(level=logging.ERROR)
 
-my_dir_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
-                                os.pardir))
+top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                       os.pardir,
+                                       os.pardir))
+sys.path.insert(0, top_dir)
 
-from taskflow.engines.action_engine import engine as eng
+
+import taskflow.engines
 from taskflow.patterns import graph_flow as gf
 from taskflow import task
 
@@ -141,14 +143,6 @@ flow = gf.Flow("Boot-Fake-Vm").add(
     ScheduleVM(),
     BootVM())
 
-engine = eng.SingleThreadedActionEngine(flow)
-
-# Get notified of the state changes the flow is going through.
-engine.notifier.register('*', flow_notify)
-
-# Get notified of the state changes the flows tasks/runners are going through.
-engine.task_notifier.register('*', task_notify)
-
 # Simulates what nova/glance/keystone... calls a context
 context = {
     'user_id': 'xyz',
@@ -157,7 +151,15 @@ context = {
 }
 context = Context(**context)
 
-engine.storage.inject({'context': context})
+# Load the flow
+engine = taskflow.engines.load(flow, store={'context': context})
+
+# Get notified of the state changes the flow is going through.
+engine.notifier.register('*', flow_notify)
+
+# Get notified of the state changes the flows tasks/runners are going through.
+engine.task_notifier.register('*', task_notify)
+
 
 print '-' * 7
 print 'Running'
