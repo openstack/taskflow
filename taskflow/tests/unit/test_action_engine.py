@@ -17,8 +17,9 @@
 #    under the License.
 
 import contextlib
-from multiprocessing import pool
 import time
+
+from concurrent import futures
 
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
@@ -447,20 +448,20 @@ class MultiThreadedEngineTest(EngineTaskTest,
                               EngineLinearFlowTest,
                               EngineParallelFlowTest,
                               test.TestCase):
-    def _make_engine(self, flow, flow_detail=None, thread_pool=None):
+    def _make_engine(self, flow, flow_detail=None, executor=None):
         if flow_detail is None:
             flow_detail = p_utils.create_flow_detail(flow, self.book,
                                                      self.backend)
         return eng.MultiThreadedActionEngine(flow, backend=self.backend,
                                              flow_detail=flow_detail,
-                                             thread_pool=thread_pool)
+                                             executor=executor)
 
     def test_using_common_pool(self):
         flow = TestTask(self.values, name='task1')
-        thread_pool = pool.ThreadPool()
-        e1 = self._make_engine(flow, thread_pool=thread_pool)
-        e2 = self._make_engine(flow, thread_pool=thread_pool)
-        self.assertIs(e1.thread_pool, e2.thread_pool)
+        executor = futures.ThreadPoolExecutor(2)
+        e1 = self._make_engine(flow, executor=executor)
+        e2 = self._make_engine(flow, executor=executor)
+        self.assertIs(e1.executor, e2.executor)
 
     def test_parallel_revert_specific(self):
         flow = uf.Flow('p-r-r').add(

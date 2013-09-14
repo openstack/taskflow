@@ -16,9 +16,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import multiprocessing
 import threading
 
-from multiprocessing import pool
+from concurrent import futures
 
 from taskflow.engines.action_engine import parallel_action
 from taskflow.engines.action_engine import seq_action
@@ -175,7 +176,7 @@ class MultiThreadedActionEngine(ActionEngine):
     translator_cls = MultiThreadedTranslator
 
     def __init__(self, flow, flow_detail=None, book=None, backend=None,
-                 thread_pool=None):
+                 executor=None):
         if flow_detail is None:
             flow_detail = p_utils.create_flow_detail(flow,
                                                      book=book,
@@ -183,31 +184,40 @@ class MultiThreadedActionEngine(ActionEngine):
         ActionEngine.__init__(self, flow,
                               storage=t_storage.ThreadSafeStorage(flow_detail,
                                                                   backend))
-        if thread_pool:
-            self._thread_pool = thread_pool
-            self._owns_thread_pool = False
+        if executor is not None:
+            self._executor = executor
+            self._owns_executor = False
+            self._thread_count = -1
         else:
-            self._thread_pool = None
-            self._owns_thread_pool = True
-
-    @decorators.locked
-    def compile(self):
-        ActionEngine.compile(self)
-        if self._thread_pool is None:
-            self._thread_pool = pool.ThreadPool()
+            self._executor = None
+            self._owns_executor = True
+            # TODO(harlowja): allow this to be configurable??
+            try:
+                self._thread_count = multiprocessing.cpu_count() + 1
+            except NotImplementedError:
+                # NOTE(harlowja): apparently may raise so in this case we will
+                # just setup two threads since its hard to know what else we
+                # should do in this situation.
+                self._thread_count = 2
 
     @decorators.locked
     def run(self):
+        if self._owns_executor:
+            if self._executor is not None:
+                # The previous shutdown failed, something is very wrong.
+                raise exc.InvalidStateException("The previous shutdown() of"
+                                                " the executor powering this"
+                                                " engine failed. Something is"
+                                                " very very wrong.")
+            self._executor = futures.ThreadPoolExecutor(self._thread_count)
         try:
             ActionEngine.run(self)
         finally:
-            # Ensure we close then join on the thread pool to make sure its
-            # resources get cleaned up correctly.
-            if self._owns_thread_pool and self._thread_pool:
-                self._thread_pool.close()
-                self._thread_pool.join()
-                self._thread_pool = None
+            # Don't forget to shutdown the executor!!
+            if self._owns_executor and self._executor is not None:
+                self._executor.shutdown(wait=True)
+                self._executor = None
 
     @property
-    def thread_pool(self):
-        return self._thread_pool
+    def executor(self):
+        return self._executor

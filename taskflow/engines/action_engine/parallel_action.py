@@ -29,7 +29,7 @@ class ParallelAction(base.Action):
         self._actions.append(action)
 
     def _map(self, engine, fn):
-        pool = engine.thread_pool
+        executor = engine.executor
 
         def call_fn(action):
             try:
@@ -40,7 +40,7 @@ class ParallelAction(base.Action):
                 return None
 
         failures = []
-        result_iter = pool.imap_unordered(call_fn, self._actions)
+        result_iter = executor.map(call_fn, self._actions)
         for result in result_iter:
             if isinstance(result, misc.Failure):
                 failures.append(result)
