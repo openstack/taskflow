@@ -43,9 +43,9 @@ class LinkedException(TaskFlowException):
     def link(cls, exc_infos):
         first = None
         previous = None
-        for exc_info in exc_infos:
-            if not all(exc_info) or not len(exc_infos) == 3:
-                raise ValueError("Invalid exc_info")
+        for i, exc_info in enumerate(exc_infos):
+            if not all(exc_info[0:2]) or len(exc_info) != 3:
+                raise ValueError("Invalid exc_info for index %s" % (i))
             buf = StringIO.StringIO()
             traceback.print_exception(exc_info[0], exc_info[1], exc_info[2],
                                       file=buf)
