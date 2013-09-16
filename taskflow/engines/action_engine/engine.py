@@ -22,13 +22,7 @@ import threading
 from concurrent import futures
 
 from taskflow.engines.action_engine import graph_action
-from taskflow.engines.action_engine import parallel_action
-from taskflow.engines.action_engine import seq_action
 from taskflow.engines.action_engine import task_action
-
-from taskflow.patterns import graph_flow as gf
-from taskflow.patterns import linear_flow as lf
-from taskflow.patterns import unordered_flow as uf
 
 from taskflow.persistence import utils as p_utils
 
@@ -36,8 +30,8 @@ from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import storage as t_storage
-from taskflow import task
 
+from taskflow.utils import flow_utils
 from taskflow.utils import misc
 
 
@@ -105,59 +99,21 @@ class ActionEngine(object):
                        result=result)
         self.task_notifier.notify(state, details)
 
+    def _translate_flow_to_action(self):
+        # Flatten the flow into just 1 graph.
+        task_graph = flow_utils.flatten(self._flow)
+        ga = graph_action.SequentialGraphAction(task_graph)
+        for n in task_graph.nodes_iter():
+            ga.add(n, task_action.TaskAction(n, self))
+        return ga
+
     @decorators.locked
     def compile(self):
         if self._root is None:
-            translator = self.translator_cls(self)
-            self._root = translator.translate(self._flow)
-
-
-class Translator(object):
-
-    def __init__(self, engine):
-        self.engine = engine
-
-    def _factory_map(self):
-        return []
-
-    def translate(self, pattern):
-        """Translates the pattern into an engine runnable action"""
-        if isinstance(pattern, task.BaseTask):
-            # Wrap the task into something more useful.
-            return task_action.TaskAction(pattern, self.engine)
-
-        # Decompose the flow into something more useful:
-        for cls, factory in self._factory_map():
-            if isinstance(pattern, cls):
-                return factory(pattern)
-
-        raise TypeError('Unknown pattern type: %s (type %s)'
-                        % (pattern, type(pattern)))
-
-
-class SingleThreadedTranslator(Translator):
-
-    def _factory_map(self):
-        return [(lf.Flow, self._translate_sequential),
-                (uf.Flow, self._translate_sequential),
-                (gf.Flow, self._translate_graph)]
-
-    def _translate_sequential(self, pattern):
-        action = seq_action.SequentialAction()
-        for p in pattern:
-            action.add(self.translate(p))
-        return action
-
-    def _translate_graph(self, pattern):
-        action = graph_action.SequentialGraphAction(pattern.graph)
-        for p in pattern:
-            action.add(p, self.translate(p))
-        return action
+            self._root = self._translate_flow_to_action()
 
 
 class SingleThreadedActionEngine(ActionEngine):
-    translator_cls = SingleThreadedTranslator
-
     def __init__(self, flow, flow_detail=None, book=None, backend=None):
         if flow_detail is None:
             flow_detail = p_utils.create_flow_detail(flow,
@@ -167,37 +123,7 @@ class SingleThreadedActionEngine(ActionEngine):
                               storage=t_storage.Storage(flow_detail, backend))
 
 
-class MultiThreadedTranslator(Translator):
-
-    def _factory_map(self):
-        return [(lf.Flow, self._translate_sequential),
-                # unordered can be run in parallel
-                (uf.Flow, self._translate_parallel),
-                (gf.Flow, self._translate_graph)]
-
-    def _translate_sequential(self, pattern):
-        action = seq_action.SequentialAction()
-        for p in pattern:
-            action.add(self.translate(p))
-        return action
-
-    def _translate_parallel(self, pattern):
-        action = parallel_action.ParallelAction()
-        for p in pattern:
-            action.add(self.translate(p))
-        return action
-
-    def _translate_graph(self, pattern):
-        # TODO(akarpinska): replace with parallel graph later
-        action = graph_action.SequentialGraphAction(pattern.graph)
-        for p in pattern:
-            action.add(p, self.translate(p))
-        return action
-
-
 class MultiThreadedActionEngine(ActionEngine):
-    translator_cls = MultiThreadedTranslator
-
     def __init__(self, flow, flow_detail=None, book=None, backend=None,
                  executor=None):
         if flow_detail is None:

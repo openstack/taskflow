@@ -16,65 +16,68 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
+import six
 
-from taskflow import exceptions as exc
-
-
-LOG = logging.getLogger(__name__)
+import networkx as nx
+from networkx import algorithms
 
 
-def connect(graph, infer_key='infer', auto_reason='auto', discard_func=None):
-    """Connects a graphs runners to other runners in the graph which provide
-    outputs for each runners requirements.
-    """
+def merge_graphs(graphs, allow_overlaps=False):
+    if not graphs:
+        return None
+    graph = graphs[0]
+    for g in graphs[1:]:
+        # This should ensure that the nodes to be merged do not already exist
+        # in the graph that is to be merged into. This could be problematic if
+        # there are duplicates.
+        if not allow_overlaps:
+            # Attempt to induce a subgraph using the to be merged graphs nodes
+            # and see if any graph results.
+            overlaps = graph.subgraph(g.nodes_iter())
+            if len(overlaps):
+                raise ValueError("Can not merge graph %s into %s since there "
+                                 "are %s overlapping nodes" (g, graph,
+                                                             len(overlaps)))
+        # Keep the target graphs name.
+        name = graph.name
+        graph = algorithms.compose(graph, g)
+        graph.name = name
+    return graph
 
-    if len(graph) == 0:
-        return
-    if discard_func:
-        for (u, v, e_data) in graph.edges(data=True):
-            if discard_func(u, v, e_data):
-                graph.remove_edge(u, v)
-    for (r, r_data) in graph.nodes_iter(data=True):
-        requires = set(r.requires)
 
-        # Find the ones that have already been attached manually.
-        manual_providers = {}
-        if requires:
-            incoming = [e[0] for e in graph.in_edges_iter([r])]
-            for r2 in incoming:
-                fulfills = requires & r2.provides
-                if fulfills:
-                    LOG.debug("%s is a manual provider of %s for %s",
-                              r2, fulfills, r)
-                    for k in fulfills:
-                        manual_providers[k] = r2
-                        requires.remove(k)
+def get_no_successors(graph):
+    """Returns an iterator for all nodes with no successors"""
+    for n in graph.nodes_iter():
+        if not len(graph.successors(n)):
+            yield n
 
-        # Anything leftover that we must find providers for??
-        auto_providers = {}
-        if requires and r_data.get(infer_key):
-            for r2 in graph.nodes_iter():
-                if r is r2:
-                    continue
-                fulfills = requires & r2.provides
-                if fulfills:
-                    graph.add_edge(r2, r, reason=auto_reason)
-                    LOG.debug("Connecting %s as a automatic provider for"
-                              " %s for %s", r2, fulfills, r)
-                    for k in fulfills:
-                        auto_providers[k] = r2
-                        requires.remove(k)
-                if not requires:
-                    break
 
-        # Anything still leftover??
-        if requires:
-            # Ensure its in string format, since join will puke on
-            # things that are not strings.
-            missing = ", ".join(sorted([str(s) for s in requires]))
-            raise exc.MissingDependencies(r, missing)
-        else:
-            r.providers = {}
-            r.providers.update(auto_providers)
-            r.providers.update(manual_providers)
+def get_no_predecessors(graph):
+    """Returns an iterator for all nodes with no predecessors"""
+    for n in graph.nodes_iter():
+        if not len(graph.predecessors(n)):
+            yield n
+
+
+def pformat(graph):
+    lines = []
+    lines.append("Name: %s" % graph.name)
+    lines.append("Type: %s" % type(graph).__name__)
+    lines.append("Frozen: %s" % nx.is_frozen(graph))
+    lines.append("Nodes: %s" % graph.number_of_nodes())
+    for n in graph.nodes_iter():
+        lines.append("  - %s" % n)
+    lines.append("Edges: %s" % graph.number_of_edges())
+    for (u, v, e_data) in graph.edges_iter(data=True):
+        reason = e_data.get('reason', '??')
+        lines.append("  %s -> %s (%s)" % (u, v, reason))
+    cycles = list(nx.cycles.recursive_simple_cycles(graph))
+    lines.append("Cycles: %s" % len(cycles))
+    for cycle in cycles:
+        buf = six.StringIO()
+        buf.write(str(cycle[0]))
+        for i in range(1, len(cycle)):
+            buf.write(" --> %s" % (cycle[i]))
+        buf.write(" --> %s" % (cycle[0]))
+        lines.append("  %s" % buf.getvalue())
+    return "\n".join(lines)

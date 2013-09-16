@@ -27,3 +27,16 @@ class TestCase(unittest2.TestCase):
 
     def tearDown(self):
         super(TestCase, self).tearDown()
+
+    def assertIsSubset(self, super_set, sub_set, msg=None):
+        missing_set = set()
+        for e in sub_set:
+            if e not in super_set:
+                missing_set.add(e)
+        if len(missing_set):
+            if msg is not None:
+                self.fail(msg)
+            else:
+                self.fail("Subset %s has %s elements which are not in the "
+                          "superset %s." % (sub_set, list(missing_set),
+                                            list(super_set)))
