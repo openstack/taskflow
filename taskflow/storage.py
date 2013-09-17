@@ -17,14 +17,36 @@
 #    under the License.
 
 import contextlib
+import logging
 
 from taskflow import exceptions
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow import states
+from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
+
+LOG = logging.getLogger(__name__)
+
+
 STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
+
+
+def _item_from_result(result, index, name):
+    if index is None:
+        return result
+    try:
+        return result[index]
+    except (IndexError, KeyError, ValueError, TypeError):
+        # NOTE(harlowja): The result that the uuid returned can not be
+        # accessed in the manner that the index is requesting. Perhaps
+        # the result is a dictionary-like object and that key does
+        # not exist (key error), or the result is a tuple/list and a
+        # non-numeric key is being requested (index error), or there
+        # was no result and an attempt to index into None is being
+        # requested (type error).
+        raise exceptions.NotFound("Unable to find result %r" % name)
 
 
 class Storage(object):
@@ -98,12 +120,34 @@ class Storage(object):
         """Get state of task with given uuid"""
         return self._taskdetail_by_uuid(uuid).state
 
+    def _check_all_results_provided(self, uuid, task_name, data):
+        """Warn if task did not provide some of results
+
+        This may happen if task returns shorter tuple or list or dict
+        without all needed keys. It may also happen if task returns
+        result of wrong type.
+        """
+        result_mapping = self._result_mappings.get(uuid, None)
+        if result_mapping is None:
+            return
+        for name, index in result_mapping.items():
+            try:
+                _item_from_result(data, index, name)
+            except exceptions.NotFound:
+                LOG.warning("Task %s did not supply result "
+                            "with index %r (name %s)",
+                            task_name, index, name)
+
     def save(self, uuid, data, state=states.SUCCESS):
         """Put result for task with id 'uuid' to storage"""
         td = self._taskdetail_by_uuid(uuid)
         td.state = state
         td.results = data
         self._with_connection(self._save_task_detail, task_detail=td)
+
+        # Warn if result was incomplete
+        if not isinstance(data, misc.Failure):
+            self._check_all_results_provided(uuid, td.name, data)
 
     def get(self, uuid):
         """Get result for task with id 'uuid' to storage"""
@@ -158,21 +202,8 @@ class Storage(object):
         for uuid, index in indexes:
             try:
                 result = self.get(uuid)
-                if index is None:
-                    return result
-                else:
-                    return result[index]
+                return _item_from_result(result, index, name)
             except exceptions.NotFound:
-                # NOTE(harlowja): No result was found for the given uuid.
-                pass
-            except (KeyError, IndexError, TypeError):
-                # NOTE(harlowja): The result that the uuid returned can not be
-                # accessed in the manner that the index is requesting. Perhaps
-                # the result is a dictionary-like object and that key does
-                # not exist (key error), or the result is a tuple/list and a
-                # non-numeric key is being requested (index error), or there
-                # was no result and an attempt to index into None is being
-                # requested (type error).
                 pass
         raise exceptions.NotFound("Unable to find result %r" % name)
 
