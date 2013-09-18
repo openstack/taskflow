@@ -51,6 +51,10 @@ class TaskAction(base.Action):
 
     def _change_state(self, engine, state):
         """Check and update state of task."""
+        if state in (states.RUNNING, states.REVERTING, states.PENDING):
+            self._task.update_progress(0.0)
+        elif state in (states.SUCCESS, states.REVERTED):
+            self._task.update_progress(1.0)
         engine.storage.set_task_state(self.uuid, state)
         engine.on_task_state_change(self, state)
 
@@ -62,9 +66,16 @@ class TaskAction(base.Action):
             engine.storage.save(self.uuid, result, state)
         engine.on_task_state_change(self, state, result)
 
+    def _update_progress(self, task, event_data, progress, **kwargs):
+        """Update task progress value that stored in engine."""
+        engine = event_data['engine']
+        engine.storage.set_task_progress(self.uuid, progress, **kwargs)
+
     def execute(self, engine):
         if engine.storage.get_task_state(self.uuid) == states.SUCCESS:
             return
+        self._task.bind('update_progress', self._update_progress,
+                        engine=engine)
         try:
             kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
             self._change_state(engine, states.RUNNING)
@@ -75,6 +86,8 @@ class TaskAction(base.Action):
             failure.reraise()
         else:
             self._update_result(engine, states.SUCCESS, result)
+        finally:
+            self._task.unbind('update_progress', self._update_progress)
 
     def revert(self, engine):
         if engine.storage.get_task_state(self.uuid) == states.PENDING:
@@ -82,7 +95,10 @@ class TaskAction(base.Action):
             #  execution was at least attempted, so we should give
             #  task a chance for cleanup
             return
+        self._task.bind('update_progress', self._update_progress,
+                        engine=engine)
         kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
+
         self._change_state(engine, states.REVERTING)
         try:
             self._task.revert(result=engine.storage.get(self._id),
@@ -93,3 +109,5 @@ class TaskAction(base.Action):
                 self._change_state(engine, states.FAILURE)
         else:
             self._update_result(engine, states.PENDING)
+        finally:
+            self._task.unbind('update_progress', self._update_progress)

@@ -49,3 +49,6 @@ nosetests.xml
 build
 AUTHORS
 ChangeLog
+
+.idea
+env

@@ -120,6 +120,47 @@ class Storage(object):
         """Get state of task with given uuid"""
         return self._taskdetail_by_uuid(uuid).state
 
+    def set_task_progress(self, uuid, progress, **kwargs):
+        """Set task progress.
+
+        :param uuid: task uuid
+        :param progress: task progress
+        :param kwargs: task specific progress information
+        """
+        td = self._taskdetail_by_uuid(uuid)
+        if not td.meta:
+            td.meta = {}
+        td.meta['progress'] = progress
+        if kwargs:
+            td.meta['progress_details'] = kwargs
+        else:
+            if 'progress_details' in td.meta:
+                td.meta.pop('progress_details')
+        self._with_connection(self._save_task_detail, task_detail=td)
+
+    def get_task_progress(self, uuid):
+        """Get progress of task with given uuid.
+
+        :param uuid: task uuid
+        :returns: current task progress value
+        """
+        meta = self._taskdetail_by_uuid(uuid).meta
+        if not meta:
+            return 0.0
+        return meta.get('progress', 0.0)
+
+    def get_task_progress_details(self, uuid):
+        """Get progress details of task with given uuid.
+
+        :param uuid: task uuid
+        :returns: None if progress_details not defined, else progress_details
+                 dict
+        """
+        meta = self._taskdetail_by_uuid(uuid).meta
+        if not meta:
+            return None
+        return meta.get('progress_details')
+
     def _check_all_results_provided(self, uuid, task_name, data):
         """Warn if task did not provide some of results
 
