@@ -21,10 +21,10 @@ import mock
 
 from taskflow import exceptions
 from taskflow.persistence.backends import impl_memory
-from taskflow.persistence import utils as p_utils
 from taskflow import states
 from taskflow import storage
 from taskflow import test
+from taskflow.utils import persistence_utils as p_utils
 
 
 class StorageTest(test.TestCase):

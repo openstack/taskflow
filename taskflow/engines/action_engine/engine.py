@@ -24,8 +24,6 @@ from concurrent import futures
 from taskflow.engines.action_engine import graph_action
 from taskflow.engines.action_engine import task_action
 
-from taskflow.persistence import utils as p_utils
-
 from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow import states
@@ -33,6 +31,7 @@ from taskflow import storage as t_storage
 
 from taskflow.utils import flow_utils
 from taskflow.utils import misc
+from taskflow.utils import persistence_utils as p_utils
 
 
 class ActionEngine(object):

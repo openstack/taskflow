@@ -28,6 +28,7 @@ from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow.openstack.common import timeutils
 from taskflow.persistence.backends import base
+from taskflow.utils import persistence_utils as p_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -98,8 +99,8 @@ class Connection(base.Connection):
     @decorators.locked(lock="_save_locks")
     def update_task_details(self, task_detail):
         try:
-            return _task_details_merge(_TASK_DETAILS[task_detail.uuid],
-                                       task_detail)
+            return p_utils.task_details_merge(_TASK_DETAILS[task_detail.uuid],
+                                              task_detail)
         except KeyError:
             raise exc.NotFound("No task details found with id: %s"
                                % task_detail.uuid)
@@ -107,8 +108,8 @@ class Connection(base.Connection):
     @decorators.locked(lock="_save_locks")
     def update_flow_details(self, flow_detail):
         try:
-            e_fd = _flow_details_merge(_FLOW_DETAILS[flow_detail.uuid],
-                                       flow_detail)
+            e_fd = p_utils.flow_details_merge(_FLOW_DETAILS[flow_detail.uuid],
+                                              flow_detail)
             for task_detail in flow_detail:
                 if e_fd.find(task_detail.uuid) is None:
                     _TASK_DETAILS[task_detail.uuid] = _copy(task_detail)
@@ -125,7 +126,7 @@ class Connection(base.Connection):
     def save_logbook(self, book):
         # Get a existing logbook model (or create it if it isn't there).
         try:
-            e_lb = _logbook_merge(_LOG_BOOKS[book.uuid], book)
+            e_lb = p_utils.logbook_merge(_LOG_BOOKS[book.uuid], book)
             # Add anything in to the new logbook that isn't already
             # in the existing logbook.
             for flow_detail in book:
@@ -164,41 +165,3 @@ class Connection(base.Connection):
             books = list(_LOG_BOOKS.values())
         for lb in books:
             yield lb
-
-###
-# Merging + other helper functions.
-###
-
-
-def _task_details_merge(td_e, td_new):
-    if td_e is td_new:
-        return td_e
-    if td_e.state != td_new.state:
-        td_e.state = td_new.state
-    if td_e.results != td_new.results:
-        td_e.results = td_new.results
-    if td_e.exception != td_new.exception:
-        td_e.exception = td_new.exception
-    if td_e.stacktrace != td_new.stacktrace:
-        td_e.stacktrace = td_new.stacktrace
-    if td_e.meta != td_new.meta:
-        td_e.meta = td_new.meta
-    return td_e
-
-
-def _flow_details_merge(fd_e, fd_new):
-    if fd_e is fd_new:
-        return fd_e
-    if fd_e.meta != fd_new.meta:
-        fd_e.meta = fd_new.meta
-    if fd_e.state != fd_new.state:
-        fd_e.state = fd_new.state
-    return fd_e
-
-
-def _logbook_merge(lb_e, lb_new):
-    if lb_e is lb_new:
-        return lb_e
-    if lb_e.meta != lb_new.meta:
-        lb_e.meta = lb_new.meta
-    return lb_e
