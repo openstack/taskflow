@@ -21,10 +21,12 @@ import threading
 
 from concurrent import futures
 
+from taskflow.engines.action_engine import graph_action
 from taskflow.engines.action_engine import parallel_action
 from taskflow.engines.action_engine import seq_action
 from taskflow.engines.action_engine import task_action
 
+from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 
@@ -137,12 +139,19 @@ class SingleThreadedTranslator(Translator):
 
     def _factory_map(self):
         return [(lf.Flow, self._translate_sequential),
-                (uf.Flow, self._translate_sequential)]
+                (uf.Flow, self._translate_sequential),
+                (gf.Flow, self._translate_graph)]
 
     def _translate_sequential(self, pattern):
         action = seq_action.SequentialAction()
         for p in pattern:
             action.add(self.translate(p))
+        return action
+
+    def _translate_graph(self, pattern):
+        action = graph_action.SequentialGraphAction(pattern.graph)
+        for p in pattern:
+            action.add(p, self.translate(p))
         return action
 
 
@@ -163,7 +172,8 @@ class MultiThreadedTranslator(Translator):
     def _factory_map(self):
         return [(lf.Flow, self._translate_sequential),
                 # unordered can be run in parallel
-                (uf.Flow, self._translate_parallel)]
+                (uf.Flow, self._translate_parallel),
+                (gf.Flow, self._translate_graph)]
 
     def _translate_sequential(self, pattern):
         action = seq_action.SequentialAction()
@@ -175,6 +185,13 @@ class MultiThreadedTranslator(Translator):
         action = parallel_action.ParallelAction()
         for p in pattern:
             action.add(self.translate(p))
+        return action
+
+    def _translate_graph(self, pattern):
+        # TODO(akarpinska): replace with parallel graph later
+        action = graph_action.SequentialGraphAction(pattern.graph)
+        for p in pattern:
+            action.add(p, self.translate(p))
         return action
 
 
