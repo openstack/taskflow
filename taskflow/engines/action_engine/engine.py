@@ -40,6 +40,7 @@ class ActionEngine(object):
 
     Converts the flow to recursive structure of actions.
     """
+    _graph_action = None
 
     def __init__(self, flow, storage):
         self._failures = []
@@ -100,20 +101,23 @@ class ActionEngine(object):
         self.task_notifier.notify(state, details)
 
     def _translate_flow_to_action(self):
-        # Flatten the flow into just 1 graph.
+        assert self._graph_action is not None, ('Graph action class must be'
+                                                ' specified')
         task_graph = flow_utils.flatten(self._flow)
-        ga = graph_action.SequentialGraphAction(task_graph)
+        ga = self._graph_action(task_graph)
         for n in task_graph.nodes_iter():
             ga.add(n, task_action.TaskAction(n, self))
         return ga
 
-    @decorators.locked
     def compile(self):
         if self._root is None:
             self._root = self._translate_flow_to_action()
 
 
 class SingleThreadedActionEngine(ActionEngine):
+    # This one attempts to run in a serial manner.
+    _graph_action = graph_action.SequentialGraphAction
+
     def __init__(self, flow, flow_detail=None, book=None, backend=None):
         if flow_detail is None:
             flow_detail = p_utils.create_flow_detail(flow,
@@ -124,6 +128,9 @@ class SingleThreadedActionEngine(ActionEngine):
 
 
 class MultiThreadedActionEngine(ActionEngine):
+    # This one attempts to run in a parallel manner.
+    _graph_action = graph_action.ParallelGraphAction
+
     def __init__(self, flow, flow_detail=None, book=None, backend=None,
                  executor=None):
         if flow_detail is None:
