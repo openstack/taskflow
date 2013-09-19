@@ -21,6 +21,7 @@ import time
 
 from concurrent import futures
 
+from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 
@@ -36,10 +37,10 @@ from taskflow import test
 
 class TestTask(task.Task):
 
-    def __init__(self, values=None, name=None,
-                 sleep=None, provides=None, rebind=None):
+    def __init__(self, values=None, name=None, sleep=None,
+                 provides=None, rebind=None, requires=None):
         super(TestTask, self).__init__(name=name, provides=provides,
-                                       rebind=rebind)
+                                       rebind=rebind, requires=requires)
         if values is None:
             self.values = []
         else:
@@ -445,9 +446,115 @@ class EngineParallelFlowTest(EngineTestBase):
                           {'x1': 17, 'x2': 5})
 
 
+class EngineGraphFlowTest(EngineTestBase):
+
+    def test_graph_flow_one_task(self):
+        flow = gf.Flow('g-1').add(
+            TestTask(self.values, name='task1')
+        )
+        self._make_engine(flow).run()
+        self.assertEquals(self.values, ['task1'])
+
+    def test_graph_flow_two_independent_tasks(self):
+        flow = gf.Flow('g-2').add(
+            TestTask(self.values, name='task1'),
+            TestTask(self.values, name='task2')
+        )
+        self._make_engine(flow).run()
+        self.assertEquals(set(self.values), set(['task1', 'task2']))
+
+    def test_graph_flow_two_tasks(self):
+        flow = gf.Flow('g-1-1').add(
+            TestTask(self.values, name='task2', requires=['a']),
+            TestTask(self.values, name='task1', provides='a')
+        )
+        self._make_engine(flow).run()
+        self.assertEquals(self.values, ['task1', 'task2'])
+
+    def test_graph_flow_four_tasks_added_separately(self):
+        flow = (gf.Flow('g-4')
+                .add(TestTask(self.values, name='task4',
+                              provides='d', requires=['c']))
+                .add(TestTask(self.values, name='task2',
+                              provides='b', requires=['a']))
+                .add(TestTask(self.values, name='task3',
+                              provides='c', requires=['b']))
+                .add(TestTask(self.values, name='task1',
+                              provides='a'))
+                )
+        self._make_engine(flow).run()
+        self.assertEquals(self.values, ['task1', 'task2', 'task3', 'task4'])
+
+    def test_graph_cyclic_dependency(self):
+        with self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path'):
+            gf.Flow('g-3-cyclic').add(
+                TestTask([], name='task1', provides='a', requires=['b']),
+                TestTask([], name='task2', provides='b', requires=['c']),
+                TestTask([], name='task3', provides='c', requires=['a']))
+
+    def test_graph_two_tasks_returns_same_value(self):
+        with self.assertRaisesRegexp(exceptions.DependencyFailure,
+                                     "task2 provides a but is already being"
+                                     " provided by task1 and duplicate"
+                                     " producers are disallowed"):
+            gf.Flow('g-2-same-value').add(
+                TestTask([], name='task1', provides='a'),
+                TestTask([], name='task2', provides='a'))
+
+    def test_graph_flow_four_tasks_revert(self):
+        flow = gf.Flow('g-4-failing').add(
+            TestTask(self.values, name='task4', provides='d', requires=['c']),
+            TestTask(self.values, name='task2', provides='b', requires=['a']),
+            FailingTask(self.values, name='task3',
+                        provides='c', requires=['b']),
+            TestTask(self.values, name='task1', provides='a'))
+
+        engine = self._make_engine(flow)
+        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
+            engine.run()
+        self.assertEquals(self.values,
+                          ['task1', 'task2',
+                           'task3 reverted(Failure: RuntimeError: Woot!)',
+                           'task2 reverted(5)', 'task1 reverted(5)'])
+
+    def test_graph_flow_four_tasks_revert_failure(self):
+        flow = gf.Flow('g-3-nasty').add(
+            NastyTask(name='task2', provides='b', requires=['a']),
+            FailingTask(self.values, name='task3', requires=['b']),
+            TestTask(self.values, name='task1', provides='a'))
+
+        engine = self._make_engine(flow)
+        with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
+            engine.run()
+
+    def test_graph_flow_with_multireturn_and_multiargs_tasks(self):
+        flow = gf.Flow('g-3-multi').add(
+            MultiargsTask(name='task1', rebind=['a', 'b', 'y'], provides='z'),
+            MultiReturnTask(name='task2', provides=['a', 'b', 'c']),
+            MultiargsTask(name='task3', rebind=['c', 'b', 'x'], provides='y'))
+
+        engine = self._make_engine(flow)
+        engine.storage.inject({'x': 30})
+        engine.run()
+        self.assertEquals(engine.storage.fetch_all(), {
+            'a': 12,
+            'b': 2,
+            'c': 1,
+            'x': 30,
+            'y': 33,
+            'z': 47
+        })
+
+    def test_one_task_provides_and_requires_same_data(self):
+        with self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path'):
+            gf.Flow('g-1-req-error').add(
+                TestTask([], name='task1', requires=['a'], provides='a'))
+
+
 class SingleThreadedEngineTest(EngineTaskTest,
                                EngineLinearFlowTest,
                                EngineParallelFlowTest,
+                               EngineGraphFlowTest,
                                test.TestCase):
     def _make_engine(self, flow, flow_detail=None):
         if flow_detail is None:
@@ -460,6 +567,7 @@ class SingleThreadedEngineTest(EngineTaskTest,
 class MultiThreadedEngineTest(EngineTaskTest,
                               EngineLinearFlowTest,
                               EngineParallelFlowTest,
+                              EngineGraphFlowTest,
                               test.TestCase):
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if flow_detail is None:

@@ -112,3 +112,8 @@ class MissingDependencies(InvalidStateException):
         message = self.message % {'who': who, 'requirements': requirements}
         super(MissingDependencies, self).__init__(message)
         self.missing_requirements = requirements
+
+
+class DependencyFailure(TaskFlowException):
+    """Raised when flow can't resolve dependency."""
+    pass
