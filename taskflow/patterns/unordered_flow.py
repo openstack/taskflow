@@ -39,8 +39,6 @@ class Flow(flow.Flow):
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
-        items = [self._extract_item(item) for item in items]
-
         # check that items are actually independent
         provides = self.provides
         old_requires = self.requires

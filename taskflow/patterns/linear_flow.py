@@ -37,8 +37,6 @@ class Flow(flow.Flow):
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
-        items = [self._extract_item(item) for item in items]
-
         # NOTE(imelnikov): we add item to the end of flow, so it should
         # not provide anything previous items of the flow require
         requires = self.requires

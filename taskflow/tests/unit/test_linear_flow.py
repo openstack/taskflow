@@ -18,11 +18,11 @@
 
 import collections
 
-from taskflow import decorators
 from taskflow.engines.action_engine import engine as eng
 from taskflow import exceptions as exc
 from taskflow.patterns import linear_flow as lw
 from taskflow import states
+from taskflow import task
 from taskflow import test
 
 from taskflow.tests import utils
@@ -37,12 +37,11 @@ class LinearFlowTest(test.TestCase):
 
     def test_result_access(self):
 
-        @decorators.task(provides=['a', 'b'])
         def do_apply1(context):
             return [1, 2]
 
         wf = lw.Flow("the-test-action")
-        wf.add(do_apply1)
+        wf.add(task.FunctorTask(do_apply1, provides=['a', 'b']))
 
         e = self._make_engine(wf)
         e.run()
@@ -55,19 +54,17 @@ class LinearFlowTest(test.TestCase):
     def test_functor_flow(self):
         wf = lw.Flow("the-test-action")
 
-        @decorators.task(provides=['a', 'b', 'c'])
         def do_apply1(context):
             context['1'] = True
             return ['a', 'b', 'c']
 
-        @decorators.task(requires=set(['c']))
         def do_apply2(context, a, **kwargs):
             self.assertTrue('c' in kwargs)
             self.assertEquals('a', a)
             context['2'] = True
 
-        wf.add(do_apply1)
-        wf.add(do_apply2)
+        wf.add(task.FunctorTask(do_apply1, provides=['a', 'b', 'c']))
+        wf.add(task.FunctorTask(do_apply2, requires=set(['c'])))
 
         e = self._make_engine(wf)
         e.run()
@@ -191,17 +188,15 @@ class LinearFlowTest(test.TestCase):
 
     def test_not_satisfied_inputs(self):
 
-        @decorators.task
         def task_a(context, *args, **kwargs):
             pass
 
-        @decorators.task
         def task_b(context, c, *args, **kwargs):
             pass
 
         wf = lw.Flow("the-test-action")
-        wf.add(task_a)
-        wf.add(task_b)
+        wf.add(task.FunctorTask(task_a))
+        wf.add(task.FunctorTask(task_b))
         e = self._make_engine(wf)
         self.assertRaises(exc.MissingDependencies, e.run)
 
