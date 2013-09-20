@@ -31,6 +31,13 @@ class KwargsTask(task.Task):
         pass
 
 
+class DefaultProvidesTask(task.Task):
+    default_provides = 'def'
+
+    def execute(self):
+        return None
+
+
 class TaskTestCase(test.TestCase):
 
     def test_passed_name(self):
@@ -149,3 +156,13 @@ class TaskTestCase(test.TestCase):
     def test_rebind_list_bad_value(self):
         with self.assertRaisesRegexp(TypeError, '^Invalid rebind value:'):
             MyTask(rebind=object())
+
+    def test_default_provides(self):
+        task = DefaultProvidesTask()
+        self.assertEquals(task.provides, set(['def']))
+        self.assertEquals(task.save_as, {'def': None})
+
+    def test_default_provides_can_be_overridden(self):
+        task = DefaultProvidesTask(provides=('spam', 'eggs'))
+        self.assertEquals(task.provides, set(['spam', 'eggs']))
+        self.assertEquals(task.save_as, {'spam': 0, 'eggs': 1})

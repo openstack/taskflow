@@ -204,13 +204,19 @@ class Task(BaseTask):
     Adds following features to Task:
         - auto-generates name from type of self
         - adds all execute argument names to task requirements
+        - items provided by the task may be specified via
+          'default_provides' class attribute or property
     """
+
+    default_provides = None
 
     def __init__(self, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None):
         """Initialize task instance"""
         if name is None:
             name = reflection.get_callable_name(self)
+        if provides is None:
+            provides = self.default_provides
         super(Task, self).__init__(name,
                                    provides=provides)
         self.rebind = _build_arg_mapping(self.name, requires, rebind,
