@@ -227,7 +227,7 @@ class Task(BaseTask):
                  auto_extract=True, rebind=None):
         """Initialize task instance"""
         if name is None:
-            name = reflection.get_callable_name(self)
+            name = reflection.get_class_name(self)
         if provides is None:
             provides = self.default_provides
         super(Task, self).__init__(name,

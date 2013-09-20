@@ -22,6 +22,7 @@ import logging
 
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
+from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -111,10 +112,13 @@ def task_details_merge(td_e, td_new, deep_copy=False):
         td_e.state = td_new.state
     if td_e.results != td_new.results:
         td_e.results = copy_fn(td_new.results)
-    if td_e.exception != td_new.exception:
-        td_e.exception = copy_fn(td_new.exception)
-    if td_e.stacktrace != td_new.stacktrace:
-        td_e.stacktrace = copy_fn(td_new.stacktrace)
+    if td_e.failure != td_new.failure:
+        # NOTE(imelnikov): we can't just deep copy Failures, as they
+        # contain tracebacks, which are not copyable.
+        if deep_copy:
+            td_e.failure = td_new.failure.copy()
+        else:
+            td_e.failure = td_new.failure
     if td_e.meta != td_new.meta:
         td_e.meta = copy_fn(td_new.meta)
     return td_e
@@ -155,3 +159,33 @@ def logbook_merge(lb_e, lb_new, deep_copy=False):
     if lb_e.meta != lb_new.meta:
         lb_e.meta = copy_fn(lb_new.meta)
     return lb_e
+
+
+def failure_to_dict(failure):
+    """Convert misc.Failure object to JSON-serializable dict"""
+    if not failure:
+        return None
+    if not isinstance(failure, misc.Failure):
+        raise TypeError('Failure object expected, but got %r'
+                        % failure)
+    return {
+        'exception_str': failure.exception_str,
+        'traceback_str': failure.traceback_str,
+        'exc_type_names': list(failure),
+        'version': 1
+    }
+
+
+def failure_from_dict(data):
+    """Restore misc.Failure object from dict.
+
+    The dict should be similar to what failure_to_dict() function
+    produces.
+    """
+    if not data:
+        return None
+    version = data.pop('version', None)
+    if version != 1:
+        raise ValueError('Invalid version of saved Failure object: %r'
+                         % version)
+    return misc.Failure(**data)

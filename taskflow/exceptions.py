@@ -16,10 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import StringIO
-
-import traceback
-
 
 class TaskFlowException(Exception):
     """Base class for exceptions emitted from this library."""
@@ -29,33 +25,6 @@ class TaskFlowException(Exception):
 class Duplicate(TaskFlowException):
     """Raised when a duplicate entry is found."""
     pass
-
-
-class LinkedException(TaskFlowException):
-    """A linked chain of many exceptions."""
-    def __init__(self, message, cause, tb):
-        super(LinkedException, self).__init__(message)
-        self.cause = cause
-        self.tb = tb
-        self.next = None
-
-    @classmethod
-    def link(cls, exc_infos):
-        first = None
-        previous = None
-        for i, exc_info in enumerate(exc_infos):
-            if not all(exc_info[0:2]) or len(exc_info) != 3:
-                raise ValueError("Invalid exc_info for index %s" % (i))
-            buf = StringIO.StringIO()
-            traceback.print_exception(exc_info[0], exc_info[1], exc_info[2],
-                                      file=buf)
-            exc = cls(str(exc_info[1]), exc_info[1], buf.getvalue())
-            if previous is not None:
-                previous.next = exc
-            else:
-                first = exc
-            previous = exc
-        return first
 
 
 class StorageError(TaskFlowException):
@@ -117,3 +86,47 @@ class MissingDependencies(InvalidStateException):
 class DependencyFailure(TaskFlowException):
     """Raised when flow can't resolve dependency."""
     pass
+
+
+class WrappedFailure(TaskFlowException):
+    """Wraps one or several failures
+
+    When exception cannot be re-raised (for example, because
+    the value and traceback is lost in serialization) or
+    there are several exceptions, we wrap corresponding Failure
+    objects into this exception class.
+    """
+
+    def __init__(self, causes):
+        self._causes = []
+        for cause in causes:
+            if cause.check(type(self)) and cause.exception:
+                # flatten wrapped failures
+                self._causes.extend(cause.exception)
+            else:
+                self._causes.append(cause)
+
+    def __iter__(self):
+        """Iterate over failures that caused the exception"""
+        return iter(self._causes)
+
+    def __len__(self):
+        """Return number of wrapped failures"""
+        return len(self._causes)
+
+    def check(self, *exc_classes):
+        """Check if any of exc_classes caused (part of) the failure.
+
+        Arguments of this method can be exception types or type names
+        (stings). If any of wrapped failures were caused by exception
+        of given type, the corresponding argument is returned. Else,
+        None is returned.
+        """
+        for cause in self:
+            result = cause.check(*exc_classes)
+            if result:
+                return result
+        return None
+
+    def __str__(self):
+        return 'Wrapped Failure: %s' % self._causes

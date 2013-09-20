@@ -121,6 +121,7 @@ class Connection(base.Connection):
             except exc.TaskFlowException:
                 raise
             except Exception as e:
+                LOG.exception("Failed running locking file based session")
                 # NOTE(harlowja): trap all other errors as storage errors.
                 raise exc.StorageError("Failed running locking file based "
                                        "session: %s" % e, e)
@@ -415,11 +416,10 @@ def _str_2_datetime(text):
 
 def _format_task_detail(task_detail):
     return {
-        'exception': task_detail.exception,
+        'failure': p_utils.failure_to_dict(task_detail.failure),
         'meta': task_detail.meta,
         'name': task_detail.name,
         'results': task_detail.results,
-        'stacktrace': task_detail.stacktrace,
         'state': task_detail.state,
         'version': task_detail.version,
     }
@@ -429,8 +429,7 @@ def _unformat_task_detail(uuid, td_data):
     td = logbook.TaskDetail(name=td_data['name'], uuid=uuid)
     td.state = td_data.get('state')
     td.results = td_data.get('results')
-    td.exception = td_data.get('exception')
-    td.stacktrace = td_data.get('stacktrace')
+    td.failure = p_utils.failure_from_dict(td_data.get('failure'))
     td.meta = td_data.get('meta')
     td.version = td_data.get('version')
     return td

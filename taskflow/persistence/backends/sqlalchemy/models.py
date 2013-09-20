@@ -28,6 +28,8 @@ from taskflow.openstack.common import jsonutils
 from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 
+from taskflow.utils import persistence_utils
+
 BASE = declarative_base()
 
 
@@ -45,6 +47,27 @@ class Json(types.TypeDecorator, types.MutableType):
 
     def process_result_value(self, value, dialect):
         return jsonutils.loads(value)
+
+
+class Failure(types.TypeDecorator, types.MutableType):
+    """Put misc.Failure object into database column.
+
+    We convert Failure object to dict, serialize that dict into
+    JSON and save it. None is stored as NULL.
+
+    The conversion is lossy since we cannot save exc_info.
+    """
+    impl = types.Text
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return jsonutils.dumps(persistence_utils.failure_to_dict(value))
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return persistence_utils.failure_from_dict(jsonutils.loads(value))
 
 
 class ModelBase(TimestampMixin):
@@ -88,8 +111,7 @@ class TaskDetail(BASE, ModelBase):
     # Member variables
     state = Column(String)
     results = Column(Json)
-    exception = Column(Json)
-    stacktrace = Column(Json)
+    failure = Column(Failure)
     version = Column(String)
 
     # Relationships

@@ -21,6 +21,7 @@ import contextlib
 from taskflow import exceptions as exc
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
+from taskflow.utils import misc
 
 
 class PersistenceTestMixin(object):
@@ -89,6 +90,36 @@ class PersistenceTestMixin(object):
             conn.save_logbook(lb)
             conn.update_flow_details(fd)
             conn.update_task_details(td)
+
+    def test_task_detail_with_failure(self):
+        lb_id = uuidutils.generate_uuid()
+        lb_name = 'lb-%s' % (lb_id)
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb.add(fd)
+        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+
+        try:
+            raise RuntimeError('Woot!')
+        except Exception:
+            td.failure = misc.Failure()
+
+        fd.add(td)
+
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+            conn.update_flow_details(fd)
+            conn.update_task_details(td)
+
+        # Read failure back
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb_id)
+        fd2 = lb2.find(fd.uuid)
+        td2 = fd2.find(td.uuid)
+        failure = td2.failure
+        self.assertEquals(failure.exception_str, 'Woot!')
+        self.assertIs(failure.check(RuntimeError), RuntimeError)
+        self.assertEquals(failure.traceback_str, td.failure.traceback_str)
 
     def test_logbook_merge_flow_detail(self):
         lb_id = uuidutils.generate_uuid()

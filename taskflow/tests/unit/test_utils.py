@@ -16,8 +16,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import sys
+
 from taskflow import decorators
 from taskflow import test
+from taskflow.utils import misc
 from taskflow.utils import reflection
 
 
@@ -142,3 +145,83 @@ class AcceptsKwargsTest(test.TestCase):
     def test_with_kwargs(self):
         self.assertEquals(
             reflection.accepts_kwargs(function_with_kwargs), True)
+
+
+class GetClassNameTest(test.TestCase):
+
+    def test_std_class(self):
+        name = reflection.get_class_name(RuntimeError)
+        self.assertEquals(name, 'exceptions.RuntimeError')
+
+    def test_class(self):
+        name = reflection.get_class_name(Class)
+        self.assertEquals(name, '.'.join((__name__, 'Class')))
+
+    def test_instance(self):
+        name = reflection.get_class_name(Class())
+        self.assertEquals(name, '.'.join((__name__, 'Class')))
+
+    def test_int(self):
+        name = reflection.get_class_name(42)
+        self.assertEquals(name, '__builtin__.int')
+
+
+class GetAllClassNamesTest(test.TestCase):
+
+    def test_std_class(self):
+        names = list(reflection.get_all_class_names(RuntimeError))
+        self.assertEquals(names, [
+            'exceptions.RuntimeError',
+            'exceptions.StandardError',
+            'exceptions.Exception',
+            'exceptions.BaseException',
+            '__builtin__.object'])
+
+    def test_std_class_up_to(self):
+        names = list(reflection.get_all_class_names(RuntimeError,
+                                                    up_to=Exception))
+        self.assertEquals(names, [
+            'exceptions.RuntimeError',
+            'exceptions.StandardError',
+            'exceptions.Exception'])
+
+
+class ExcInfoUtilsTest(test.TestCase):
+
+    def _make_ex_info(self):
+        try:
+            raise RuntimeError('Woot!')
+        except Exception:
+            return sys.exc_info()
+
+    def test_copy_none(self):
+        result = misc.copy_exc_info(None)
+        self.assertIsNone(result)
+
+    def test_copy_exc_info(self):
+        exc_info = self._make_ex_info()
+        result = misc.copy_exc_info(exc_info)
+        self.assertIsNot(result, exc_info)
+        self.assertIs(result[0], RuntimeError)
+        self.assertIsNot(result[1], exc_info[1])
+        self.assertIs(result[2], exc_info[2])
+
+    def test_none_equals(self):
+        self.assertTrue(misc.are_equal_exc_info_tuples(None, None))
+
+    def test_none_ne_tuple(self):
+        exc_info = self._make_ex_info()
+        self.assertFalse(misc.are_equal_exc_info_tuples(None, exc_info))
+
+    def test_tuple_nen_none(self):
+        exc_info = self._make_ex_info()
+        self.assertFalse(misc.are_equal_exc_info_tuples(exc_info, None))
+
+    def test_tuple_equals_itself(self):
+        exc_info = self._make_ex_info()
+        self.assertTrue(misc.are_equal_exc_info_tuples(exc_info, exc_info))
+
+    def test_typle_equals_copy(self):
+        exc_info = self._make_ex_info()
+        copied = misc.copy_exc_info(exc_info)
+        self.assertTrue(misc.are_equal_exc_info_tuples(exc_info, copied))

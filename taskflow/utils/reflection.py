@@ -20,6 +20,31 @@ import inspect
 import types
 
 
+def get_class_name(obj):
+    """Get class name for object.
+
+    If object is a type, fully qualified name of the type is returned.
+    Else, fully qualified name of the type of the object is returned.
+    """
+    if not isinstance(obj, type):
+        obj = type(obj)
+    return '.'.join((obj.__module__, obj.__name__))
+
+
+def get_all_class_names(obj, up_to=object):
+    """Get class names of object parent classes
+
+    Iterate over all class names object is instance or subclass of,
+    in order of method resolution (mro). If up_to parameter is provided,
+    only name of classes that are sublcasses to that class are returned.
+    """
+    if not isinstance(obj, type):
+        obj = type(obj)
+    for cls in obj.mro():
+        if issubclass(cls, up_to):
+            yield get_class_name(cls)
+
+
 def get_callable_name(function):
     """Generate a name from callable
 

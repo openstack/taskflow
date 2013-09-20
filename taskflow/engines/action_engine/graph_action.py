@@ -23,7 +23,6 @@ import threading
 from concurrent import futures
 
 from taskflow.engines.action_engine import base_action as base
-from taskflow import exceptions as exc
 from taskflow import states as st
 from taskflow.utils import misc
 
@@ -198,12 +197,7 @@ class ParallelGraphAction(SequentialGraphAction):
                 pass
             except Exception:
                 failures.append(misc.Failure())
-        if len(failures) > 1:
-            raise exc.LinkedException.link([fail.exc_info
-                                            for fail in failures])
-        elif len(failures) == 1:
-            failures[0].reraise()
-
+        misc.Failure.reraise_if_any(failures)
         if was_suspended.is_set():
             return st.SUSPENDED
         else:

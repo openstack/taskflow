@@ -194,17 +194,18 @@ class EngineTaskTest(EngineTestBase):
                                       kwargs={'values': self.values})
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
-        self.assertEquals(self.values,
-                          ['flow RUNNING',
-                           'fail RUNNING',
-                           'fail FAILURE',
-                           'flow REVERTING',
-                           'fail REVERTING',
-                           'fail reverted(Failure: RuntimeError: Woot!)',
-                           'fail REVERTED',
-                           'fail PENDING',
-                           'flow REVERTED',
-                           'flow FAILURE'])
+        self.assertEquals(
+            self.values,
+            ['flow RUNNING',
+             'fail RUNNING',
+             'fail FAILURE',
+             'flow REVERTING',
+             'fail REVERTING',
+             'fail reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'fail REVERTED',
+             'fail PENDING',
+             'flow REVERTED',
+             'flow FAILURE'])
 
     def test_invalid_flow_raises(self):
         value = 'i am string, not task/flow, sorry'
@@ -379,8 +380,9 @@ class EngineLinearFlowTest(EngineTestBase):
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
-        self.assertEquals(self.values,
-                          ['fail reverted(Failure: RuntimeError: Woot!)'])
+        self.assertEquals(
+            self.values,
+            ['fail reverted(Failure: exceptions.RuntimeError: Woot!)'])
 
     def test_correctly_reverts_children(self):
         flow = lf.Flow('root-1').add(
@@ -393,10 +395,11 @@ class EngineLinearFlowTest(EngineTestBase):
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
-        self.assertEquals(self.values,
-                          ['task1', 'task2',
-                           'fail reverted(Failure: RuntimeError: Woot!)',
-                           'task2 reverted(5)', 'task1 reverted(5)'])
+        self.assertEquals(
+            self.values,
+            ['task1', 'task2',
+             'fail reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'task2 reverted(5)', 'task1 reverted(5)'])
 
 
 class EngineParallelFlowTest(EngineTestBase):
@@ -534,10 +537,11 @@ class EngineGraphFlowTest(EngineTestBase):
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
-        self.assertEquals(self.values,
-                          ['task1', 'task2',
-                           'task3 reverted(Failure: RuntimeError: Woot!)',
-                           'task2 reverted(5)', 'task1 reverted(5)'])
+        self.assertEquals(
+            self.values,
+            ['task1', 'task2',
+             'task3 reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'task2 reverted(5)', 'task1 reverted(5)'])
 
     def test_graph_flow_four_tasks_revert_failure(self):
         flow = gf.Flow('g-3-nasty').add(
@@ -627,20 +631,21 @@ class SuspendFlowTest(EngineTestBase):
         engine.storage.inject({'engine': engine})
         engine.run()
         self.assertEquals(engine.storage.get_flow_state(), states.SUSPENDED)
-        self.assertEquals(self.values,
-                          ['a',
-                           'b',
-                           'c reverted(Failure: RuntimeError: Woot!)',
-                           'b reverted(5)'])
+        self.assertEquals(
+            self.values,
+            ['a', 'b',
+             'c reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'b reverted(5)'])
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
         self.assertEquals(engine.storage.get_flow_state(), states.FAILURE)
-        self.assertEquals(self.values,
-                          ['a',
-                           'b',
-                           'c reverted(Failure: RuntimeError: Woot!)',
-                           'b reverted(5)',
-                           'a reverted(5)'])
+        self.assertEquals(
+            self.values,
+            ['a',
+             'b',
+             'c reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'b reverted(5)',
+             'a reverted(5)'])
 
 
 class SingleThreadedEngineTest(EngineTaskTest,
@@ -826,10 +831,12 @@ class MultiThreadedEngineTest(EngineTaskTest,
         # Since this is an unordered flow we can not guarantee that task1 or
         # task2 will exist and be reverted, although they may exist depending
         # on how the OS thread scheduling and execution graph algorithm...
-        possible_result = set(['task1', 'task1 reverted(5)',
-                               'task2', 'task2 reverted(5)',
-                               'task3', 'task3 reverted(5)',
-                               'fail reverted(Failure: RuntimeError: Woot!)'])
+        possible_result = set([
+            'task1', 'task1 reverted(5)',
+            'task2', 'task2 reverted(5)',
+            'task3', 'task3 reverted(5)',
+            'fail reverted(Failure: exceptions.RuntimeError: Woot!)'
+        ])
         self.assertIsSubset(possible_result, result)
 
     def test_linear_nested_to_parallel_revert_exception(self):
