@@ -22,7 +22,6 @@
 import copy
 import logging
 import threading
-import weakref
 
 from taskflow import decorators
 from taskflow import exceptions as exc
@@ -63,7 +62,7 @@ class Connection(base.Connection):
     def __init__(self, backend):
         self._read_lock = _READ_LOCK
         self._save_locks = _READ_SAVE_ORDER
-        self._backend = weakref.proxy(backend)
+        self._backend = backend
 
     def upgrade(self):
         pass
