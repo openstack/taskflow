@@ -16,12 +16,31 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+import logging
+
 from taskflow.engines.action_engine import base_action as base
 from taskflow import exceptions
 from taskflow.openstack.common import excutils
 from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow.utils import misc
+
+LOG = logging.getLogger(__name__)
+
+RESET_TASK_STATES = (states.PENDING,)
+SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
+ALREADY_FINISHED_STATES = (states.SUCCESS,)
+NEVER_RAN_STATES = (states.PENDING,)
+
+
+@contextlib.contextmanager
+def _autobind(task, bind_name, bind_func, **kwargs):
+    try:
+        task.bind(bind_name, bind_func, **kwargs)
+        yield task
+    finally:
+        task.unbind(bind_name, bind_func)
 
 
 class TaskAction(base.Action):
@@ -49,65 +68,66 @@ class TaskAction(base.Action):
     def uuid(self):
         return self._id
 
-    def _change_state(self, engine, state):
-        """Check and update state of task."""
-        if state in (states.RUNNING, states.REVERTING, states.PENDING):
-            self._task.update_progress(0.0)
-        elif state in (states.SUCCESS, states.REVERTED):
-            self._task.update_progress(1.0)
-        engine.storage.set_task_state(self.uuid, state)
-        engine.on_task_state_change(self, state)
-
-    def _update_result(self, engine, state, result=None):
+    def _change_state(self, engine, state, result=None, progress=None):
         """Update result and change state."""
-        if state == states.PENDING:
+        if state in RESET_TASK_STATES:
             engine.storage.reset(self.uuid)
-        else:
+        if state in SAVE_RESULT_STATES:
             engine.storage.save(self.uuid, result, state)
-        engine.on_task_state_change(self, state, result)
+        else:
+            engine.storage.set_task_state(self.uuid, state)
+        if progress is not None:
+            engine.storage.set_task_progress(self.uuid, progress)
+        engine.on_task_state_change(self, state, result=result)
 
-    def _update_progress(self, task, event_data, progress, **kwargs):
+    def _on_update_progress(self, task, event_data, progress, **kwargs):
         """Update task progress value that stored in engine."""
-        engine = event_data['engine']
-        engine.storage.set_task_progress(self.uuid, progress, **kwargs)
+        try:
+            engine = event_data['engine']
+            engine.storage.set_task_progress(self.uuid, progress, **kwargs)
+        except Exception:
+            # Update progress callbacks should never fail, so capture and log
+            # the emitted exception instead of raising it.
+            LOG.exception("Failed setting task progress for %s (%s) to %0.3f",
+                          task, self.uuid, progress)
+
+    def _force_state(self, engine, state, progress, result=None):
+        self._change_state(engine, state, result=result, progress=progress)
+        self._task.update_progress(progress)
 
     def execute(self, engine):
-        if engine.storage.get_task_state(self.uuid) == states.SUCCESS:
+        if engine.storage.get_task_state(self.uuid) in ALREADY_FINISHED_STATES:
+            # Skip tasks that already finished.
             return
-        self._task.bind('update_progress', self._update_progress,
-                        engine=engine)
-        try:
-            kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
-            self._change_state(engine, states.RUNNING)
-            result = self._task.execute(**kwargs)
-        except Exception:
-            failure = misc.Failure()
-            self._update_result(engine, states.FAILURE, failure)
-            failure.reraise()
-        else:
-            self._update_result(engine, states.SUCCESS, result)
-        finally:
-            self._task.unbind('update_progress', self._update_progress)
+        self._force_state(engine, states.RUNNING, 0.0)
+        with _autobind(self._task,
+                       'update_progress', self._on_update_progress,
+                       engine=engine):
+            try:
+                kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
+                result = self._task.execute(**kwargs)
+            except Exception:
+                failure = misc.Failure()
+                self._change_state(engine, states.FAILURE, result=failure)
+                failure.reraise()
+        self._force_state(engine, states.SUCCESS, 1.0, result=result)
 
     def revert(self, engine):
-        if engine.storage.get_task_state(self.uuid) == states.PENDING:
+        if engine.storage.get_task_state(self.uuid) in NEVER_RAN_STATES:
             # NOTE(imelnikov): in all the other states, the task
-            #  execution was at least attempted, so we should give
-            #  task a chance for cleanup
+            # execution was at least attempted, so we should give
+            # task a chance for cleanup
             return
-        self._task.bind('update_progress', self._update_progress,
-                        engine=engine)
-        kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
-
-        self._change_state(engine, states.REVERTING)
-        try:
-            self._task.revert(result=engine.storage.get(self._id),
-                              **kwargs)
-            self._change_state(engine, states.REVERTED)
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                self._change_state(engine, states.FAILURE)
-        else:
-            self._update_result(engine, states.PENDING)
-        finally:
-            self._task.unbind('update_progress', self._update_progress)
+        self._force_state(engine, states.REVERTING, 0.0)
+        with _autobind(self._task,
+                       'update_progress', self._on_update_progress,
+                       engine=engine):
+            kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
+            try:
+                self._task.revert(result=engine.storage.get(self._id),
+                                  **kwargs)
+            except Exception:
+                with excutils.save_and_reraise_exception():
+                    self._change_state(engine, states.FAILURE)
+        self._force_state(engine, states.REVERTED, 1.0)
+        self._force_state(engine, states.PENDING, 0.0)
