@@ -31,30 +31,9 @@ from taskflow.tests import utils
 class LinearFlowTest(test.TestCase):
     def _make_engine(self, flow):
         e = eng.SingleThreadedActionEngine(flow)
-        e.compile()
         e.storage.inject([('context', {})])
+        e.compile()
         return e
-
-    def make_reverting_task(self, token, blowup=False):
-
-        def do_revert(context, *args, **kwargs):
-            context[token] = 'reverted'
-
-        if blowup:
-
-            @decorators.task(name='blowup_%s' % token)
-            def blow_up(context, *args, **kwargs):
-                raise Exception("I blew up")
-
-            return blow_up
-        else:
-
-            @decorators.task(revert=do_revert,
-                             name='do_apply_%s' % token)
-            def do_apply(context, *args, **kwargs):
-                context[token] = 'passed'
-
-            return do_apply
 
     def test_result_access(self):
 
@@ -106,8 +85,8 @@ class LinearFlowTest(test.TestCase):
                 task_changes.append(state)
 
         wf = lw.Flow("the-test-action")
-        wf.add(self.make_reverting_task(2, False))
-        wf.add(self.make_reverting_task(1, True))
+        wf.add(utils.make_reverting_task(2, False))
+        wf.add(utils.make_reverting_task(1, True))
 
         e = self._make_engine(wf)
         e.notifier.register('*', listener)
@@ -144,7 +123,7 @@ class LinearFlowTest(test.TestCase):
             changes.append(state)
 
         wf = lw.Flow("the-test-action")
-        wf.add(self.make_reverting_task(1))
+        wf.add(utils.make_reverting_task(1))
 
         e = self._make_engine(wf)
         e.notifier.register('*', listener)
@@ -155,7 +134,7 @@ class LinearFlowTest(test.TestCase):
     def test_happy_flow(self):
         wf = lw.Flow("the-test-action")
         for i in range(0, 10):
-            wf.add(self.make_reverting_task(i))
+            wf.add(utils.make_reverting_task(i))
 
         e = self._make_engine(wf)
         capture_func, captured = self._capture_states()
@@ -183,8 +162,8 @@ class LinearFlowTest(test.TestCase):
 
     def test_reverting_flow(self):
         wf = lw.Flow("the-test-action")
-        wf.add(self.make_reverting_task(1))
-        wf.add(self.make_reverting_task(2, True))
+        wf.add(utils.make_reverting_task(1))
+        wf.add(utils.make_reverting_task(2, True))
 
         capture_func, captured = self._capture_states()
         e = self._make_engine(wf)
