@@ -3,6 +3,7 @@
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
 #    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
+#    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -16,44 +17,70 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-# from taskflow.backends import api as b_api
+import threading
+
+from taskflow import decorators
 from taskflow.openstack.common import uuidutils
 
 
 class Job(object):
+    """A job is a higher level abstraction over a set of flows as well as the
+    *ownership* of those flows, it is the highest piece of work that can be
+    owned by an entity performing those flows.
+
+    Only one entity will be operating on the flows contained in a job at a
+    given time (for the foreseeable future).
+
+    It is the object that should be transferred to another entity on failure of
+    so that the contained flows ownership can be transferred to the secondary
+    entity for resumption/continuation/reverting.
+    """
     def __init__(self, name, uuid=None):
         if uuid:
             self._uuid = uuid
         else:
             self._uuid = uuidutils.generate_uuid()
-
         self._name = name
+        self._lock = threading.RLock()
+        self._flows = []
         self.owner = None
         self.state = None
-        self._flows = []
-        self.logbook = None
+        self.book = None
 
-    def add_flow(self, wf):
-        self._flows.append(wf)
+    @decorators.locked
+    def add(self, *flows):
+        self._flows.extend(flows)
 
-    def remove_flow(self, wf):
-        self._flows = [f for f in self._flows
-                       if f.uuid != wf.uuid]
+    @decorators.locked
+    def remove(self, flow):
+        j = -1
+        for i, f in enumerate(self._flows):
+            if f.uuid == flow.uuid:
+                j = i
+                break
+        if j == -1:
+            raise ValueError("Could not find %r to remove" % (flow))
+        self._flows.pop(j)
 
-    def __contains__(self, wf):
-        for self_wf in self.flows:
-            if self_wf.flow_id == wf.flow_id:
+    def __contains__(self, flow):
+        for f in self:
+            if f.uuid == flow.uuid:
                 return True
         return False
 
     @property
     def uuid(self):
+        """The uuid of this job"""
         return self._uuid
 
     @property
     def name(self):
+        """The non-uniquely identifying name of this job"""
         return self._name
 
-    @property
-    def flows(self):
-        return self._flows
+    def __iter__(self):
+        # Don't iterate while holding the lock
+        with self._lock:
+            flows = list(self._flows)
+        for f in flows:
+            yield f
