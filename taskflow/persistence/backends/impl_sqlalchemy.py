@@ -25,7 +25,6 @@ import contextlib
 import copy
 import logging
 import time
-import weakref
 
 import sqlalchemy as sa
 from sqlalchemy import exceptions as sa_exc
@@ -260,7 +259,7 @@ class SQLAlchemyBackend(base.Backend):
 
 class Connection(base.Connection):
     def __init__(self, backend, session_maker):
-        self._backend = weakref.proxy(backend)
+        self._backend = backend
         self._session_maker = session_maker
         self._engine = backend.engine
 
