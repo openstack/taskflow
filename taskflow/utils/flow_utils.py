@@ -16,6 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
+
 import networkx as nx
 
 from taskflow import exceptions
@@ -27,11 +29,11 @@ from taskflow.utils import graph_utils as gu
 from taskflow.utils import misc
 
 
-# Use the 'flatten' reason as the need to add an edge here, which is useful for
-# doing later analysis of the edges (to determine why the edges were created).
-FLATTEN_REASON = 'flatten'
+# Use the 'flatten' attribute as the need to add an edge here, which is useful
+# for doing later analysis of the edges (to determine why the edges were
+# created).
 FLATTEN_EDGE_DATA = {
-    'reason': FLATTEN_REASON,
+    'flatten': True,
 }
 
 
@@ -50,7 +52,9 @@ def _flatten_linear(flow, flattened):
         # the ones with no successors and use this list to connect the next
         # subgraph (if any).
         for n in gu.get_no_predecessors(subgraph):
-            graph.add_edges_from(((n2, n, FLATTEN_EDGE_DATA)
+            # NOTE(harlowja): give each edge its own copy so that if its later
+            # modified that the same copy isn't modified.
+            graph.add_edges_from(((n2, n, FLATTEN_EDGE_DATA.copy())
                                   for n2 in previous_nodes
                                   if not graph.has_edge(n2, n)))
         # There should always be someone without successors, otherwise we have
@@ -82,11 +86,19 @@ def _flatten_graph(flow, flattened):
         graph = gu.merge_graphs([graph, subgraph])
     # Reconnect all nodes to there corresponding subgraphs
     for (u, v) in flow.graph.edges_iter():
+        # Retain and update the original edge attributes.
+        u_v_attrs = gu.get_edge_attrs(flow.graph, u, v)
+        if not u_v_attrs:
+            u_v_attrs = FLATTEN_EDGE_DATA.copy()
+        else:
+            u_v_attrs.update(FLATTEN_EDGE_DATA)
         u_no_succ = list(gu.get_no_successors(subgraph_map[u]))
         # Connect the ones with no predecessors in v to the ones with no
         # successors in u (thus maintaining the edge dependency).
         for n in gu.get_no_predecessors(subgraph_map[v]):
-            graph.add_edges_from(((n2, n, FLATTEN_EDGE_DATA)
+            # NOTE(harlowja): give each edge its own copy so that if its later
+            # modified that the same copy isn't modified.
+            graph.add_edges_from(((n2, n, copy.deepcopy(u_v_attrs))
                                   for n2 in u_no_succ
                                   if not graph.has_edge(n2, n)))
     return graph

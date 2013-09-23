@@ -19,11 +19,10 @@
 import collections
 
 import networkx as nx
-from networkx.algorithms import dag
-from networkx.classes import digraph
 
 from taskflow import exceptions as exc
 from taskflow import flow
+from taskflow.utils import graph_utils
 
 
 class Flow(flow.Flow):
@@ -37,13 +36,13 @@ class Flow(flow.Flow):
 
     def __init__(self, name, uuid=None):
         super(Flow, self).__init__(name, uuid)
-        self._graph = nx.freeze(digraph.DiGraph())
+        self._graph = nx.freeze(nx.DiGraph())
 
     def _validate(self, graph=None):
         if graph is None:
             graph = self._graph
         # Ensure that there is a valid topological ordering.
-        if not dag.is_directed_acyclic_graph(graph):
+        if not nx.is_directed_acyclic_graph(graph):
             raise exc.DependencyFailure("No path through the items in the"
                                         " graph produces an ordering that"
                                         " will allow for correct dependency"
@@ -54,15 +53,29 @@ class Flow(flow.Flow):
             raise ValueError('Item %s not found to link from' % (u))
         if not self._graph.has_node(v):
             raise ValueError('Item %s not found to link to' % (v))
-        if self._graph.has_edge(u, v):
-            return self
+        self._swap(self._link(u, v, manual=True))
+        return self
 
+    def _link(self, u, v, graph=None, reason=None, manual=False):
+        mutable_graph = True
+        if graph is None:
+            graph = self._graph
+            mutable_graph = False
         # NOTE(harlowja): Add an edge to a temporary copy and only if that
         # copy is valid then do we swap with the underlying graph.
-        tmp_graph = digraph.DiGraph(self._graph)
-        tmp_graph.add_edge(u, v)
-        self._swap(tmp_graph)
-        return self
+        attrs = graph_utils.get_edge_attrs(graph, u, v)
+        if not attrs:
+            attrs = {}
+        if manual:
+            attrs['manual'] = True
+        if reason is not None:
+            if 'reasons' not in attrs:
+                attrs['reasons'] = set()
+            attrs['reasons'].add(reason)
+        if not mutable_graph:
+            graph = nx.DiGraph(graph)
+        graph.add_edge(u, v, **attrs)
+        return graph
 
     def _swap(self, replacement_graph):
         """Validates the replacement graph and then swaps the underlying graph
@@ -93,7 +106,7 @@ class Flow(flow.Flow):
         # NOTE(harlowja): Add items and edges to a temporary copy of the
         # underlying graph and only if that is successful added to do we then
         # swap with the underlying graph.
-        tmp_graph = digraph.DiGraph(self._graph)
+        tmp_graph = nx.DiGraph(self._graph)
         for item in items:
             tmp_graph.add_node(item)
             update_requirements(item)
@@ -110,12 +123,14 @@ class Flow(flow.Flow):
 
             for value in item.requires:
                 if value in provided:
-                    tmp_graph.add_edge(provided[value], item)
+                    self._link(provided[value], item,
+                               graph=tmp_graph, reason=value)
 
             for value in item.provides:
                 if value in requirements:
                     for node in requirements[value]:
-                        tmp_graph.add_edge(item, node)
+                        self._link(item, node,
+                                   graph=tmp_graph, reason=value)
 
         self._swap(tmp_graph)
         return self

@@ -22,6 +22,13 @@ import networkx as nx
 from networkx import algorithms
 
 
+def get_edge_attrs(graph, u, v):
+    """Gets the dictionary of edge attributes between u->v (or none)."""
+    if not graph.has_edge(u, v):
+        return None
+    return dict(graph.adj[u][v])
+
+
 def merge_graphs(graphs, allow_overlaps=False):
     if not graphs:
         return None
