@@ -16,9 +16,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow import decorators
 from taskflow.engines.action_engine import engine as eng
 from taskflow.patterns import unordered_flow as uf
+from taskflow import task
 from taskflow import test
 
 from taskflow.tests import utils
@@ -33,12 +33,14 @@ class UnorderedFlowTest(test.TestCase):
 
     def test_result_access(self):
 
-        @decorators.task(provides=['a', 'b'])
-        def do_apply1(context):
-            return [1, 2]
+        class DoApply(task.Task):
+            default_provides = ('a', 'b')
+
+            def execute(self):
+                return [1, 2]
 
         wf = uf.Flow("the-test-action")
-        wf.add(do_apply1)
+        wf.add(DoApply())
 
         e = self._make_engine(wf)
         e.run()
@@ -57,18 +59,20 @@ class UnorderedFlowTest(test.TestCase):
 
     def test_functor_flow(self):
 
-        @decorators.task(provides=['a', 'b', 'c'])
-        def do_apply1(context):
-            context['1'] = True
-            return ['a', 'b', 'c']
+        class DoApply1(task.Task):
+            default_provides = ('a', 'b', 'c')
 
-        @decorators.task
-        def do_apply2(context, **kwargs):
-            context['2'] = True
+            def execute(self, context):
+                context['1'] = True
+                return ['a', 'b', 'c']
+
+        class DoApply2(task.Task):
+            def execute(self, context):
+                context['2'] = True
 
         wf = uf.Flow("the-test-action")
-        wf.add(do_apply1)
-        wf.add(do_apply2)
+        wf.add(DoApply1())
+        wf.add(DoApply2())
         e = self._make_engine(wf)
         e.run()
         self.assertEquals(2, len(e.storage.fetch('context')))

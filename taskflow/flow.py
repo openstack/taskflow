@@ -19,8 +19,6 @@
 import abc
 
 from taskflow.openstack.common import uuidutils
-from taskflow import task
-from taskflow import utils
 
 
 def _class_name(obj):
@@ -66,16 +64,6 @@ class Flow(object):
         lines.append("%s" % (self.uuid))
         lines.append("%s" % (len(self)))
         return "; ".join(lines)
-
-    def _extract_item(self, item):
-        if isinstance(item, (task.BaseTask, Flow)):
-            return item
-        if issubclass(item, task.BaseTask):
-            return item()
-        task_factory = getattr(item, utils.TASK_FACTORY_ATTRIBUTE, None)
-        if task_factory:
-            return self._extract_item(task_factory(item))
-        raise TypeError("Invalid item %r: it's not task and not flow" % item)
 
     @abc.abstractmethod
     def add(self, *items):

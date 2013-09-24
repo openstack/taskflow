@@ -18,8 +18,6 @@
 
 import functools
 
-from taskflow import task as base
-from taskflow import utils
 from taskflow.utils import threading_utils
 
 
@@ -54,46 +52,6 @@ def locked(*args, **kwargs):
     # This is needed to handle when the decorator has args or the decorator
     # doesn't have args, python is rather weird here...
     if kwargs or not args:
-        return decorator
-    else:
-        if len(args) == 1:
-            return decorator(args[0])
-        else:
-            return decorator
-
-
-def _original_function(fun):
-    """Get original function from static or class method"""
-    if isinstance(fun, staticmethod):
-        return fun.__get__(object())
-    elif isinstance(fun, classmethod):
-        return fun.__get__(object()).im_func
-    return fun
-
-
-def task(*args, **kwargs):
-    """Decorates a given function so that it can be used as a task"""
-
-    def decorator(f):
-        def task_factory(execute, **factory_kwargs):
-            merged = kwargs.copy()
-            merged.update(factory_kwargs)
-            # NOTE(imelnikov): we can't capture f here because for
-            # bound methods and bound class methods the object it
-            # is bound to is yet unknown at the moment
-            #
-            # See: http://bit.ly/15Cfbjh
-            return base.FunctorTask(execute, **merged)
-        w_f = _original_function(f)
-        setattr(w_f, utils.TASK_FACTORY_ATTRIBUTE, task_factory)
-        return f
-
-    # This is needed to handle when the decorator has args or the decorator
-    # doesn't have args, python is rather weird here...
-    if kwargs:
-        if args:
-            raise TypeError('task decorator takes 0 positional arguments,'
-                            '%s given' % len(args))
         return decorator
     else:
         if len(args) == 1:

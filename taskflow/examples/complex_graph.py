@@ -5,149 +5,131 @@ import os
 import sys
 
 
-print('GraphFlow is under refactoring now, so this example '
-      'is temporarily broken')
-sys.exit(0)
-
 logging.basicConfig(level=logging.ERROR)
 
 my_dir_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.join(my_dir_path, os.pardir),
                                 os.pardir))
 
-from taskflow import decorators
+from taskflow.engines.action_engine import engine as eng
 from taskflow.patterns import graph_flow as gf
+from taskflow.patterns import linear_flow as lf
+from taskflow import task
 
 
-def flow_notify(state, details):
-    print("'%s' entered state: %s" % (details['flow'], state))
+def build_frame():
+    return 'steel'
 
 
-def task_notify(state, details):
-    print("'%s' entered state: %s" % (details['runner'], state))
+def build_engine():
+    return 'honda'
 
 
-@decorators.task(provides=['spec'])
-def build_spec(context):
-    params = context['inputs']
-    verified = {}
-    for k, v in params.items():
-        verified[k] = int(v)
-    return {
-        'spec': verified,
-    }
+def build_doors():
+    return '2'
 
 
-@decorators.task(provides=['frame'])
-def build_frame(context, spec):
-    return {
-        'frame': 'steel',
-    }
+def build_wheels():
+    return '4'
 
 
-@decorators.task(provides=['engine'])
-def build_engine(context, spec):
-    return {
-        'engine': 'honda',
-    }
+def install_engine(frame, engine):
+    return True
 
 
-@decorators.task(provides=['doors'])
-def build_doors(context, spec):
-    return {
-        'doors': '2',
-    }
+def install_doors(frame, windows_installed, doors):
+    return True
 
 
-@decorators.task(provides=['wheels'])
-def build_wheels(context, spec):
-    return {
-        'wheels': '4',
-    }
+def install_windows(frame, doors):
+    return True
 
 
-@decorators.task(provides=['wheels'])
-def build_windows(context, spec):
-    return {
-        'windows': '4',
-    }
+def install_wheels(frame, engine, engine_installed, wheels):
+    return True
 
 
-@decorators.task(provides=['engine_installed'])
-def install_engine(context, frame, engine):
-    return {
-        'engine_installed': True,
-    }
-
-
-@decorators.task
-def install_doors(context, frame, windows_installed, doors):
-    pass
-
-
-@decorators.task(provides=['windows_installed'])
-def install_windows(context, frame, doors):
-    return {
-        'windows_installed': True,
-    }
-
-
-@decorators.task
-def install_wheels(context, frame, engine, engine_installed, wheels):
-    pass
-
-
-def trash(context, result, cause):
+def trash(**kwargs):
     print("Throwing away pieces of car!")
 
 
-@decorators.task(revert=trash)
-def startup(context, **kwargs):
+def startup(**kwargs):
     pass
     # TODO(harlowja): try triggering reversion here!
     # raise ValueError("Car not verified")
-    return {
-        'ran': True,
-    }
+    return True
 
 
-flow = gf.Flow("make-auto")
-flow.notifier.register('*', flow_notify)
-flow.task_notifier.register('*', task_notify)
+def verify(spec, **kwargs):
+    for key, value in kwargs.items():
+        if spec[key] != value:
+            raise Exception("Car doesn't match spec!")
+    return True
 
 
-# Lets build a car!!
-flow.add(build_spec)
-flow.add(build_frame)
-flow.add(build_engine)
-flow.add(build_doors)
-flow.add(build_wheels)
-i_uuid1 = flow.add(install_engine)
-i_uuid2 = flow.add(install_doors)
-i_uuid3 = flow.add(install_windows)
-i_uuid4 = flow.add(install_wheels)
-install_uuids = [i_uuid1, i_uuid2, i_uuid3, i_uuid4]
+def flow_watch(state, details):
+    print('Flow => %s' % state)
 
-# Lets add a manual dependency that startup needs all the installation to
-# complete, this could be done automatically but lets now instead ;)
-startup_uuid = flow.add(startup)
-for i_uuid in install_uuids:
-    flow.add_dependency(i_uuid, startup_uuid)
 
-# Now begin the build!
-context = {
-    "inputs": {
-        'engine': 123,
-        'tire': '234',
-    }
-}
-print '-' * 7
-print 'Running'
-print '-' * 7
-flow.run(context)
+def task_watch(state, details):
+    print('Task %s => %s' % (details.get('task_name'), state))
 
-print '-' * 11
-print 'All results'
-print '-' * 11
-for (uuid, v) in flow.results.items():
-    print '%s => %s' % (uuid, v)
+
+flow = lf.Flow("make-auto").add(
+    task.FunctorTask(startup, revert=trash, provides='ran'),
+    gf.Flow("install-parts").add(
+        task.FunctorTask(build_frame, provides='frame'),
+        task.FunctorTask(build_engine, provides='engine'),
+        task.FunctorTask(build_doors, provides='doors'),
+        task.FunctorTask(build_wheels, provides='wheels'),
+        task.FunctorTask(install_engine, provides='engine_installed'),
+        task.FunctorTask(install_doors, provides='doors_installed'),
+        task.FunctorTask(install_windows, provides='windows_installed'),
+        task.FunctorTask(install_wheels, provides='wheels_installed')),
+    task.FunctorTask(verify, requires=['frame',
+                                       'engine',
+                                       'doors',
+                                       'wheels',
+                                       'engine_installed',
+                                       'doors_installed',
+                                       'windows_installed',
+                                       'wheels_installed']))
+
+engine = eng.SingleThreadedActionEngine(flow)
+engine.notifier.register('*', flow_watch)
+engine.task_notifier.register('*', task_watch)
+
+engine.storage.inject({'spec': {
+    "frame": 'steel',
+    "engine": 'honda',
+    "doors": '2',
+    "wheels": '4',
+    "engine_installed": True,
+    "doors_installed": True,
+    "windows_installed": True,
+    "wheels_installed": True,
+}})
+
+print "Build a car"
+engine.run()
+
+engine = eng.SingleThreadedActionEngine(flow)
+engine.notifier.register('*', flow_watch)
+engine.task_notifier.register('*', task_watch)
+
+engine.storage.inject({'spec': {
+    "frame": 'steel',
+    "engine": 'honda',
+    "doors": '5',
+    "wheels": '4',
+    "engine_installed": True,
+    "doors_installed": True,
+    "windows_installed": True,
+    "wheels_installed": True,
+}})
+
+try:
+    print "Build a wrong car that doesn't match specification"
+    engine.run()
+except Exception as e:
+    print e
