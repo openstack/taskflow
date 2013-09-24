@@ -81,3 +81,7 @@ def pformat(graph):
         buf.write(" --> %s" % (cycle[0]))
         lines.append("  %s" % buf.getvalue())
     return "\n".join(lines)
+
+
+def export_graph_to_dot(graph):
+    return nx.to_pydot(graph).to_string()

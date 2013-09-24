@@ -35,6 +35,10 @@ class GraphAction(base.Action):
         self._graph = graph
         self._action_mapping = {}
 
+    @property
+    def graph(self):
+        return self._graph
+
     def add(self, node, action):
         self._action_mapping[node] = action
 
