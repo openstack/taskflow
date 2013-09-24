@@ -18,7 +18,6 @@
 
 import logging
 import threading
-import threading2
 import time
 import types
 
@@ -119,32 +118,6 @@ class CountDownLatch(object):
                         # over what we initially were requested to.
                         timeout = end_time - time.time()
             return self.count <= 0
-
-
-class ThreadGroupExecutor(object):
-    """A simple thread executor that spins up new threads (or greenthreads) for
-    each task to be completed (no pool limit is enforced).
-
-    TODO(harlowja): Likely if we use the more advanced executors that come with
-    the concurrent.futures library we can just get rid of this.
-    """
-
-    def __init__(self, daemonize=True):
-        self._threads = []
-        self._group = threading2.ThreadGroup()
-        self._daemonize = daemonize
-
-    def submit(self, fn, *args, **kwargs):
-        t = threading2.Thread(target=fn, group=self._group,
-                              args=args, kwargs=kwargs)
-        t.daemon = self._daemonize
-        self._threads.append(t)
-        t.start()
-
-    def await_termination(self, timeout=None):
-        if not self._threads:
-            return
-        return self._group.join(timeout)
 
 
 class ThreadSafeMeta(type):

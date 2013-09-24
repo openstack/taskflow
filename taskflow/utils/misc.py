@@ -155,21 +155,6 @@ class TransitionNotifier(object):
                 break
 
 
-class LastFedIter(object):
-    """An iterator which yields back the first item and then yields back
-    results from the provided iterator.
-    """
-
-    def __init__(self, first, rest_itr):
-        self.first = first
-        self.rest_itr = rest_itr
-
-    def __iter__(self):
-        yield self.first
-        for i in self.rest_itr:
-            yield i
-
-
 class Failure(object):
     """Indicates failure"""
     # NOTE(imelnikov): flow_utils.FlowFailure uses runner, but

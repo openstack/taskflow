@@ -7,7 +7,6 @@ sqlalchemy>=0.7,<=0.7.99
 alembic>=0.4.1
 # Very nice graph library
 networkx>=1.8.1
-threading2
 Babel>=0.9.6
 # Used for backend storage engine loading
 stevedore>=0.10
