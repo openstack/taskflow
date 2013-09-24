@@ -17,6 +17,7 @@
 #    under the License.
 
 import contextlib
+import networkx
 import time
 
 from concurrent import futures
@@ -549,6 +550,22 @@ class EngineGraphFlowTest(EngineTestBase):
         with self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path'):
             gf.Flow('g-1-req-error').add(
                 TestTask([], name='task1', requires=['a'], provides='a'))
+
+    def test_task_graph_property(self):
+        flow = gf.Flow('test').add(
+            TestTask(name='task1'),
+            TestTask(name='task2'))
+
+        engine = self._make_engine(flow)
+        graph = engine.get_graph()
+        self.assertTrue(isinstance(graph, networkx.DiGraph))
+
+    def test_task_graph_property_for_one_task(self):
+        flow = TestTask(name='task1')
+
+        engine = self._make_engine(flow)
+        graph = engine.get_graph()
+        self.assertTrue(isinstance(graph, networkx.DiGraph))
 
 
 class SingleThreadedEngineTest(EngineTaskTest,

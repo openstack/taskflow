@@ -68,6 +68,10 @@ class ActionEngine(object):
     def _reset(self):
         self._failures = []
 
+    def get_graph(self):
+        self.compile()
+        return self._root.graph
+
     @decorators.locked
     def run(self):
         self.compile()

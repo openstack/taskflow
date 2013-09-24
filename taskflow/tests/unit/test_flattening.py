@@ -57,7 +57,7 @@ class FlattenTest(test.TestCase):
         self.assertEquals([a], list(g_utils.get_no_predecessors(g)))
 
     def test_invalid_flatten(self):
-        a, b, c, d = _make_many(4)
+        a, b, c = _make_many(3)
         flo = lf.Flow("test")
         flo.add(a, b, c)
         flo.add(flo)
