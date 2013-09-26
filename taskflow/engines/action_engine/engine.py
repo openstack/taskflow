@@ -47,14 +47,17 @@ class ActionEngine(object):
         self._root = None
         self._flow = flow
         self._lock = threading.RLock()
+        self._state_lock = threading.RLock()
         self.notifier = misc.TransitionNotifier()
         self.task_notifier = misc.TransitionNotifier()
         self.storage = storage
 
     def _revert(self, current_failure):
         self._change_state(states.REVERTING)
-        self._root.revert(self)
-        self._change_state(states.REVERTED)
+        state = self._root.revert(self)
+        self._change_state(state)
+        if state == states.SUSPENDED:
+            return
         self._change_state(states.FAILURE)
         if self._failures:
             if len(self._failures) == 1:
@@ -68,29 +71,43 @@ class ActionEngine(object):
     def _reset(self):
         self._failures = []
 
+    def suspend(self):
+        self._change_state(states.SUSPENDING)
+
     def get_graph(self):
         self.compile()
         return self._root.graph
 
     @decorators.locked
     def run(self):
-        self.compile()
-        self._reset()
+        if self.storage.get_flow_state() != states.SUSPENDED:
+            self.compile()
+            self._reset()
 
-        external_provides = set(self.storage.fetch_all().keys())
-        missing = self._flow.requires - external_provides
-        if missing:
-            raise exc.MissingDependencies(self._flow, sorted(missing))
+            external_provides = set(self.storage.fetch_all().keys())
+            missing = self._flow.requires - external_provides
+            if missing:
+                raise exc.MissingDependencies(self._flow, sorted(missing))
+            self._run()
+        elif self._failures:
+            self._revert(self._failures[-1])
+        else:
+            self._run()
 
+    def _run(self):
         self._change_state(states.RUNNING)
         try:
-            self._root.execute(self)
+            state = self._root.execute(self)
         except Exception:
             self._revert(misc.Failure())
         else:
-            self._change_state(states.SUCCESS)
+            self._change_state(state)
 
+    @decorators.locked(lock='_state_lock')
     def _change_state(self, state):
+        if (state == states.SUSPENDING and not (self.is_running or
+                                                self.is_reverting)):
+            return
         self.storage.set_flow_state(state)
         details = dict(engine=self)
         self.notifier.notify(state, details)
@@ -116,6 +133,14 @@ class ActionEngine(object):
     def compile(self):
         if self._root is None:
             self._root = self._translate_flow_to_action()
+
+    @property
+    def is_running(self):
+        return self.storage.get_flow_state() == states.RUNNING
+
+    @property
+    def is_reverting(self):
+        return self.storage.get_flow_state() == states.REVERTING
 
 
 class SingleThreadedActionEngine(ActionEngine):
