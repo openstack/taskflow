@@ -92,7 +92,7 @@ POSTGRES_GONE_WAY_AWAY_ERRORS = (
 )
 
 # These connection urls mean sqlite is being used as an in-memory DB
-SQLITE_IN_MEMORY = ("sqlite://", 'sqlite:///:memory:')
+SQLITE_IN_MEMORY = ('sqlite://', 'sqlite:///', 'sqlite:///:memory:')
 
 
 def _in_any(reason, err_haystack):
@@ -290,7 +290,16 @@ class Connection(base.Connection):
     def upgrade(self):
         try:
             with contextlib.closing(self._engine.connect()) as conn:
-                migration.db_sync(conn)
+                # NOTE(imelnikov): Alembic does not support SQLite,
+                # and we don't recommend to use SQLite in production
+                # deployments, so migrations are rarely needed
+                # for SQLite. So we don't bother about working around
+                # SQLite limitations, and create database from models
+                # when it is in use.
+                if 'sqlite' in self._engine.url.drivername:
+                    models.BASE.metadata.create_all(conn)
+                else:
+                    migration.db_sync(conn)
         except sa_exc.SQLAlchemyError as e:
             raise exc.StorageError("Failed upgrading database version: %s" % e,
                                    e)
