@@ -21,9 +21,12 @@ from distutils import version
 
 import collections
 import copy
+import errno
 import logging
-import six
+import os
 import sys
+
+import six
 
 LOG = logging.getLogger(__name__)
 
@@ -95,6 +98,24 @@ def is_version_compatible(version_1, version_2):
     if version_1 == version_2 or version_1.version[0] == version_2.version[0]:
         return True
     return False
+
+
+# Taken from oslo-incubator file-utils but since that module pulls in a large
+# amount of other files it does not seem so useful to include that full
+# module just for this function.
+def ensure_tree(path):
+    """Create a directory (and any ancestor directories required)
+
+    :param path: Directory to create
+    """
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST:
+            if not os.path.isdir(path):
+                raise
+        else:
+            raise
 
 
 class TransitionNotifier(object):
