@@ -17,6 +17,7 @@
 #    under the License.
 
 import contextlib
+import copy
 import logging
 
 from taskflow.openstack.common import uuidutils
@@ -84,47 +85,71 @@ def create_flow_detail(flow, book=None, backend=None):
         return flow_detail
 
 
-def task_details_merge(td_e, td_new):
-    """Merges an existing task details with a new task details object, the new
-    task details fields, if they differ will replace the existing objects
-    fields (except name, version, uuid which can not be replaced).
+def _copy_functon(deep_copy):
+    if deep_copy:
+        return copy.deepcopy
+    else:
+        return lambda x: x
+
+
+def task_details_merge(td_e, td_new, deep_copy=False):
+    """Merges an existing task details with a new task details object.
+
+    The new task details fields, if they differ will replace the existing
+    objects fields (except name, version, uuid which can not be replaced).
+
+    If 'deep_copy' is True, fields are copied deeply (by value) if possible.
     """
     if td_e is td_new:
         return td_e
+
+    copy_fn = _copy_functon(deep_copy)
     if td_e.state != td_new.state:
+        # NOTE(imelnikov): states are just strings, no need to copy
         td_e.state = td_new.state
     if td_e.results != td_new.results:
-        td_e.results = td_new.results
+        td_e.results = copy_fn(td_new.results)
     if td_e.exception != td_new.exception:
-        td_e.exception = td_new.exception
+        td_e.exception = copy_fn(td_new.exception)
     if td_e.stacktrace != td_new.stacktrace:
-        td_e.stacktrace = td_new.stacktrace
+        td_e.stacktrace = copy_fn(td_new.stacktrace)
     if td_e.meta != td_new.meta:
-        td_e.meta = td_new.meta
+        td_e.meta = copy_fn(td_new.meta)
     return td_e
 
 
-def flow_details_merge(fd_e, fd_new):
-    """Merges an existing flow details with a new flow details object, the new
-    flow details fields, if they differ will replace the existing objects
-    fields (except name and uuid which can not be replaced).
+def flow_details_merge(fd_e, fd_new, deep_copy=False):
+    """Merges an existing flow details with a new flow details object.
+
+    The new flow details fields, if they differ will replace the existing
+    objects fields (except name and uuid which can not be replaced).
+
+    If 'deep_copy' is True, fields are copied deeply (by value) if possible.
     """
     if fd_e is fd_new:
         return fd_e
+
+    copy_fn = _copy_functon(deep_copy)
     if fd_e.meta != fd_new.meta:
-        fd_e.meta = fd_new.meta
+        fd_e.meta = copy_fn(fd_new.meta)
     if fd_e.state != fd_new.state:
+        # NOTE(imelnikov): states are just strings, no need to copy
         fd_e.state = fd_new.state
     return fd_e
 
 
-def logbook_merge(lb_e, lb_new):
-    """Merges an existing logbook with a new logbook object, the new logbook
-    fields, if they differ will replace the existing objects fields (except
-    name and uuid which can not be replaced).
+def logbook_merge(lb_e, lb_new, deep_copy=False):
+    """Merges an existing logbook with a new logbook object.
+
+    The new logbook fields, if they differ will replace the existing
+    objects fields (except name and uuid which can not be replaced).
+
+    If 'deep_copy' is True, fields are copied deeply (by value) if possible.
     """
     if lb_e is lb_new:
         return lb_e
+
+    copy_fn = _copy_functon(deep_copy)
     if lb_e.meta != lb_new.meta:
-        lb_e.meta = lb_new.meta
+        lb_e.meta = copy_fn(lb_new.meta)
     return lb_e
