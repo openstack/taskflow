@@ -71,6 +71,7 @@ def pformat(graph):
     for (u, v, e_data) in graph.edges_iter(data=True):
         reason = e_data.get('reason', '??')
         lines.append("  %s -> %s (%s)" % (u, v, reason))
+    lines.append("Density: %0.3f" % nx.density(graph))
     cycles = list(nx.cycles.recursive_simple_cycles(graph))
     lines.append("Cycles: %s" % len(cycles))
     for cycle in cycles:
