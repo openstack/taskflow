@@ -24,6 +24,7 @@ from concurrent import futures
 
 from taskflow.engines.action_engine import base_action as base
 from taskflow import exceptions as exc
+from taskflow import states as st
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -78,27 +79,35 @@ class SequentialGraphAction(GraphAction):
         deps_counter = self._get_nodes_dependencies_count()
         to_execute = self._browse_nodes_to_execute(deps_counter)
 
-        while to_execute:
+        while to_execute and engine.is_running:
             node = to_execute.pop()
             action = self._action_mapping[node]
             action.execute(engine)  # raises on failure
             to_execute += self._resolve_dependencies(node, deps_counter)
 
+        if to_execute:
+            return st.SUSPENDED
+        return st.SUCCESS
+
     def revert(self, engine):
         deps_counter = self._get_nodes_dependencies_count(True)
         to_revert = self._browse_nodes_to_execute(deps_counter)
 
-        while to_revert:
+        while to_revert and engine.is_reverting:
             node = to_revert.pop()
             action = self._action_mapping[node]
             action.revert(engine)  # raises on failure
             to_revert += self._resolve_dependencies(node, deps_counter, True)
 
+        if to_revert:
+            return st.SUSPENDED
+        return st.REVERTED
+
 
 class ParallelGraphAction(SequentialGraphAction):
     def execute(self, engine):
         """This action executes the provided graph in parallel by selecting
-        nodes which can run (those which have there dependencies satisified
+        nodes which can run (those which have there dependencies satisfied
         or those with no dependencies) and submitting them to the executor
         to be ran, and then after running this process will be repeated until
         no more nodes can be ran (or a failure has a occured and all nodes
@@ -110,6 +119,7 @@ class ParallelGraphAction(SequentialGraphAction):
         has_failed = threading.Event()
         deps_lock = threading.RLock()
         deps_counter = self._get_nodes_dependencies_count()
+        self._future_flow_state = st.SUCCESS
 
         def submit_followups(node):
             # Mutating the deps_counter isn't thread safe.
@@ -133,7 +143,11 @@ class ParallelGraphAction(SequentialGraphAction):
                 return
             action = self._action_mapping[node]
             try:
-                action.execute(engine)
+                if engine.is_running:
+                    action.execute(engine)
+                else:
+                    self._future_flow_state = st.SUSPENDED
+                    return
             except Exception:
                 # Make sure others don't continue working (although they may
                 # be already actively working, but u can't stop that anyway).
@@ -189,3 +203,5 @@ class ParallelGraphAction(SequentialGraphAction):
                                             for fail in failures])
         elif len(failures) == 1:
             failures[0].reraise()
+
+        return self._future_flow_state

@@ -27,7 +27,7 @@ from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 
 from taskflow.engines.action_engine import engine as eng
-from taskflow import exceptions
+from taskflow import exceptions as exc
 from taskflow.persistence.backends import impl_memory
 from taskflow.persistence import logbook
 from taskflow import states
@@ -111,6 +111,27 @@ class MultiDictTask(task.Task):
             self.update_progress(i / total)
         self.update_progress(1.0)
         return output
+
+
+class AutoSuspendingTask(TestTask):
+
+    def execute(self, engine):
+        result = super(AutoSuspendingTask, self).execute()
+        engine.suspend()
+        return result
+
+    def revert(self, egnine, result):
+        super(AutoSuspendingTask, self).revert(**{'result': result})
+
+
+class AutoSuspendingTaskOnRevert(TestTask):
+
+    def execute(self, engine):
+        return super(AutoSuspendingTaskOnRevert, self).execute()
+
+    def revert(self, engine, result):
+        super(AutoSuspendingTaskOnRevert, self).revert(**{'result': result})
+        engine.suspend()
 
 
 class EngineTestBase(object):
@@ -251,7 +272,7 @@ class EngineTaskTest(EngineTestBase):
         flow = MultiargsTask(provides='result')
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'x': 17})
-        with self.assertRaises(exceptions.MissingDependencies):
+        with self.assertRaises(exc.MissingDependencies):
             engine.run()
 
     def test_partial_arguments_mapping(self):
@@ -285,7 +306,7 @@ class EngineTaskTest(EngineTestBase):
                              rebind={'b': 'z'})
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'c': 9, 'x': 17})
-        with self.assertRaises(exceptions.MissingDependencies):
+        with self.assertRaises(exc.MissingDependencies):
             engine.run()
 
     def test_invalid_argument_name_list(self):
@@ -294,7 +315,7 @@ class EngineTaskTest(EngineTestBase):
                              rebind=['a', 'z', 'b'])
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'c': 9, 'x': 17})
-        with self.assertRaises(exceptions.MissingDependencies):
+        with self.assertRaises(exc.MissingDependencies):
             engine.run()
 
     def test_bad_rebind_args_value(self):
@@ -487,14 +508,14 @@ class EngineGraphFlowTest(EngineTestBase):
         self.assertEquals(self.values, ['task1', 'task2', 'task3', 'task4'])
 
     def test_graph_cyclic_dependency(self):
-        with self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path'):
+        with self.assertRaisesRegexp(exc.DependencyFailure, '^No path'):
             gf.Flow('g-3-cyclic').add(
                 TestTask([], name='task1', provides='a', requires=['b']),
                 TestTask([], name='task2', provides='b', requires=['c']),
                 TestTask([], name='task3', provides='c', requires=['a']))
 
     def test_graph_two_tasks_returns_same_value(self):
-        with self.assertRaisesRegexp(exceptions.DependencyFailure,
+        with self.assertRaisesRegexp(exc.DependencyFailure,
                                      "task2 provides a but is already being"
                                      " provided by task1 and duplicate"
                                      " producers are disallowed"):
@@ -547,7 +568,7 @@ class EngineGraphFlowTest(EngineTestBase):
         })
 
     def test_one_task_provides_and_requires_same_data(self):
-        with self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path'):
+        with self.assertRaisesRegexp(exc.DependencyFailure, '^No path'):
             gf.Flow('g-1-req-error').add(
                 TestTask([], name='task1', requires=['a'], provides='a'))
 
@@ -568,10 +589,65 @@ class EngineGraphFlowTest(EngineTestBase):
         self.assertTrue(isinstance(graph, networkx.DiGraph))
 
 
+class SuspendFlowTest(EngineTestBase):
+
+    def test_suspend_one_task(self):
+        flow = AutoSuspendingTask(self.values, 'a')
+        engine = self._make_engine(flow)
+        engine.storage.inject({'engine': engine})
+        engine.run()
+        self.assertEquals(engine.storage.get_flow_state(), states.SUCCESS)
+        self.assertEquals(self.values, ['a'])
+        engine.run()
+        self.assertEquals(engine.storage.get_flow_state(), states.SUCCESS)
+        self.assertEquals(self.values, ['a'])
+
+    def test_suspend_linear_flow(self):
+        flow = lf.Flow('linear').add(
+            TestTask(self.values, 'a'),
+            AutoSuspendingTask(self.values, 'b'),
+            TestTask(self.values, 'c')
+        )
+        engine = self._make_engine(flow)
+        engine.storage.inject({'engine': engine})
+        engine.run()
+        self.assertEquals(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEquals(self.values, ['a', 'b'])
+        engine.run()
+        self.assertEquals(engine.storage.get_flow_state(), states.SUCCESS)
+        self.assertEquals(self.values, ['a', 'b', 'c'])
+
+    def test_suspend_linear_flow_on_revert(self):
+        flow = lf.Flow('linear').add(
+            TestTask(self.values, 'a'),
+            AutoSuspendingTaskOnRevert(self.values, 'b'),
+            FailingTask(self.values, 'c')
+        )
+        engine = self._make_engine(flow)
+        engine.storage.inject({'engine': engine})
+        engine.run()
+        self.assertEquals(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEquals(self.values,
+                          ['a',
+                           'b',
+                           'c reverted(Failure: RuntimeError: Woot!)',
+                           'b reverted(5)'])
+        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
+            engine.run()
+        self.assertEquals(engine.storage.get_flow_state(), states.FAILURE)
+        self.assertEquals(self.values,
+                          ['a',
+                           'b',
+                           'c reverted(Failure: RuntimeError: Woot!)',
+                           'b reverted(5)',
+                           'a reverted(5)'])
+
+
 class SingleThreadedEngineTest(EngineTaskTest,
                                EngineLinearFlowTest,
                                EngineParallelFlowTest,
                                EngineGraphFlowTest,
+                               SuspendFlowTest,
                                test.TestCase):
     def _make_engine(self, flow, flow_detail=None):
         if flow_detail is None:
@@ -585,6 +661,7 @@ class MultiThreadedEngineTest(EngineTaskTest,
                               EngineLinearFlowTest,
                               EngineParallelFlowTest,
                               EngineGraphFlowTest,
+                              SuspendFlowTest,
                               test.TestCase):
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if flow_detail is None:
