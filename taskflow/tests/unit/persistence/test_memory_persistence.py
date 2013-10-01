@@ -22,10 +22,14 @@ from taskflow.tests.unit.persistence import base
 
 
 class MemoryPersistenceTest(test.TestCase, base.PersistenceTestMixin):
+    def setUp(self):
+        self._backend = impl_memory.MemoryBackend({})
+
     def _get_connection(self):
-        return impl_memory.MemoryBackend({}).get_connection()
+        return self._backend.get_connection()
 
     def tearDown(self):
         conn = self._get_connection()
         conn.clear_all()
+        self._backend = None
         super(MemoryPersistenceTest, self).tearDown()
