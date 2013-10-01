@@ -176,11 +176,11 @@ class StorageTest(test.TestCase):
 
     def test_get_flow_state(self):
         lb, fd = p_utils.temporary_flow_detail(backend=self.backend)
-        fd.state = states.INTERRUPTED
+        fd.state = states.FAILURE
         with contextlib.closing(self.backend.get_connection()) as conn:
             fd.update(conn.update_flow_details(fd))
         s = storage.Storage(flow_detail=fd, backend=self.backend)
-        self.assertEquals(s.get_flow_state(), states.INTERRUPTED)
+        self.assertEquals(s.get_flow_state(), states.FAILURE)
 
     def test_set_and_get_flow_state(self):
         s = self._get_storage()
