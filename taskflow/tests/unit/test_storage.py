@@ -223,3 +223,24 @@ class StorageTest(test.TestCase):
         with self.assertRaisesRegexp(exceptions.NotFound,
                                      '^Unable to find result'):
             s.fetch('b')
+
+    @mock.patch.object(storage.LOG, 'warning')
+    def test_multiple_providers_are_checked(self, mocked_warning):
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        s.set_result_mapping('42', {'result': 'key'})
+        self.assertEquals(mocked_warning.mock_calls, [])
+        s.add_task('43', 'my other task')
+        s.set_result_mapping('43', {'result': 'key'})
+        mocked_warning.assert_called_once_with(
+            mock.ANY, 'result')
+
+    @mock.patch.object(storage.LOG, 'warning')
+    def test_multiple_providers_with_inject_are_checked(self, mocked_warning):
+        s = self._get_storage()
+        s.inject({'result': 'DONE'})
+        self.assertEquals(mocked_warning.mock_calls, [])
+        s.add_task('43', 'my other task')
+        s.set_result_mapping('43', {'result': 'key'})
+        mocked_warning.assert_called_once_with(
+            mock.ANY, 'result')
