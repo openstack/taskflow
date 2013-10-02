@@ -120,7 +120,7 @@ class AutoSuspendingTask(TestTask):
         engine.suspend()
         return result
 
-    def revert(self, egnine, result):
+    def revert(self, engine, result):
         super(AutoSuspendingTask, self).revert(**{'result': result})
 
 

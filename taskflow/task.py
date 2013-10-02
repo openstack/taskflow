@@ -18,10 +18,14 @@
 #    under the License.
 
 import abc
+import logging
+
 import six
 
 from taskflow.utils import misc
 from taskflow.utils import reflection
+
+LOG = logging.getLogger(__name__)
 
 
 def _save_as_to_mapping(save_as):
@@ -118,8 +122,7 @@ class BaseTask(object):
         # can be useful in resuming older versions of tasks. Standard
         # major, minor version semantics apply.
         self.version = (1, 0)
-        # List of callback functions to invoke when progress updated.
-        self._on_update_progress_notify = []
+        # Map of events => callback functions to invoke on task events.
         self._events_listeners = {}
 
     @property
@@ -159,6 +162,12 @@ class BaseTask(object):
         :param progress: task progress float value between 0 and 1
         :param kwargs: task specific progress information
         """
+        if progress > 1.0:
+            LOG.warn("Progress must be <= 1.0, clamping to upper bound")
+            progress = 1.0
+        if progress < 0.0:
+            LOG.warn("Progress must be >= 0.0, clamping to lower bound")
+            progress = 0.0
         self._trigger('update_progress', progress, **kwargs)
 
     def _trigger(self, event, *args, **kwargs):
@@ -166,7 +175,11 @@ class BaseTask(object):
         if event in self._events_listeners:
             for handler in self._events_listeners[event]:
                 event_data = self._events_listeners[event][handler]
-                handler(self, event_data, *args, **kwargs)
+                try:
+                    handler(self, event_data, *args, **kwargs)
+                except Exception:
+                    LOG.exception("Failed calling `%s` on event '%s'",
+                                  reflection.get_callable_name(handler), event)
 
     def bind(self, event, handler, **kwargs):
         """Attach a handler to an event for the task.
