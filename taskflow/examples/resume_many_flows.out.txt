@@ -1,0 +1,32 @@
+Run flow:
+Running flow example 18995b55-aaad-49fa-938f-006ac21ea4c7
+executing first==1.0
+executing boom==1.0
+> this time not exiting
+executing second==1.0
+
+
+Run flow, something happens:
+Running flow example f8f62ea6-1c9b-4e81-9ff9-1acaa299a648
+executing first==1.0
+executing boom==1.0
+> Critical error: boom = exit please
+
+
+Run flow, something happens again:
+Running flow example 16f11c15-4d8a-4552-b422-399565c873c4
+executing first==1.0
+executing boom==1.0
+> Critical error: boom = exit please
+
+
+Resuming all failed flows
+Resuming flow example f8f62ea6-1c9b-4e81-9ff9-1acaa299a648
+executing boom==1.0
+> this time not exiting
+executing second==1.0
+Resuming flow example 16f11c15-4d8a-4552-b422-399565c873c4
+executing boom==1.0
+> this time not exiting
+executing second==1.0
+

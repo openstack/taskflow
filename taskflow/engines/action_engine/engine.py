@@ -26,6 +26,7 @@ from taskflow.engines import base
 
 from taskflow import exceptions as exc
 from taskflow.openstack.common import excutils
+from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow import storage as t_storage
 
@@ -45,7 +46,7 @@ class ActionEngine(base.EngineBase):
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
-        self._failures = []
+        self._failures = {}  # task uuid => failure
         self._root = None
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
@@ -63,15 +64,12 @@ class ActionEngine(base.EngineBase):
         self._change_state(state)
         if state == states.SUSPENDED:
             return
-        misc.Failure.reraise_if_any(self._failures)
+        misc.Failure.reraise_if_any(self._failures.values())
         if current_failure:
             current_failure.reraise()
 
     def __str__(self):
         return "%s: %s" % (reflection.get_class_name(self), id(self))
-
-    def _reset(self):
-        self._failures = []
 
     def suspend(self):
         self._change_state(states.SUSPENDING)
@@ -82,16 +80,13 @@ class ActionEngine(base.EngineBase):
 
     @lock_utils.locked
     def run(self):
-        if self.storage.get_flow_state() != states.SUSPENDED:
-            self.compile()
-            self._reset()
+        self.compile()
+        external_provides = set(self.storage.fetch_all().keys())
+        missing = self._flow.requires - external_provides
+        if missing:
+            raise exc.MissingDependencies(self._flow, sorted(missing))
 
-            external_provides = set(self.storage.fetch_all().keys())
-            missing = self._flow.requires - external_provides
-            if missing:
-                raise exc.MissingDependencies(self._flow, sorted(missing))
-            self._run()
-        elif self._failures:
+        if self._failures:
             self._revert()
         else:
             self._run()
@@ -129,25 +124,51 @@ class ActionEngine(base.EngineBase):
 
     def on_task_state_change(self, task_action, state, result=None):
         if isinstance(result, misc.Failure):
-            self._failures.append(result)
+            self._failures[task_action.uuid] = result
         details = dict(engine=self,
                        task_name=task_action.name,
                        task_uuid=task_action.uuid,
                        result=result)
         self.task_notifier.notify(state, details)
 
-    def _translate_flow_to_action(self):
+    def compile(self):
+        if self._root is not None:
+            return
+
         assert self._graph_action is not None, ('Graph action class must be'
                                                 ' specified')
+        self._change_state(states.RESUMING)  # does nothing in PENDING state
         task_graph = flow_utils.flatten(self._flow)
-        ga = self._graph_action(task_graph)
-        for n in task_graph.nodes_iter():
-            ga.add(n, task_action.TaskAction(n, self))
-        return ga
+        self._root = self._graph_action(task_graph)
+        loaded_failures = {}
 
-    def compile(self):
-        if self._root is None:
-            self._root = self._translate_flow_to_action()
+        for task in task_graph.nodes_iter():
+            try:
+                task_id = self.storage.get_uuid_by_name(task.name)
+            except exc.NotFound:
+                task_id = uuidutils.generate_uuid()
+                task_version = misc.get_version_string(task)
+                self.storage.add_task(task_name=task.name, uuid=task_id,
+                                      task_version=task_version)
+            try:
+                result = self.storage.get(task_id)
+            except exc.NotFound:
+                result = None
+
+            if isinstance(result, misc.Failure):
+                # NOTE(imelnikov): old failure may have exc_info which
+                # might get lost during serialization, so we preserve
+                # old failure object if possible.
+                old_failure = self._failures.get(task_id, None)
+                if result.matches(old_failure):
+                    loaded_failures[task_id] = old_failure
+                else:
+                    loaded_failures[task_id] = result
+
+            self.storage.set_result_mapping(task_id, task.save_as)
+            self._root.add(task, task_action.TaskAction(task, task_id))
+        self._failures = loaded_failures
+        self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
     @property
     def is_running(self):

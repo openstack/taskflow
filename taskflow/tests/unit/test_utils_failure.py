@@ -143,6 +143,7 @@ class FailureObjectTestCase(test.TestCase):
         copied = fail_obj.copy()
         self.assertIsNot(fail_obj, copied)
         self.assertEquals(fail_obj, copied)
+        self.assertTrue(fail_obj.matches(copied))
 
     def test_failure_copy_recaptured(self):
         captured = _captured_failure('Woot!')
@@ -153,6 +154,7 @@ class FailureObjectTestCase(test.TestCase):
         self.assertIsNot(fail_obj, copied)
         self.assertEquals(fail_obj, copied)
         self.assertFalse(fail_obj != copied)
+        self.assertTrue(fail_obj.matches(copied))
 
     def test_recaptured_not_eq(self):
         captured = _captured_failure('Woot!')
@@ -161,6 +163,29 @@ class FailureObjectTestCase(test.TestCase):
                                 exc_type_names=list(captured))
         self.assertFalse(fail_obj == captured)
         self.assertTrue(fail_obj != captured)
+        self.assertTrue(fail_obj.matches(captured))
+
+    def test_two_captured_eq(self):
+        captured = _captured_failure('Woot!')
+        captured2 = _captured_failure('Woot!')
+        self.assertEquals(captured, captured2)
+
+    def test_two_recaptured_neq(self):
+        captured = _captured_failure('Woot!')
+        fail_obj = misc.Failure(exception_str=captured.exception_str,
+                                traceback_str=captured.traceback_str,
+                                exc_type_names=list(captured))
+        new_exc_str = captured.exception_str.replace('Woot', 'w00t')
+        fail_obj2 = misc.Failure(exception_str=new_exc_str,
+                                 traceback_str=captured.traceback_str,
+                                 exc_type_names=list(captured))
+        self.assertNotEquals(fail_obj, fail_obj2)
+        self.assertFalse(fail_obj2.matches(fail_obj))
+
+    def test_compares_to_none(self):
+        captured = _captured_failure('Woot!')
+        self.assertNotEquals(captured, None)
+        self.assertFalse(captured.matches(None))
 
 
 class WrappedFailureTestCase(test.TestCase):

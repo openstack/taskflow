@@ -647,6 +647,23 @@ class SuspendFlowTest(EngineTestBase):
              'b reverted(5)',
              'a reverted(5)'])
 
+    def test_storage_is_rechecked(self):
+        flow = lf.Flow('linear').add(
+            AutoSuspendingTask(self.values, 'b'),
+            TestTask(self.values, name='c')
+        )
+        engine = self._make_engine(flow)
+        engine.storage.inject({'engine': engine, 'boo': True})
+        engine.run()
+        self.assertEquals(engine.storage.get_flow_state(), states.SUSPENDED)
+        # uninject engine
+        engine.storage.save(
+            engine.storage.get_uuid_by_name(engine.storage.injector_name),
+            None,
+            states.FAILURE)
+        with self.assertRaises(exc.MissingDependencies):
+            engine.run()
+
 
 class SingleThreadedEngineTest(EngineTaskTest,
                                EngineLinearFlowTest,

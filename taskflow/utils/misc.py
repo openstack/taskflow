@@ -233,11 +233,17 @@ def are_equal_exc_info_tuples(ei1, ei2):
     # NOTE(imelnikov): we can't compare exceptions with '=='
     # because we want exc_info be equal to it's copy made with
     # copy_exc_info above
-    return all((ei1[0] is ei2[0],
-                type(ei1[1]) == type(ei2[1]),
+    if ei1[0] is not ei2[0]:
+        return False
+    if not all((type(ei1[1]) == type(ei2[1]),
                 str(ei1[1]) == str(ei2[1]),
-                repr(ei1[1]) == repr(ei2[1]),
-                ei1[2] == ei2[2]))
+                repr(ei1[1]) == repr(ei2[1]))):
+        return False
+    if ei1[2] == ei2[2]:
+        return True
+    tb1 = traceback.format_tb(ei1[2])
+    tb2 = traceback.format_tb(ei2[2])
+    return tb1 == tb2
 
 
 class Failure(object):
@@ -268,19 +274,32 @@ class Failure(object):
                 raise TypeError('Failure.__init__ got unexpected keyword '
                                 'argument: %r' % kwargs.keys()[0])
 
+    def _matches(self, other):
+        if self is other:
+            return True
+        return (self._exc_type_names == other._exc_type_names
+                and self.exception_str == other.exception_str
+                and self.traceback_str == other.traceback_str)
+
+    def matches(self, other):
+        if not isinstance(other, Failure):
+            return False
+        if self.exc_info is None or other.exc_info is None:
+            return self._matches(other)
+        else:
+            return self == other
+
     def __eq__(self, other):
         if not isinstance(other, Failure):
             return NotImplemented
-        return all((are_equal_exc_info_tuples(self.exc_info, other.exc_info),
-                    self._exc_type_names == other._exc_type_names,
-                    self.exception_str == other.exception_str,
-                    self.traceback_str == other.traceback_str))
+        return (self._matches(other) and
+                are_equal_exc_info_tuples(self.exc_info, other.exc_info))
 
     def __ne__(self, other):
         return not (self == other)
 
     # NOTE(imelnikov): obj.__hash__() should return same values for equal
-    # objects, so we should redefine __hash__. Our equality semantics
+    # objects, so we should redefine __hash__. Failure equality semantics
     # is a bit complicated, so for now we just mark Failure objects as
     # unhashable. See python docs on object.__hash__  for more info:
     # http://docs.python.org/2/reference/datamodel.html#object.__hash__
@@ -321,6 +340,7 @@ class Failure(object):
         this failure is reraised. Else, WrappedFailure exception
         is raised with failures list as causes.
         """
+        failures = list(failures)
         if len(failures) == 1:
             failures[0].reraise()
         elif len(failures) > 1:

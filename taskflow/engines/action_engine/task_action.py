@@ -20,9 +20,7 @@ import contextlib
 import logging
 
 from taskflow.engines.action_engine import base_action as base
-from taskflow import exceptions
 from taskflow.openstack.common import excutils
-from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow.utils import misc
 
@@ -45,21 +43,9 @@ def _autobind(task, bind_name, bind_func, **kwargs):
 
 class TaskAction(base.Action):
 
-    def __init__(self, task, engine):
+    def __init__(self, task, task_id):
         self._task = task
-        self._result_mapping = task.save_as
-        self._args_mapping = task.rebind
-        try:
-            self._id = engine.storage.get_uuid_by_name(self._task.name)
-        except exceptions.NotFound:
-            # TODO(harlowja): we might need to save whether the results of this
-            # task will be a tuple + other additional metadata when doing this
-            # add to the underlying storage backend for later resumption of
-            # this task.
-            self._id = uuidutils.generate_uuid()
-            engine.storage.add_task(task_name=self.name, uuid=self.uuid,
-                                    task_version=self.version)
-        engine.storage.set_result_mapping(self.uuid, self._result_mapping)
+        self._id = task_id
 
     @property
     def name(self):
@@ -68,10 +54,6 @@ class TaskAction(base.Action):
     @property
     def uuid(self):
         return self._id
-
-    @property
-    def version(self):
-        return misc.get_version_string(self._task)
 
     def _change_state(self, engine, state, result=None, progress=None):
         """Update result and change state."""
@@ -109,7 +91,7 @@ class TaskAction(base.Action):
                        'update_progress', self._on_update_progress,
                        engine=engine):
             try:
-                kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
+                kwargs = engine.storage.fetch_mapped_args(self._task.rebind)
                 result = self._task.execute(**kwargs)
             except Exception:
                 failure = misc.Failure()
@@ -127,7 +109,7 @@ class TaskAction(base.Action):
         with _autobind(self._task,
                        'update_progress', self._on_update_progress,
                        engine=engine):
-            kwargs = engine.storage.fetch_mapped_args(self._args_mapping)
+            kwargs = engine.storage.fetch_mapped_args(self._task.rebind)
             try:
                 self._task.revert(result=engine.storage.get(self._id),
                                   **kwargs)
