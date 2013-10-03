@@ -67,7 +67,7 @@ class Storage(object):
         with contextlib.closing(self._backend.get_connection()) as conn:
             functor(conn, *args, **kwargs)
 
-    def add_task(self, uuid, task_name):
+    def add_task(self, uuid, task_name, task_version=None):
         """Add the task to storage
 
         Task becomes known to storage by that name and uuid.
@@ -77,6 +77,7 @@ class Storage(object):
         # task name does not exist
         td = logbook.TaskDetail(name=task_name, uuid=uuid)
         td.state = states.PENDING
+        td.version = task_version
         self._flowdetail.add(td)
         self._with_connection(self._save_flow_detail)
         self._with_connection(self._save_task_detail, task_detail=td)

@@ -37,6 +37,8 @@ from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import models
 from taskflow.persistence import logbook
 from taskflow.utils import misc
+from taskflow.utils import persistence_utils
+
 
 LOG = logging.getLogger(__name__)
 
@@ -488,8 +490,7 @@ def _task_details_get_model(t_id, session):
 
 
 def _logbook_merge(lb_m, lb):
-    if lb_m.meta != lb.meta:
-        lb_m.meta = lb.meta
+    lb_m = persistence_utils.logbook_merge(lb_m, lb)
     for fd in lb:
         existing_fd = False
         for fd_m in lb_m.flowdetails:
@@ -502,10 +503,7 @@ def _logbook_merge(lb_m, lb):
 
 
 def _flowdetails_merge(fd_m, fd):
-    if fd_m.meta != fd.meta:
-        fd_m.meta = fd.meta
-    if fd_m.state != fd.state:
-        fd_m.state = fd.state
+    fd_m = persistence_utils.flow_details_merge(fd_m, fd)
     for td in fd:
         existing_td = False
         for td_m in fd_m.taskdetails:
@@ -520,12 +518,4 @@ def _flowdetails_merge(fd_m, fd):
 
 
 def _taskdetails_merge(td_m, td):
-    if td_m.state != td.state:
-        td_m.state = td.state
-    if td_m.results != td.results:
-        td_m.results = td.results
-    if td_m.failure != td.failure:
-        td_m.failure = td.failure
-    if td_m.meta != td.meta:
-        td_m.meta = td.meta
-    return td_m
+    return persistence_utils.task_details_merge(td_m, td)

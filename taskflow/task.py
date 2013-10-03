@@ -130,7 +130,7 @@ class BaseTask(object):
         return self._name
 
     def __str__(self):
-        return "%s==%s" % (self.name, misc.get_task_version(self))
+        return "%s==%s" % (self.name, misc.get_version_string(self))
 
     @abc.abstractmethod
     def execute(self, *args, **kwargs):

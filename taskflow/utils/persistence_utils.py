@@ -121,6 +121,8 @@ def task_details_merge(td_e, td_new, deep_copy=False):
             td_e.failure = td_new.failure
     if td_e.meta != td_new.meta:
         td_e.meta = copy_fn(td_new.meta)
+    if td_e.version != td_new.version:
+        td_e.version = copy_fn(td_new.version)
     return td_e
 
 

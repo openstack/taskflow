@@ -57,7 +57,8 @@ class TaskAction(base.Action):
             # add to the underlying storage backend for later resumption of
             # this task.
             self._id = uuidutils.generate_uuid()
-            engine.storage.add_task(task_name=self.name, uuid=self.uuid)
+            engine.storage.add_task(task_name=self.name, uuid=self.uuid,
+                                    task_version=self.version)
         engine.storage.set_result_mapping(self.uuid, self._result_mapping)
 
     @property
@@ -67,6 +68,10 @@ class TaskAction(base.Action):
     @property
     def uuid(self):
         return self._id
+
+    @property
+    def version(self):
+        return misc.get_version_string(self._task)
 
     def _change_state(self, engine, state, result=None, progress=None):
         """Update result and change state."""

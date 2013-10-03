@@ -158,6 +158,7 @@ class PersistenceTestMixin(object):
         lb = logbook.LogBook(name=lb_name, uuid=lb_id)
         fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td.version = '4.2'
         fd.add(td)
         lb.add(fd)
         with contextlib.closing(self._get_connection()) as conn:
@@ -169,6 +170,13 @@ class PersistenceTestMixin(object):
             for fd in lb:
                 tasks += len(fd)
             self.assertEquals(1, tasks)
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb_id)
+            fd2 = lb2.find(fd.uuid)
+            td2 = fd2.find(td.uuid)
+            self.assertIsNot(td2, None)
+            self.assertEquals(td2.name, 'detail-1')
+            self.assertEquals(td2.version, '4.2')
 
     def test_logbook_delete(self):
         lb_id = uuidutils.generate_uuid()

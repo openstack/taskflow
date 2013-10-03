@@ -35,15 +35,20 @@ import six
 LOG = logging.getLogger(__name__)
 
 
-def get_task_version(task):
-    """Gets a tasks *string* version, whether it is a task object/function."""
-    task_version = getattr(task, 'version')
-    if isinstance(task_version, (list, tuple)):
-        task_version = '.'.join(str(item) for item in task_version)
-    if task_version is not None and not isinstance(task_version,
-                                                   six.string_types):
-        task_version = str(task_version)
-    return task_version
+def get_version_string(obj):
+    """Gets a object's version as a string.
+
+    Returns string representation of object's version taken from
+    its 'version' attribute, or None if object does not have such
+    attribute or its version is None.
+    """
+    obj_version = getattr(obj, 'version', None)
+    if isinstance(obj_version, (list, tuple)):
+        obj_version = '.'.join(str(item) for item in obj_version)
+    if obj_version is not None and not isinstance(obj_version,
+                                                  six.string_types):
+        obj_version = str(obj_version)
+    return obj_version
 
 
 class ExponentialBackoff(object):
@@ -90,7 +95,7 @@ def as_int(obj, quiet=False):
 
 
 def is_version_compatible(version_1, version_2):
-    """Checks for major version compatibility of two *string" versions."""
+    """Checks for major version compatibility of two *string* versions."""
     try:
         version_1_tmp = version.StrictVersion(version_1)
         version_2_tmp = version.StrictVersion(version_2)

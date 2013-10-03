@@ -33,7 +33,7 @@ class StorageTest(test.TestCase):
         self.backend = impl_memory.MemoryBackend(conf={})
 
     def _get_storage(self):
-        lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
+        _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
         return storage.Storage(backend=self.backend, flow_detail=flow_detail)
 
     def tearDown(self):
@@ -52,6 +52,17 @@ class StorageTest(test.TestCase):
         s = self._get_storage()
         s.add_task('42', 'my task')
         self.assertEquals(s.get_task_state('42'), states.PENDING)
+
+    def test_add_task_fd(self):
+        _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
+        s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
+        s.add_task('42', 'my task', '3.11')
+        td = flow_detail.find('42')
+        self.assertIsNot(td, None)
+        self.assertEquals(td.uuid, '42')
+        self.assertEquals(td.name, 'my task')
+        self.assertEquals(td.version, '3.11')
+        self.assertEquals(td.state, states.PENDING)
 
     def test_save_and_get(self):
         s = self._get_storage()
@@ -175,7 +186,7 @@ class StorageTest(test.TestCase):
             s.get_uuid_by_name('42')
 
     def test_get_flow_state(self):
-        lb, fd = p_utils.temporary_flow_detail(backend=self.backend)
+        _lb, fd = p_utils.temporary_flow_detail(backend=self.backend)
         fd.state = states.FAILURE
         with contextlib.closing(self.backend.get_connection()) as conn:
             fd.update(conn.update_flow_details(fd))
