@@ -22,6 +22,7 @@ from distutils import version
 import collections
 import copy
 import errno
+import itertools
 import logging
 import os
 import sys
@@ -49,6 +50,18 @@ def get_version_string(obj):
                                                   six.string_types):
         obj_version = str(obj_version)
     return obj_version
+
+
+def get_duplicate_keys(iterable, key=None):
+    if key is not None:
+        iterable = itertools.imap(key, iterable)
+    keys = set()
+    duplicates = set()
+    for item in iterable:
+        if item in keys:
+            duplicates.add(item)
+        keys.add(item)
+    return duplicates
 
 
 class ExponentialBackoff(object):

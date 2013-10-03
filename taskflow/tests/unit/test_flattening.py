@@ -20,6 +20,7 @@ import string
 
 import networkx as nx
 
+from taskflow import exceptions as exc
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
@@ -167,3 +168,20 @@ class FlattenTest(test.TestCase):
                           set(g_utils.get_no_predecessors(g)))
         self.assertEquals(set([d]),
                           set(g_utils.get_no_successors(g)))
+
+    def test_flatten_checks_for_dups(self):
+        flo = gf.Flow("test").add(
+            t_utils.DummyTask(name="a"),
+            t_utils.DummyTask(name="a")
+        )
+        with self.assertRaisesRegexp(exc.InvariantViolationException,
+                                     '^Tasks with duplicate names'):
+            f_utils.flatten(flo)
+
+    def test_flatten_checks_for_dups_globally(self):
+        flo = gf.Flow("test").add(
+            gf.Flow("int1").add(t_utils.DummyTask(name="a")),
+            gf.Flow("int2").add(t_utils.DummyTask(name="a")))
+        with self.assertRaisesRegexp(exc.InvariantViolationException,
+                                     '^Tasks with duplicate names'):
+            f_utils.flatten(flo)

@@ -18,11 +18,13 @@
 
 import networkx as nx
 
+from taskflow import exceptions
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 from taskflow.utils import graph_utils as gu
+from taskflow.utils import misc
 
 
 # Use the 'flatten' reason as the need to add an edge here, which is useful for
@@ -110,6 +112,14 @@ def _flatten(item, flattened):
 
 def flatten(item, freeze=True):
     graph = _flatten(item, set())
+
+    dup_names = misc.get_duplicate_keys(graph.nodes_iter(),
+                                        key=lambda node: node.name)
+    if dup_names:
+        raise exceptions.InvariantViolationException(
+            "Tasks with duplicate names found: %s"
+            % ', '.join(sorted(dup_names)))
+
     if freeze:
         # Frozen graph can't be modified...
         return nx.freeze(graph)
