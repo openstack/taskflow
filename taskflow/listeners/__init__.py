@@ -15,27 +15,3 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-
-import abc
-
-
-class EngineBase(object):
-    __metaclass__ = abc.ABCMeta
-
-    def __init__(self, flow, flow_detail, backend, conf):
-        self._flow = flow
-        self._flow_detail = flow_detail
-        self.storage = self._storage_cls(flow_detail, backend)
-
-    @abc.abstractproperty
-    def _storage_cls(self):
-        """Storage class"""
-
-    @abc.abstractmethod
-    def compile(self):
-        """Check the flow and convert it to internal representation"""
-
-    @abc.abstractmethod
-    def run(self):
-        """Run the flow"""
