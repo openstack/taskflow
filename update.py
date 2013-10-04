@@ -395,9 +395,8 @@ def _build_dependency_tree():
                 if segments:
                     mod_name = _join_mod(*segments)
                     root_mods[mod_name] = os.path.join(dirpath, filename)
-            else:
-                filepath = os.path.join(dirpath, filename)
-                file_paths.append((filepath, mod_name))
+            filepath = os.path.join(dirpath, filename)
+            file_paths.append((filepath, mod_name))
     # Analyze the individual files dependencies after we know exactly what the
     # modules are so that we can find those modules if a individual file
     # imports a module instead of a file.
