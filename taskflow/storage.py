@@ -278,7 +278,10 @@ class Storage(object):
 
     def get_flow_state(self):
         """Set state from flowdetails"""
-        return self._flowdetail.state
+        state = self._flowdetail.state
+        if state is None:
+            state = states.PENDING
+        return state
 
 
 class ThreadSafeStorage(Storage):

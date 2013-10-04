@@ -104,11 +104,11 @@ class ActionEngine(base.EngineBase):
 
     @decorators.locked(lock='_state_lock')
     def _change_state(self, state):
-        if (state == states.SUSPENDING and not (self.is_running or
-                                                self.is_reverting)):
+        old_state = self.storage.get_flow_state()
+        if not states.check_flow_transition(old_state, state):
             return
         self.storage.set_flow_state(state)
-        details = dict(engine=self)
+        details = dict(engine=self, old_state=old_state)
         self.notifier.notify(state, details)
 
     def on_task_state_change(self, task_action, state, result=None):
