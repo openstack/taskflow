@@ -68,7 +68,13 @@ def get_callable_name(function):
 
 
 def is_bound_method(method):
-    return getattr(method, 'im_self', None) is not None
+    """Returns if the method given is a bound to a object or not."""
+    if not inspect.ismethod(method):
+        return False
+    # NOTE(harlowja): instance to which this method is bound, or None
+    if getattr(method, 'im_self', None) is not None:
+        return True
+    return False
 
 
 def _get_arg_spec(function):
