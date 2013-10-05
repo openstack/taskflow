@@ -101,7 +101,7 @@ class WrappedFailure(TaskFlowException):
         self._causes = []
         for cause in causes:
             if cause.check(type(self)) and cause.exception:
-                # flatten wrapped failures
+                # NOTE(imelnikov): flatten wrapped failures
                 self._causes.extend(cause.exception)
             else:
                 self._causes.append(cause)
@@ -122,11 +122,13 @@ class WrappedFailure(TaskFlowException):
         of given type, the corresponding argument is returned. Else,
         None is returned.
         """
+        if not exc_classes:
+            return None
         for cause in self:
             result = cause.check(*exc_classes)
-            if result:
+            if result is not None:
                 return result
         return None
 
     def __str__(self):
-        return 'Wrapped Failure: %s' % self._causes
+        return 'WrappedFailure: %s' % self._causes
