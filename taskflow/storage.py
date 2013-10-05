@@ -180,18 +180,22 @@ class Storage(object):
         """Put result for task with id 'uuid' to storage"""
         td = self._taskdetail_by_uuid(uuid)
         td.state = state
-        td.results = data
-        self._with_connection(self._save_task_detail, task_detail=td)
-
-        # Warn if result was incomplete
-        if not isinstance(data, misc.Failure):
+        if state == states.FAILURE and isinstance(data, misc.Failure):
+            td.results = None
+            td.failure = data
+        else:
+            td.results = data
+            td.failure = None
             self._check_all_results_provided(uuid, td.name, data)
+        self._with_connection(self._save_task_detail, task_detail=td)
 
     def get(self, uuid):
         """Get result for task with id 'uuid' to storage"""
         td = self._taskdetail_by_uuid(uuid)
         if td.state not in STATES_WITH_RESULTS:
             raise exceptions.NotFound("Result for task %r is not known" % uuid)
+        if td.failure:
+            return td.failure
         return td.results
 
     def reset(self, uuid, state=states.PENDING):

@@ -25,6 +25,10 @@ import errno
 import logging
 import os
 import sys
+import traceback
+
+from taskflow import exceptions
+from taskflow.utils import reflection
 
 import six
 
@@ -176,31 +180,153 @@ class TransitionNotifier(object):
                 break
 
 
-class Failure(object):
-    """Indicates failure"""
-    # NOTE(imelnikov): flow_utils.FlowFailure uses runner, but
-    #   engine code does not, so we need separate class
+def copy_exc_info(exc_info):
+    """Make copy of exception info tuple, as deep as possible"""
+    if exc_info is None:
+        return None
+    exc_type, exc_value, tb = exc_info
+    # NOTE(imelnikov): there is no need to copy type, and
+    # we can't copy traceback
+    return (exc_type, copy.deepcopy(exc_value), tb)
 
-    def __init__(self, exc_info=None):
-        if exc_info is not None:
+
+def are_equal_exc_info_tuples(ei1, ei2):
+    if ei1 == ei2:
+        return True
+    if ei1 is None or ei2 is None:
+        return False  # if both are None, we returned True above
+
+    # NOTE(imelnikov): we can't compare exceptions with '=='
+    # because we want exc_info be equal to it's copy made with
+    # copy_exc_info above
+    return all((ei1[0] is ei2[0],
+                type(ei1[1]) == type(ei2[1]),
+                str(ei1[1]) == str(ei2[1]),
+                repr(ei1[1]) == repr(ei2[1]),
+                ei1[2] == ei2[2]))
+
+
+class Failure(object):
+    """Object that represents failure.
+
+    Failure objects encapsulate exception information so that
+    it can be re-used later to re-raise or inspect.
+    """
+
+    def __init__(self, exc_info=None, **kwargs):
+        if not kwargs:
+            if exc_info is None:
+                exc_info = sys.exc_info()
             self._exc_info = exc_info
+            self._exc_type_names = list(
+                reflection.get_all_class_names(exc_info[0], up_to=Exception))
+            if not self._exc_type_names:
+                raise TypeError('Invalid exception type: %r' % exc_info[0])
+            self._exception_str = str(self._exc_info[1])
+            self._traceback_str = ''.join(
+                traceback.format_tb(self._exc_info[2]))
         else:
-            self._exc_info = sys.exc_info()
+            self._exc_info = exc_info  # may be None
+            self._exception_str = kwargs.pop('exception_str')
+            self._exc_type_names = kwargs.pop('exc_type_names', [])
+            self._traceback_str = kwargs.pop('traceback_str', None)
+            if kwargs:
+                raise TypeError('Failure.__init__ got unexpected keyword '
+                                'argument: %r' % kwargs.keys()[0])
+
+    def __eq__(self, other):
+        if not isinstance(other, Failure):
+            return NotImplemented
+        return all((are_equal_exc_info_tuples(self.exc_info, other.exc_info),
+                    self._exc_type_names == other._exc_type_names,
+                    self.exception_str == other.exception_str,
+                    self.traceback_str == other.traceback_str))
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    # NOTE(imelnikov): obj.__hash__() should return same values for equal
+    # objects, so we should redefine __hash__. Our equality semantics
+    # is a bit complicated, so for now we just mark Failure objects as
+    # unhashable. See python docs on object.__hash__  for more info:
+    # http://docs.python.org/2/reference/datamodel.html#object.__hash__
+    __hash__ = None
+
+    @property
+    def exception(self):
+        """Exception value, or None if exception value is not present.
+
+        Exception value may be lost during serialization.
+        """
+        if self._exc_info:
+            return self._exc_info[1]
+        else:
+            return None
+
+    @property
+    def exception_str(self):
+        """String representation of exception."""
+        return self._exception_str
 
     @property
     def exc_info(self):
+        """Exception info tuple or None."""
         return self._exc_info
 
     @property
-    def exc(self):
-        return self._exc_info[1]
+    def traceback_str(self):
+        """Exception traceback as string."""
+        return self._traceback_str
+
+    @staticmethod
+    def reraise_if_any(failures):
+        """Re-raise exceptions if argument is not empty.
+
+        If argument is empty list, this method returns None. If
+        argument is list with single Failure object in it,
+        this failure is reraised. Else, WrappedFailure exception
+        is raised with failures list as causes.
+        """
+        if len(failures) == 1:
+            failures[0].reraise()
+        elif len(failures) > 1:
+            raise exceptions.WrappedFailure(failures)
 
     def reraise(self):
-        raise self.exc_info[0], self.exc_info[1], self.exc_info[2]
+        """Re-raise captured exception"""
+        if self._exc_info:
+            six.reraise(*self._exc_info)
+        else:
+            raise exceptions.WrappedFailure([self])
+
+    def check(self, *exc_classes):
+        """Check if any of exc_classes caused the failure
+
+        Arguments of this method can be exception types or type
+        names (stings). If captured excption is instance of
+        exception of given type, the corresponding argument is
+        returned. Else, None is returned.
+        """
+        for cls in exc_classes:
+            if isinstance(cls, type):
+                err = reflection.get_class_name(cls)
+            else:
+                err = cls
+            if err in self._exc_type_names:
+                return cls
+        return None
 
     def __str__(self):
-        try:
-            exc_name = self.exc_info[0].__name__
-        except AttributeError:
-            exc_name = str(self.exc_info)
-        return 'Failure: %s: %s' % (exc_name, self.exc_info[1])
+        return 'Failure: %s: %s' % (self._exc_type_names[0],
+                                    self._exception_str)
+
+    def __iter__(self):
+        """Iterate over exception type names"""
+        for et in self._exc_type_names:
+            yield et
+
+    def copy(self):
+        return Failure(exc_info=copy_exc_info(self.exc_info),
+                       exception_str=self.exception_str,
+                       traceback_str=self.traceback_str,
+                       exc_type_names=self._exc_type_names[:])

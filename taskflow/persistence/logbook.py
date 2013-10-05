@@ -160,12 +160,9 @@ class TaskDetail(object):
         self.state = None
         # The results it may have produced (useful for reverting).
         self.results = None
-        # An exception that it may have thrown (or part of it), useful for
-        # knowing what failed.
-        self.exception = None
-        # Any stack trace the exception may have had, useful for debugging or
-        # examining the failure in more depth.
-        self.stacktrace = None
+        # An Failure object that holds exception the task may have thrown
+        # (or part of it), useful for knowing what failed.
+        self.failure = None
         # Any other metadata to include about this task while storing. For
         # example timing information could be stored here, other misc. task
         # related items.
@@ -181,8 +178,7 @@ class TaskDetail(object):
             return
         self.state = td.state
         self.meta = td.meta
-        self.stacktrace = td.stacktrace
-        self.exception = td.exception
+        self.failure = td.failure
         self.results = td.results
         self.version = td.version
 

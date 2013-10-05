@@ -57,14 +57,8 @@ class ActionEngine(base.EngineBase):
         if state == states.SUSPENDED:
             return
         self._change_state(states.FAILURE)
-        if self._failures:
-            if len(self._failures) == 1:
-                self._failures[0].reraise()
-            else:
-                exc_infos = [f.exc_info for f in self._failures]
-                raise exc.LinkedException.link(exc_infos)
-        else:
-            current_failure.reraise()
+        misc.Failure.reraise_if_any(self._failures)
+        current_failure.reraise()
 
     def _reset(self):
         self._failures = []

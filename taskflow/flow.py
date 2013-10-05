@@ -19,10 +19,7 @@
 import abc
 
 from taskflow.openstack.common import uuidutils
-
-
-def _class_name(obj):
-    return ".".join([obj.__class__.__module__, obj.__class__.__name__])
+from taskflow.utils import reflection
 
 
 class Flow(object):
@@ -60,7 +57,7 @@ class Flow(object):
         raise NotImplementedError()
 
     def __str__(self):
-        lines = ["%s: %s" % (_class_name(self), self.name)]
+        lines = ["%s: %s" % (reflection.get_class_name(self), self.name)]
         lines.append("%s" % (self.uuid))
         lines.append("%s" % (len(self)))
         return "; ".join(lines)

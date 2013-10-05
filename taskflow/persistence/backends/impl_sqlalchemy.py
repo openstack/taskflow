@@ -277,6 +277,7 @@ class Connection(base.Connection):
             with session.begin():
                 return functor(session, *args, **kwargs)
         except sa_exc.SQLAlchemyError as e:
+            LOG.exception('Failed running database session')
             raise exc.StorageError("Failed running database session: %s" % e,
                                    e)
 
@@ -284,6 +285,7 @@ class Connection(base.Connection):
         try:
             return self._session_maker()
         except sa_exc.SQLAlchemyError as e:
+            LOG.exception('Failed creating database session')
             raise exc.StorageError("Failed creating database session: %s"
                                    % e, e)
 
@@ -301,6 +303,7 @@ class Connection(base.Connection):
                 else:
                     migration.db_sync(conn)
         except sa_exc.SQLAlchemyError as e:
+            LOG.exception('Failed upgrading database version')
             raise exc.StorageError("Failed upgrading database version: %s" % e,
                                    e)
 
@@ -311,6 +314,7 @@ class Connection(base.Connection):
         try:
             return session.query(models.LogBook).delete()
         except sa_exc.DBAPIError as e:
+            LOG.exception('Failed clearing all entries')
             raise exc.StorageError("Failed clearing all entries: %s" % e, e)
 
     def clear_all(self):
@@ -345,6 +349,7 @@ class Connection(base.Connection):
             lb = _logbook_get_model(lb_id, session=session)
             session.delete(lb)
         except sa_exc.DBAPIError as e:
+            LOG.exception('Failed destroying logbook')
             raise exc.StorageError("Failed destroying"
                                    " logbook %s: %s" % (lb_id, e), e)
 
@@ -366,6 +371,7 @@ class Connection(base.Connection):
             lb_m = session.merge(lb_m)
             return _convert_lb_to_external(lb_m)
         except sa_exc.DBAPIError as e:
+            LOG.exception('Failed saving logbook')
             raise exc.StorageError("Failed saving logbook %s: %s" %
                                    (lb.uuid, e), e)
 
@@ -378,6 +384,7 @@ class Connection(base.Connection):
             lb = _logbook_get_model(book_uuid, session=session)
             return _convert_lb_to_external(lb)
         except sa_exc.DBAPIError as e:
+            LOG.exception('Failed getting logbook')
             raise exc.StorageError("Failed getting logbook %s: %s"
                                    % (book_uuid, e), e)
 
@@ -387,6 +394,7 @@ class Connection(base.Connection):
             raw_books = session.query(models.LogBook).all()
             books = [_convert_lb_to_external(lb) for lb in raw_books]
         except sa_exc.DBAPIError as e:
+            LOG.exception('Failed getting logbooks')
             raise exc.StorageError("Failed getting logbooks: %s" % e, e)
         for lb in books:
             yield lb
@@ -421,8 +429,7 @@ def _convert_fd_to_internal(fd, parent_uuid):
 def _convert_td_to_internal(td, parent_uuid):
     return models.TaskDetail(name=td.name, uuid=td.uuid,
                              state=td.state, results=td.results,
-                             exception=td.exception, meta=td.meta,
-                             stacktrace=td.stacktrace,
+                             failure=td.failure, meta=td.meta,
                              version=td.version, parent_uuid=parent_uuid)
 
 
@@ -433,8 +440,7 @@ def _convert_td_to_external(td):
     td_c = logbook.TaskDetail(td.name, uuid=td.uuid)
     td_c.state = td.state
     td_c.results = td.results
-    td_c.exception = td.exception
-    td_c.stacktrace = td.stacktrace
+    td_c.failure = td.failure
     td_c.meta = td.meta
     td_c.version = td.version
     return td_c
@@ -518,10 +524,8 @@ def _taskdetails_merge(td_m, td):
         td_m.state = td.state
     if td_m.results != td.results:
         td_m.results = td.results
-    if td_m.exception != td.exception:
-        td_m.exception = td.exception
-    if td_m.stacktrace != td.stacktrace:
-        td_m.stacktrace = td.stacktrace
+    if td_m.failure != td.failure:
+        td_m.failure = td.failure
     if td_m.meta != td.meta:
         td_m.meta = td.meta
     return td_m
