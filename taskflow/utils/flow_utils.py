@@ -110,16 +110,19 @@ def _flatten(item, flattened):
     return f
 
 
-def flatten(item, freeze=True):
-    graph = _flatten(item, set())
-
+def _post_flatten(graph):
     dup_names = misc.get_duplicate_keys(graph.nodes_iter(),
                                         key=lambda node: node.name)
     if dup_names:
         raise exceptions.InvariantViolationException(
             "Tasks with duplicate names found: %s"
             % ', '.join(sorted(dup_names)))
+    return graph
 
+
+def flatten(item, freeze=True):
+    """Flattens a item (a task or flow) into a single execution graph."""
+    graph = _post_flatten(_flatten(item, set()))
     if freeze:
         # Frozen graph can't be modified...
         return nx.freeze(graph)

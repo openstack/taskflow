@@ -60,6 +60,10 @@ def get_no_predecessors(graph):
 
 
 def pformat(graph):
+    """Pretty formats your graph into a string representation that includes
+    details about your graph, including; name, type, frozeness, node count,
+    nodes, edge count, edges, graph density and graph cycles (if any).
+    """
     lines = []
     lines.append("Name: %s" % graph.name)
     lines.append("Type: %s" % type(graph).__name__)
@@ -69,8 +73,10 @@ def pformat(graph):
         lines.append("  - %s" % n)
     lines.append("Edges: %s" % graph.number_of_edges())
     for (u, v, e_data) in graph.edges_iter(data=True):
-        reason = e_data.get('reason', '??')
-        lines.append("  %s -> %s (%s)" % (u, v, reason))
+        if e_data:
+            lines.append("  %s -> %s (%s)" % (u, v, e_data))
+        else:
+            lines.append("  %s -> %s" % (u, v))
     lines.append("Density: %0.3f" % nx.density(graph))
     cycles = list(nx.cycles.recursive_simple_cycles(graph))
     lines.append("Cycles: %s" % len(cycles))
@@ -85,4 +91,5 @@ def pformat(graph):
 
 
 def export_graph_to_dot(graph):
+    """Exports the graph to a dot format (requires pydot library)"""
     return nx.to_pydot(graph).to_string()

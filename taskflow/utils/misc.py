@@ -80,6 +80,7 @@ class ExponentialBackoff(object):
 
 
 def as_bool(val):
+    """Converts an arbitary value into a boolean."""
     if isinstance(val, bool):
         return val
     if isinstance(val, six.string_types):
@@ -91,6 +92,7 @@ def as_bool(val):
 
 
 def as_int(obj, quiet=False):
+    """Converts an arbitary value into a integer."""
     # Try "2" -> 2
     try:
         return int(obj)
