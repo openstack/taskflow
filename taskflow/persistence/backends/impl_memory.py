@@ -22,11 +22,11 @@
 import logging
 import threading
 
-from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow.openstack.common import timeutils
 from taskflow.persistence.backends import base
 from taskflow.persistence import logbook
+from taskflow.utils import lock_utils
 from taskflow.utils import persistence_utils as p_utils
 
 LOG = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ class Connection(base.Connection):
     def close(self):
         pass
 
-    @decorators.locked(lock="_save_locks")
+    @lock_utils.locked(lock="_save_locks")
     def clear_all(self):
         count = 0
         for uuid in list(self.backend.log_books.keys()):
@@ -93,7 +93,7 @@ class Connection(base.Connection):
             count += 1
         return count
 
-    @decorators.locked(lock="_save_locks")
+    @lock_utils.locked(lock="_save_locks")
     def destroy_logbook(self, book_uuid):
         try:
             # Do the same cascading delete that the sql layer does.
@@ -105,7 +105,7 @@ class Connection(base.Connection):
         except KeyError:
             raise exc.NotFound("No logbook found with id: %s" % book_uuid)
 
-    @decorators.locked(lock="_save_locks")
+    @lock_utils.locked(lock="_save_locks")
     def update_task_details(self, task_detail):
         try:
             e_td = self.backend.task_details[task_detail.uuid]
@@ -125,7 +125,7 @@ class Connection(base.Connection):
                 self.backend.task_details[task_detail.uuid] = e_td
             p_utils.task_details_merge(e_td, task_detail, deep_copy=True)
 
-    @decorators.locked(lock="_save_locks")
+    @lock_utils.locked(lock="_save_locks")
     def update_flow_details(self, flow_detail):
         try:
             e_fd = self.backend.flow_details[flow_detail.uuid]
@@ -136,7 +136,7 @@ class Connection(base.Connection):
         self._save_flowdetail_tasks(e_fd, flow_detail)
         return e_fd
 
-    @decorators.locked(lock="_save_locks")
+    @lock_utils.locked(lock="_save_locks")
     def save_logbook(self, book):
         # Get a existing logbook model (or create it if it isn't there).
         try:
@@ -166,14 +166,14 @@ class Connection(base.Connection):
             self._save_flowdetail_tasks(e_fd, flow_detail)
         return e_lb
 
-    @decorators.locked(lock='_read_locks')
+    @lock_utils.locked(lock='_read_locks')
     def get_logbook(self, book_uuid):
         try:
             return self.backend.log_books[book_uuid]
         except KeyError:
             raise exc.NotFound("No logbook found with id: %s" % book_uuid)
 
-    @decorators.locked(lock='_read_locks')
+    @lock_utils.locked(lock='_read_locks')
     def _get_logbooks(self):
         return list(self.backend.log_books.values())
 

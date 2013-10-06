@@ -19,8 +19,8 @@
 
 import threading
 
-from taskflow import decorators
 from taskflow.openstack.common import uuidutils
+from taskflow.utils import lock_utils
 
 
 class Job(object):
@@ -47,11 +47,11 @@ class Job(object):
         self.state = None
         self.book = None
 
-    @decorators.locked
+    @lock_utils.locked
     def add(self, *flows):
         self._flows.extend(flows)
 
-    @decorators.locked
+    @lock_utils.locked
     def remove(self, flow):
         j = -1
         for i, f in enumerate(self._flows):

@@ -24,7 +24,6 @@ import shutil
 import threading
 import weakref
 
-from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow.openstack.common import jsonutils
 from taskflow.openstack.common import timeutils
@@ -170,7 +169,7 @@ class Connection(base.Connection):
         self._write_to(td_path, jsonutils.dumps(td_data))
         return task_detail
 
-    @decorators.locked
+    @lock_utils.locked
     def update_task_details(self, task_detail):
         return self._run_with_process_lock("task",
                                            self._save_task_details,
@@ -251,7 +250,7 @@ class Connection(base.Connection):
                                         list(flow_detail), task_path)
         return flow_detail
 
-    @decorators.locked
+    @lock_utils.locked
     def update_flow_details(self, flow_detail):
         return self._run_with_process_lock("flow",
                                            self._save_flow_details,
@@ -298,12 +297,12 @@ class Connection(base.Connection):
                                         list(book), flow_path)
         return book
 
-    @decorators.locked
+    @lock_utils.locked
     def save_logbook(self, book):
         return self._run_with_process_lock("book",
                                            self._save_logbook, book)
 
-    @decorators.locked
+    @lock_utils.locked
     def upgrade(self):
 
         def _step_create():
@@ -314,7 +313,7 @@ class Connection(base.Connection):
         misc.ensure_tree(self._backend.lock_path)
         self._run_with_process_lock("init", _step_create)
 
-    @decorators.locked
+    @lock_utils.locked
     def clear_all(self):
 
         def _step_clear():
@@ -334,7 +333,7 @@ class Connection(base.Connection):
         # Acquire all locks by going through this little hiearchy.
         self._run_with_process_lock("init", _step_book)
 
-    @decorators.locked
+    @lock_utils.locked
     def destroy_logbook(self, book_uuid):
 
         def _destroy_tasks(task_details):
@@ -392,7 +391,7 @@ class Connection(base.Connection):
             lb.add(self._get_flow_details(fd_uuid))
         return lb
 
-    @decorators.locked
+    @lock_utils.locked
     def get_logbook(self, book_uuid):
         return self._run_with_process_lock("book",
                                            self._get_logbook, book_uuid)

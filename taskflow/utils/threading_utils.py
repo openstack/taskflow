@@ -22,6 +22,7 @@ import threading
 import time
 import types
 
+from taskflow.utils import lock_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -55,46 +56,6 @@ def get_optimal_thread_count():
         # just setup two threads since its hard to know what else we
         # should do in this situation.
         return 2
-
-
-class MultiLock(object):
-    """A class which can attempt to obtain many locks at once and release
-    said locks when exiting.
-
-    Useful as a context manager around many locks (instead of having to nest
-    said individual context managers).
-    """
-
-    def __init__(self, locks):
-        assert len(locks) > 0, "Zero locks requested"
-        self._locks = locks
-        self._locked = [False] * len(locks)
-
-    def __enter__(self):
-
-        def is_locked(lock):
-            # NOTE(harlowja): the threading2 lock doesn't seem to have this
-            # attribute, so thats why we are checking it existing first.
-            if hasattr(lock, 'locked'):
-                return lock.locked()
-            return False
-
-        for i in xrange(0, len(self._locked)):
-            if self._locked[i] or is_locked(self._locks[i]):
-                raise threading.ThreadError("Lock %s not previously released"
-                                            % (i + 1))
-            self._locked[i] = False
-        for (i, lock) in enumerate(self._locks):
-            self._locked[i] = lock.acquire()
-
-    def __exit__(self, type, value, traceback):
-        for (i, locked) in enumerate(self._locked):
-            try:
-                if locked:
-                    self._locks[i].release()
-                    self._locked[i] = False
-            except threading.ThreadError:
-                LOG.exception("Unable to release lock %s", i + 1)
 
 
 class CountDownLatch(object):
@@ -137,11 +98,10 @@ class ThreadSafeMeta(type):
     """Metaclass that adds locking to all pubic methods of a class"""
 
     def __new__(cls, name, bases, attrs):
-        from taskflow import decorators
         for attr_name, attr_value in attrs.iteritems():
             if isinstance(attr_value, types.FunctionType):
                 if attr_name[0] != '_':
-                    attrs[attr_name] = decorators.locked(attr_value)
+                    attrs[attr_name] = lock_utils.locked(attr_value)
         return super(ThreadSafeMeta, cls).__new__(cls, name, bases, attrs)
 
     def __call__(cls, *args, **kwargs):

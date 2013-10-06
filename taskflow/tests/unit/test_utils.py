@@ -18,8 +18,8 @@
 
 import sys
 
-from taskflow import decorators
 from taskflow import test
+from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
 
@@ -129,7 +129,7 @@ class GetRequiredCallableArgsTest(test.TestCase):
         self.assertEquals(['i', 'j'], result)
 
     def test_decorators_work(self):
-        @decorators.locked
+        @lock_utils.locked
         def locked_fun(x, y):
             pass
         result = reflection.get_required_callable_args(locked_fun)
