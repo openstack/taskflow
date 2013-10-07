@@ -131,4 +131,4 @@ class WrappedFailure(TaskFlowException):
         return None
 
     def __str__(self):
-        return 'WrappedFailure: %s' % self._causes
+        return 'WrappedFailure: %s' % [str(cause) for cause in self._causes]

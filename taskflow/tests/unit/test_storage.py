@@ -185,6 +185,10 @@ class StorageTest(test.TestCase):
                                      '^Unknown task name:'):
             s.get_uuid_by_name('42')
 
+    def test_initial_flow_state(self):
+        s = self._get_storage()
+        self.assertEquals(s.get_flow_state(), states.PENDING)
+
     def test_get_flow_state(self):
         _lb, fd = p_utils.temporary_flow_detail(backend=self.backend)
         fd.state = states.FAILURE
