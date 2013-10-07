@@ -60,6 +60,9 @@ class Flow(flow.Flow):
         for child in self._children:
             yield child
 
+    def __getitem__(self, index):
+        return self._children[index]
+
     @property
     def provides(self):
         provides = set()
