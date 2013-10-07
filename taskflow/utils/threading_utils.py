@@ -27,6 +27,7 @@ LOG = logging.getLogger(__name__)
 
 
 def await(check_functor, timeout=None):
+    """Spin-loops + sleeps awaiting for a given functor to return true."""
     if timeout is not None:
         end_time = time.time() + max(0, timeout)
     else:
