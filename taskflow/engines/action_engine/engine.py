@@ -32,6 +32,7 @@ from taskflow import storage as t_storage
 from taskflow.utils import flow_utils
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
+from taskflow.utils import reflection
 from taskflow.utils import threading_utils
 
 
@@ -65,6 +66,9 @@ class ActionEngine(base.EngineBase):
         misc.Failure.reraise_if_any(self._failures)
         if current_failure:
             current_failure.reraise()
+
+    def __str__(self):
+        return "%s: %s" % (reflection.get_class_name(self), id(self))
 
     def _reset(self):
         self._failures = []
@@ -108,7 +112,19 @@ class ActionEngine(base.EngineBase):
         if not states.check_flow_transition(old_state, state):
             return
         self.storage.set_flow_state(state)
-        details = dict(engine=self, old_state=old_state)
+        try:
+            flow_uuid = self._flow.uuid
+        except AttributeError:
+            # NOTE(harlowja): if the flow was just a single task, then it will
+            # not itself have a uuid, but the constructed flow_detail will.
+            if self._flow_detail is not None:
+                flow_uuid = self._flow_detail.uuid
+            else:
+                flow_uuid = None
+        details = dict(engine=self,
+                       flow_name=self._flow.name,
+                       flow_uuid=flow_uuid,
+                       old_state=old_state)
         self.notifier.notify(state, details)
 
     def on_task_state_change(self, task_action, state, result=None):
