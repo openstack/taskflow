@@ -24,10 +24,83 @@
 import errno
 import logging
 import os
+import threading
 import time
+
+from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 WAIT_TIME = 0.01
+
+
+def locked(*args, **kwargs):
+    """A decorator that looks for a given attribute (typically a lock or a list
+    of locks) and before executing the decorated function uses the given lock
+    or list of locks as a context manager, automatically releasing on exit.
+    """
+
+    def decorator(f):
+        attr_name = kwargs.get('lock', '_lock')
+
+        @misc.wraps(f)
+        def wrapper(*args, **kwargs):
+            lock = getattr(args[0], attr_name)
+            if isinstance(lock, (tuple, list)):
+                lock = MultiLock(locks=list(lock))
+            with lock:
+                return f(*args, **kwargs)
+
+        return wrapper
+
+    # This is needed to handle when the decorator has args or the decorator
+    # doesn't have args, python is rather weird here...
+    if kwargs or not args:
+        return decorator
+    else:
+        if len(args) == 1:
+            return decorator(args[0])
+        else:
+            return decorator
+
+
+class MultiLock(object):
+    """A class which can attempt to obtain many locks at once and release
+    said locks when exiting.
+
+    Useful as a context manager around many locks (instead of having to nest
+    said individual context managers).
+    """
+
+    def __init__(self, locks):
+        assert len(locks) > 0, "Zero locks requested"
+        self._locks = locks
+        self._locked = [False] * len(locks)
+
+    def __enter__(self):
+
+        def is_locked(lock):
+            # NOTE(harlowja): the threading2 lock doesn't seem to have this
+            # attribute, so thats why we are checking it existing first.
+            if hasattr(lock, 'locked'):
+                return lock.locked()
+            return False
+
+        for i in xrange(0, len(self._locked)):
+            if self._locked[i] or is_locked(self._locks[i]):
+                raise threading.ThreadError("Lock %s not previously released"
+                                            % (i + 1))
+            self._locked[i] = False
+        for (i, lock) in enumerate(self._locks):
+            self._locked[i] = lock.acquire()
+
+    def __exit__(self, type, value, traceback):
+        for (i, locked) in enumerate(self._locked):
+            try:
+                if locked:
+                    self._locks[i].release()
+                    self._locked[i] = False
+            except threading.ThreadError:
+                LOG.exception("Unable to release lock %s", i + 1)
 
 
 class _InterProcessLock(object):

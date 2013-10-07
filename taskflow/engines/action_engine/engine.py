@@ -24,13 +24,13 @@ from taskflow.engines.action_engine import graph_action
 from taskflow.engines.action_engine import task_action
 from taskflow.engines import base
 
-from taskflow import decorators
 from taskflow import exceptions as exc
 from taskflow.openstack.common import excutils
 from taskflow import states
 from taskflow import storage as t_storage
 
 from taskflow.utils import flow_utils
+from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
@@ -76,7 +76,7 @@ class ActionEngine(base.EngineBase):
         self.compile()
         return self._root.graph
 
-    @decorators.locked
+    @lock_utils.locked
     def run(self):
         if self.storage.get_flow_state() != states.SUSPENDED:
             self.compile()
@@ -102,7 +102,7 @@ class ActionEngine(base.EngineBase):
         else:
             self._change_state(state)
 
-    @decorators.locked(lock='_state_lock')
+    @lock_utils.locked(lock='_state_lock')
     def _change_state(self, state):
         old_state = self.storage.get_flow_state()
         if not states.check_flow_transition(old_state, state):
@@ -158,7 +158,7 @@ class MultiThreadedActionEngine(ActionEngine):
             flow, flow_detail, backend, conf)
         self._executor = conf.get('executor', None)
 
-    @decorators.locked
+    @lock_utils.locked
     def run(self):
         if self._executor is None:
             self._executor = futures.ThreadPoolExecutor(

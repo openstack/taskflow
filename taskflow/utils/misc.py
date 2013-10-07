@@ -22,6 +22,7 @@ from distutils import version
 import collections
 import copy
 import errno
+import functools
 import itertools
 import logging
 import os
@@ -34,6 +35,19 @@ from taskflow.utils import reflection
 import six
 
 LOG = logging.getLogger(__name__)
+
+
+def wraps(fn):
+    """This will not be needed in python 3.2 or greater which already has this
+    built-in to its functools.wraps method.
+    """
+
+    def wrapper(f):
+        f = functools.wraps(fn)(f)
+        f.__wrapped__ = getattr(fn, '__wrapped__', fn)
+        return f
+
+    return wrapper
 
 
 def get_version_string(obj):
