@@ -26,6 +26,7 @@ from taskflow.engines import base
 
 from taskflow import decorators
 from taskflow import exceptions as exc
+from taskflow.openstack.common import excutils
 from taskflow import states
 from taskflow import storage as t_storage
 
@@ -50,15 +51,20 @@ class ActionEngine(base.EngineBase):
         self.notifier = misc.TransitionNotifier()
         self.task_notifier = misc.TransitionNotifier()
 
-    def _revert(self, current_failure):
+    def _revert(self, current_failure=None):
         self._change_state(states.REVERTING)
-        state = self._root.revert(self)
+        try:
+            state = self._root.revert(self)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                self._change_state(states.FAILURE)
+
         self._change_state(state)
         if state == states.SUSPENDED:
             return
-        self._change_state(states.FAILURE)
         misc.Failure.reraise_if_any(self._failures)
-        current_failure.reraise()
+        if current_failure:
+            current_failure.reraise()
 
     def _reset(self):
         self._failures = []
@@ -82,7 +88,7 @@ class ActionEngine(base.EngineBase):
                 raise exc.MissingDependencies(self._flow, sorted(missing))
             self._run()
         elif self._failures:
-            self._revert(self._failures[-1])
+            self._revert()
         else:
             self._run()
 
@@ -91,6 +97,7 @@ class ActionEngine(base.EngineBase):
         try:
             state = self._root.execute(self)
         except Exception:
+            self._change_state(states.FAILURE)
             self._revert(misc.Failure())
         else:
             self._change_state(state)

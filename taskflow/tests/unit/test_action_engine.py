@@ -199,13 +199,13 @@ class EngineTaskTest(EngineTestBase):
             ['flow RUNNING',
              'fail RUNNING',
              'fail FAILURE',
+             'flow FAILURE',
              'flow REVERTING',
              'fail REVERTING',
              'fail reverted(Failure: exceptions.RuntimeError: Woot!)',
              'fail REVERTED',
              'fail PENDING',
-             'flow REVERTED',
-             'flow FAILURE'])
+             'flow REVERTED'])
 
     def test_invalid_flow_raises(self):
         value = 'i am string, not task/flow, sorry'
@@ -638,7 +638,7 @@ class SuspendFlowTest(EngineTestBase):
              'b reverted(5)'])
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
-        self.assertEquals(engine.storage.get_flow_state(), states.FAILURE)
+        self.assertEquals(engine.storage.get_flow_state(), states.REVERTED)
         self.assertEquals(
             self.values,
             ['a',

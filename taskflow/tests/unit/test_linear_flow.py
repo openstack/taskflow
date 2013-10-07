@@ -89,9 +89,9 @@ class LinearFlowTest(test.TestCase):
 
         expected_states = [
             states.RUNNING,
+            states.FAILURE,
             states.REVERTING,
             states.REVERTED,
-            states.FAILURE,
         ]
         self.assertEquals(expected_states, changes)
         expected_states = [
