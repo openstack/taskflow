@@ -81,7 +81,7 @@ _ALLOWED_FLOW_TRANSITIONS = frozenset((
 
 
 # NOTE(imelnikov) SUCCESS->RUNNING and FAILURE->RUNNING transitions are
-# useful when flow or flowdetails baciking it were altered after the flow
+# useful when flow or flowdetails backing it were altered after the flow
 # was finished; then, client code may want to run through flow again
 # to ensure all tasks from updated flow had a chance to run.
 
@@ -109,7 +109,7 @@ def check_flow_transition(old_state, new_state):
 
     If transition can be performed, it returns True. If transition
     should be ignored, it returns False. If transition is not
-    invalid, it raises InvalidStateException.
+    valid, it raises InvalidStateException.
     """
     if old_state == new_state:
         return False

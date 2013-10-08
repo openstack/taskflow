@@ -84,10 +84,11 @@ class ValidateAPIInputs(task.Task):
 
 # Simulates reserving the space for a vm and associating the vm to be with
 # a unique identifier.
-class PeformReservation(task.Task):
+class PerformReservation(task.Task):
     def __init__(self):
-        super(PeformReservation, self).__init__('reserve-vm',
-                                                provides='vm_reservation_spec')
+        super(PerformReservation, self).__init__('reserve-vm',
+                                                 provides='vm_reservation_'
+                                                          'spec')
 
     def revert(self, context, vm_spec, result):
         reserved_spec = result
@@ -157,7 +158,7 @@ class BootVM(task.Task):
 # Lets try booting a vm (not really) and see how the reversions work.
 flow = gf.Flow("Boot-Fake-Vm").add(
     ValidateAPIInputs(),
-    PeformReservation(),
+    PerformReservation(),
     ScheduleVM(),
     BootVM())
 
