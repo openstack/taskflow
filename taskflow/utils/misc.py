@@ -27,6 +27,7 @@ import os
 import six
 import string
 import sys
+import time
 import traceback
 
 from taskflow import exceptions
@@ -35,6 +36,13 @@ from taskflow.utils import reflection
 
 LOG = logging.getLogger(__name__)
 NUMERIC_TYPES = six.integer_types + (float,)
+
+
+def wallclock():
+    # NOTE(harlowja): made into a function so that this can be easily mocked
+    # out if we want to alter time related functionality (for testing
+    # purposes).
+    return time.time()
 
 
 def wraps(fn):
@@ -202,6 +210,77 @@ def ensure_tree(path):
             raise
 
 
+class StopWatch(object):
+    """A simple timer/stopwatch helper class.
+
+    Inspired by: apache-commons-lang java stopwatch.
+
+    Not thread-safe.
+    """
+    _STARTED = 'STARTED'
+    _STOPPED = 'STOPPED'
+
+    def __init__(self, duration=None):
+        self._duration = duration
+        self._started_at = None
+        self._stopped_at = None
+        self._state = None
+
+    def start(self):
+        if self._state == self._STARTED:
+            return self
+        self._started_at = wallclock()
+        self._stopped_at = None
+        self._state = self._STARTED
+        return self
+
+    def elapsed(self):
+        if self._state == self._STOPPED:
+            return float(self._stopped_at - self._started_at)
+        elif self._state == self._STARTED:
+            return float(wallclock() - self._started_at)
+        else:
+            raise RuntimeError("Can not get the elapsed time of an invalid"
+                               " stopwatch")
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        try:
+            self.stop()
+        except RuntimeError:
+            pass
+        # NOTE(harlowja): don't silence the exception.
+        return False
+
+    def expired(self):
+        if self._duration is None:
+            return False
+        if self.elapsed() > self._duration:
+            return True
+        return False
+
+    def resume(self):
+        if self._state == self._STOPPED:
+            self._state = self._STARTED
+            return self
+        else:
+            raise RuntimeError("Can not resume a stopwatch that has not been"
+                               " stopped")
+
+    def stop(self):
+        if self._state == self._STOPPED:
+            return self
+        if self._state != self._STARTED:
+            raise RuntimeError("Can not stop a stopwatch that has not been"
+                               " started")
+        self._stopped_at = wallclock()
+        self._state = self._STOPPED
+        return self
+
+
 class TransitionNotifier(object):
     """A utility helper class that can be used to subscribe to
     notifications of events occuring as well as allow a entity to post said
@@ -221,6 +300,13 @@ class TransitionNotifier(object):
         for (_s, callbacks) in six.iteritems(self._listeners):
             count += len(callbacks)
         return count
+
+    def is_registered(self, state, callback):
+        listeners = list(self._listeners.get(state, []))
+        for (cb, _args, _kwargs) in listeners:
+            if reflection.is_same_callback(cb, callback):
+                return True
+        return False
 
     def reset(self):
         self._listeners.clear()
@@ -246,9 +332,8 @@ class TransitionNotifier(object):
 
     def register(self, state, callback, args=None, kwargs=None):
         assert isinstance(callback, collections.Callable)
-        for (cb, _args, _kwargs) in self._listeners.get(state, []):
-            if reflection.is_same_callback(cb, callback):
-                raise ValueError("Callback %s already registered" % (callback))
+        if self.is_registered(state, callback):
+            raise ValueError("Callback %s already registered" % (callback))
         if kwargs:
             for k in self.RESERVED_KEYS:
                 if k in kwargs:

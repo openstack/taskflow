@@ -19,6 +19,7 @@
 import collections
 import functools
 import sys
+import time
 
 from taskflow import states
 from taskflow import test
@@ -414,6 +415,47 @@ class IsValidAttributeNameTestCase(test.TestCase):
 
     def test_no_unicode_please(self):
         self.assertFalse(misc.is_valid_attribute_name('mañana'))
+
+
+class StopWatchUtilsTest(test.TestCase):
+    def test_no_states(self):
+        watch = misc.StopWatch()
+        self.assertRaises(RuntimeError, watch.stop)
+        self.assertRaises(RuntimeError, watch.resume)
+
+    def test_expiry(self):
+        watch = misc.StopWatch(0.1)
+        watch.start()
+        time.sleep(0.2)
+        self.assertTrue(watch.expired())
+
+    def test_no_expiry(self):
+        watch = misc.StopWatch(0.1)
+        watch.start()
+        self.assertFalse(watch.expired())
+
+    def test_elapsed(self):
+        watch = misc.StopWatch()
+        watch.start()
+        time.sleep(0.2)
+        # NOTE(harlowja): Allow for a slight variation by using 0.19
+        self.assertGreaterEqual(0.19, watch.elapsed())
+
+    def test_pause_resume(self):
+        watch = misc.StopWatch()
+        watch.start()
+        time.sleep(0.05)
+        watch.stop()
+        elapsed = watch.elapsed()
+        time.sleep(0.05)
+        self.assertAlmostEqual(elapsed, watch.elapsed())
+        watch.resume()
+        self.assertNotEqual(elapsed, watch.elapsed())
+
+    def test_context_manager(self):
+        with misc.StopWatch() as watch:
+            time.sleep(0.05)
+        self.assertGreater(0.01, watch.elapsed())
 
 
 class ExcInfoUtilsTest(test.TestCase):

@@ -33,10 +33,13 @@ class LoggingListener(base.LoggingBase):
     if not provided).
     """
     def __init__(self, engine,
-                 listen_for=misc.TransitionNotifier.ANY,
+                 task_listen_for=(misc.TransitionNotifier.ANY,),
+                 flow_listen_for=(misc.TransitionNotifier.ANY,),
                  log=None,
                  level=logging.DEBUG):
-        super(LoggingListener, self).__init__(engine, listen_for)
+        super(LoggingListener, self).__init__(engine,
+                                              task_listen_for=task_listen_for,
+                                              flow_listen_for=flow_listen_for)
         self._logger = log
         if not self._logger:
             self._logger = LOG

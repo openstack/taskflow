@@ -23,6 +23,7 @@ import logging
 
 import six
 
+from taskflow.openstack.common import excutils
 from taskflow import states
 from taskflow.utils import misc
 
@@ -33,19 +34,92 @@ LOG = logging.getLogger(__name__)
 FINISH_STATES = (states.FAILURE, states.SUCCESS)
 
 
+class ListenerBase(object):
+    """This provides a simple listener that can be attached to an engine which
+    can be derived from to do some action on various flow and task state
+    transitions. It provides a useful context manager access to be able to
+    register and unregister with a given engine automatically when a context
+    is entered and when it is exited.
+    """
+
+    def __init__(self, engine,
+                 task_listen_for=(misc.TransitionNotifier.ANY,),
+                 flow_listen_for=(misc.TransitionNotifier.ANY,)):
+        if not task_listen_for:
+            task_listen_for = []
+        if not flow_listen_for:
+            flow_listen_for = []
+        self._listen_for = {
+            'task': list(task_listen_for),
+            'flow': list(flow_listen_for),
+        }
+        self._engine = engine
+        self._registered = False
+
+    def _flow_receiver(self, state, details):
+        pass
+
+    def _task_receiver(self, state, details):
+        pass
+
+    def deregister(self):
+        if not self._registered:
+            return
+
+        def _deregister(watch_states, notifier, cb):
+            for s in watch_states:
+                notifier.deregister(s, cb)
+
+        _deregister(self._listen_for['task'], self._engine.task_notifier,
+                    self._task_receiver)
+        _deregister(self._listen_for['flow'], self._engine.notifier,
+                    self._flow_receiver)
+
+        self._registered = False
+
+    def register(self):
+        if self._registered:
+            return
+
+        def _register(watch_states, notifier, cb):
+            registered = []
+            try:
+                for s in watch_states:
+                    if not notifier.is_registered(s, cb):
+                        notifier.register(s, cb)
+                        registered.append((s, cb))
+            except ValueError:
+                with excutils.save_and_reraise_exception():
+                    for (s, cb) in registered:
+                        notifier.deregister(s, cb)
+
+        _register(self._listen_for['task'], self._engine.task_notifier,
+                  self._task_receiver)
+        _register(self._listen_for['flow'], self._engine.notifier,
+                  self._flow_receiver)
+
+        self._registered = True
+
+    def __enter__(self):
+        self.register()
+
+    def __exit__(self, type, value, tb):
+        try:
+            self.deregister()
+        except Exception:
+            # Don't let deregistering throw exceptions
+            LOG.exception("Failed deregistering listeners from engine %s",
+                          self._engine)
+
+
 @six.add_metaclass(abc.ABCMeta)
-class LoggingBase(object):
+class LoggingBase(ListenerBase):
     """This provides a simple listener that can be attached to an engine which
     can be derived from to log the received actions to some logging backend. It
     provides a useful context manager access to be able to register and
     unregister with a given engine automatically when a context is entered and
     when it is exited.
     """
-    def __init__(self, engine,
-                 listen_for=misc.TransitionNotifier.ANY):
-        self._listen_for = listen_for
-        self._engine = engine
-        self._registered = False
 
     @abc.abstractmethod
     def _log(self, message, *args, **kwargs):
@@ -74,23 +148,3 @@ class LoggingBase(object):
             self._log("%s has moved task '%s' (%s) into state '%s'",
                       details['engine'], details['task_name'],
                       details['task_uuid'], state)
-
-    def __enter__(self):
-        if not self._registered:
-            self._engine.notifier.register(self._listen_for,
-                                           self._flow_receiver)
-            self._engine.task_notifier.register(self._listen_for,
-                                                self._task_receiver)
-            self._registered = True
-
-    def __exit__(self, type, value, tb):
-        try:
-            self._engine.notifier.deregister(self._listen_for,
-                                             self._flow_receiver)
-            self._engine.task_notifier.deregister(self._listen_for,
-                                                  self._task_receiver)
-            self._registered = False
-        except Exception:
-            # Don't let deregistering throw exceptions
-            LOG.exception("Failed deregistering listeners from engine %s",
-                          self._engine)
