@@ -69,4 +69,4 @@ try:
                                           jim_number=555,
                                           suzzie_number=666))
 except Exception as e:
-    print "Flow failed: %r" % e
+    print("Flow failed: %r" % e)

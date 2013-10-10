@@ -68,4 +68,4 @@ flow = lf.Flow('root').add(
 
 
 result = taskflow.engines.run(flow, engine_conf='parallel')
-print result
+print(result)
