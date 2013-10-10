@@ -17,11 +17,11 @@
 #    under the License.
 
 import logging
-import urlparse
-
+from six.moves import urllib_parse as urlparse  # noqa
 from stevedore import driver
 
 from taskflow import exceptions as exc
+
 
 # NOTE(harlowja): this is the entrypoint namespace, not the module namespace.
 BACKEND_NAMESPACE = 'taskflow.persistence'

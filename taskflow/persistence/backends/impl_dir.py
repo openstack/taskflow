@@ -21,6 +21,7 @@ import errno
 import logging
 import os
 import shutil
+import six
 import threading
 import weakref
 
@@ -103,11 +104,13 @@ class Connection(base.Connection):
         cache_info = self._file_cache.setdefault(filename, {})
         if not cache_info or mtime > cache_info.get('mtime', 0):
             with open(filename, 'rb') as fp:
-                cache_info['data'] = fp.read()
+                cache_info['data'] = fp.read().decode('utf-8')
                 cache_info['mtime'] = mtime
         return cache_info['data']
 
     def _write_to(self, filename, contents):
+        if isinstance(contents, six.text_type):
+            contents = contents.encode('utf-8')
         with open(filename, 'wb') as fp:
             fp.write(contents)
         self._file_cache.pop(filename, None)
@@ -405,7 +408,7 @@ def _str_2_datetime(text):
     """Converts an iso8601 string/text into a datetime object (or none)"""
     if text is None:
         return None
-    if not isinstance(text, basestring):
+    if not isinstance(text, six.string_types):
         raise ValueError("Can only convert strings into a datetime object and"
                          " not %r" % (text))
     if not len(text):

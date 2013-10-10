@@ -18,6 +18,7 @@
 
 import logging
 import multiprocessing
+import six
 import threading
 import time
 import types
@@ -98,7 +99,7 @@ class ThreadSafeMeta(type):
     """Metaclass that adds locking to all pubic methods of a class"""
 
     def __new__(cls, name, bases, attrs):
-        for attr_name, attr_value in attrs.iteritems():
+        for attr_name, attr_value in six.iteritems(attrs):
             if isinstance(attr_value, types.FunctionType):
                 if attr_name[0] != '_':
                     attrs[attr_name] = lock_utils.locked(attr_value)

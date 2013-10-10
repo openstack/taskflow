@@ -18,7 +18,6 @@
 
 import contextlib
 import logging
-
 import six
 
 from taskflow import exceptions
@@ -171,7 +170,7 @@ class Storage(object):
         result_mapping = self._result_mappings.get(uuid, None)
         if result_mapping is None:
             return
-        for name, index in result_mapping.items():
+        for name, index in six.iteritems(result_mapping):
             try:
                 _item_from_result(data, index, name)
             except exceptions.NotFound:
@@ -220,7 +219,7 @@ class Storage(object):
         self.save(injector_uuid, pairs)
         self.set_result_mapping(injector_uuid,
                                 dict((name, name)
-                                     for name in pairs.iterkeys()))
+                                     for name in six.iterkeys(pairs)))
 
     def set_result_mapping(self, uuid, mapping):
         """Set mapping for naming task results
@@ -233,7 +232,7 @@ class Storage(object):
         if not mapping:
             return
         self._result_mappings[uuid] = mapping
-        for name, index in mapping.iteritems():
+        for name, index in six.iteritems(mapping):
             entries = self._reverse_mapping.setdefault(name, [])
             entries.append((uuid, index))
             if len(entries) > 1:
@@ -271,7 +270,7 @@ class Storage(object):
     def fetch_mapped_args(self, args_mapping):
         """Fetch arguments for the task using arguments mapping"""
         return dict((key, self.fetch(name))
-                    for key, name in args_mapping.iteritems())
+                    for key, name in six.iteritems(args_mapping))
 
     def set_flow_state(self, state):
         """Set flowdetails state and save it"""

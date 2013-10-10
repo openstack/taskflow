@@ -116,7 +116,7 @@ class FailureObjectTestCase(test.TestCase):
                 traceback_str=None,
                 exc_type_names=['Exception'],
                 hi='hi there')
-        expected = "Failure.__init__ got unexpected keyword argument: 'hi'"
+        expected = "Failure.__init__ got unexpected keyword argument(s): hi"
         self.assertEquals(str(ctx.exception), expected)
 
     def test_empty_does_not_reraise(self):

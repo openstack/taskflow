@@ -85,7 +85,7 @@ class MultiLock(object):
                 return lock.locked()
             return False
 
-        for i in xrange(0, len(self._locked)):
+        for i in range(0, len(self._locked)):
             if self._locked[i] or is_locked(self._locks[i]):
                 raise threading.ThreadError("Lock %s not previously released"
                                             % (i + 1))

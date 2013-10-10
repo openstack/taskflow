@@ -21,16 +21,15 @@ import collections
 import copy
 import errno
 import functools
-import itertools
 import logging
 import os
+import six
 import sys
 import traceback
 
 from taskflow import exceptions
 from taskflow.utils import reflection
 
-import six
 
 LOG = logging.getLogger(__name__)
 
@@ -66,7 +65,7 @@ def get_version_string(obj):
 
 def get_duplicate_keys(iterable, key=None):
     if key is not None:
-        iterable = itertools.imap(key, iterable)
+        iterable = six.moves.map(key, iterable)
     keys = set()
     duplicates = set()
     for item in iterable:
@@ -254,8 +253,9 @@ class Failure(object):
             self._exc_type_names = kwargs.pop('exc_type_names', [])
             self._traceback_str = kwargs.pop('traceback_str', None)
             if kwargs:
-                raise TypeError('Failure.__init__ got unexpected keyword '
-                                'argument: %r' % kwargs.keys()[0])
+                raise TypeError(
+                    'Failure.__init__ got unexpected keyword argument(s): %s'
+                    % ', '.join(six.iterkeys(kwargs)))
 
     def _matches(self, other):
         if self is other:
