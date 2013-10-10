@@ -18,11 +18,13 @@
 
 import abc
 
+import six
+
 from taskflow.openstack.common import uuidutils
 from taskflow.utils import reflection
 
 
-class Flow(object):
+class Flow(six.with_metaclass(abc.ABCMeta)):
     """The base abstract class of all flow implementations.
 
     It provides a name and an identifier (uuid or other) to the flow so that
@@ -32,8 +34,6 @@ class Flow(object):
     - add
     - __len__
     """
-
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, name, uuid=None):
         self._name = str(name)

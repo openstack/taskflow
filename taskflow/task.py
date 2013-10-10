@@ -98,12 +98,10 @@ def _build_arg_mapping(task_name, reqs, rebind_args, function, do_infer):
     return result
 
 
-class BaseTask(object):
+class BaseTask(six.with_metaclass(abc.ABCMeta)):
     """An abstraction that defines a potential piece of work that can be
     applied and can be reverted to undo the work as a single unit.
     """
-    __metaclass__ = abc.ABCMeta
-
     TASK_EVENTS = ('update_progress', )
 
     def __init__(self, name, provides=None):

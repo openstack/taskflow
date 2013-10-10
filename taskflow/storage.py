@@ -19,12 +19,14 @@
 import contextlib
 import logging
 
+import six
+
 from taskflow import exceptions
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow import states
 from taskflow.utils import misc
-from taskflow.utils import threading_utils
+from taskflow.utils import threading_utils as tu
 
 LOG = logging.getLogger(__name__)
 STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
@@ -284,5 +286,5 @@ class Storage(object):
         return state
 
 
-class ThreadSafeStorage(Storage):
-    __metaclass__ = threading_utils.ThreadSafeMeta
+class ThreadSafeStorage(six.with_metaclass(tu.ThreadSafeMeta, Storage)):
+    pass

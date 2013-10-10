@@ -19,10 +19,11 @@
 
 import abc
 
+import six
 
-class Action(object):
+
+class Action(six.with_metaclass(abc.ABCMeta)):
     """Base action class"""
-    __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
     def execute(self, engine):

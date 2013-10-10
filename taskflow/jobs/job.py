@@ -35,6 +35,7 @@ class Job(object):
     so that the contained flows ownership can be transferred to the secondary
     entity for resumption/continuation/reverting.
     """
+
     def __init__(self, name, uuid=None):
         if uuid:
             self._uuid = uuid

@@ -19,9 +19,11 @@
 
 import abc
 
+import six
 
-class EngineBase(object):
-    __metaclass__ = abc.ABCMeta
+
+class EngineBase(six.with_metaclass(abc.ABCMeta)):
+    """Base for all engines implementations"""
 
     def __init__(self, flow, flow_detail, backend, conf):
         self._flow = flow

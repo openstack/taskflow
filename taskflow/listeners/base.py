@@ -21,6 +21,8 @@ from __future__ import absolute_import
 import abc
 import logging
 
+import six
+
 from taskflow import states
 from taskflow.utils import misc
 
@@ -31,15 +33,13 @@ LOG = logging.getLogger(__name__)
 FINISH_STATES = (states.FAILURE, states.SUCCESS)
 
 
-class LoggingBase(object):
+class LoggingBase(six.with_metaclass(abc.ABCMeta)):
     """This provides a simple listener that can be attached to an engine which
     can be derived from to log the received actions to some logging backend. It
     provides a useful context manager access to be able to register and
     unregister with a given engine automatically when a context is entered and
     when it is exited.
     """
-    __metaclass__ = abc.ABCMeta
-
     def __init__(self, engine,
                  listen_for=misc.TransitionNotifier.ANY):
         self._listen_for = listen_for
