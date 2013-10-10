@@ -17,6 +17,7 @@
 #    under the License.
 
 import inspect
+import six
 import types
 
 
@@ -25,9 +26,12 @@ def get_class_name(obj):
 
     If object is a type, fully qualified name of the type is returned.
     Else, fully qualified name of the type of the object is returned.
+    For builtin types, just name is returned.
     """
-    if not isinstance(obj, type):
+    if not isinstance(obj, six.class_types):
         obj = type(obj)
+    if obj.__module__ in ('builtins', '__builtin__', 'exceptions'):
+        return obj.__name__
     return '.'.join((obj.__module__, obj.__name__))
 
 

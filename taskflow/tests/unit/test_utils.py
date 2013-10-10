@@ -19,6 +19,7 @@
 import sys
 
 from taskflow import test
+from taskflow.tests import utils as test_utils
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -149,9 +150,13 @@ class AcceptsKwargsTest(test.TestCase):
 
 class GetClassNameTest(test.TestCase):
 
-    def test_std_class(self):
+    def test_std_exception(self):
         name = reflection.get_class_name(RuntimeError)
-        self.assertEquals(name, 'exceptions.RuntimeError')
+        self.assertEquals(name, 'RuntimeError')
+
+    def test_global_class(self):
+        name = reflection.get_class_name(misc.Failure)
+        self.assertEquals(name, 'taskflow.utils.misc.Failure')
 
     def test_class(self):
         name = reflection.get_class_name(Class)
@@ -163,27 +168,19 @@ class GetClassNameTest(test.TestCase):
 
     def test_int(self):
         name = reflection.get_class_name(42)
-        self.assertEquals(name, '__builtin__.int')
+        self.assertEquals(name, 'int')
 
 
 class GetAllClassNamesTest(test.TestCase):
 
     def test_std_class(self):
         names = list(reflection.get_all_class_names(RuntimeError))
-        self.assertEquals(names, [
-            'exceptions.RuntimeError',
-            'exceptions.StandardError',
-            'exceptions.Exception',
-            'exceptions.BaseException',
-            '__builtin__.object'])
+        self.assertEquals(names, test_utils.RUNTIME_ERROR_CLASSES)
 
     def test_std_class_up_to(self):
         names = list(reflection.get_all_class_names(RuntimeError,
                                                     up_to=Exception))
-        self.assertEquals(names, [
-            'exceptions.RuntimeError',
-            'exceptions.StandardError',
-            'exceptions.Exception'])
+        self.assertEquals(names, test_utils.RUNTIME_ERROR_CLASSES[:-2])
 
 
 class ExcInfoUtilsTest(test.TestCase):

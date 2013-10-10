@@ -16,6 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import six
+
 from taskflow import task
 
 ARGS_KEY = '__args__'
@@ -75,17 +77,19 @@ class ProvidesRequiresTask(task.Task):
             ARGS_KEY: args,
         })
         if self.return_tuple:
-            outs = []
-            for i in xrange(0, len(self.provides)):
-                outs.append(i)
-            return tuple(outs)
+            return tuple(range(len(self.provides)))
         else:
-            outs = {}
-            for k in self.provides:
-                outs[k] = k
-            return outs
+            return dict((k, k) for k in self.provides)
 
 
 class DummyTask(task.Task):
     def execute(self, context, *args, **kwargs):
         pass
+
+
+if six.PY3:
+    RUNTIME_ERROR_CLASSES = ['RuntimeError', 'Exception',
+                             'BaseException', 'object']
+else:
+    RUNTIME_ERROR_CLASSES = ['RuntimeError', 'StandardError', 'Exception',
+                             'BaseException', 'object']

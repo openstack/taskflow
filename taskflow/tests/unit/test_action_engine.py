@@ -202,7 +202,7 @@ class EngineTaskTest(EngineTestBase):
              'flow FAILURE',
              'flow REVERTING',
              'fail REVERTING',
-             'fail reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'fail reverted(Failure: RuntimeError: Woot!)',
              'fail REVERTED',
              'fail PENDING',
              'flow REVERTED'])
@@ -382,7 +382,7 @@ class EngineLinearFlowTest(EngineTestBase):
             engine.run()
         self.assertEquals(
             self.values,
-            ['fail reverted(Failure: exceptions.RuntimeError: Woot!)'])
+            ['fail reverted(Failure: RuntimeError: Woot!)'])
 
     def test_correctly_reverts_children(self):
         flow = lf.Flow('root-1').add(
@@ -398,7 +398,7 @@ class EngineLinearFlowTest(EngineTestBase):
         self.assertEquals(
             self.values,
             ['task1', 'task2',
-             'fail reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'fail reverted(Failure: RuntimeError: Woot!)',
              'task2 reverted(5)', 'task1 reverted(5)'])
 
 
@@ -540,7 +540,7 @@ class EngineGraphFlowTest(EngineTestBase):
         self.assertEquals(
             self.values,
             ['task1', 'task2',
-             'task3 reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'task3 reverted(Failure: RuntimeError: Woot!)',
              'task2 reverted(5)', 'task1 reverted(5)'])
 
     def test_graph_flow_four_tasks_revert_failure(self):
@@ -634,7 +634,7 @@ class SuspendFlowTest(EngineTestBase):
         self.assertEquals(
             self.values,
             ['a', 'b',
-             'c reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'c reverted(Failure: RuntimeError: Woot!)',
              'b reverted(5)'])
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
@@ -643,7 +643,7 @@ class SuspendFlowTest(EngineTestBase):
             self.values,
             ['a',
              'b',
-             'c reverted(Failure: exceptions.RuntimeError: Woot!)',
+             'c reverted(Failure: RuntimeError: Woot!)',
              'b reverted(5)',
              'a reverted(5)'])
 
@@ -852,7 +852,7 @@ class MultiThreadedEngineTest(EngineTaskTest,
             'task1', 'task1 reverted(5)',
             'task2', 'task2 reverted(5)',
             'task3', 'task3 reverted(5)',
-            'fail reverted(Failure: exceptions.RuntimeError: Woot!)'
+            'fail reverted(Failure: RuntimeError: Woot!)'
         ])
         self.assertIsSubset(possible_result, result)
 
