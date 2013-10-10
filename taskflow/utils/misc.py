@@ -17,8 +17,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from distutils import version
-
 import collections
 import copy
 import errno
@@ -121,21 +119,6 @@ def as_int(obj, quiet=False):
     if not quiet:
         raise TypeError("Can not translate %s to an integer." % (obj))
     return obj
-
-
-def is_version_compatible(version_1, version_2):
-    """Checks for major version compatibility of two *string* versions."""
-    try:
-        version_1_tmp = version.StrictVersion(version_1)
-        version_2_tmp = version.StrictVersion(version_2)
-    except ValueError:
-        version_1_tmp = version.LooseVersion(version_1)
-        version_2_tmp = version.LooseVersion(version_2)
-    version_1 = version_1_tmp
-    version_2 = version_2_tmp
-    if version_1 == version_2 or version_1.version[0] == version_2.version[0]:
-        return True
-    return False
 
 
 # Taken from oslo-incubator file-utils but since that module pulls in a large

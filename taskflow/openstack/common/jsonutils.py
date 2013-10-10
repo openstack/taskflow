@@ -46,6 +46,7 @@ except ImportError:
 
 import six
 
+from taskflow.openstack.common import gettextutils
 from taskflow.openstack.common import importutils
 from taskflow.openstack.common import timeutils
 
@@ -135,6 +136,8 @@ def to_primitive(value, convert_instances=False, convert_datetime=True,
 
         if convert_datetime and isinstance(value, datetime.datetime):
             return timeutils.strtime(value)
+        elif isinstance(value, gettextutils.Message):
+            return value.data
         elif hasattr(value, 'iteritems'):
             return recursive(dict(value.iteritems()), level=level + 1)
         elif hasattr(value, '__iter__'):
