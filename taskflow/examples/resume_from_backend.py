@@ -43,7 +43,7 @@ def print_task_states(flowdetail, msg):
     items = sorted((td.name, td.version, td.state, td.results)
                    for td in flowdetail)
     for item in items:
-        print("%s==%s: %s, result=%r" % item)
+        print("%s==%s: %s, result=%s" % item)
 
 
 def get_backend():

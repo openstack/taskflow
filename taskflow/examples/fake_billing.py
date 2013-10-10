@@ -43,7 +43,7 @@ from taskflow.utils import misc
 class AttrDict(object):
     def __init__(self, **kwargs):
         self._attrs = {}
-        for (k, v) in kwargs.iteritems():
+        for (k, v) in kwargs.items():
             if ' ' in k or k in ('self',) or not len(k):
                 raise AttributeError("Invalid attribute name")
             self._attrs[k] = v
@@ -66,7 +66,7 @@ class UrlCaller(object):
 
     def send(self, url, data, status_cb=None):
         sleep_time = float(self._send_time) / 25
-        for i in xrange(0, len(data)):
+        for i in range(0, len(data)):
             time.sleep(sleep_time)
             if status_cb:
                 status_cb(float(i) / len(data))

@@ -8,7 +8,7 @@ executing first==1.0
 After running:
 Flow state: SUSPENDED
 boom==1.0: SUCCESS, result=None
-first==1.0: SUCCESS, result=u'ok'
+first==1.0: SUCCESS, result=ok
 second==1.0: PENDING, result=None
 
 Resuming and running again:
@@ -17,5 +17,5 @@ executing second==1.0
 At the end:
 Flow state: SUCCESS
 boom==1.0: SUCCESS, result=None
-first==1.0: SUCCESS, result=u'ok'
-second==1.0: SUCCESS, result=u'ok'
+first==1.0: SUCCESS, result=ok
+second==1.0: SUCCESS, result=ok
