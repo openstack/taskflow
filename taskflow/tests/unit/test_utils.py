@@ -69,7 +69,7 @@ class GetCallableNameTest(test.TestCase):
 
     def test_method(self):
         name = reflection.get_callable_name(Class.method)
-        self.assertEquals(name, '.'.join((__name__, 'Class', 'method')))
+        self.assertEquals(name, '.'.join((__name__, 'method')))
 
     def test_instance_method(self):
         name = reflection.get_callable_name(Class().method)
