@@ -34,6 +34,7 @@ from taskflow.patterns import linear_flow as lf
 from taskflow.persistence import backends
 from taskflow.persistence import logbook
 from taskflow import task
+from taskflow.utils import persistence_utils as p_utils
 
 import tempfile
 
@@ -61,18 +62,6 @@ def make_flow(blowup=False):
     flo = lf.Flow("hello-world")
     flo.add(HiTask(), ByeTask(blowup))
     return flo
-
-
-def dump_book(book):
-    for fd in book:
-        print("+ Ran '%s' (%s)" % (fd.name, fd.state))
-        for td in fd:
-            print(" - name = %s" % (td.name))
-            print("   state = %s" % (td.state))
-            print("   results = %s" % (td.results))
-            print("   failure = %s" % (bool(td.failure)))
-            if td.meta and 'progress' in td.meta:
-                print("   progress = %0.2f%%" % (td.meta['progress'] * 100))
 
 
 def print_wrapped(text):
@@ -119,4 +108,4 @@ except Exception:
     traceback.print_exc(file=sys.stdout)
 
 print_wrapped("Book contents")
-dump_book(engine_config['book'])
+print(p_utils.pformat(engine_config['book']))

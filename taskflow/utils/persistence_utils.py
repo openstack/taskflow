@@ -20,6 +20,7 @@ import contextlib
 import copy
 import logging
 
+from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow.utils import misc
@@ -191,3 +192,74 @@ def failure_from_dict(data):
         raise ValueError('Invalid version of saved Failure object: %r'
                          % version)
     return misc.Failure(**data)
+
+
+def _format_meta(metadata, indent):
+    """Format the common metadata dictionary in the same manner."""
+    if not metadata:
+        return []
+    lines = [
+        '%s- metadata:' % (" " * indent),
+    ]
+    for (k, v) in metadata.items():
+        # Progress for now is a special snowflake and will be formatted
+        # in percent format.
+        if k == 'progress' and isinstance(v, (float, int, long)):
+            v = "%0.2f%%" % (v * 100.0)
+        lines.append("%s+ %s = %s" % (" " * (indent + 2), k, v))
+    return lines
+
+
+def _format_shared(obj, indent):
+    """Format the common shared attributes in the same manner."""
+    if obj is None:
+        return []
+    lines = []
+    for attr_name in ("uuid", "state"):
+        if not hasattr(obj, attr_name):
+            continue
+        lines.append("%s- %s = %s" % (" " * indent, attr_name,
+                                      getattr(obj, attr_name)))
+    return lines
+
+
+def pformat_task_detail(task_detail, indent=0):
+    """Pretty formats a task detail"""
+    lines = ["%sTask: '%s'" % (" " * (indent), task_detail.name)]
+    lines.extend(_format_shared(task_detail, indent=indent + 1))
+    lines.append("%s- version = %s"
+                 % (" " * (indent + 1), misc.get_version_string(task_detail)))
+    lines.append("%s- results = %s"
+                 % (" " * (indent + 1), task_detail.results))
+    lines.append("%s- failure = %s" % (" " * (indent + 1),
+                                       bool(task_detail.failure)))
+    lines.extend(_format_meta(task_detail.meta, indent=indent + 1))
+    return "\n".join(lines)
+
+
+def pformat_flow_detail(flow_detail, indent=0):
+    """Pretty formats a flow detail"""
+    lines = ["%sFlow: '%s'" % (" " * indent, flow_detail.name)]
+    lines.extend(_format_shared(flow_detail, indent=indent + 1))
+    lines.extend(_format_meta(flow_detail.meta, indent=indent + 1))
+    for task_detail in flow_detail:
+        lines.append(pformat_task_detail(task_detail, indent=indent + 1))
+    return "\n".join(lines)
+
+
+def pformat(book, indent=0):
+    """Pretty formats a logbook"""
+    lines = ["%sLogbook: '%s'" % (" " * indent, book.name)]
+    lines.extend(_format_shared(book, indent=indent + 1))
+    lines.extend(_format_meta(book.meta, indent=indent + 1))
+    if book.created_at is not None:
+        lines.append("%s- created_at = %s"
+                     % (" " * (indent + 1),
+                        timeutils.isotime(book.created_at)))
+    if book.updated_at is not None:
+        lines.append("%s- updated_at = %s"
+                     % (" " * (indent + 1),
+                        timeutils.isotime(book.updated_at)))
+    for flow_detail in book:
+        lines.append(pformat_flow_detail(flow_detail, indent=indent + 1))
+    return "\n".join(lines)
