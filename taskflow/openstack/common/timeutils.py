@@ -117,12 +117,15 @@ def iso8601_from_timestamp(timestamp):
 utcnow.override_time = None
 
 
-def set_time_override(override_time=datetime.datetime.utcnow()):
+def set_time_override(override_time=None):
     """Overrides utils.utcnow.
 
     Make it return a constant time or a list thereof, one at a time.
+
+    :param override_time: datetime instance or list thereof. If not
+                          given, defaults to the current UTC time.
     """
-    utcnow.override_time = override_time
+    utcnow.override_time = override_time or datetime.datetime.utcnow()
 
 
 def advance_time_delta(timedelta):

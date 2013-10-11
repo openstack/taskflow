@@ -60,6 +60,8 @@ def _(msg):
     if USE_LAZY:
         return Message(msg, 'taskflow')
     else:
+        if six.PY3:
+            return _t.gettext(msg)
         return _t.ugettext(msg)
 
 
@@ -105,13 +107,17 @@ def install(domain, lazy=False):
             """
             return Message(msg, domain)
 
-        import __builtin__
-        __builtin__.__dict__['_'] = _lazy_gettext
+        from six import moves
+        moves.builtins.__dict__['_'] = _lazy_gettext
     else:
         localedir = '%s_LOCALEDIR' % domain.upper()
-        gettext.install(domain,
-                        localedir=os.environ.get(localedir),
-                        unicode=True)
+        if six.PY3:
+            gettext.install(domain,
+                            localedir=os.environ.get(localedir))
+        else:
+            gettext.install(domain,
+                            localedir=os.environ.get(localedir),
+                            unicode=True)
 
 
 class Message(_userString.UserString, object):
@@ -121,8 +127,8 @@ class Message(_userString.UserString, object):
         self._msg = msg
         self._left_extra_msg = ''
         self._right_extra_msg = ''
+        self._locale = None
         self.params = None
-        self.locale = None
         self.domain = domain
 
     @property
@@ -142,14 +148,46 @@ class Message(_userString.UserString, object):
                                        localedir=localedir,
                                        fallback=True)
 
+        if six.PY3:
+            ugettext = lang.gettext
+        else:
+            ugettext = lang.ugettext
+
         full_msg = (self._left_extra_msg +
-                    lang.ugettext(self._msg) +
+                    ugettext(self._msg) +
                     self._right_extra_msg)
 
         if self.params is not None:
             full_msg = full_msg % self.params
 
         return six.text_type(full_msg)
+
+    @property
+    def locale(self):
+        return self._locale
+
+    @locale.setter
+    def locale(self, value):
+        self._locale = value
+        if not self.params:
+            return
+
+        # This Message object may have been constructed with one or more
+        # Message objects as substitution parameters, given as a single
+        # Message, or a tuple or Map containing some, so when setting the
+        # locale for this Message we need to set it for those Messages too.
+        if isinstance(self.params, Message):
+            self.params.locale = value
+            return
+        if isinstance(self.params, tuple):
+            for param in self.params:
+                if isinstance(param, Message):
+                    param.locale = value
+            return
+        if isinstance(self.params, dict):
+            for param in self.params.values():
+                if isinstance(param, Message):
+                    param.locale = value
 
     def _save_dictionary_parameter(self, dict_param):
         full_msg = self.data
@@ -169,7 +207,7 @@ class Message(_userString.UserString, object):
                     params[key] = copy.deepcopy(dict_param[key])
                 except TypeError:
                     # cast uncopyable thing to unicode string
-                    params[key] = unicode(dict_param[key])
+                    params[key] = six.text_type(dict_param[key])
 
         return params
 
@@ -188,7 +226,7 @@ class Message(_userString.UserString, object):
             try:
                 self.params = copy.deepcopy(other)
             except TypeError:
-                self.params = unicode(other)
+                self.params = six.text_type(other)
 
         return self
 
@@ -197,11 +235,13 @@ class Message(_userString.UserString, object):
         return self.data
 
     def __str__(self):
+        if six.PY3:
+            return self.__unicode__()
         return self.data.encode('utf-8')
 
     def __getstate__(self):
         to_copy = ['_msg', '_right_extra_msg', '_left_extra_msg',
-                   'domain', 'params', 'locale']
+                   'domain', 'params', '_locale']
         new_dict = self.__dict__.fromkeys(to_copy)
         for attr in to_copy:
             new_dict[attr] = copy.deepcopy(self.__dict__[attr])
@@ -293,7 +333,7 @@ def get_localized_message(message, user_locale):
     if isinstance(message, Message):
         if user_locale:
             message.locale = user_locale
-        return unicode(message)
+        return six.text_type(message)
     else:
         return message
 

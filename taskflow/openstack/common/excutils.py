@@ -79,7 +79,7 @@ def forever_retry_uncaught_exceptions(infunc):
             try:
                 return infunc(*args, **kwargs)
             except Exception as exc:
-                this_exc_message = unicode(exc)
+                this_exc_message = six.u(str(exc))
                 if this_exc_message == last_exc_message:
                     exc_count += 1
                 else:
