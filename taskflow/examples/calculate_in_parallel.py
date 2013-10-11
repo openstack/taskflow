@@ -33,12 +33,20 @@ from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 
-# This examples shows how LinearFlow and ParallelFlow can be used
+# INTRO: This examples shows how linear_flow and unordered_flow can be used
 # together to execute calculations in parallel and then use the
 # result for the next task. Adder task is used for all calculations
 # and arguments' bindings are used to set correct parameters to the task.
 
 
+# This task provides some values from as a result of execution, this can be
+# useful when you want to provide values from a static set to other tasks that
+# depend on those values existing before those tasks can run.
+#
+# This method is *depreciated* in favor of a simpler mechanism that just
+# provides those values on engine running by prepopulating the storage backend
+# before your tasks are ran (which accomplishes a similar goal in a more
+# uniform manner).
 class Provider(task.Task):
     def __init__(self, name, *args, **kwargs):
         super(Provider, self).__init__(name=name, **kwargs)
@@ -48,17 +56,35 @@ class Provider(task.Task):
         return self._provide
 
 
+# This task adds two input variables and returns the result of that addition.
+#
+# Note that since this task does not have a revert() function (since addition
+# is a stateless operation) there are no side-effects that this function needs
+# to undo if some later operation fails.
 class Adder(task.Task):
     def execute(self, x, y):
         return x + y
 
 
 flow = lf.Flow('root').add(
+    # Provide the initial values for other tasks to depend on.
+    #
     # x1 = 2, y1 = 3, x2 = 5, x3 = 8
     Provider("provide-adder", 2, 3, 5, 8,
              provides=('x1', 'y1', 'x2', 'y2')),
+    # Note here that we define the flow that contains the 2 adders to be an
+    # unordered flow since the order in which these execute does not matter,
+    # another way to solve this would be to use a graph_flow pattern, which
+    # also can run in parallel (since they have no ordering dependencies).
     uf.Flow('adders').add(
-        # z1 = x1+y1 = 5
+        # Calculate 'z1 = x1+y1 = 5'
+        #
+        # Rebind here means that the execute() function x argument will be
+        # satisified from a previous output named 'x1', and the y argument
+        # of execute() will be populated from the previous output named 'y1'
+        #
+        # The output (result of adding) will be mapped into a variable named
+        # 'z1' which can then be refereed to and depended on by other tasks.
         Adder(name="add", provides='z1', rebind=['x1', 'y1']),
         # z2 = x2+y2 = 13
         Adder(name="add-2", provides='z2', rebind=['x2', 'y2']),
@@ -67,5 +93,8 @@ flow = lf.Flow('root').add(
     Adder(name="sum-1", provides='r', rebind=['z1', 'z2']))
 
 
+# The result here will be all results (from all tasks) which is stored in an
+# in-memory storage location that backs this engine since it is not configured
+# with persistance storage.
 result = taskflow.engines.run(flow, engine_conf='parallel')
 print(result)
