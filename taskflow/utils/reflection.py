@@ -42,7 +42,7 @@ def get_all_class_names(obj, up_to=object):
     in order of method resolution (mro). If up_to parameter is provided,
     only name of classes that are sublcasses to that class are returned.
     """
-    if not isinstance(obj, type):
+    if not isinstance(obj, six.class_types):
         obj = type(obj)
     for cls in obj.mro():
         if issubclass(cls, up_to):
@@ -54,14 +54,17 @@ def get_callable_name(function):
 
     Tries to do the best to guess fully qualified callable name.
     """
-    im_class = getattr(function, 'im_class', None)
-    if im_class is not None:
-        if im_class is type:
+    method_self = get_method_self(function)
+    if method_self is not None:
+        # this is bound method
+        if isinstance(method_self, six.class_types):
             # this is bound class method
-            im_class = function.im_self
+            im_class = method_self
+        else:
+            im_class = type(method_self)
         parts = (im_class.__module__, im_class.__name__,
                  function.__name__)
-    elif isinstance(function, types.FunctionType):
+    elif inspect.isfunction(function) or inspect.ismethod(function):
         parts = (function.__module__, function.__name__)
     else:
         im_class = type(function)
@@ -71,14 +74,18 @@ def get_callable_name(function):
     return '.'.join(parts)
 
 
+def get_method_self(method):
+    if not inspect.ismethod(method):
+        return None
+    try:
+        return six.get_method_self(method)
+    except AttributeError:
+        return None
+
+
 def is_bound_method(method):
     """Returns if the method given is a bound to a object or not."""
-    if not inspect.ismethod(method):
-        return False
-    # NOTE(harlowja): instance to which this method is bound, or None
-    if getattr(method, 'im_self', None) is not None:
-        return True
-    return False
+    return bool(get_method_self(method))
 
 
 def _get_arg_spec(function):
