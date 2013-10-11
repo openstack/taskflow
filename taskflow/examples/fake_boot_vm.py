@@ -75,7 +75,7 @@ class ValidateAPIInputs(task.Task):
                                                 provides='vm_spec')
 
     def execute(self, context):
-        print "Validating api inputs for %s" % (context)
+        print("Validating api inputs for %s" % (context))
         return {'cpus': 1,
                 'memory': 512,
                 'disk': 100,
@@ -94,23 +94,23 @@ class PerformReservation(task.Task):
         reserved_spec = result
         print("Undoing reservation of %s" % (reserved_spec['uuid']))
         vm_spec = MY_DB['vms'].pop(reserved_spec['uuid'])
-        print 'Space before: %s' % (MY_DB['space'])
+        print('Space before: %s' % (MY_DB['space']))
         # Unreserve 'atomically'
         for (k, v) in vm_spec.items():
             if k in ['scheduled']:
                 continue
             MY_DB['space'][k] += v
-        print 'Space after: %s' % (MY_DB['space'])
+        print('Space after: %s' % (MY_DB['space']))
 
     def execute(self, context, vm_spec):
-        print 'Reserving %s for %s' % (vm_spec, context)
+        print('Reserving %s for %s' % (vm_spec, context))
         # Reserve 'atomically'
-        print 'Space before: %s' % (MY_DB['space'])
+        print('Space before: %s' % (MY_DB['space']))
         for (k, v) in vm_spec.items():
             if MY_DB['space'][k] < v:
                 raise RuntimeError("Not enough %s available" % (k))
             MY_DB['space'][k] -= vm_spec[k]
-        print 'Space after: %s' % (MY_DB['space'])
+        print('Space after: %s' % (MY_DB['space']))
         # Create a fake 'db' entry for the vm
         vm_uuid = str(uuid.uuid4())
         MY_DB['vms'][vm_uuid] = vm_spec
@@ -130,18 +130,18 @@ class ScheduleVM(task.Task):
     def revert(self, context, vm_reservation_spec, result):
         vm_uuid = result[1]
         vm_place = result[0]
-        print "Marking %s as not having a home at %s anymore" % (vm_uuid,
-                                                                 vm_place)
+        print("Marking %s as not having a home at %s anymore" % (vm_uuid,
+                                                                 vm_place))
         MY_DB['vms'][vm_uuid]['scheduled'] = False
         MY_DB['places'].append(vm_place)
 
     def execute(self, context, vm_reservation_spec):
-        print "Finding a place to put %s" % (vm_reservation_spec)
+        print("Finding a place to put %s" % (vm_reservation_spec))
         vm_uuid = vm_reservation_spec['uuid']
         MY_DB['vms'][vm_uuid]['scheduled'] = True
         # Reserve the place 'atomically'
         vm_place = random.choice(MY_DB['places'])
-        print 'Placing %s at %s' % (vm_uuid, vm_place)
+        print('Placing %s at %s' % (vm_uuid, vm_place))
         MY_DB['places'].remove(vm_place)
         return vm_place, vm_uuid
 
@@ -180,17 +180,17 @@ engine.notifier.register('*', flow_notify)
 engine.task_notifier.register('*', task_notify)
 
 
-print '-' * 7
-print 'Running'
-print '-' * 7
+print('-' * 7)
+print('Running')
+print('-' * 7)
 try:
     engine.run()
 except Exception as e:
-    print 'Flow failed: %r' % e
+    print('Flow failed: %r' % e)
 
-print '-' * 11
-print 'All results'
-print '-' * 11
+print('-' * 11)
+print('All results')
+print('-' * 11)
 result = engine.storage.fetch_all()
 for tid in sorted(result):
-    print '%s => %s' % (tid, result[tid])
+    print('%s => %s' % (tid, result[tid]))

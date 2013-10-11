@@ -74,7 +74,7 @@ class InterruptTask(task.Task):
 
 class TestTask(task.Task):
     def execute(self):
-        print 'executing %s' % self
+        print('executing %s' % self)
         return 'ok'
 
 
