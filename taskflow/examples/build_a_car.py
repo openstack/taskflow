@@ -35,6 +35,15 @@ from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
 
+# INTRO: This examples shows how a graph_flow and linear_flow can be used
+# together to execute non-dependent tasks by going through the steps required
+# to build a simplistic car (an assembly line if you will). It also shows
+# how raw functions can be wrapped into a task object instead of being forced
+# to use the more heavy task base class. This is useful in scenarios where
+# pre-existing code has functions that you easily want to plug-in to taskflow,
+# without requiring a large amount of code changes.
+
+
 def build_frame():
     return 'steel'
 
@@ -68,22 +77,35 @@ def install_wheels(frame, engine, engine_installed, wheels):
 
 
 def trash(**kwargs):
-    print("Throwing away pieces of car!")
+    print_wrapped("Throwing away pieces of car!")
+
+
+def print_wrapped(text):
+    print("-" * (len(text)))
+    print(text)
+    print("-" * (len(text)))
 
 
 def startup(**kwargs):
-    # TODO(harlowja): try triggering reversion here!
+    # If you want to see the rollback function being activated try uncommenting
+    # the following line.
+    #
     # raise ValueError("Car not verified")
     return True
 
 
 def verify(spec, **kwargs):
+    # If the car is not what we ordered throw away the car (trigger reversion).
     for key, value in kwargs.items():
         if spec[key] != value:
             raise Exception("Car doesn't match spec!")
     return True
 
 
+# These two functions connect into the state transition notification emission
+# points that the engine outputs, they can be used to log state transitions
+# that are occuring, or they can be used to suspend the engine (or perform
+# other useful activities).
 def flow_watch(state, details):
     print('Flow => %s' % state)
 
@@ -99,6 +121,11 @@ flow = lf.Flow("make-auto").add(
         task.FunctorTask(build_engine, provides='engine'),
         task.FunctorTask(build_doors, provides='doors'),
         task.FunctorTask(build_wheels, provides='wheels'),
+        # These *_installed outputs allow for other tasks to depend on certain
+        # actions being performed (aka the components were installed), another
+        # way to do this is to link() the tasks manually instead of creating
+        # an 'artifical' data dependency that accomplishes the same goal the
+        # manual linking would result in.
         task.FunctorTask(install_engine, provides='engine_installed'),
         task.FunctorTask(install_doors, provides='doors_installed'),
         task.FunctorTask(install_windows, provides='windows_installed'),
@@ -112,11 +139,18 @@ flow = lf.Flow("make-auto").add(
                                        'windows_installed',
                                        'wheels_installed']))
 
+# This dictionary will be provided to the tasks as a specification for what
+# the tasks should produce, in this example this specification will influence
+# what those tasks do and what output they create. Different tasks depend on
+# different information from this specification, all of which will be provided
+# automatically by the engine.
 spec = {
     "frame": 'steel',
     "engine": 'honda',
     "doors": '2',
     "wheels": '4',
+    # These are used to compare the result product, a car without the pieces
+    # installed is not a car after all.
     "engine_installed": True,
     "doors_installed": True,
     "windows_installed": True,
@@ -125,21 +159,28 @@ spec = {
 
 
 engine = taskflow.engines.load(flow, store={'spec': spec.copy()})
+
+# This registers all (*) state transitions to trigger a call to the flow_watch
+# function for flow state transitions, and registers the same all (*) state
+# transitions for task state transitions.
 engine.notifier.register('*', flow_watch)
 engine.task_notifier.register('*', task_watch)
 
-print("Build a car")
+print_wrapped("Building a car")
 engine.run()
 
-
+# Alter the specification and ensure that the reverting logic gets triggered
+# since the resultant car that will be built by the build_wheels function will
+# build a car with 4 doors only (not 5), this will cause the verification
+# task to mark the car that is produced as not matching the desired spec.
 spec['doors'] = 5
 
 engine = taskflow.engines.load(flow, store={'spec': spec.copy()})
 engine.notifier.register('*', flow_watch)
 engine.task_notifier.register('*', task_watch)
 
+print_wrapped("Building a wrong car that doesn't match specification")
 try:
-    print("Build a wrong car that doesn't match specification")
     engine.run()
 except Exception as e:
-    print("Flow failed: %s" % e)
+    print_wrapped("Flow failed: %s" % e)
