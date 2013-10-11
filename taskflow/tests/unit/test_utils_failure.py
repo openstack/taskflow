@@ -19,6 +19,7 @@
 
 from taskflow import exceptions
 from taskflow import test
+from taskflow.tests import utils as test_utils
 
 from taskflow.utils import misc
 
@@ -37,20 +38,18 @@ class GeneralFailureObjTestsMixin(object):
 
     def test_str(self):
         self.assertEquals(str(self.fail_obj),
-                          'Failure: exceptions.RuntimeError: Woot!')
+                          'Failure: RuntimeError: Woot!')
 
     def test_exception_types(self):
         self.assertEquals(list(self.fail_obj),
-                          ['exceptions.RuntimeError',
-                           'exceptions.StandardError',
-                           'exceptions.Exception'])
+                          test_utils.RUNTIME_ERROR_CLASSES[:-2])
 
     def test_check_str(self):
-        val = 'exceptions.StandardError'
+        val = 'Exception'
         self.assertEquals(self.fail_obj.check(val), val)
 
     def test_check_str_not_there(self):
-        val = 'exceptions.ValueError'
+        val = 'ValueError'
         self.assertEquals(self.fail_obj.check(val), None)
 
     def test_check_type(self):
@@ -115,7 +114,7 @@ class FailureObjectTestCase(test.TestCase):
             misc.Failure(
                 exception_str='Woot!',
                 traceback_str=None,
-                exc_type_names=['exceptions.Exception'],
+                exc_type_names=['Exception'],
                 hi='hi there')
         expected = "Failure.__init__ got unexpected keyword argument: 'hi'"
         self.assertEquals(str(ctx.exception), expected)
