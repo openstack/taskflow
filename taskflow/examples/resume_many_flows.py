@@ -36,7 +36,7 @@ def _exec(cmd, add_env=None):
     rc = proc.returncode
     if rc != 0:
         raise RuntimeError("Could not run %s [%s]", cmd, rc)
-    print(stdout)
+    print(stdout.decode())
 
 
 def _path_to(name):

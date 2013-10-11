@@ -53,8 +53,9 @@ def run_example(name):
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = obj.communicate()
     if output[1]:
-        raise RuntimeError('Example wrote to stderr:\n%s' % output[1])
-    return output[0]
+        raise RuntimeError('Example wrote to stderr:\n%s'
+                           % output[1].decode())
+    return output[0].decode()
 
 
 def expected_output_path(name):

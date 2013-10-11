@@ -65,7 +65,7 @@ class VolumeCreator(task.Task):
 
 # Assume there is no ordering dependency between volumes
 flow = uf.Flow("volume-maker")
-for i in xrange(0, VOLUME_COUNT):
+for i in range(0, VOLUME_COUNT):
     flow.add(VolumeCreator(volume_id="vol-%s" % (i)))
 
 if SERIAL:
