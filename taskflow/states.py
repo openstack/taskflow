@@ -39,9 +39,10 @@ RESUMING = 'RESUMING'
 
 # Task states.
 FAILURE = FAILURE
-SUCCESS = SUCCESS
+PENDING = PENDING
 REVERTED = REVERTED
 REVERTING = REVERTING
+SUCCESS = SUCCESS
 
 # TODO(harlowja): use when we can timeout tasks??
 TIMED_OUT = 'TIMED_OUT'
@@ -122,3 +123,51 @@ def check_flow_transition(old_state, new_state):
         return True
     raise exc.InvalidStateException(
         "Flow transition from %s to %s is not allowed" % pair)
+
+
+## Task state transitions
+# https://wiki.openstack.org/wiki/TaskFlow/States_of_Task_and_Flow#Task_States
+
+_ALLOWED_TASK_TRANSITIONS = [
+    (PENDING, RUNNING),       # run it!
+
+    (RUNNING, SUCCESS),       # the task finished successfully
+    (RUNNING, FAILURE),       # the task failed
+
+    (FAILURE, REVERTING),     # task failed, do cleanup now
+    (SUCCESS, REVERTING),     # some other task failed, do cleanup now
+
+    (REVERTING, REVERTED),    # revert done
+    (REVERTING, FAILURE),     # revert failed
+
+    (REVERTED, PENDING),      # try again
+]
+_ALLOWED_TASK_TRANSITIONS.extend(
+    # NOTE(harlowja): the task was 'killed' while in one of the below 'a'
+    # states and it is permissible to let the task to start running or
+    # reverting immediately
+    (a, b)
+    for a in (REVERTED, REVERTING, RUNNING)
+    for b in (RUNNING, REVERTING)
+    if a != b
+)
+_ALLOWED_TASK_TRANSITIONS = frozenset(_ALLOWED_TASK_TRANSITIONS)
+
+
+def check_task_transition(old_state, new_state):
+    """Check that task can transition from old_state to new_state.
+
+    If transition can be performed, it returns True. If transition
+    should be ignored, it returns False. If transition is not
+    valid, it raises InvalidStateException.
+    """
+    if old_state == new_state:
+        return False
+    pair = (old_state, new_state)
+    if pair in _ALLOWED_TASK_TRANSITIONS:
+        return True
+    # TODO(harlowja): Should we check/allow for 3rd party states to be
+    # triggered during RUNNING by having a concept of a sub-state that we also
+    # verify against??
+    raise exc.InvalidStateException(
+        "Task transition from %s to %s is not allowed" % pair)

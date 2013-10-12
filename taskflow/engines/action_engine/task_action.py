@@ -55,8 +55,16 @@ class TaskAction(base.Action):
     def uuid(self):
         return self._id
 
-    def _change_state(self, engine, state, result=None, progress=None):
+    def _change_state(self, engine, state,
+                      result=None, progress=None, force=False):
         """Update result and change state."""
+        old_state = engine.storage.get_task_state(self.uuid)
+        state_check = states.check_task_transition(old_state, state)
+        if not force and not state_check:
+            # NOTE(harlowja): if we are forcing this state change, we don't
+            # care if the state transition should be ignored, if it's not being
+            # forced then we just ignore this state change.
+            return
         if state in RESET_TASK_STATES:
             engine.storage.reset(self.uuid)
         if state in SAVE_RESULT_STATES:
@@ -79,7 +87,8 @@ class TaskAction(base.Action):
                           task, self.uuid, progress)
 
     def _force_state(self, engine, state, progress, result=None):
-        self._change_state(engine, state, result=result, progress=progress)
+        self._change_state(engine, state,
+                           result=result, progress=progress, force=True)
         self._task.update_progress(progress)
 
     def execute(self, engine):
