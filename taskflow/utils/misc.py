@@ -75,6 +75,43 @@ def get_duplicate_keys(iterable, key=None):
     return duplicates
 
 
+class AttrDict(dict):
+    """Helper utility class to create a class that can be accessed by
+    attribute name from a dictionary that contains a set of keys and values.
+    """
+    @staticmethod
+    def _is_valid_attribute_name(name):
+        if not isinstance(name, six.string_types) or len(name) == 0:
+            return False
+        if name.lower().startswith('self') or name.startswith("_"):
+            return False
+        if not name[0].isalpha():
+            return False
+        for i in range(1, len(name)):
+            if not (name[i].isalpha() or name[i].isdigit()):
+                return False
+        return True
+
+    def __init__(self, **kwargs):
+        for (k, v) in kwargs.items():
+            if not self._is_valid_attribute_name(k):
+                raise AttributeError("Invalid attribute name: '%s'" % (k))
+            self[k] = v
+
+    def __getattr__(self, name):
+        if not self._is_valid_attribute_name(name):
+            raise AttributeError("Invalid attribute name: '%s'" % (name))
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError("No attributed named: '%s'" % (name))
+
+    def __setattr__(self, name, value):
+        if not self._is_valid_attribute_name(name):
+            raise AttributeError("Invalid attribute name: '%s'" % (name))
+        self[name] = value
+
+
 class ExponentialBackoff(object):
     def __init__(self, attempts, exponent=2):
         self.attempts = int(attempts)
