@@ -21,6 +21,16 @@ import six
 import types
 
 
+def get_member_names(obj, exclude_hidden=True):
+    """Get all the member names for a object."""
+    names = []
+    for (name, _value) in inspect.getmembers(obj):
+        if exclude_hidden and name.startswith("_"):
+            continue
+        names.append(name)
+    return sorted(names)
+
+
 def get_class_name(obj):
     """Get class name for object.
 

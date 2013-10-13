@@ -183,6 +183,72 @@ class GetAllClassNamesTest(test.TestCase):
         self.assertEquals(names, test_utils.RUNTIME_ERROR_CLASSES[:-2])
 
 
+class AttrDictTest(test.TestCase):
+    def test_ok_create(self):
+        attrs = {
+            'a': 1,
+            'b': 2,
+        }
+        obj = misc.AttrDict(**attrs)
+        self.assertEquals(obj.a, 1)
+        self.assertEquals(obj.b, 2)
+
+    def test_private_create(self):
+        attrs = {
+            '_a': 1,
+        }
+        self.assertRaises(AttributeError, misc.AttrDict, **attrs)
+
+    def test_invalid_create(self):
+        attrs = {
+            # Python attributes can't start with a number
+            '123_abc': 1,
+        }
+        self.assertRaises(AttributeError, misc.AttrDict, **attrs)
+
+    def test_no_overwrite(self):
+        attrs = {
+            # Python attributes can't start with a number
+            'update': 1,
+        }
+        self.assertRaises(AttributeError, misc.AttrDict, **attrs)
+
+    def test_back_todict(self):
+        attrs = {
+            'a': 1,
+        }
+        obj = misc.AttrDict(**attrs)
+        self.assertEquals(obj.a, 1)
+        self.assertEquals(attrs, dict(obj))
+
+    def test_runtime_invalid_set(self):
+        attrs = {
+            'a': 1,
+        }
+        obj = misc.AttrDict(**attrs)
+        self.assertEquals(obj.a, 1)
+        with self.assertRaises(AttributeError):
+            obj._123 = 'b'
+
+    def test_bypass_get(self):
+        attrs = {
+            'a': 1,
+        }
+        obj = misc.AttrDict(**attrs)
+        self.assertEquals(1, obj['a'])
+
+    def test_bypass_set_no_get(self):
+        attrs = {
+            'a': 1,
+        }
+        obj = misc.AttrDict(**attrs)
+        self.assertEquals(1, obj['a'])
+        obj['_b'] = 'c'
+        with self.assertRaises(AttributeError):
+            obj._b = 'e'
+        self.assertEquals('c', obj['_b'])
+
+
 class ExcInfoUtilsTest(test.TestCase):
 
     def _make_ex_info(self):

@@ -75,21 +75,42 @@ def get_duplicate_keys(iterable, key=None):
     return duplicates
 
 
+def is_valid_attribute_name(name, allow_self=False, allow_hidden=False):
+    """Validates that a string name is a valid/invalid python attribute name"""
+    if not isinstance(name, six.string_types) or len(name) == 0:
+        return False
+    # Make the name just be a simple string in latin-1 encoding in python3
+    name = six.b(name)
+    if not allow_self and name.lower().startswith('self'):
+        return False
+    if not allow_hidden and name.startswith("_"):
+        return False
+    # See: http://docs.python.org/release/2.5.2/ref/grammar.txt (or newer)
+    #
+    # Python identifiers should start with a letter.
+    if not name[0].isalpha():
+        return False
+    for i in range(1, len(name)):
+        # The rest of an attribute name follows: (letter | digit | "_")*
+        if not (name[i].isalpha() or name[i].isdigit() or name[i] == "_"):
+            return False
+    return True
+
+
 class AttrDict(dict):
-    """Helper utility class to create a class that can be accessed by
+    """Helper utility dict sub-class to create a class that can be accessed by
     attribute name from a dictionary that contains a set of keys and values.
     """
-    @staticmethod
-    def _is_valid_attribute_name(name):
-        if not isinstance(name, six.string_types) or len(name) == 0:
+    NO_ATTRS = tuple(reflection.get_member_names(dict))
+
+    @classmethod
+    def _is_valid_attribute_name(cls, name):
+        if not is_valid_attribute_name(name):
             return False
-        if name.lower().startswith('self') or name.startswith("_"):
+        # Make the name just be a simple string in latin-1 encoding in python3
+        name = six.b(name)
+        if name in cls.NO_ATTRS:
             return False
-        if not name[0].isalpha():
-            return False
-        for i in range(1, len(name)):
-            if not (name[i].isalpha() or name[i].isdigit()):
-                return False
         return True
 
     def __init__(self, **kwargs):
