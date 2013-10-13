@@ -113,6 +113,10 @@ class AttrDict(dict):
 
 
 class ExponentialBackoff(object):
+    """An iterable object that will yield back an exponential delay sequence
+    provided an exponent and a number of items to yield. This object may be
+    iterated over multiple times (yielding the same sequence each time).
+    """
     def __init__(self, attempts, exponent=2):
         self.attempts = int(attempts)
         self.exponent = exponent
