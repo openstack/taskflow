@@ -27,8 +27,8 @@ class Flow(flow.Flow):
     applied in order as one unit and rolled back as one unit using
     the reverse order that the *tasks/flows* have been applied in.
 
-    NOTE(imelnikov): Tasks in should not depend on outputs
-    of tasks that follow it in the flow.
+    NOTE(imelnikov): Tasks/flows contained in this linear flow must not
+    depend on outputs (provided names/values) of tasks/flows that follow it.
     """
 
     def __init__(self, name, uuid=None):

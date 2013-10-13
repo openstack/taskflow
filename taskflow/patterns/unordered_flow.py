@@ -27,7 +27,8 @@ class Flow(flow.Flow):
     executed in any order as one unit and rolled back as one unit.
 
     NOTE(harlowja): Since the flow is unordered there can *not* be any
-    dependency between task inputs and task outputs.
+    dependency between task/flow inputs (requirements) and
+    task/flow outputs (provided names/values).
     """
 
     def __init__(self, name, uuid=None):
