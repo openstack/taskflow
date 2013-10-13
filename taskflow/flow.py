@@ -27,12 +27,22 @@ from taskflow.utils import reflection
 class Flow(six.with_metaclass(abc.ABCMeta)):
     """The base abstract class of all flow implementations.
 
-    It provides a name and an identifier (uuid or other) to the flow so that
-    it can be uniquely identifed among many flows.
+    It provides a name and an identifier (uuid) to the flow so that it can be
+    uniquely identifed among many flows while executing or while referencing
+    the results (or other metadata) of this flow in storage.
 
-    Flows are expected to provide the following methods:
+    NOTE(harlowja): if a flow is placed in another flow as a subflow, a desired
+    way to compose flows together, then it is valid and permissible that during
+    execution the subflow & parent flow may be flattened into a new flow. Since
+    a flow is just a 'structuring' concept this is typically a behavior that
+    should not be worried about (as it is not visible to the user), but it is
+    worth mentioning here.
+
+    Flows are expected to provide the following methods/properties:
     - add
     - __len__
+    - requires
+    - provides
     """
 
     def __init__(self, name, uuid=None):
@@ -49,6 +59,7 @@ class Flow(six.with_metaclass(abc.ABCMeta)):
 
     @property
     def uuid(self):
+        """A unique identifier for this flow"""
         return self._id
 
     @abc.abstractmethod
@@ -69,8 +80,8 @@ class Flow(six.with_metaclass(abc.ABCMeta)):
 
     @abc.abstractproperty
     def requires(self):
-        """Browse flow requirements."""
+        """Browse argument requirement names this flow requires to run."""
 
     @abc.abstractproperty
     def provides(self):
-        """Browse values provided by the flow."""
+        """Browse argument names provided by the flow."""
