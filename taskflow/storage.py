@@ -80,8 +80,13 @@ class Storage(object):
         td.state = states.PENDING
         td.version = task_version
         self._flowdetail.add(td)
-        self._with_connection(self._save_flow_detail)
-        self._with_connection(self._save_task_detail, task_detail=td)
+
+        def save_both(conn):
+            """Saves the flow and the task detail with the same connection"""
+            self._save_flow_detail(conn)
+            self._save_task_detail(conn, task_detail=td)
+
+        self._with_connection(save_both)
 
     def _save_flow_detail(self, conn):
         # NOTE(harlowja): we need to update our contained flow detail if
