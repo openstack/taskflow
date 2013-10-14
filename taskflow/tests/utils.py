@@ -25,22 +25,6 @@ KWARGS_KEY = '__kwargs__'
 ORDER_KEY = '__order__'
 
 
-def close_all(*args):
-    for a in args:
-        if not a:
-            continue
-        a.close()
-
-
-def null_functor(*args, **kwargs):  # pylint: disable=W0613
-    return None
-
-
-def drain(lst):
-    while len(lst):
-        lst.pop()
-
-
 def make_reverting_task(token, blowup=False):
 
     def do_revert(context, *args, **kwargs):
