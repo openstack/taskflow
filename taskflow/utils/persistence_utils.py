@@ -58,7 +58,7 @@ def temporary_flow_detail(backend=None):
     return book, book.find(flow_id)
 
 
-def create_flow_detail(flow, book=None, backend=None):
+def create_flow_detail(flow, book=None, backend=None, meta=None):
     """Creates a flow detail for the given flow and adds it to the provided
     logbook (if provided) and then uses the given backend (if provided) to
     save the logbook then returns the created flow detail.
@@ -73,7 +73,12 @@ def create_flow_detail(flow, book=None, backend=None):
     except AttributeError:
         LOG.warn("Flow %s does not have a uuid attribute, creating one.", flow)
         flow_id = uuidutils.generate_uuid()
+
     flow_detail = logbook.FlowDetail(name=flow_name, uuid=flow_id)
+    if meta is not None:
+        if flow_detail.meta is None:
+            flow_detail.meta = {}
+        flow_detail.meta.update(meta)
 
     if backend is not None and book is None:
         LOG.warn("No logbook provided for flow %s, creating one.", flow)

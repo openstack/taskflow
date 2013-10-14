@@ -18,5 +18,8 @@
 
 
 # promote helpers to this module namespace
-from taskflow.engines.helpers import load  # noqa
-from taskflow.engines.helpers import run  # noqa
+from taskflow.engines.helpers import flow_from_detail   # noqa
+from taskflow.engines.helpers import load               # noqa
+from taskflow.engines.helpers import load_from_detail   # noqa
+from taskflow.engines.helpers import load_from_factory  # noqa
+from taskflow.engines.helpers import run                # noqa
