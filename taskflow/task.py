@@ -59,6 +59,12 @@ def _save_as_to_mapping(save_as):
 
 
 def _build_rebind_dict(args, rebind_args):
+    """Build a argument remapping/rebinding dictionary.
+
+    This dictionary allows a task to declare that it will take a needed
+    requirement bound to a given name with another name instead (mapping the
+    new name onto the required name).
+    """
     if rebind_args is None:
         return {}
     elif isinstance(rebind_args, (list, tuple)):
@@ -86,6 +92,11 @@ def _check_args_mapping(task_name, rebind, args, accepts_kwargs):
 
 
 def _build_arg_mapping(task_name, reqs, rebind_args, function, do_infer):
+    """Given a function, its requirements and a rebind mapping this helper
+    function will build the correct argument mapping for the given function as
+    well as verify that the final argument mapping does not have missing or
+    extra arguments (where applicable).
+    """
     task_args = reflection.get_required_callable_args(function)
     accepts_kwargs = reflection.accepts_kwargs(function)
     result = {}
