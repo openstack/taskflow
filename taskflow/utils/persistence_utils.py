@@ -74,6 +74,11 @@ def create_flow_detail(flow, book=None, backend=None):
         LOG.warn("Flow %s does not have a uuid attribute, creating one.", flow)
         flow_id = uuidutils.generate_uuid()
     flow_detail = logbook.FlowDetail(name=flow_name, uuid=flow_id)
+
+    if backend is not None and book is None:
+        LOG.warn("No logbook provided for flow %s, creating one.", flow)
+        book = temporary_log_book(backend)
+
     if book is not None:
         book.add(flow_detail)
         if backend is not None:
@@ -83,8 +88,6 @@ def create_flow_detail(flow, book=None, backend=None):
         # that the freshest version is given back
         return book.find(flow_id)
     else:
-        if backend is not None:
-            LOG.warn("Can not save %s without a provided logbook", flow)
         return flow_detail
 
 
