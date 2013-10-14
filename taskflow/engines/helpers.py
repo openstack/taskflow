@@ -65,11 +65,8 @@ def load(flow, store=None, flow_detail=None, book=None,
         backend = p_backends.fetch(backend)
 
     if flow_detail is None:
-        if book is None:
-            _lb, flow_detail = p_utils.temporary_flow_detail(backend)
-        else:
-            flow_detail = p_utils.create_flow_detail(flow, book=book,
-                                                     backend=backend)
+        flow_detail = p_utils.create_flow_detail(flow, book=book,
+                                                 backend=backend)
 
     mgr = stevedore.driver.DriverManager(
         namespace, engine_conf['engine'],
