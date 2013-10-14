@@ -32,6 +32,7 @@ STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
 
 
 def _item_from_result(result, index, name):
+    """Attempts to fetch a index/key from a given result."""
     if index is None:
         return result
     try:
@@ -50,8 +51,10 @@ def _item_from_result(result, index, name):
 class Storage(object):
     """Interface between engines and logbook
 
-    This class provides simple interface to save task details and
-    results to persistence layer for use by engines.
+    This class provides a simple interface to save tasks of a given flow and
+    associated activity and results to persistence layer (logbook,
+    task_details, flow_details) for use by engines, making it easier to
+    interact with the underlying storage & backend mechanism.
     """
 
     injector_name = '_TaskFlow_INJECTOR'
@@ -63,6 +66,9 @@ class Storage(object):
         self._flowdetail = flow_detail
 
     def _with_connection(self, functor, *args, **kwargs):
+        # NOTE(harlowja): Activate the given function with a backend
+        # connection, if a backend is provided in the first place, otherwise
+        # don't call the function.
         if self._backend is None:
             return
         with contextlib.closing(self._backend.get_connection()) as conn:
