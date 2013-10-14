@@ -65,7 +65,7 @@ class TaskAction(base.Action):
             engine.storage.set_task_state(self.uuid, state)
         if progress is not None:
             engine.storage.set_task_progress(self.uuid, progress)
-        engine.on_task_state_change(self, state, result=result)
+        engine._on_task_state_change(self, state, result=result)
 
     def _on_update_progress(self, task, event_data, progress, **kwargs):
         """Update task progress value that stored in engine."""
