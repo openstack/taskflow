@@ -21,9 +21,11 @@ import mock
 
 from taskflow import exceptions
 from taskflow.persistence.backends import impl_memory
+from taskflow.persistence import logbook
 from taskflow import states
 from taskflow import storage
 from taskflow import test
+from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 
 
@@ -47,6 +49,12 @@ class StorageTest(test.TestCase):
         s = storage.Storage(flow_detail=flow_detail)  # no backend
         s.add_task('42', 'my task')
         self.assertEquals(s.get_uuid_by_name('my task'), '42')
+
+    def test_flow_name_and_uuid(self):
+        fd = logbook.FlowDetail(name='test-fd', uuid='aaaa')
+        s = storage.Storage(flow_detail=fd)
+        self.assertEquals(s.flow_name, 'test-fd')
+        self.assertEquals(s.flow_uuid, 'aaaa')
 
     def test_add_task(self):
         s = self._get_storage()
@@ -77,6 +85,14 @@ class StorageTest(test.TestCase):
         s.add_task('42', 'my task')
         s.save('42', 5, states.FAILURE)
         self.assertEquals(s.get('42'), 5)
+        self.assertEquals(s.get_task_state('42'), states.FAILURE)
+
+    def test_save_and_get_failure(self):
+        fail = misc.Failure(exc_info=(RuntimeError, RuntimeError(), None))
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        s.save('42', fail, states.FAILURE)
+        self.assertEquals(s.get('42'), fail)
         self.assertEquals(s.get_task_state('42'), states.FAILURE)
 
     def test_get_non_existing_var(self):
@@ -113,6 +129,20 @@ class StorageTest(test.TestCase):
         with self.assertRaisesRegexp(exceptions.NotFound,
                                      "^Name 'xxx' is not mapped"):
             s.fetch('xxx')
+
+    def test_default_task_progress(self):
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        self.assertEquals(s.get_task_progress('42'), 0.0)
+        self.assertEquals(s.get_task_progress_details('42'), None)
+
+    def test_task_progress(self):
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        s.set_task_progress('42', 0.5, test_data=11)
+        self.assertEquals(s.get_task_progress('42'), 0.5)
+        self.assertEquals(s.get_task_progress_details('42'),
+                          {'test_data': 11})
 
     def test_fetch_result_not_ready(self):
         s = self._get_storage()

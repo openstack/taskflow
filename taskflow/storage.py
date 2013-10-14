@@ -83,6 +83,14 @@ class Storage(object):
         self._with_connection(self._save_flow_detail)
         self._with_connection(self._save_task_detail, task_detail=td)
 
+    @property
+    def flow_name(self):
+        return self._flowdetail.name
+
+    @property
+    def flow_uuid(self):
+        return self._flowdetail.uuid
+
     def _save_flow_detail(self, conn):
         # NOTE(harlowja): we need to update our contained flow detail if
         # the result of the update actually added more (aka another process
