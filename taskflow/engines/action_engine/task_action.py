@@ -28,8 +28,6 @@ LOG = logging.getLogger(__name__)
 
 RESET_TASK_STATES = (states.PENDING,)
 SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
-ALREADY_FINISHED_STATES = (states.SUCCESS,)
-NEVER_RAN_STATES = (states.PENDING,)
 
 
 @contextlib.contextmanager
@@ -55,16 +53,11 @@ class TaskAction(base.Action):
     def uuid(self):
         return self._id
 
-    def _change_state(self, engine, state,
-                      result=None, progress=None, force=False):
+    def _change_state(self, engine, state, result=None, progress=None):
         """Update result and change state."""
         old_state = engine.storage.get_task_state(self.uuid)
-        state_check = states.check_task_transition(old_state, state)
-        if not force and not state_check:
-            # NOTE(harlowja): if we are forcing this state change, we don't
-            # care if the state transition should be ignored, if it's not being
-            # forced then we just ignore this state change.
-            return
+        if not states.check_task_transition(old_state, state):
+            return False
         if state in RESET_TASK_STATES:
             engine.storage.reset(self.uuid)
         if state in SAVE_RESULT_STATES:
@@ -74,6 +67,7 @@ class TaskAction(base.Action):
         if progress is not None:
             engine.storage.set_task_progress(self.uuid, progress)
         engine._on_task_state_change(self, state, result=result)
+        return True
 
     def _on_update_progress(self, task, event_data, progress, **kwargs):
         """Update task progress value that stored in engine."""
@@ -86,16 +80,17 @@ class TaskAction(base.Action):
             LOG.exception("Failed setting task progress for %s (%s) to %0.3f",
                           task, self.uuid, progress)
 
-    def _force_state(self, engine, state, progress, result=None):
-        self._change_state(engine, state,
-                           result=result, progress=progress, force=True)
+    def _change_state_update_task(self, engine, state, progress, result=None):
+        stated_changed = self._change_state(engine, state,
+                                            result=result, progress=progress)
+        if not stated_changed:
+            return False
         self._task.update_progress(progress)
+        return True
 
     def execute(self, engine):
-        if engine.storage.get_task_state(self.uuid) in ALREADY_FINISHED_STATES:
-            # Skip tasks that already finished.
+        if not self._change_state_update_task(engine, states.RUNNING, 0.0):
             return
-        self._force_state(engine, states.RUNNING, 0.0)
         with _autobind(self._task,
                        'update_progress', self._on_update_progress,
                        engine=engine):
@@ -106,15 +101,15 @@ class TaskAction(base.Action):
                 failure = misc.Failure()
                 self._change_state(engine, states.FAILURE, result=failure)
                 failure.reraise()
-        self._force_state(engine, states.SUCCESS, 1.0, result=result)
+        self._change_state_update_task(engine, states.SUCCESS, 1.0,
+                                       result=result)
 
     def revert(self, engine):
-        if engine.storage.get_task_state(self.uuid) in NEVER_RAN_STATES:
+        if not self._change_state_update_task(engine, states.REVERTING, 0.0):
             # NOTE(imelnikov): in all the other states, the task
             # execution was at least attempted, so we should give
             # task a chance for cleanup
             return
-        self._force_state(engine, states.REVERTING, 0.0)
         with _autobind(self._task,
                        'update_progress', self._on_update_progress,
                        engine=engine):
@@ -125,5 +120,5 @@ class TaskAction(base.Action):
             except Exception:
                 with excutils.save_and_reraise_exception():
                     self._change_state(engine, states.FAILURE)
-        self._force_state(engine, states.REVERTED, 1.0)
-        self._force_state(engine, states.PENDING, 0.0)
+        self._change_state_update_task(engine, states.REVERTED, 1.0)
+        self._change_state_update_task(engine, states.PENDING, 0.0)
