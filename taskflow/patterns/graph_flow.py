@@ -28,8 +28,9 @@ from taskflow.utils import graph_utils
 class Flow(flow.Flow):
     """Graph flow pattern
 
-    Nested flows will be executed according to their dependencies
-    that will be resolved using data tasks provide and require.
+    Contained *flows/tasks* will be executed according to their dependencies
+    which will be resolved by using the *flows/tasks* provides and requires
+    mappings or by following manually created dependency links.
 
     Note: Cyclic dependencies are not allowed.
     """
@@ -49,6 +50,7 @@ class Flow(flow.Flow):
                                         " resolution")
 
     def link(self, u, v):
+        """Link existing node u as a runtime dependency of existing node v."""
         if not self._graph.has_node(u):
             raise ValueError('Item %s not found to link from' % (u))
         if not self._graph.has_node(v):
