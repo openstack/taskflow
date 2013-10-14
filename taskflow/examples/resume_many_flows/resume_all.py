@@ -34,7 +34,6 @@ import taskflow.engines
 
 from taskflow import states
 
-import my_flows  # noqa
 import my_utils  # noqa
 
 
@@ -43,9 +42,8 @@ FINISHED_STATES = (states.SUCCESS, states.FAILURE, states.REVERTED)
 
 def resume(flowdetail, backend):
     print('Resuming flow %s %s' % (flowdetail.name, flowdetail.uuid))
-    engine = taskflow.engines.load(my_flows.flow_factory(),
-                                   flow_detail=flowdetail,
-                                   backend=backend)
+    engine = taskflow.engines.load_from_detail(flow_detail=flowdetail,
+                                               backend=backend)
     engine.run()
 
 

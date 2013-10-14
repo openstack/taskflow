@@ -30,20 +30,14 @@ sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
 import taskflow.engines
-from taskflow.utils import persistence_utils as p_utils
 
 import my_flows  # noqa
 import my_utils  # noqa
 
 
 backend = my_utils.get_backend()
-logbook = p_utils.temporary_log_book(backend)
-
-flow = my_flows.flow_factory()
-
-flowdetail = p_utils.create_flow_detail(flow, logbook, backend)
-engine = taskflow.engines.load(flow, flow_detail=flowdetail,
-                               backend=backend)
-
-print('Running flow %s %s' % (flowdetail.name, flowdetail.uuid))
+engine = taskflow.engines.load_from_factory(my_flows.flow_factory,
+                                            backend=backend)
+print('Running flow %s %s' % (engine.storage.flow_name,
+                              engine.storage.flow_uuid))
 engine.run()
