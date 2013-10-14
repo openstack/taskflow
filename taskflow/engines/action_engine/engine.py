@@ -74,7 +74,8 @@ class ActionEngine(base.EngineBase):
     def suspend(self):
         self._change_state(states.SUSPENDING)
 
-    def get_graph(self):
+    @property
+    def execution_graph(self):
         self.compile()
         return self._root.graph
 
@@ -131,6 +132,7 @@ class ActionEngine(base.EngineBase):
                        result=result)
         self.task_notifier.notify(state, details)
 
+    @lock_utils.locked
     def compile(self):
         if self._root is not None:
             return

@@ -582,14 +582,14 @@ class EngineGraphFlowTest(EngineTestBase):
             TestTask(name='task2'))
 
         engine = self._make_engine(flow)
-        graph = engine.get_graph()
+        graph = engine.execution_graph
         self.assertTrue(isinstance(graph, networkx.DiGraph))
 
     def test_task_graph_property_for_one_task(self):
         flow = TestTask(name='task1')
 
         engine = self._make_engine(flow)
-        graph = engine.get_graph()
+        graph = engine.execution_graph
         self.assertTrue(isinstance(graph, networkx.DiGraph))
 
 
