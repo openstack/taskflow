@@ -64,16 +64,11 @@ def create_flow_detail(flow, book=None, backend=None, meta=None):
     logbook (if provided) and then uses the given backend (if provided) to
     save the logbook then returns the created flow detail.
     """
-    try:
-        flow_name = getattr(flow, 'name')
-    except AttributeError:
-        LOG.warn("Flow %s does not have a name attribute, creating one.", flow)
-        flow_name = uuidutils.generate_uuid()
-    try:
-        flow_id = getattr(flow, 'uuid')
-    except AttributeError:
-        LOG.warn("Flow %s does not have a uuid attribute, creating one.", flow)
-        flow_id = uuidutils.generate_uuid()
+    flow_id = uuidutils.generate_uuid()
+    flow_name = getattr(flow, 'name', None)
+    if flow_name is None:
+        LOG.warn("No name provided for flow %s (id %s)" % (flow, flow_id))
+        flow_name = flow_id
 
     flow_detail = logbook.FlowDetail(name=flow_name, uuid=flow_id)
     if meta is not None:

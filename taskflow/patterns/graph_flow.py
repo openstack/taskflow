@@ -35,8 +35,8 @@ class Flow(flow.Flow):
     Note: Cyclic dependencies are not allowed.
     """
 
-    def __init__(self, name, uuid=None):
-        super(Flow, self).__init__(name, uuid)
+    def __init__(self, name):
+        super(Flow, self).__init__(name)
         self._graph = nx.freeze(nx.DiGraph())
 
     def _validate(self, graph=None):

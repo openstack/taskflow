@@ -38,7 +38,7 @@ FLATTEN_EDGE_DATA = {
 
 
 def _graph_name(flow):
-    return "F:%s:%s" % (flow.name, flow.uuid)
+    return "F:%s" % flow.name
 
 
 def _flatten_linear(flow, flattened):

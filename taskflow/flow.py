@@ -17,19 +17,20 @@
 #    under the License.
 
 import abc
-
 import six
 
-from taskflow.openstack.common import uuidutils
 from taskflow.utils import reflection
 
 
 class Flow(six.with_metaclass(abc.ABCMeta)):
     """The base abstract class of all flow implementations.
 
-    It provides a name and an identifier (uuid) to the flow so that it can be
-    uniquely identifed among many flows while executing or while referencing
-    the results (or other metadata) of this flow in storage.
+    A flow is a structure that defines relationships between tasks. You can
+    add tasks and other flows (as subflows) to the flow, and the flow provides
+    a way to implicitly or explicitly define how they are interdependent.
+    Exact structure of the relationships is defined by concrete
+    implementation, while this class defines common interface and adds
+    human-readable (not necessary unique) name.
 
     NOTE(harlowja): if a flow is placed in another flow as a subflow, a desired
     way to compose flows together, then it is valid and permissible that during
@@ -39,44 +40,33 @@ class Flow(six.with_metaclass(abc.ABCMeta)):
     worth mentioning here.
 
     Flows are expected to provide the following methods/properties:
+
     - add
     - __len__
     - requires
     - provides
     """
 
-    def __init__(self, name, uuid=None):
+    def __init__(self, name):
         self._name = str(name)
-        if uuid:
-            self._id = str(uuid)
-        else:
-            self._id = uuidutils.generate_uuid()
 
     @property
     def name(self):
         """A non-unique name for this flow (human readable)"""
         return self._name
 
-    @property
-    def uuid(self):
-        """A unique identifier for this flow"""
-        return self._id
-
     @abc.abstractmethod
     def __len__(self):
         """Returns how many items are in this flow."""
-        raise NotImplementedError()
 
     def __str__(self):
         lines = ["%s: %s" % (reflection.get_class_name(self), self.name)]
-        lines.append("%s" % (self.uuid))
         lines.append("%s" % (len(self)))
         return "; ".join(lines)
 
     @abc.abstractmethod
     def add(self, *items):
         """Adds a given item/items to this flow."""
-        raise NotImplementedError()
 
     @abc.abstractproperty
     def requires(self):

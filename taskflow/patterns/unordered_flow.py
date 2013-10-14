@@ -31,8 +31,8 @@ class Flow(flow.Flow):
     task/flow outputs (provided names/values).
     """
 
-    def __init__(self, name, uuid=None):
-        super(Flow, self).__init__(name, uuid)
+    def __init__(self, name):
+        super(Flow, self).__init__(name)
         # NOTE(imelnikov): A unordered flow is unordered, so we use
         # set instead of list to save children, children so that
         # people using it don't depend on the ordering

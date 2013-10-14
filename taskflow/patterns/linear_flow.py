@@ -31,8 +31,8 @@ class Flow(flow.Flow):
     depend on outputs (provided names/values) of tasks/flows that follow it.
     """
 
-    def __init__(self, name, uuid=None):
-        super(Flow, self).__init__(name, uuid)
+    def __init__(self, name):
+        super(Flow, self).__init__(name)
         self._children = []
 
     def add(self, *items):
