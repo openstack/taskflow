@@ -34,6 +34,8 @@ sys.path.insert(0, top_dir)
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 
+from taskflow.openstack.common import uuidutils
+
 from taskflow import engines
 from taskflow import exceptions as exc
 from taskflow import task
@@ -41,6 +43,11 @@ from taskflow import task
 from taskflow.persistence import backends
 from taskflow.utils import eventlet_utils as e_utils
 from taskflow.utils import persistence_utils as p_utils
+
+
+# INTRO: This examples shows how a hierachy of flows can be used to create a vm
+# in a reliable & resumable manner using taskflow + a miniature version of what
+# nova does while booting a vm.
 
 
 @contextlib.contextmanager
@@ -72,6 +79,7 @@ def get_backend():
 
 
 class PrintText(task.Task):
+    """Just inserts some text print outs in a workflow."""
     def __init__(self, print_what, no_slow=False):
         content_hash = hashlib.md5(print_what).hexdigest()[0:8]
         super(PrintText, self).__init__(name="Print: %s" % (content_hash))
@@ -87,9 +95,9 @@ class PrintText(task.Task):
 
 
 class DefineVMSpec(task.Task):
+    """Defines a vm specification to be."""
     def __init__(self, name):
-        super(DefineVMSpec, self).__init__(provides='vm_spec',
-                                           name=name)
+        super(DefineVMSpec, self).__init__(provides='vm_spec', name=name)
 
     def execute(self):
         return {
@@ -102,6 +110,7 @@ class DefineVMSpec(task.Task):
 
 
 class LocateImages(task.Task):
+    """Locates where the vm images are."""
     def __init__(self, name):
         super(LocateImages, self).__init__(provides='image_locations',
                                            name=name)
@@ -115,6 +124,7 @@ class LocateImages(task.Task):
 
 
 class DownloadImages(task.Task):
+    """Downloads all the vm images."""
     def __init__(self, name):
         super(DownloadImages, self).__init__(provides='download_paths',
                                              name=name)
@@ -126,15 +136,16 @@ class DownloadImages(task.Task):
         return sorted(image_locations.values())
 
 
-class FetchNetworkSettings(task.Task):
+class CreateNetworkTpl(task.Task):
+    """Generates the network settings file to be placed in the images."""
     SYSCONFIG_CONTENTS = """DEVICE=eth%s
 BOOTPROTO=static
 IPADDR=%s
 ONBOOT=yes"""
 
     def __init__(self, name):
-        super(FetchNetworkSettings, self).__init__(provides='network_settings',
-                                                   name=name)
+        super(CreateNetworkTpl, self).__init__(provides='network_settings',
+                                               name=name)
 
     def execute(self, ips):
         settings = []
@@ -144,6 +155,7 @@ ONBOOT=yes"""
 
 
 class AllocateIP(task.Task):
+    """Allocates the ips for the given vm."""
     def __init__(self, name):
         super(AllocateIP, self).__init__(provides='ips', name=name)
 
@@ -155,6 +167,7 @@ class AllocateIP(task.Task):
 
 
 class WriteNetworkSettings(task.Task):
+    """Writes all the network settings into the downloaded images."""
     def execute(self, download_paths, network_settings):
         for j, path in enumerate(download_paths):
             with slow_down(1):
@@ -168,6 +181,7 @@ class WriteNetworkSettings(task.Task):
 
 
 class BootVM(task.Task):
+    """Fires off the vm boot operation."""
     def execute(self, vm_spec):
         print("Starting vm!")
         with slow_down(1):
@@ -175,6 +189,7 @@ class BootVM(task.Task):
 
 
 class AllocateVolumes(task.Task):
+    """Allocates the volumes for the vm."""
     def execute(self, vm_spec):
         volumes = []
         for i in range(0, vm_spec['volumes']):
@@ -185,6 +200,7 @@ class AllocateVolumes(task.Task):
 
 
 class FormatVolumes(task.Task):
+    """Formats the volumes for the vm."""
     def execute(self, volumes):
         for v in volumes:
             print("Formatting volume %s" % v)
@@ -208,7 +224,7 @@ def create_flow():
             # This does all the network stuff.
             gf.Flow("net-maker").add(
                 AllocateIP("get_my_ips"),
-                FetchNetworkSettings("fetch_net_settings"),
+                CreateNetworkTpl("fetch_net_settings"),
                 WriteNetworkSettings("write_net_settings"),
             ),
             # This does all the volume stuff.
@@ -219,6 +235,7 @@ def create_flow():
             # Finally boot it all.
             BootVM("boot-it"),
         ),
+        # Ya it worked!
         PrintText("Finished vm create.", no_slow=True),
         PrintText("Instance is running!", no_slow=True))
     return flow
@@ -229,6 +246,10 @@ print_wrapped("Initializing")
 backend = get_backend()
 try:
     book_id, flow_id = sys.argv[2].split("+", 1)
+    if not uuidutils.is_uuid_like(book_id):
+        book_id = None
+    if not uuidutils.is_uuid_like(flow_id):
+        flow_id = None
 except (IndexError, ValueError):
     book_id = None
     flow_id = None
@@ -258,9 +279,11 @@ if book is None and flow_detail is None:
                                                engine.storage.flow_uuid))
     print("!! Please submit this on later runs for tracking purposes")
 else:
+    # Attempt to load from a previously potentially partially completed flow.
     engine = engines.load_from_detail(flow_detail,
                                       backend=backend, engine_conf=engine_conf)
 
+# Make me my vm please!
 print_wrapped('Running')
 engine.run()
 
