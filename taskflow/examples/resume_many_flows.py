@@ -21,6 +21,19 @@ import subprocess
 import sys
 import tempfile
 
+# INTRO: In this example we create a common persistence database (sqlite based)
+# and then we run a few set of processes which themselves use this persistence
+# database, those processes 'crash' (in a simulated way) by exiting with a
+# system error exception. After this occurs a few times we then activate a
+# script which doesn't 'crash' and it will resume all the given engines flows
+# that did not complete and run them to completion (instead of crashing).
+#
+# This shows how a set of tasks can be finished even after repeatingly being
+# crashed, *crash resistance* if you may call it, due to the engine concept as
+# well as the persistence layer which keeps track of the state a flow
+# transitions through and persists the intermediary inputs and outputs and
+# overall flow state.
+
 
 def _exec(cmd, add_env=None):
     env = None
