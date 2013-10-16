@@ -24,36 +24,44 @@ def mini_exec(cmd, ok_codes=(0,)):
     (stdout, stderr) = proc.communicate()
     rc = proc.returncode
     if rc not in ok_codes:
-        raise RuntimeError("Could not run %s [%s]", cmd, rc)
+        raise RuntimeError("Could not run %s [%s]\nStderr: %s"
+                           % (cmd, rc, stderr))
     return (stdout, stderr)
 
 
-def make_svg(graph, output_filename):
+def make_svg(graph, output_filename, output_format):
     # NOTE(harlowja): requires pydot!
     gdot = gu.export_graph_to_dot(graph)
-    with tempfile.NamedTemporaryFile(suffix=".dot") as fh:
-        fh.write(gdot)
-        fh.flush()
-        cmd = ['dot', '-Tsvg', fh.name]
-        stdout, _stderr = mini_exec(cmd)
-        with open(output_filename, "wb") as fh:
-            fh.write(stdout)
-    # NOTE(harlowja): if u want a png instead u can run the following which
-    # requires ImageMagick and its little helper `convert` program.
-    #
-    # $ convert input.svg output.png
+    if output_format == 'dot':
+        output = gdot
+    elif output_format in ('svg', 'svgz', 'png'):
+        with tempfile.NamedTemporaryFile(suffix=".dot") as fh:
+            fh.write(gdot)
+            fh.flush()
+            cmd = ['dot', '-T%s' % output_format, fh.name]
+            output, _stderr = mini_exec(cmd)
+    else:
+        raise ValueError('Unknown format: %s' % output_filename)
+    with open(output_filename, "wb") as fh:
+        fh.write(output)
 
 
 def main():
     parser = optparse.OptionParser()
     parser.add_option("-f", "--file", dest="filename",
-                      help="write svg to FILE", metavar="FILE",
-                      default="states.svg")
+                      help="write svg to FILE", metavar="FILE")
     parser.add_option("-t", "--tasks", dest="tasks",
                       action='store_true',
                       help="use task state transitions",
                       default=False)
+    parser.add_option("-T", "--format", dest="format",
+                      help="output in given format",
+                      default='svg')
+
     (options, args) = parser.parse_args()
+    if options.filename is None:
+        options.filename = 'states.%s' % options.format
+
     g = nx.DiGraph(name="State transitions")
     if not options.tasks:
         source = states._ALLOWED_FLOW_TRANSITIONS
@@ -65,8 +73,8 @@ def main():
         if not g.has_node(v):
             g.add_node(v)
         g.add_edge(u, v)
-    make_svg(g, options.filename)
-    print("Created svg at '%s'" % (options.filename))
+    make_svg(g, options.filename, options.format)
+    print("Created %s at '%s'" % (options.format, options.filename))
 
 
 if __name__ == '__main__':
