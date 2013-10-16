@@ -39,6 +39,23 @@ from taskflow.utils import persistence_utils as p_utils
 import tempfile
 
 
+# INTRO: In this example we create two tasks, one that will say hi and one
+# that will say bye with optional capability to raise an error while
+# executing. During execution if a later task fails, the reverting that will
+# occur in the hi task will undo this (in a ~funny~ way).
+#
+# To also show the effect of task persistence we create a temporary database
+# that will track the state transitions of this hi + bye workflow, this
+# persistence allows for you to examine what is stored (using a sqlite client)
+# as well as shows you what happens during reversion and what happens to
+# the database during both of these modes (failing or not failing).
+
+def print_wrapped(text):
+    print("-" * (len(text)))
+    print(text)
+    print("-" * (len(text)))
+
+
 class HiTask(task.Task):
     def execute(self):
         print("Hi!")
@@ -58,18 +75,16 @@ class ByeTask(task.Task):
         print("Bye!")
 
 
+# This generates your flow structure (at this stage nothing is ran).
 def make_flow(blowup=False):
     flo = lf.Flow("hello-world")
     flo.add(HiTask(), ByeTask(blowup))
     return flo
 
 
-def print_wrapped(text):
-    print("-" * (len(text)))
-    print(text)
-    print("-" * (len(text)))
-
-
+# Persist the flow and task state here, if the file exists already blowup
+# if not don't blowup, this allows a user to see both the modes and to
+# see what is stored in each case.
 persist_filename = os.path.join(tempfile.gettempdir(), "persisting.db")
 if os.path.isfile(persist_filename):
     blowup = False
@@ -105,6 +120,9 @@ try:
     except (OSError, IOError):
         pass
 except Exception:
+    # NOTE(harlowja): don't exit with non-zero status code, so that we can
+    # print the book contents, as well as avoiding exiting also makes the
+    # unit tests (which also runs these examples) pass.
     traceback.print_exc(file=sys.stdout)
 
 print_wrapped("Book contents")
