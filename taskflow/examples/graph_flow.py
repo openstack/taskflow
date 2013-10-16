@@ -33,12 +33,20 @@ from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
 
-# In this example there are complex dependencies between
-# tasks. User shouldn't care about ordering the Tasks.
-# GraphFlow resolves dependencies automatically using tasks'
-# requirements and provided values.
-# Flows of any types can be nested into Graph flow. Subflows
-# dependencies will be resolved too.
+# In this example there are complex dependencies between tasks that are used to
+# perform a simple set of linear equations.
+#
+# As you will see below the tasks just define what they require as input
+# and produce as output (named values). Then the user doesn't care about
+# ordering the TASKS (in this case the tasks calculate pieces of the overall
+# equation).
+#
+# As you will notice graph_flow resolves dependencies automatically using the
+# tasks requirements and provided values and no ordering dependency has to be
+# manually created.
+#
+# Also notice that flows of any types can be nested into a graph_flow; subflows
+# dependencies will be resolved too!! Pretty cool right!
 
 
 class Adder(task.Task):
@@ -65,6 +73,7 @@ flow = gf.Flow('root').add(
     # x7 = x6+x6 = 82
     Adder("add7", provides='x7', rebind=['x6', 'x6']))
 
+# Provide the initial variable inputs using a storage dictionary.
 store = {
     "y1": 1,
     "y2": 3,
