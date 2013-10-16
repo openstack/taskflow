@@ -42,6 +42,11 @@ from taskflow.utils import eventlet_utils as e_utils
 from taskflow.utils import persistence_utils as p_utils
 
 
+# INTRO: This examples shows how a hierachy of flows can be used to create a
+# pseudo-volume in a reliable & resumable manner using taskflow + a miniature
+# version of what cinder does while creating a volume (very miniature).
+
+
 @contextlib.contextmanager
 def slow_down(how_long=0.5):
     try:
@@ -52,6 +57,14 @@ def slow_down(how_long=0.5):
 
 
 def find_flow_detail(backend, book_id, flow_id):
+    # NOTE(harlowja): this is used to attempt to find a given logbook with
+    # a given id and a given flow details inside that logbook, we need this
+    # reference so that we can resume the correct flow (as a logbook tracks
+    # flows and a flow detail tracks a individual flow).
+    #
+    # Without a reference to the logbook and the flow details in that logbook
+    # we will not know exactly what we should resume and that would mean we
+    # can't resume what we don't know.
     with contextlib.closing(backend.get_connection()) as conn:
         lb = conn.get_logbook(book_id)
         return lb.find(flow_id)
@@ -127,6 +140,14 @@ except (IndexError, ValueError):
     flow_id = None
 
 if not all([book_id, flow_id]):
+    # If no 'tracking id' (think a fedex or ups tracking id) is provided then
+    # we create one by creating a logbook (where flow details are stored) and
+    # creating a flow detail (where flow and task state is stored). The
+    # combination of these 2 objects unique ids (uuids) allows the users of
+    # taskflow to reassociate the workflows that were potentially running (and
+    # which may have partially completed) back with taskflow so that those
+    # workflows can be resumed (or reverted) after a process/thread/engine
+    # has failed in someway.
     logbook = p_utils.temporary_log_book(backend)
     flow_detail = p_utils.create_flow_detail(flow, logbook, backend)
     print("!! Your tracking id is: '%s+%s'" % (logbook.uuid, flow_detail.uuid))
