@@ -1,21 +1,26 @@
-
-At the beginning, there is no state:
-Flow state: None
-
-Running:
+-----------------------------------
+At the beginning, there is no state
+-----------------------------------
+Flow 'resume from backend example' state: None
+-------
+Running
+-------
 executing first==1.0
-
-After running:
-Flow state: SUSPENDED
-boom==1.0: SUCCESS, result=None
-first==1.0: SUCCESS, result=ok
-second==1.0: PENDING, result=None
-
-Resuming and running again:
+-------------
+After running
+-------------
+Flow 'resume from backend example' state: SUSPENDED
+ boom==1.0: SUCCESS, result=None
+ first==1.0: SUCCESS, result=ok
+ second==1.0: PENDING, result=None
+--------------------------
+Resuming and running again
+--------------------------
 executing second==1.0
-
-At the end:
-Flow state: SUCCESS
-boom==1.0: SUCCESS, result=None
-first==1.0: SUCCESS, result=ok
-second==1.0: SUCCESS, result=ok
+----------
+At the end
+----------
+Flow 'resume from backend example' state: SUCCESS
+ boom==1.0: SUCCESS, result=None
+ first==1.0: SUCCESS, result=ok
+ second==1.0: SUCCESS, result=ok
