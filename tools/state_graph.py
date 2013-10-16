@@ -49,9 +49,17 @@ def main():
     parser.add_option("-f", "--file", dest="filename",
                       help="write svg to FILE", metavar="FILE",
                       default="states.svg")
+    parser.add_option("-t", "--tasks", dest="tasks",
+                      action='store_true',
+                      help="use task state transitions",
+                      default=False)
     (options, args) = parser.parse_args()
     g = nx.DiGraph(name="State transitions")
-    for (u, v) in states._ALLOWED_FLOW_TRANSITIONS:
+    if not options.tasks:
+        source = states._ALLOWED_FLOW_TRANSITIONS
+    else:
+        source = states._ALLOWED_TASK_TRANSITIONS
+    for (u, v) in source:
         if not g.has_node(u):
             g.add_node(u)
         if not g.has_node(v):
