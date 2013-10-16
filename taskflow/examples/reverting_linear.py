@@ -32,6 +32,23 @@ import taskflow.engines
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
+# INTRO: In this example we create three tasks, each of which ~calls~ a given
+# number (provided as a function input), one of those tasks fails calling a
+# given number (the suzzie calling); this causes the workflow to enter the
+# reverting process, which activates the revert methods of the previous two
+# phone ~calls~.
+#
+# This simulated calling makes it appear like all three calls occur or all
+# three don't occur (transactional like capabilities). No persistence layer is
+# used here so reverting and executing will not handle process failure.
+#
+# This example shows a basic usage of the taskflow structures without involving
+# the complexity of persistence. Using the structures that taskflow provides
+# via tasks and flows makes it possible for you to easily at a later time
+# hook in a persistence layer (and then gain the functionality that offers)
+# when you decide the complexity of adding that layer in is 'worth it' for your
+# applications usage pattern (which some applications may not need).
+
 
 class CallJim(task.Task):
     def execute(self, jim_number, *args, **kwargs):
@@ -53,11 +70,8 @@ class CallSuzzie(task.Task):
     def execute(self, suzzie_number, *args, **kwargs):
         raise IOError("Suzzie not home right now.")
 
-    def revert(self, suzzie_number, *args, **kwargs):
-        # TODO(imelnikov): this method should not be requred
-        pass
 
-
+# Create your flow and associated tasks (the work to be done).
 flow = lf.Flow('simple-linear').add(
     CallJim(),
     CallJoe(),
@@ -65,8 +79,23 @@ flow = lf.Flow('simple-linear').add(
 )
 
 try:
+    # Now run that flow using the provided initial data (store below).
     taskflow.engines.run(flow, store=dict(joe_number=444,
                                           jim_number=555,
                                           suzzie_number=666))
 except Exception as e:
+    # NOTE(harlowja): This exception will be the exception that came out of the
+    # 'CallSuzzie' task instead of a different exception, this is useful since
+    # typically surrounding code wants to handle the original exception and not
+    # a wrapped or altered one.
+    #
+    # *WARNING* If this flow was multi-threaded and multiple active tasks threw
+    # exceptions then the above exception would be wrapped into a combined
+    # exception (the object has methods to iterate over the contained
+    # exceptions). See: exceptions.py and the class 'WrappedFailure' to look at
+    # how to deal with multiple tasks failing while running.
+    #
+    # You will also note that this is not a problem in this case since no
+    # parallelism is involved; this is ensured by the usage of a linear flow,
+    # which runs serially as well as the default engine type which is 'serial'.
     print("Flow failed: %r" % e)
