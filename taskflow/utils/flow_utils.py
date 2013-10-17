@@ -17,6 +17,7 @@
 #    under the License.
 
 import copy
+import logging
 
 import networkx as nx
 
@@ -28,6 +29,7 @@ from taskflow import task
 from taskflow.utils import graph_utils as gu
 from taskflow.utils import misc
 
+LOG = logging.getLogger(__name__)
 
 # Use the 'flatten' attribute as the need to add an edge here, which is useful
 # for doing later analysis of the edges (to determine why the edges were
@@ -39,6 +41,24 @@ FLATTEN_EDGE_DATA = {
 
 def _graph_name(flow):
     return "F:%s" % flow.name
+
+
+def _log_flatten(func):
+
+    @misc.wraps(func)
+    def wrapper(item, flattened):
+        graph = func(item, flattened)
+        # NOTE(harlowja): this one can be expensive to calculate (especially
+        # the cycle detection), so only do it if we know debugging is enabled
+        # and not under all cases.
+        if LOG.isEnabledFor(logging.DEBUG):
+            LOG.debug("Translated '%s' into a graph:", item)
+            for line in gu.pformat(graph).splitlines():
+                # Indent it so that it's slightly offset from the above line.
+                LOG.debug(" %s", line)
+        return graph
+
+    return wrapper
 
 
 def _flatten_linear(flow, flattened):
@@ -104,6 +124,7 @@ def _flatten_graph(flow, flattened):
     return graph
 
 
+@_log_flatten
 def _flatten(item, flattened):
     """Flattens a item (task/flow+subflows) into an execution graph."""
     if item in flattened:
