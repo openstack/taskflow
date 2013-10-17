@@ -128,7 +128,7 @@ def check_flow_transition(old_state, new_state):
 ## Task state transitions
 # https://wiki.openstack.org/wiki/TaskFlow/States_of_Task_and_Flow#Task_States
 
-_ALLOWED_TASK_TRANSITIONS = [
+_ALLOWED_TASK_TRANSITIONS = frozenset((
     (PENDING, RUNNING),       # run it!
 
     (RUNNING, SUCCESS),       # the task finished successfully
@@ -141,17 +141,37 @@ _ALLOWED_TASK_TRANSITIONS = [
     (REVERTING, FAILURE),     # revert failed
 
     (REVERTED, PENDING),      # try again
-]
-_ALLOWED_TASK_TRANSITIONS.extend(
-    # NOTE(harlowja): the task was 'killed' while in one of the below 'a'
+
+    # NOTE(harlowja): allow the tasks to restart if in the same state
+    # as a they were in before as a task may be 'killed' while in one of the
+    # below states and it is permissible to let the task to re-enter that
+    # same state to try to finish
+    (REVERTING, REVERTING),
+    (RUNNING, RUNNING),
+
+    # NOTE(harlowja): the task was 'killed' while in one of the starting/ending
     # states and it is permissible to let the task to start running or
-    # reverting immediately
-    (a, b)
-    for a in (REVERTED, REVERTING, RUNNING)
-    for b in (RUNNING, REVERTING)
-    if a != b
+    # reverting again (if it really wants too)
+    (REVERTING, RUNNING),
+    (RUNNING, REVERTING),
+))
+
+_IGNORED_TASK_TRANSITIONS = [
+    (SUCCESS, RUNNING),       # already finished
+    (PENDING, REVERTING),     # never ran in the first place
+    (REVERTED, REVERTING),    # the task already reverted
+]
+
+# NOTE(harlowja): ignore transitions to the same state (in these cases).
+#
+# NOTE(harlowja): the above ALLOWED_TASK_TRANSITIONS does allow
+# transitions to certain equivalent states (but only for a few special
+# cases)
+_IGNORED_TASK_TRANSITIONS.extend(
+    (a, a) for a in (PENDING, FAILURE, SUCCESS, REVERTED)
 )
-_ALLOWED_TASK_TRANSITIONS = frozenset(_ALLOWED_TASK_TRANSITIONS)
+
+_IGNORED_TASK_TRANSITIONS = frozenset(_IGNORED_TASK_TRANSITIONS)
 
 
 def check_task_transition(old_state, new_state):
@@ -161,11 +181,11 @@ def check_task_transition(old_state, new_state):
     should be ignored, it returns False. If transition is not
     valid, it raises InvalidStateException.
     """
-    if old_state == new_state:
-        return False
     pair = (old_state, new_state)
     if pair in _ALLOWED_TASK_TRANSITIONS:
         return True
+    if pair in _IGNORED_TASK_TRANSITIONS:
+        return False
     # TODO(harlowja): Should we check/allow for 3rd party states to be
     # triggered during RUNNING by having a concept of a sub-state that we also
     # verify against??
