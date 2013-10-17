@@ -52,10 +52,6 @@ def print_wrapped(text):
 
 def print_task_states(flowdetail, msg):
     print_wrapped(msg)
-    # NOTE(harlowja): for this example, just avoid printing uuids so that
-    # we can correctly compare this output with the expected output, which
-    # is used by our example test verification (uuids would be different each
-    # time if we did not do this).
     print("Flow '%s' state: %s" % (flowdetail.name, flowdetail.state))
     # Sort by these so that our test validation doesn't get confused by the
     # order in which the items in the flow detail can be in.
