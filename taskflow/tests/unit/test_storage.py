@@ -139,10 +139,27 @@ class StorageTest(test.TestCase):
     def test_task_progress(self):
         s = self._get_storage()
         s.add_task('42', 'my task')
-        s.set_task_progress('42', 0.5, test_data=11)
+
+        s.set_task_progress('42', 0.5, {'test_data': 11})
         self.assertEquals(s.get_task_progress('42'), 0.5)
-        self.assertEquals(s.get_task_progress_details('42'),
-                          {'test_data': 11})
+        self.assertEquals(s.get_task_progress_details('42'), {
+            'at_progress': 0.5,
+            'details': {'test_data': 11}
+        })
+
+        s.set_task_progress('42', 0.7, {'test_data': 17})
+        self.assertEquals(s.get_task_progress('42'), 0.7)
+        self.assertEquals(s.get_task_progress_details('42'), {
+            'at_progress': 0.7,
+            'details': {'test_data': 17}
+        })
+
+        s.set_task_progress('42', 0.99)
+        self.assertEquals(s.get_task_progress('42'), 0.99)
+        self.assertEquals(s.get_task_progress_details('42'), {
+            'at_progress': 0.7,
+            'details': {'test_data': 17}
+        })
 
     def test_fetch_result_not_ready(self):
         s = self._get_storage()
