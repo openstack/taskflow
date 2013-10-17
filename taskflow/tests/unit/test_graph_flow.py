@@ -20,9 +20,7 @@ import collections
 
 import taskflow.engines
 
-from taskflow import exceptions as exc
 from taskflow.patterns import graph_flow as gw
-from taskflow import states
 from taskflow.utils import flow_utils as fu
 from taskflow.utils import graph_utils as gu
 
@@ -32,7 +30,7 @@ from taskflow.tests import utils
 
 class GraphFlowTest(test.TestCase):
     def _make_engine(self, flow):
-        return taskflow.engines.load(flow, store={'context': {}})
+        return taskflow.engines.load(flow, store={})
 
     def _capture_states(self):
         # TODO(harlowja): move function to shared helper
@@ -63,26 +61,6 @@ class GraphFlowTest(test.TestCase):
         self.assertEquals(3, len(wf.graph))
         self.assertEquals([test_1], list(gu.get_no_predecessors(wf.graph)))
         self.assertEquals([test_3], list(gu.get_no_successors(wf.graph)))
-
-    def test_invalid_add_simple(self):
-        wf = gw.Flow("the-test-action")
-        test_1 = utils.ProvidesRequiresTask('test-1',
-                                            requires=['a'],
-                                            provides=set(['a', 'b']))
-        self.assertRaises(exc.DependencyFailure, wf.add, test_1)
-        self.assertEquals(0, len(wf))
-
-    def test_invalid_add_loop(self):
-        wf = gw.Flow("the-test-action")
-        test_1 = utils.ProvidesRequiresTask('test-1',
-                                            requires=['c'],
-                                            provides=set(['a', 'b']))
-        test_2 = utils.ProvidesRequiresTask('test-2',
-                                            requires=['a', 'b'],
-                                            provides=set(['c']))
-        wf.add(test_1)
-        self.assertRaises(exc.DependencyFailure, wf.add, test_2)
-        self.assertEquals(1, len(wf))
 
     def test_basic_edge_reasons(self):
         wf = gw.Flow("the-test-action")
@@ -136,28 +114,3 @@ class GraphFlowTest(test.TestCase):
         edge_attrs = gu.get_edge_attrs(g, test_1, test_2)
         self.assertTrue(edge_attrs.get('manual'))
         self.assertTrue(edge_attrs.get('flatten'))
-
-    def test_graph_run(self):
-        wf = gw.Flow("the-test-action")
-        test_1 = utils.ProvidesRequiresTask('test-1',
-                                            requires=[],
-                                            provides=[])
-        test_2 = utils.ProvidesRequiresTask('test-2',
-                                            provides=[],
-                                            requires=[])
-        wf.add(test_1, test_2)
-        wf.link(test_1, test_2)
-        self.assertEquals(2, len(wf))
-
-        e = self._make_engine(wf)
-        capture_func, captured = self._capture_states()
-        e.task_notifier.register('*', capture_func)
-        e.run()
-
-        self.assertEquals(2, len(captured))
-        for (_uuid, t_states) in captured.items():
-            self.assertEquals([states.RUNNING, states.SUCCESS], t_states)
-
-        run_context = e.storage.fetch('context')
-        ordering = [o['name'] for o in run_context[utils.ORDER_KEY]]
-        self.assertEquals(['test-1', 'test-2'], ordering)
