@@ -38,6 +38,29 @@ from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 from taskflow.utils import misc
 
+# INTRO: In this example we create two tasks which can trigger exceptions
+# based on various inputs to show how to analyze the thrown exceptions for
+# which types were thrown and handle the different types in different ways.
+#
+# This is especially important if a set of tasks run in parallel and each of
+# those tasks may fail while running. This creates a scenario where multiple
+# exceptions have been thrown and those exceptions need to be handled in a
+# unified manner. Since an engine does not currently know how to resolve
+# those exceptions (someday it could) the code using that engine and activating
+# the flows and tasks using that engine will currently have to deal with
+# catching those exceptions (and silencing them if this is desired).
+#
+# NOTE(harlowja): The engine *will* trigger rollback even under multiple
+# exceptions being thrown, but at the end of that rollback the engine will
+# rethrow these exceptions to the code that called the run() method; allowing
+# that code to do further cleanups (if desired).
+
+
+def print_wrapped(text):
+    print("-" * (len(text)))
+    print(text)
+    print("-" * (len(text)))
+
 
 @contextlib.contextmanager
 def wrap_all_failures():
@@ -80,6 +103,10 @@ class SecondTask(task.Task):
 
 
 def run(**store):
+    # Creates a flow, each task in the flow will examine the kwargs passed in
+    # here and based on those kwargs it will behave in a different manner
+    # while executing; this allows for the calling code (see below) to show
+    # different usages of the failure catching and handling mechanism.
     flow = uf.Flow('flow').add(
         FirstTask(),
         SecondTask()
@@ -101,19 +128,18 @@ def run(**store):
         misc.Failure.reraise_if_any(unknown_failures)
 
 
-print("== Raise and catch first exception only ==")
+print_wrapped("Raise and catch first exception only")
 run(sleep1=0.0, raise1=True,
     sleep2=0.0, raise2=False)
 
-print("\n== Raise and catch both exceptions ==")
-# NOTE(imelnikov): in general, sleeping does not guarantee that
-# we'll have both task running before one of them fails, but
-# with current implementation this works most of times,
-# which is enough for our purposes here.
+# NOTE(imelnikov): in general, sleeping does not guarantee that we'll have both
+# task running before one of them fails, but with current implementation this
+# works most of times, which is enough for our purposes here (as an example).
+print_wrapped("Raise and catch both exceptions")
 run(sleep1=1.0, raise1=True,
     sleep2=1.0, raise2=True)
 
-print("\n== Handle one exception, and re-raise another ==")
+print_wrapped("Handle one exception, and re-raise another")
 try:
     run(sleep1=1.0, raise1=True,
         sleep2=1.0, raise2='boom')
