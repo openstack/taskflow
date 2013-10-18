@@ -1,7 +1,8 @@
 # Packages needed for using this library.
 anyjson>=0.3.3
 iso8601>=0.1.4
-six
+# Python 2->3 compatibility library.
+six>=1.4.1
 # Only needed if database backend used.
 SQLAlchemy>=0.7.8,<=0.7.99
 alembic>=0.4.1
