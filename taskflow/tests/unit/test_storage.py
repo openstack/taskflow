@@ -180,6 +180,33 @@ class StorageTest(test.TestCase):
             'spam': 'eggs',
         })
 
+    def test_inject_twice(self):
+        s = self._get_storage()
+        s.inject({'foo': 'bar'})
+        self.assertEquals(s.fetch_all(), {'foo': 'bar'})
+        s.inject({'spam': 'eggs'})
+        self.assertEquals(s.fetch_all(), {
+            'foo': 'bar',
+            'spam': 'eggs',
+        })
+
+    def test_inject_resumed(self):
+        s = self._get_storage()
+        s.inject({'foo': 'bar', 'spam': 'eggs'})
+        # verify it's there
+        self.assertEquals(s.fetch_all(), {
+            'foo': 'bar',
+            'spam': 'eggs',
+        })
+        # imagine we are resuming, so we need to make new
+        # storage from same flow details
+        s2 = storage.Storage(s._flowdetail, backend=self.backend)
+        # injected data should still be there:
+        self.assertEquals(s2.fetch_all(), {
+            'foo': 'bar',
+            'spam': 'eggs',
+        })
+
     def test_fetch_meapped_args(self):
         s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
