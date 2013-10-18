@@ -92,7 +92,7 @@ class _GreenFuture(futures.Future):
 class GreenExecutor(futures.Executor):
     """A greenthread backed executor."""
 
-    def __init__(self, max_workers):
+    def __init__(self, max_workers=1000):
         assert int(max_workers) > 0, 'Max workers must be greater than zero'
         self._max_workers = int(max_workers)
         self._pool = greenpool.GreenPool(self._max_workers)
