@@ -40,6 +40,11 @@ class ProgressTask(task.Task):
             self.update_progress(progress)
 
 
+class ProgressTaskWithDetails(task.Task):
+    def execute(self):
+        self.update_progress(0.5, test='test data', foo='bar')
+
+
 class TestProgress(test.TestCase):
     def _make_engine(self, flow, flow_detail=None, backend=None):
         e = taskflow.engines.load(flow,
@@ -99,7 +104,22 @@ class TestProgress(test.TestCase):
             end_progress = e.storage.get_task_progress(t_uuid)
             self.assertEquals(1.0, end_progress)
             td = fd.find(t_uuid)
-            self.assertEquals({'progress': 1.0}, td.meta)
+            self.assertEquals(1.0, td.meta['progress'])
+            self.assertFalse(td.meta['progress_details'])
+
+    def test_storage_progress_detail(self):
+        flo = ProgressTaskWithDetails("test")
+        e = self._make_engine(flo)
+        e.run()
+        t_uuid = e.storage.get_uuid_by_name("test")
+        end_progress = e.storage.get_task_progress(t_uuid)
+        self.assertEquals(1.0, end_progress)
+        end_details = e.storage.get_task_progress_details(t_uuid)
+        self.assertEquals(end_details.get('at_progress'), 0.5)
+        self.assertEquals(end_details.get('details'), {
+            'test': 'test data',
+            'foo': 'bar'
+        })
 
     def test_dual_storage_progress(self):
         fired_events = []
@@ -120,5 +140,6 @@ class TestProgress(test.TestCase):
             end_progress = e.storage.get_task_progress(t_uuid)
             self.assertEquals(1.0, end_progress)
             td = fd.find(t_uuid)
-            self.assertEquals({'progress': 1.0}, td.meta)
+            self.assertEquals(1.0, td.meta['progress'])
+            self.assertFalse(td.meta['progress_details'])
             self.assertEquals(6, len(fired_events))

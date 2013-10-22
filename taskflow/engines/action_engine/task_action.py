@@ -73,7 +73,7 @@ class TaskAction(base.Action):
         """Update task progress value that stored in engine."""
         try:
             engine = event_data['engine']
-            engine.storage.set_task_progress(self.uuid, progress, **kwargs)
+            engine.storage.set_task_progress(self.uuid, progress, kwargs)
         except Exception:
             # Update progress callbacks should never fail, so capture and log
             # the emitted exception instead of raising it.

@@ -144,22 +144,26 @@ class Storage(object):
         """Get state of task with given uuid"""
         return self._taskdetail_by_uuid(uuid).state
 
-    def set_task_progress(self, uuid, progress, **kwargs):
+    def set_task_progress(self, uuid, progress, details=None):
         """Set task progress.
 
         :param uuid: task uuid
         :param progress: task progress
-        :param kwargs: task specific progress information
+        :param details: task specific progress information
         """
         td = self._taskdetail_by_uuid(uuid)
         if not td.meta:
             td.meta = {}
         td.meta['progress'] = progress
-        if kwargs:
-            td.meta['progress_details'] = kwargs
-        else:
-            if 'progress_details' in td.meta:
-                td.meta.pop('progress_details')
+        if details is not None:
+            # NOTE(imelnikov): as we can update progress without
+            # updating details (e.g. automatically from engine)
+            # we save progress value with details, too
+            if details:
+                td.meta['progress_details'] = dict(at_progress=progress,
+                                                   details=details)
+            else:
+                td.meta['progress_details'] = None
         self._with_connection(self._save_task_detail, task_detail=td)
 
     def get_task_progress(self, uuid):
