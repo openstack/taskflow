@@ -99,41 +99,46 @@ class GetCallableNameTest(test.TestCase):
                                           '__call__')))
 
 
-class GetRequiredCallableArgsTest(test.TestCase):
+class GetCallableArgsTest(test.TestCase):
 
     def test_mere_function(self):
-        result = reflection.get_required_callable_args(mere_function)
+        result = reflection.get_callable_args(mere_function)
         self.assertEquals(['a', 'b'], result)
 
     def test_function_with_defaults(self):
-        result = reflection.get_required_callable_args(function_with_defs)
+        result = reflection.get_callable_args(function_with_defs)
+        self.assertEquals(['a', 'b', 'optional'], result)
+
+    def test_required_only(self):
+        result = reflection.get_callable_args(function_with_defs,
+                                              required_only=True)
         self.assertEquals(['a', 'b'], result)
 
     def test_method(self):
-        result = reflection.get_required_callable_args(Class.method)
+        result = reflection.get_callable_args(Class.method)
         self.assertEquals(['self', 'c', 'd'], result)
 
     def test_instance_method(self):
-        result = reflection.get_required_callable_args(Class().method)
+        result = reflection.get_callable_args(Class().method)
         self.assertEquals(['c', 'd'], result)
 
     def test_class_method(self):
-        result = reflection.get_required_callable_args(Class.class_method)
+        result = reflection.get_callable_args(Class.class_method)
         self.assertEquals(['g', 'h'], result)
 
     def test_class_constructor(self):
-        result = reflection.get_required_callable_args(ClassWithInit)
+        result = reflection.get_callable_args(ClassWithInit)
         self.assertEquals(['k', 'l'], result)
 
     def test_class_with_call(self):
-        result = reflection.get_required_callable_args(CallableClass())
+        result = reflection.get_callable_args(CallableClass())
         self.assertEquals(['i', 'j'], result)
 
     def test_decorators_work(self):
         @lock_utils.locked
         def locked_fun(x, y):
             pass
-        result = reflection.get_required_callable_args(locked_fun)
+        result = reflection.get_callable_args(locked_fun)
         self.assertEquals(['x', 'y'], result)
 
 

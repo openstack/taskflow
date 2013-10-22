@@ -111,11 +111,18 @@ def _get_arg_spec(function):
     return inspect.getargspec(function), bound
 
 
-def get_required_callable_args(function):
-    """Get names of argument required by callable"""
+def get_callable_args(function, required_only=False):
+    """Get names of callable arguments
+
+    Special arguments (like *args and **kwargs) are not included into
+    output.
+
+    If required_only is True, optional arguments (with default values)
+    are not included into output.
+    """
     argspec, bound = _get_arg_spec(function)
     f_args = argspec.args
-    if argspec.defaults:
+    if required_only and argspec.defaults:
         f_args = f_args[:-len(argspec.defaults)]
     if bound:
         f_args = f_args[1:]

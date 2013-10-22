@@ -78,34 +78,33 @@ def _build_rebind_dict(args, rebind_args):
         raise TypeError('Invalid rebind value: %s' % rebind_args)
 
 
-def _check_args_mapping(task_name, rebind, args, accepts_kwargs):
-    args = set(args)
-    rebind = set(rebind.keys())
-    extra_args = rebind - args
-    missing_args = args - rebind
-    if not accepts_kwargs and extra_args:
-        raise ValueError('Extra arguments given to task %s: %s'
-                         % (task_name, sorted(extra_args)))
-    if missing_args:
-        raise ValueError('Missing arguments for task %s: %s'
-                         % (task_name, sorted(missing_args)))
-
-
 def _build_arg_mapping(task_name, reqs, rebind_args, function, do_infer):
     """Given a function, its requirements and a rebind mapping this helper
     function will build the correct argument mapping for the given function as
     well as verify that the final argument mapping does not have missing or
     extra arguments (where applicable).
     """
-    task_args = reflection.get_required_callable_args(function)
-    accepts_kwargs = reflection.accepts_kwargs(function)
+    task_args = reflection.get_callable_args(function, required_only=True)
     result = {}
     if reqs:
         result.update((a, a) for a in reqs)
     if do_infer:
         result.update((a, a) for a in task_args)
     result.update(_build_rebind_dict(task_args, rebind_args))
-    _check_args_mapping(task_name, result, task_args, accepts_kwargs)
+
+    if not reflection.accepts_kwargs(function):
+        all_args = reflection.get_callable_args(function, required_only=False)
+        extra_args = set(result) - set(all_args)
+        if extra_args:
+            extra_args_str = ', '.join(sorted(extra_args))
+            raise ValueError('Extra arguments given to task %s: %s'
+                             % (task_name, extra_args_str))
+
+    # NOTE(imelnikov): don't use set to preserve order in error message
+    missing_args = [arg for arg in task_args if arg not in result]
+    if missing_args:
+        raise ValueError('Missing arguments for task %s: %s'
+                         % (task_name, ' ,'.join(missing_args)))
     return result
 
 
