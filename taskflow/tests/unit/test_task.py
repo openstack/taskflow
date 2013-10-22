@@ -31,6 +31,11 @@ class KwargsTask(task.Task):
         pass
 
 
+class DefaultArgTask(task.Task):
+    def execute(self, spam, eggs=()):
+        pass
+
+
 class DefaultProvidesTask(task.Task):
     default_provides = 'def'
 
@@ -97,6 +102,14 @@ class TaskTestCase(test.TestCase):
     def test_requires_explicit_not_enough(self):
         with self.assertRaisesRegexp(ValueError, '^Missing arguments'):
             MyTask(auto_extract=False, requires=('spam', 'eggs'))
+
+    def test_requires_ignores_optional(self):
+        my_task = DefaultArgTask()
+        self.assertEquals(my_task.requires, set(['spam']))
+
+    def test_requires_allows_optional(self):
+        my_task = DefaultArgTask(requires=('spam', 'eggs'))
+        self.assertEquals(my_task.requires, set(['spam', 'eggs']))
 
     def test_rebind_all_args(self):
         my_task = MyTask(rebind={'spam': 'a', 'eggs': 'b', 'context': 'c'})
