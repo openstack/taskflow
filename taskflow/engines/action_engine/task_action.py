@@ -114,9 +114,9 @@ class TaskAction(base.Action):
                        'update_progress', self._on_update_progress,
                        engine=engine):
             kwargs = engine.storage.fetch_mapped_args(self._task.rebind)
+            kwargs['result'] = engine.storage.get(self._id)
             try:
-                self._task.revert(result=engine.storage.get(self._id),
-                                  **kwargs)
+                self._task.revert(**kwargs)
             except Exception:
                 with excutils.save_and_reraise_exception():
                     self._change_state(engine, states.FAILURE)
