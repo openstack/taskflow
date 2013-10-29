@@ -15,12 +15,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import threading
+import abc
+
+import six
 
 from taskflow.openstack.common import uuidutils
-from taskflow.utils import lock_utils
 
 
+@six.add_metaclass(abc.ABCMeta)
 class Job(object):
     """A job is a higher level abstraction over a set of flows as well as the
     *ownership* of those flows, it is the highest piece of work that can be
@@ -34,38 +36,27 @@ class Job(object):
     entity for resumption/continuation/reverting.
     """
 
-    def __init__(self, name, uuid=None):
+    def __init__(self, name, uuid=None, details=None):
         if uuid:
             self._uuid = uuid
         else:
             self._uuid = uuidutils.generate_uuid()
         self._name = name
-        self._lock = threading.RLock()
-        self._flows = []
-        self.owner = None
-        self.state = None
-        self.book = None
+        if not details:
+            details = {}
+        self._details = details
 
-    @lock_utils.locked
-    def add(self, *flows):
-        self._flows.extend(flows)
+    @abc.abstractproperty
+    def board(self):
+        """The board this job was posted on or was created from."""
 
-    @lock_utils.locked
-    def remove(self, flow):
-        j = -1
-        for i, f in enumerate(self._flows):
-            if f.uuid == flow.uuid:
-                j = i
-                break
-        if j == -1:
-            raise ValueError("Could not find %r to remove" % (flow))
-        self._flows.pop(j)
+    @abc.abstractproperty
+    def state(self):
+        """The current state of this job."""
 
-    def __contains__(self, flow):
-        for f in self:
-            if f.uuid == flow.uuid:
-                return True
-        return False
+    @abc.abstractproperty
+    def book(self):
+        """Any logbook associated with this job."""
 
     @property
     def uuid(self):
@@ -73,13 +64,11 @@ class Job(object):
         return self._uuid
 
     @property
+    def details(self):
+        """A dictionary of any details associated with this job."""
+        return self._details
+
+    @property
     def name(self):
         """The non-uniquely identifying name of this job."""
         return self._name
-
-    def __iter__(self):
-        # Don't iterate while holding the lock.
-        with self._lock:
-            flows = list(self._flows)
-        for f in flows:
-            yield f
