@@ -74,20 +74,25 @@ class EngineTaskTest(utils.EngineTestBase):
                                  kwargs={'values': self.values})
         engine.task_notifier.register('*', self._callback,
                                       kwargs={'values': self.values})
+        expected = ['flow RUNNING',
+                    'fail RUNNING',
+                    'fail FAILURE',
+                    'flow FAILURE',
+                    'flow REVERTING',
+                    'fail REVERTING',
+                    'fail reverted(Failure: RuntimeError: Woot!)',
+                    'fail REVERTED',
+                    'flow REVERTED']
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
-        self.assertEquals(
-            self.values,
-            ['flow RUNNING',
-             'fail RUNNING',
-             'fail FAILURE',
-             'flow FAILURE',
-             'flow REVERTING',
-             'fail REVERTING',
-             'fail reverted(Failure: RuntimeError: Woot!)',
-             'fail REVERTED',
-             'fail PENDING',
-             'flow REVERTED'])
+        self.assertEquals(self.values, expected)
+        self.assertEquals(engine.storage.get_flow_state(), states.REVERTED)
+
+        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
+            engine.run()
+        now_expected = expected + ['fail PENDING', 'flow PENDING'] + expected
+        self.assertEquals(self.values, now_expected)
+        self.assertEquals(engine.storage.get_flow_state(), states.REVERTED)
 
     def test_invalid_flow_raises(self):
         value = 'i am string, not task/flow, sorry'
@@ -472,6 +477,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
             ['task1', 'task2',
              'task3 reverted(Failure: RuntimeError: Woot!)',
              'task2 reverted(5)', 'task1 reverted(5)'])
+        self.assertEquals(engine.storage.get_flow_state(), states.REVERTED)
 
     def test_graph_flow_four_tasks_revert_failure(self):
         flow = gf.Flow('g-3-nasty').add(
@@ -482,6 +488,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
             engine.run()
+        self.assertEquals(engine.storage.get_flow_state(), states.FAILURE)
 
     def test_graph_flow_with_multireturn_and_multiargs_tasks(self):
         flow = gf.Flow('g-3-multi').add(

@@ -97,12 +97,13 @@ class ActionEngine(base.EngineBase):
     @lock_utils.locked
     def run(self):
         """Runs the flow in the engine to completion."""
+        if self.storage.get_flow_state() == states.REVERTED:
+            self._reset()
         self.compile()
         external_provides = set(self.storage.fetch_all().keys())
         missing = self._flow.requires - external_provides
         if missing:
             raise exc.MissingDependencies(self._flow, sorted(missing))
-
         if self._failures:
             self._revert()
         else:
@@ -151,6 +152,16 @@ class ActionEngine(base.EngineBase):
                        task_uuid=task_action.uuid,
                        result=result)
         self.task_notifier.notify(state, details)
+
+    def _reset(self):
+        for name, uuid in self.storage.reset_tasks():
+            details = dict(engine=self,
+                           task_name=name,
+                           task_uuid=uuid,
+                           result=None)
+            self.task_notifier.notify(states.PENDING, details)
+        self._failures = {}
+        self._change_state(states.PENDING)
 
     @lock_utils.locked
     def compile(self):

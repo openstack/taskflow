@@ -26,7 +26,6 @@ from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
-RESET_TASK_STATES = (states.PENDING,)
 SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 
 
@@ -58,8 +57,6 @@ class TaskAction(base.Action):
         old_state = engine.storage.get_task_state(self.uuid)
         if not states.check_task_transition(old_state, state):
             return False
-        if state in RESET_TASK_STATES:
-            engine.storage.reset(self.uuid)
         if state in SAVE_RESULT_STATES:
             engine.storage.save(self.uuid, result, state)
         else:
@@ -121,4 +118,3 @@ class TaskAction(base.Action):
                 with excutils.save_and_reraise_exception():
                     self._change_state(engine, states.FAILURE)
         self._change_state_update_task(engine, states.REVERTED, 1.0)
-        self._change_state_update_task(engine, states.PENDING, 0.0)

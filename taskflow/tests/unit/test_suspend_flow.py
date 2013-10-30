@@ -143,6 +143,35 @@ class SuspendFlowTest(utils.EngineTestBase):
              'b reverted(5)',
              'a reverted(5)'])
 
+    def test_suspend_and_resume_linear_flow_on_revert(self):
+        flow = lf.Flow('linear').add(
+            TestTask(self.values, 'a'),
+            AutoSuspendingTaskOnRevert(self.values, 'b'),
+            FailingTask(self.values, 'c')
+        )
+        engine = self._make_engine(flow)
+        engine.storage.inject({'engine': engine})
+        engine.run()
+        self.assertEquals(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEquals(
+            self.values,
+            ['a', 'b',
+             'c reverted(Failure: RuntimeError: Woot!)',
+             'b reverted(5)'])
+
+        # pretend we are resuming
+        engine2 = self._make_engine(flow, engine.storage._flowdetail)
+        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
+            engine2.run()
+        self.assertEquals(engine2.storage.get_flow_state(), states.REVERTED)
+        self.assertEquals(
+            self.values,
+            ['a',
+             'b',
+             'c reverted(Failure: RuntimeError: Woot!)',
+             'b reverted(5)',
+             'a reverted(5)'])
+
     def test_storage_is_rechecked(self):
         flow = lf.Flow('linear').add(
             AutoSuspendingTask(self.values, 'b'),

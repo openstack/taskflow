@@ -95,6 +95,18 @@ class StorageTest(test.TestCase):
         self.assertEquals(s.get('42'), fail)
         self.assertEquals(s.get_task_state('42'), states.FAILURE)
 
+    def test_get_failure_from_reverted_task(self):
+        fail = misc.Failure(exc_info=(RuntimeError, RuntimeError(), None))
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        s.save('42', fail, states.FAILURE)
+
+        s.set_task_state('42', states.REVERTING)
+        self.assertEquals(s.get('42'), fail)
+
+        s.set_task_state('42', states.REVERTED)
+        self.assertEquals(s.get('42'), fail)
+
     def test_get_non_existing_var(self):
         s = self._get_storage()
         s.add_task('42', 'my task')
@@ -114,6 +126,36 @@ class StorageTest(test.TestCase):
         s = self._get_storage()
         s.add_task('42', 'my task')
         self.assertEquals(s.reset('42'), None)
+
+    def test_reset_tasks(self):
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        s.save('42', 5)
+        s.add_task('43', 'my other task')
+        s.save('43', 7)
+
+        s.reset_tasks()
+
+        self.assertEquals(s.get_task_state('42'), states.PENDING)
+        with self.assertRaises(exceptions.NotFound):
+            s.get('42')
+        self.assertEquals(s.get_task_state('43'), states.PENDING)
+        with self.assertRaises(exceptions.NotFound):
+            s.get('43')
+
+    def test_reset_tasks_does_not_breaks_inject(self):
+        s = self._get_storage()
+        s.inject({'foo': 'bar', 'spam': 'eggs'})
+
+        # NOTE(imelnikov): injecting is implemented as special task
+        # so resetting tasks may break it if implemented incorrectly
+        s.reset_tasks()
+
+        self.assertEquals(s.fetch('spam'), 'eggs')
+        self.assertEquals(s.fetch_all(), {
+            'foo': 'bar',
+            'spam': 'eggs',
+        })
 
     def test_fetch_by_name(self):
         s = self._get_storage()
@@ -160,6 +202,14 @@ class StorageTest(test.TestCase):
             'at_progress': 0.7,
             'details': {'test_data': 17}
         })
+
+    def test_task_progress_erase(self):
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+
+        s.set_task_progress('42', 0.8, {})
+        self.assertEquals(s.get_task_progress('42'), 0.8)
+        self.assertEquals(s.get_task_progress_details('42'), None)
 
     def test_fetch_result_not_ready(self):
         s = self._get_storage()

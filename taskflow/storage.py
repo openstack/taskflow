@@ -223,18 +223,43 @@ class Storage(object):
     def get(self, uuid):
         """Get result for task with id 'uuid' to storage"""
         td = self._taskdetail_by_uuid(uuid)
-        if td.state not in STATES_WITH_RESULTS:
-            raise exceptions.NotFound("Result for task %r is not known" % uuid)
         if td.failure:
             return td.failure
+        if td.state not in STATES_WITH_RESULTS:
+            raise exceptions.NotFound("Result for task %r is not known" % uuid)
         return td.results
+
+    def _reset_task(self, td, state):
+        if td.name == self.injector_name:
+            return False
+        if td.state == state:
+            return False
+        td.results = None
+        td.failure = None
+        td.state = state
+        return True
 
     def reset(self, uuid, state=states.PENDING):
         """Remove result for task with id 'uuid' from storage"""
         td = self._taskdetail_by_uuid(uuid)
-        td.results = None
-        td.state = state
-        self._with_connection(self._save_task_detail, task_detail=td)
+        if self._reset_task(td, state):
+            self._with_connection(self._save_task_detail, task_detail=td)
+
+    def reset_tasks(self):
+        """Reset all tasks to PENDING state, removing results.
+
+        Returns list of (name, uuid) tuples for all tasks that were reset.
+        """
+        result = []
+
+        def do_reset_all(connection):
+            for td in self._flowdetail:
+                if self._reset_task(td, states.PENDING):
+                    self._save_task_detail(connection, td)
+                    result.append((td.name, td.uuid))
+
+        self._with_connection(do_reset_all)
+        return result
 
     def inject(self, pairs):
         """Add values into storage

@@ -67,7 +67,7 @@ _ALLOWED_FLOW_TRANSITIONS = frozenset((
     (REVERTING, FAILURE),     # revert failed
     (REVERTING, SUSPENDING),  # engine.suspend was called
 
-    (REVERTED, RUNNING),      # try again
+    (REVERTED, PENDING),      # try again
 
     (SUSPENDING, SUSPENDED),  # suspend finished
     (SUSPENDING, SUCCESS),    # all tasks finished while we were waiting
@@ -95,7 +95,6 @@ _ALLOWED_FLOW_TRANSITIONS = frozenset((
 # of actual state of the tasks -- e.g. if all tasks were finished
 # successfully while we were waiting, flow can be transitioned from
 # SUSPENDING to SUCCESS state.
-
 
 _IGNORED_FLOW_TRANSITIONS = frozenset(
     (a, b)
