@@ -30,8 +30,10 @@ import taskflow.engines
 from taskflow.engines.action_engine import engine as eng
 from taskflow.persistence import logbook
 from taskflow import states
+from taskflow import task
 from taskflow import test
 from taskflow.tests import utils
+from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 
 
@@ -185,6 +187,26 @@ class EngineLinearFlowTest(utils.EngineTestBase):
             ['task1', 'task2',
              'fail reverted(Failure: RuntimeError: Woot!)',
              'task2 reverted(5)', 'task1 reverted(5)'])
+
+    def test_flow_failures_are_passed_to_revert(self):
+        class CheckingTask(task.Task):
+            def execute(m_self):
+                return 'RESULT'
+
+            def revert(m_self, result, flow_failures):
+                self.assertEqual(result, 'RESULT')
+                self.assertEqual(flow_failures.keys(), ['fail1'])
+                fail = flow_failures['fail1']
+                self.assertIsInstance(fail, misc.Failure)
+                self.assertEqual(str(fail), 'Failure: RuntimeError: Woot!')
+
+        flow = lf.Flow('test').add(
+            CheckingTask(),
+            utils.FailingTask(self.values, 'fail1')
+        )
+        engine = self._make_engine(flow)
+        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
+            engine.run()
 
 
 class EngineParallelFlowTest(utils.EngineTestBase):

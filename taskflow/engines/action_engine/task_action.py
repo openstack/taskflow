@@ -112,6 +112,7 @@ class TaskAction(base.Action):
                        engine=engine):
             kwargs = engine.storage.fetch_mapped_args(self._task.rebind)
             kwargs['result'] = engine.storage.get(self._id)
+            kwargs['flow_failures'] = engine.storage.get_failures()
             try:
                 self._task.revert(**kwargs)
             except Exception:
