@@ -65,6 +65,11 @@ class Storage(object):
         self._backend = backend
         self._flowdetail = flow_detail
 
+        # NOTE(imelnikov): failure serialization looses information,
+        # so we cache failures here, in task name -> misc.Failure mapping
+        self._failures = {}
+        self._reload_failures()
+
         injector_td = self._flowdetail.find_by_name(self.injector_name)
         if injector_td is not None and injector_td.results is not None:
             names = six.iterkeys(injector_td.results)
@@ -214,20 +219,50 @@ class Storage(object):
         if state == states.FAILURE and isinstance(data, misc.Failure):
             td.results = None
             td.failure = data
+            self._failures[td.name] = data
         else:
             td.results = data
             td.failure = None
             self._check_all_results_provided(uuid, td.name, data)
         self._with_connection(self._save_task_detail, task_detail=td)
 
+    def _cache_failure(self, name, fail):
+        """Ensure that cache has matching failure for task with this name.
+
+        We leave cached version if it matches as it may contain more
+        information. Returns cached failure.
+        """
+        cached = self._failures.get(name)
+        if fail.matches(cached):
+            return cached
+        self._failures[name] = fail
+        return fail
+
+    def _reload_failures(self):
+        """Refresh failures cache"""
+        for td in self._flowdetail:
+            if td.failure is not None:
+                self._cache_failure(td.name, td.failure)
+
     def get(self, uuid):
         """Get result for task with id 'uuid' to storage"""
         td = self._taskdetail_by_uuid(uuid)
-        if td.failure:
-            return td.failure
+        if td.failure is not None:
+            return self._cache_failure(td.name, td.failure)
         if td.state not in STATES_WITH_RESULTS:
             raise exceptions.NotFound("Result for task %r is not known" % uuid)
         return td.results
+
+    def get_failures(self):
+        """Get list of failures that happened with this flow.
+
+        No order guaranteed.
+        """
+        return self._failures.copy()
+
+    def has_failures(self):
+        """Returns True if there are failed tasks in the storage"""
+        return bool(self._failures)
 
     def _reset_task(self, td, state):
         if td.name == self.injector_name:
@@ -237,6 +272,7 @@ class Storage(object):
         td.results = None
         td.failure = None
         td.state = state
+        self._failures.pop(td.name, None)
         return True
 
     def reset(self, uuid, state=states.PENDING):
