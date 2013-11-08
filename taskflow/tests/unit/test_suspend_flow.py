@@ -96,11 +96,11 @@ class SuspendFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
         engine.run()
-        self.assertEquals(engine.storage.get_flow_state(), states.SUCCESS)
-        self.assertEquals(self.values, ['a'])
+        self.assertEqual(engine.storage.get_flow_state(), states.SUCCESS)
+        self.assertEqual(self.values, ['a'])
         engine.run()
-        self.assertEquals(engine.storage.get_flow_state(), states.SUCCESS)
-        self.assertEquals(self.values, ['a'])
+        self.assertEqual(engine.storage.get_flow_state(), states.SUCCESS)
+        self.assertEqual(self.values, ['a'])
 
     def test_suspend_linear_flow(self):
         flow = lf.Flow('linear').add(
@@ -111,11 +111,11 @@ class SuspendFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
         engine.run()
-        self.assertEquals(engine.storage.get_flow_state(), states.SUSPENDED)
-        self.assertEquals(self.values, ['a', 'b'])
+        self.assertEqual(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEqual(self.values, ['a', 'b'])
         engine.run()
-        self.assertEquals(engine.storage.get_flow_state(), states.SUCCESS)
-        self.assertEquals(self.values, ['a', 'b', 'c'])
+        self.assertEqual(engine.storage.get_flow_state(), states.SUCCESS)
+        self.assertEqual(self.values, ['a', 'b', 'c'])
 
     def test_suspend_linear_flow_on_revert(self):
         flow = lf.Flow('linear').add(
@@ -126,16 +126,16 @@ class SuspendFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
         engine.run()
-        self.assertEquals(engine.storage.get_flow_state(), states.SUSPENDED)
-        self.assertEquals(
+        self.assertEqual(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEqual(
             self.values,
             ['a', 'b',
              'c reverted(Failure: RuntimeError: Woot!)',
              'b reverted(5)'])
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine.run()
-        self.assertEquals(engine.storage.get_flow_state(), states.REVERTED)
-        self.assertEquals(
+        self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
+        self.assertEqual(
             self.values,
             ['a',
              'b',
@@ -152,8 +152,8 @@ class SuspendFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
         engine.run()
-        self.assertEquals(engine.storage.get_flow_state(), states.SUSPENDED)
-        self.assertEquals(
+        self.assertEqual(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEqual(
             self.values,
             ['a', 'b',
              'c reverted(Failure: RuntimeError: Woot!)',
@@ -163,8 +163,8 @@ class SuspendFlowTest(utils.EngineTestBase):
         engine2 = self._make_engine(flow, engine.storage._flowdetail)
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine2.run()
-        self.assertEquals(engine2.storage.get_flow_state(), states.REVERTED)
-        self.assertEquals(
+        self.assertEqual(engine2.storage.get_flow_state(), states.REVERTED)
+        self.assertEqual(
             self.values,
             ['a',
              'b',
@@ -180,7 +180,7 @@ class SuspendFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine, 'boo': True})
         engine.run()
-        self.assertEquals(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEqual(engine.storage.get_flow_state(), states.SUSPENDED)
         # uninject engine
         engine.storage.save(
             engine.storage.get_uuid_by_name(engine.storage.injector_name),

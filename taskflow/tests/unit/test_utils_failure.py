@@ -34,23 +34,23 @@ def _captured_failure(msg):
 class GeneralFailureObjTestsMixin(object):
 
     def test_captures_message(self):
-        self.assertEquals(self.fail_obj.exception_str, 'Woot!')
+        self.assertEqual(self.fail_obj.exception_str, 'Woot!')
 
     def test_str(self):
-        self.assertEquals(str(self.fail_obj),
-                          'Failure: RuntimeError: Woot!')
+        self.assertEqual(str(self.fail_obj),
+                         'Failure: RuntimeError: Woot!')
 
     def test_exception_types(self):
-        self.assertEquals(list(self.fail_obj),
-                          test_utils.RUNTIME_ERROR_CLASSES[:-2])
+        self.assertEqual(list(self.fail_obj),
+                         test_utils.RUNTIME_ERROR_CLASSES[:-2])
 
     def test_check_str(self):
         val = 'Exception'
-        self.assertEquals(self.fail_obj.check(val), val)
+        self.assertEqual(self.fail_obj.check(val), val)
 
     def test_check_str_not_there(self):
         val = 'ValueError'
-        self.assertEquals(self.fail_obj.check(val), None)
+        self.assertEqual(self.fail_obj.check(val), None)
 
     def test_check_type(self):
         self.assertIs(self.fail_obj.check(RuntimeError), RuntimeError)
@@ -70,8 +70,8 @@ class CaptureFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 
     def test_captures_exc_info(self):
         exc_info = self.fail_obj.exc_info
-        self.assertEquals(len(exc_info), 3)
-        self.assertEquals(exc_info[0], RuntimeError)
+        self.assertEqual(len(exc_info), 3)
+        self.assertEqual(exc_info[0], RuntimeError)
         self.assertIs(exc_info[1], self.fail_obj.exception)
 
     def test_reraises(self):
@@ -117,7 +117,7 @@ class FailureObjectTestCase(test.TestCase):
                 exc_type_names=['Exception'],
                 hi='hi there')
         expected = "Failure.__init__ got unexpected keyword argument(s): hi"
-        self.assertEquals(str(ctx.exception), expected)
+        self.assertEqual(str(ctx.exception), expected)
 
     def test_empty_does_not_reraise(self):
         self.assertIs(misc.Failure.reraise_if_any([]), None)
@@ -134,14 +134,14 @@ class FailureObjectTestCase(test.TestCase):
         ]
         with self.assertRaises(exceptions.WrappedFailure) as ctx:
             misc.Failure.reraise_if_any(fls)
-        self.assertEquals(list(ctx.exception), fls)
+        self.assertEqual(list(ctx.exception), fls)
 
     def test_failure_copy(self):
         fail_obj = _captured_failure('Woot!')
 
         copied = fail_obj.copy()
         self.assertIsNot(fail_obj, copied)
-        self.assertEquals(fail_obj, copied)
+        self.assertEqual(fail_obj, copied)
         self.assertTrue(fail_obj.matches(copied))
 
     def test_failure_copy_recaptured(self):
@@ -151,7 +151,7 @@ class FailureObjectTestCase(test.TestCase):
                                 exc_type_names=list(captured))
         copied = fail_obj.copy()
         self.assertIsNot(fail_obj, copied)
-        self.assertEquals(fail_obj, copied)
+        self.assertEqual(fail_obj, copied)
         self.assertFalse(fail_obj != copied)
         self.assertTrue(fail_obj.matches(copied))
 
@@ -167,7 +167,7 @@ class FailureObjectTestCase(test.TestCase):
     def test_two_captured_eq(self):
         captured = _captured_failure('Woot!')
         captured2 = _captured_failure('Woot!')
-        self.assertEquals(captured, captured2)
+        self.assertEqual(captured, captured2)
 
     def test_two_recaptured_neq(self):
         captured = _captured_failure('Woot!')
@@ -178,12 +178,12 @@ class FailureObjectTestCase(test.TestCase):
         fail_obj2 = misc.Failure(exception_str=new_exc_str,
                                  traceback_str=captured.traceback_str,
                                  exc_type_names=list(captured))
-        self.assertNotEquals(fail_obj, fail_obj2)
+        self.assertNotEqual(fail_obj, fail_obj2)
         self.assertFalse(fail_obj2.matches(fail_obj))
 
     def test_compares_to_none(self):
         captured = _captured_failure('Woot!')
-        self.assertNotEquals(captured, None)
+        self.assertNotEqual(captured, None)
         self.assertFalse(captured.matches(None))
 
 
@@ -192,14 +192,14 @@ class WrappedFailureTestCase(test.TestCase):
     def test_simple_iter(self):
         fail_obj = _captured_failure('Woot!')
         wf = exceptions.WrappedFailure([fail_obj])
-        self.assertEquals(len(wf), 1)
-        self.assertEquals(list(wf), [fail_obj])
+        self.assertEqual(len(wf), 1)
+        self.assertEqual(list(wf), [fail_obj])
 
     def test_simple_check(self):
         fail_obj = _captured_failure('Woot!')
         wf = exceptions.WrappedFailure([fail_obj])
-        self.assertEquals(wf.check(RuntimeError), RuntimeError)
-        self.assertEquals(wf.check(ValueError), None)
+        self.assertEqual(wf.check(RuntimeError), RuntimeError)
+        self.assertEqual(wf.check(ValueError), None)
 
     def test_two_failures(self):
         fls = [
@@ -207,8 +207,8 @@ class WrappedFailureTestCase(test.TestCase):
             _captured_failure('Oh, not again!')
         ]
         wf = exceptions.WrappedFailure(fls)
-        self.assertEquals(len(wf), 2)
-        self.assertEquals(list(wf), fls)
+        self.assertEqual(len(wf), 2)
+        self.assertEqual(list(wf), fls)
 
     def test_flattening(self):
         f1 = _captured_failure('Wrap me')
@@ -220,4 +220,4 @@ class WrappedFailureTestCase(test.TestCase):
             fail_obj = misc.Failure()
 
         wf = exceptions.WrappedFailure([fail_obj, f3])
-        self.assertEquals(list(wf), [f1, f2, f3])
+        self.assertEqual(list(wf), [f1, f2, f3])

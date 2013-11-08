@@ -44,9 +44,9 @@ class PersistenceTestMixin(object):
         # we expect them to be).
         with contextlib.closing(self._get_connection()) as conn:
             lb = conn.get_logbook(lb_id)
-        self.assertEquals(lb_name, lb.name)
-        self.assertEquals(0, len(lb))
-        self.assertEquals(lb_meta, lb.meta)
+        self.assertEqual(lb_name, lb.name)
+        self.assertEqual(0, len(lb))
+        self.assertEqual(lb_meta, lb.meta)
         self.assertIsNone(lb.updated_at)
         self.assertIsNotNone(lb.created_at)
 
@@ -117,9 +117,9 @@ class PersistenceTestMixin(object):
         fd2 = lb2.find(fd.uuid)
         td2 = fd2.find(td.uuid)
         failure = td2.failure
-        self.assertEquals(failure.exception_str, 'Woot!')
+        self.assertEqual(failure.exception_str, 'Woot!')
         self.assertIs(failure.check(RuntimeError), RuntimeError)
-        self.assertEquals(failure.traceback_str, td.failure.traceback_str)
+        self.assertEqual(failure.traceback_str, td.failure.traceback_str)
 
     def test_logbook_merge_flow_detail(self):
         lb_id = uuidutils.generate_uuid()
@@ -136,7 +136,7 @@ class PersistenceTestMixin(object):
             conn.save_logbook(lb2)
         with contextlib.closing(self._get_connection()) as conn:
             lb3 = conn.get_logbook(lb_id)
-            self.assertEquals(2, len(lb3))
+            self.assertEqual(2, len(lb3))
 
     def test_logbook_add_flow_detail(self):
         lb_id = uuidutils.generate_uuid()
@@ -148,9 +148,9 @@ class PersistenceTestMixin(object):
             conn.save_logbook(lb)
         with contextlib.closing(self._get_connection()) as conn:
             lb2 = conn.get_logbook(lb_id)
-            self.assertEquals(1, len(lb2))
-            self.assertEquals(1, len(lb))
-            self.assertEquals(fd.name, lb2.find(fd.uuid).name)
+            self.assertEqual(1, len(lb2))
+            self.assertEqual(1, len(lb))
+            self.assertEqual(fd.name, lb2.find(fd.uuid).name)
 
     def test_logbook_add_task_detail(self):
         lb_id = uuidutils.generate_uuid()
@@ -165,18 +165,18 @@ class PersistenceTestMixin(object):
             conn.save_logbook(lb)
         with contextlib.closing(self._get_connection()) as conn:
             lb2 = conn.get_logbook(lb_id)
-            self.assertEquals(1, len(lb2))
+            self.assertEqual(1, len(lb2))
             tasks = 0
             for fd in lb:
                 tasks += len(fd)
-            self.assertEquals(1, tasks)
+            self.assertEqual(1, tasks)
         with contextlib.closing(self._get_connection()) as conn:
             lb2 = conn.get_logbook(lb_id)
             fd2 = lb2.find(fd.uuid)
             td2 = fd2.find(td.uuid)
             self.assertIsNot(td2, None)
-            self.assertEquals(td2.name, 'detail-1')
-            self.assertEquals(td2.version, '4.2')
+            self.assertEqual(td2.name, 'detail-1')
+            self.assertEqual(td2.version, '4.2')
 
     def test_logbook_delete(self):
         lb_id = uuidutils.generate_uuid()

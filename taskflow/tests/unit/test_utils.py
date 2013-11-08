@@ -65,91 +65,91 @@ class GetCallableNameTest(test.TestCase):
 
     def test_mere_function(self):
         name = reflection.get_callable_name(mere_function)
-        self.assertEquals(name, '.'.join((__name__, 'mere_function')))
+        self.assertEqual(name, '.'.join((__name__, 'mere_function')))
 
     def test_method(self):
         name = reflection.get_callable_name(Class.method)
-        self.assertEquals(name, '.'.join((__name__, 'method')))
+        self.assertEqual(name, '.'.join((__name__, 'method')))
 
     def test_instance_method(self):
         name = reflection.get_callable_name(Class().method)
-        self.assertEquals(name, '.'.join((__name__, 'Class', 'method')))
+        self.assertEqual(name, '.'.join((__name__, 'Class', 'method')))
 
     def test_static_method(self):
         # NOTE(imelnikov): static method are just functions, class name
         #   is not recorded anywhere in them
         name = reflection.get_callable_name(Class.static_method)
-        self.assertEquals(name, '.'.join((__name__, 'static_method')))
+        self.assertEqual(name, '.'.join((__name__, 'static_method')))
 
     def test_class_method(self):
         name = reflection.get_callable_name(Class.class_method)
-        self.assertEquals(name, '.'.join((__name__, 'Class', 'class_method')))
+        self.assertEqual(name, '.'.join((__name__, 'Class', 'class_method')))
 
     def test_constructor(self):
         name = reflection.get_callable_name(Class)
-        self.assertEquals(name, '.'.join((__name__, 'Class')))
+        self.assertEqual(name, '.'.join((__name__, 'Class')))
 
     def test_callable_class(self):
         name = reflection.get_callable_name(CallableClass())
-        self.assertEquals(name, '.'.join((__name__, 'CallableClass')))
+        self.assertEqual(name, '.'.join((__name__, 'CallableClass')))
 
     def test_callable_class_call(self):
         name = reflection.get_callable_name(CallableClass().__call__)
-        self.assertEquals(name, '.'.join((__name__, 'CallableClass',
-                                          '__call__')))
+        self.assertEqual(name, '.'.join((__name__, 'CallableClass',
+                                         '__call__')))
 
 
 class GetCallableArgsTest(test.TestCase):
 
     def test_mere_function(self):
         result = reflection.get_callable_args(mere_function)
-        self.assertEquals(['a', 'b'], result)
+        self.assertEqual(['a', 'b'], result)
 
     def test_function_with_defaults(self):
         result = reflection.get_callable_args(function_with_defs)
-        self.assertEquals(['a', 'b', 'optional'], result)
+        self.assertEqual(['a', 'b', 'optional'], result)
 
     def test_required_only(self):
         result = reflection.get_callable_args(function_with_defs,
                                               required_only=True)
-        self.assertEquals(['a', 'b'], result)
+        self.assertEqual(['a', 'b'], result)
 
     def test_method(self):
         result = reflection.get_callable_args(Class.method)
-        self.assertEquals(['self', 'c', 'd'], result)
+        self.assertEqual(['self', 'c', 'd'], result)
 
     def test_instance_method(self):
         result = reflection.get_callable_args(Class().method)
-        self.assertEquals(['c', 'd'], result)
+        self.assertEqual(['c', 'd'], result)
 
     def test_class_method(self):
         result = reflection.get_callable_args(Class.class_method)
-        self.assertEquals(['g', 'h'], result)
+        self.assertEqual(['g', 'h'], result)
 
     def test_class_constructor(self):
         result = reflection.get_callable_args(ClassWithInit)
-        self.assertEquals(['k', 'l'], result)
+        self.assertEqual(['k', 'l'], result)
 
     def test_class_with_call(self):
         result = reflection.get_callable_args(CallableClass())
-        self.assertEquals(['i', 'j'], result)
+        self.assertEqual(['i', 'j'], result)
 
     def test_decorators_work(self):
         @lock_utils.locked
         def locked_fun(x, y):
             pass
         result = reflection.get_callable_args(locked_fun)
-        self.assertEquals(['x', 'y'], result)
+        self.assertEqual(['x', 'y'], result)
 
 
 class AcceptsKwargsTest(test.TestCase):
 
     def test_no_kwargs(self):
-        self.assertEquals(
+        self.assertEqual(
             reflection.accepts_kwargs(mere_function), False)
 
     def test_with_kwargs(self):
-        self.assertEquals(
+        self.assertEqual(
             reflection.accepts_kwargs(function_with_kwargs), True)
 
 
@@ -157,35 +157,35 @@ class GetClassNameTest(test.TestCase):
 
     def test_std_exception(self):
         name = reflection.get_class_name(RuntimeError)
-        self.assertEquals(name, 'RuntimeError')
+        self.assertEqual(name, 'RuntimeError')
 
     def test_global_class(self):
         name = reflection.get_class_name(misc.Failure)
-        self.assertEquals(name, 'taskflow.utils.misc.Failure')
+        self.assertEqual(name, 'taskflow.utils.misc.Failure')
 
     def test_class(self):
         name = reflection.get_class_name(Class)
-        self.assertEquals(name, '.'.join((__name__, 'Class')))
+        self.assertEqual(name, '.'.join((__name__, 'Class')))
 
     def test_instance(self):
         name = reflection.get_class_name(Class())
-        self.assertEquals(name, '.'.join((__name__, 'Class')))
+        self.assertEqual(name, '.'.join((__name__, 'Class')))
 
     def test_int(self):
         name = reflection.get_class_name(42)
-        self.assertEquals(name, 'int')
+        self.assertEqual(name, 'int')
 
 
 class GetAllClassNamesTest(test.TestCase):
 
     def test_std_class(self):
         names = list(reflection.get_all_class_names(RuntimeError))
-        self.assertEquals(names, test_utils.RUNTIME_ERROR_CLASSES)
+        self.assertEqual(names, test_utils.RUNTIME_ERROR_CLASSES)
 
     def test_std_class_up_to(self):
         names = list(reflection.get_all_class_names(RuntimeError,
                                                     up_to=Exception))
-        self.assertEquals(names, test_utils.RUNTIME_ERROR_CLASSES[:-2])
+        self.assertEqual(names, test_utils.RUNTIME_ERROR_CLASSES[:-2])
 
 
 class AttrDictTest(test.TestCase):
@@ -195,8 +195,8 @@ class AttrDictTest(test.TestCase):
             'b': 2,
         }
         obj = misc.AttrDict(**attrs)
-        self.assertEquals(obj.a, 1)
-        self.assertEquals(obj.b, 2)
+        self.assertEqual(obj.a, 1)
+        self.assertEqual(obj.b, 2)
 
     def test_private_create(self):
         attrs = {
@@ -223,15 +223,15 @@ class AttrDictTest(test.TestCase):
             'a': 1,
         }
         obj = misc.AttrDict(**attrs)
-        self.assertEquals(obj.a, 1)
-        self.assertEquals(attrs, dict(obj))
+        self.assertEqual(obj.a, 1)
+        self.assertEqual(attrs, dict(obj))
 
     def test_runtime_invalid_set(self):
         attrs = {
             'a': 1,
         }
         obj = misc.AttrDict(**attrs)
-        self.assertEquals(obj.a, 1)
+        self.assertEqual(obj.a, 1)
         with self.assertRaises(AttributeError):
             obj._123 = 'b'
 
@@ -240,18 +240,18 @@ class AttrDictTest(test.TestCase):
             'a': 1,
         }
         obj = misc.AttrDict(**attrs)
-        self.assertEquals(1, obj['a'])
+        self.assertEqual(1, obj['a'])
 
     def test_bypass_set_no_get(self):
         attrs = {
             'a': 1,
         }
         obj = misc.AttrDict(**attrs)
-        self.assertEquals(1, obj['a'])
+        self.assertEqual(1, obj['a'])
         obj['_b'] = 'c'
         with self.assertRaises(AttributeError):
             obj._b = 'e'
-        self.assertEquals('c', obj['_b'])
+        self.assertEqual('c', obj['_b'])
 
 
 class ExcInfoUtilsTest(test.TestCase):

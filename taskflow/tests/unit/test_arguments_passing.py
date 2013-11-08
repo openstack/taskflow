@@ -29,20 +29,20 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         flow = utils.TaskOneReturn(name='task1', provides='first_data')
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEquals(engine.storage.fetch_all(), {'first_data': 1})
+        self.assertEqual(engine.storage.fetch_all(), {'first_data': 1})
 
     def test_save_all_in_one(self):
         flow = utils.TaskMultiReturn(provides='all_data')
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEquals(engine.storage.fetch_all(),
-                          {'all_data': (1, 3, 5)})
+        self.assertEqual(engine.storage.fetch_all(),
+                         {'all_data': (1, 3, 5)})
 
     def test_save_several_values(self):
         flow = utils.TaskMultiReturn(provides=('badger', 'mushroom', 'snake'))
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEquals(engine.storage.fetch_all(), {
+        self.assertEqual(engine.storage.fetch_all(), {
             'badger': 1,
             'mushroom': 3,
             'snake': 5
@@ -54,7 +54,7 @@ class ArgumentsPassingTest(utils.EngineTestBase):
                                                   'snake']))
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEquals(engine.storage.fetch_all(), {
+        self.assertEqual(engine.storage.fetch_all(), {
             'badger': 0,
             'mushroom': 1,
             'snake': 2,
@@ -69,7 +69,7 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'x': 1, 'y': 4, 'z': 9, 'a': 17})
         engine.run()
-        self.assertEquals(engine.storage.fetch_all(), {
+        self.assertEqual(engine.storage.fetch_all(), {
             'x': 1, 'y': 4, 'z': 9, 'a': 17,
             'result': 14,
         })
@@ -87,7 +87,7 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'x': 1, 'y': 4, 'z': 9, 'a': 17})
         engine.run()
-        self.assertEquals(engine.storage.fetch_all(), {
+        self.assertEqual(engine.storage.fetch_all(), {
             'x': 1, 'y': 4, 'z': 9, 'a': 17,
             'result': 30,
         })
@@ -100,7 +100,7 @@ class ArgumentsPassingTest(utils.EngineTestBase):
             'a': 1, 'b': 2, 'c': 3, 'x': 4, 'y': 5, 'z': 6
         })
         engine.run()
-        self.assertEquals(engine.storage.fetch_all(), {
+        self.assertEqual(engine.storage.fetch_all(), {
             'a': 1, 'b': 2, 'c': 3, 'x': 4, 'y': 5, 'z': 6,
             'result': 6,
         })

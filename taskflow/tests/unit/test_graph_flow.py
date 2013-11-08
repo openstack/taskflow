@@ -58,9 +58,9 @@ class GraphFlowTest(test.TestCase):
         wf.add(test_1, test_2, test_3)
         self.assertTrue(wf.graph.has_edge(test_1, test_2))
         self.assertTrue(wf.graph.has_edge(test_2, test_3))
-        self.assertEquals(3, len(wf.graph))
-        self.assertEquals([test_1], list(gu.get_no_predecessors(wf.graph)))
-        self.assertEquals([test_3], list(gu.get_no_successors(wf.graph)))
+        self.assertEqual(3, len(wf.graph))
+        self.assertEqual([test_1], list(gu.get_no_predecessors(wf.graph)))
+        self.assertEqual([test_3], list(gu.get_no_successors(wf.graph)))
 
     def test_basic_edge_reasons(self):
         wf = gw.Flow("the-test-action")
@@ -76,7 +76,7 @@ class GraphFlowTest(test.TestCase):
         edge_attrs = gu.get_edge_attrs(wf.graph, test_1, test_2)
         self.assertTrue(len(edge_attrs) > 0)
         self.assertIn('reasons', edge_attrs)
-        self.assertEquals(set(['a', 'b']), edge_attrs['reasons'])
+        self.assertEqual(set(['a', 'b']), edge_attrs['reasons'])
 
         # 2 -> 1 should not be linked, and therefore have no attrs
         no_edge_attrs = gu.get_edge_attrs(wf.graph, test_2, test_1)
@@ -110,7 +110,7 @@ class GraphFlowTest(test.TestCase):
         wf.add(test_1, test_2)
         wf.link(test_1, test_2)
         g = fu.flatten(wf)
-        self.assertEquals(2, len(g))
+        self.assertEqual(2, len(g))
         edge_attrs = gu.get_edge_attrs(g, test_1, test_2)
         self.assertTrue(edge_attrs.get('manual'))
         self.assertTrue(edge_attrs.get('flatten'))

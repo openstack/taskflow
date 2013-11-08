@@ -72,9 +72,9 @@ class TestProgress(test.TestCase):
         flo.add(t)
         e = self._make_engine(flo)
         e.run()
-        self.assertEquals(ev_count + 1, len(fired_events))
-        self.assertEquals(1.0, fired_events[-1])
-        self.assertEquals(0.0, fired_events[0])
+        self.assertEqual(ev_count + 1, len(fired_events))
+        self.assertEqual(1.0, fired_events[-1])
+        self.assertEqual(0.0, fired_events[0])
 
     def test_no_segments_progress(self):
         fired_events = []
@@ -89,9 +89,9 @@ class TestProgress(test.TestCase):
         e = self._make_engine(flo)
         e.run()
         # 0.0 and 1.0 should be automatically fired
-        self.assertEquals(2, len(fired_events))
-        self.assertEquals(1.0, fired_events[-1])
-        self.assertEquals(0.0, fired_events[0])
+        self.assertEqual(2, len(fired_events))
+        self.assertEqual(1.0, fired_events[-1])
+        self.assertEqual(0.0, fired_events[0])
 
     def test_storage_progress(self):
         with contextlib.closing(impl_memory.MemoryBackend({})) as be:
@@ -102,9 +102,9 @@ class TestProgress(test.TestCase):
             e.run()
             t_uuid = e.storage.get_uuid_by_name("test")
             end_progress = e.storage.get_task_progress(t_uuid)
-            self.assertEquals(1.0, end_progress)
+            self.assertEqual(1.0, end_progress)
             td = fd.find(t_uuid)
-            self.assertEquals(1.0, td.meta['progress'])
+            self.assertEqual(1.0, td.meta['progress'])
             self.assertFalse(td.meta['progress_details'])
 
     def test_storage_progress_detail(self):
@@ -113,10 +113,10 @@ class TestProgress(test.TestCase):
         e.run()
         t_uuid = e.storage.get_uuid_by_name("test")
         end_progress = e.storage.get_task_progress(t_uuid)
-        self.assertEquals(1.0, end_progress)
+        self.assertEqual(1.0, end_progress)
         end_details = e.storage.get_task_progress_details(t_uuid)
-        self.assertEquals(end_details.get('at_progress'), 0.5)
-        self.assertEquals(end_details.get('details'), {
+        self.assertEqual(end_details.get('at_progress'), 0.5)
+        self.assertEqual(end_details.get('details'), {
             'test': 'test data',
             'foo': 'bar'
         })
@@ -138,8 +138,8 @@ class TestProgress(test.TestCase):
 
             t_uuid = e.storage.get_uuid_by_name("test")
             end_progress = e.storage.get_task_progress(t_uuid)
-            self.assertEquals(1.0, end_progress)
+            self.assertEqual(1.0, end_progress)
             td = fd.find(t_uuid)
-            self.assertEquals(1.0, td.meta['progress'])
+            self.assertEqual(1.0, td.meta['progress'])
             self.assertFalse(td.meta['progress_details'])
-            self.assertEquals(6, len(fired_events))
+            self.assertEqual(6, len(fired_events))

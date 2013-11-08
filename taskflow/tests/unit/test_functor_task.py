@@ -47,11 +47,11 @@ class FunctorTaskTest(test.TestCase):
 
     def test_simple(self):
         task = base.FunctorTask(add)
-        self.assertEquals(task.name, __name__ + '.add')
+        self.assertEqual(task.name, __name__ + '.add')
 
     def test_other_name(self):
         task = base.FunctorTask(add, name='my task')
-        self.assertEquals(task.name, 'my task')
+        self.assertEqual(task.name, 'my task')
 
     def test_it_runs(self):
         values = []
@@ -65,4 +65,4 @@ class FunctorTaskTest(test.TestCase):
         )
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             taskflow.engines.run(flow)
-        self.assertEquals(values, ['one', 'fail', 'revert one'])
+        self.assertEqual(values, ['one', 'fail', 'revert one'])

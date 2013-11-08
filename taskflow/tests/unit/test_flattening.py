@@ -49,13 +49,13 @@ class FlattenTest(test.TestCase):
         flo.add(sflo)
 
         g = f_utils.flatten(flo)
-        self.assertEquals(4, len(g))
+        self.assertEqual(4, len(g))
 
         order = nx.topological_sort(g)
-        self.assertEquals([a, b, c, d], order)
+        self.assertEqual([a, b, c, d], order)
         self.assertTrue(g.has_edge(c, d))
-        self.assertEquals([d], list(g_utils.get_no_successors(g)))
-        self.assertEquals([a], list(g_utils.get_no_predecessors(g)))
+        self.assertEqual([d], list(g_utils.get_no_successors(g)))
+        self.assertEqual([a], list(g_utils.get_no_predecessors(g)))
 
     def test_invalid_flatten(self):
         a, b, c = _make_many(3)
@@ -69,12 +69,12 @@ class FlattenTest(test.TestCase):
         flo = uf.Flow("test")
         flo.add(a, b, c, d)
         g = f_utils.flatten(flo)
-        self.assertEquals(4, len(g))
-        self.assertEquals(0, g.number_of_edges())
-        self.assertEquals(set([a, b, c, d]),
-                          set(g_utils.get_no_successors(g)))
-        self.assertEquals(set([a, b, c, d]),
-                          set(g_utils.get_no_predecessors(g)))
+        self.assertEqual(4, len(g))
+        self.assertEqual(0, g.number_of_edges())
+        self.assertEqual(set([a, b, c, d]),
+                         set(g_utils.get_no_successors(g)))
+        self.assertEqual(set([a, b, c, d]),
+                         set(g_utils.get_no_predecessors(g)))
 
     def test_linear_nested_flatten(self):
         a, b, c, d = _make_many(4)
@@ -84,14 +84,14 @@ class FlattenTest(test.TestCase):
         flo2.add(c, d)
         flo.add(flo2)
         g = f_utils.flatten(flo)
-        self.assertEquals(4, len(g))
+        self.assertEqual(4, len(g))
 
         lb = g.subgraph([a, b])
         self.assertTrue(lb.has_edge(a, b))
         self.assertFalse(lb.has_edge(b, a))
 
         ub = g.subgraph([c, d])
-        self.assertEquals(0, ub.number_of_edges())
+        self.assertEqual(0, ub.number_of_edges())
 
         # This ensures that c and d do not start executing until after b.
         self.assertTrue(g.has_edge(b, c))
@@ -106,7 +106,7 @@ class FlattenTest(test.TestCase):
         flo.add(flo2)
 
         g = f_utils.flatten(flo)
-        self.assertEquals(4, len(g))
+        self.assertEqual(4, len(g))
         for n in [a, b]:
             self.assertFalse(g.has_edge(n, c))
             self.assertFalse(g.has_edge(n, d))
@@ -114,9 +114,9 @@ class FlattenTest(test.TestCase):
         self.assertFalse(g.has_edge(d, c))
 
         ub = g.subgraph([a, b])
-        self.assertEquals(0, ub.number_of_edges())
+        self.assertEqual(0, ub.number_of_edges())
         lb = g.subgraph([c, d])
-        self.assertEquals(1, lb.number_of_edges())
+        self.assertEqual(1, lb.number_of_edges())
 
     def test_graph_flatten(self):
         a, b, c, d = _make_many(4)
@@ -124,8 +124,8 @@ class FlattenTest(test.TestCase):
         flo.add(a, b, c, d)
 
         g = f_utils.flatten(flo)
-        self.assertEquals(4, len(g))
-        self.assertEquals(0, g.number_of_edges())
+        self.assertEqual(4, len(g))
+        self.assertEqual(0, g.number_of_edges())
 
     def test_graph_flatten_nested(self):
         a, b, c, d, e, f, g = _make_many(7)
@@ -137,8 +137,8 @@ class FlattenTest(test.TestCase):
         flo.add(flo2)
 
         g = f_utils.flatten(flo)
-        self.assertEquals(7, len(g))
-        self.assertEquals(2, g.number_of_edges())
+        self.assertEqual(7, len(g))
+        self.assertEqual(2, g.number_of_edges())
 
     def test_graph_flatten_nested_graph(self):
         a, b, c, d, e, f, g = _make_many(7)
@@ -150,8 +150,8 @@ class FlattenTest(test.TestCase):
         flo.add(flo2)
 
         g = f_utils.flatten(flo)
-        self.assertEquals(7, len(g))
-        self.assertEquals(0, g.number_of_edges())
+        self.assertEqual(7, len(g))
+        self.assertEqual(0, g.number_of_edges())
 
     def test_graph_flatten_links(self):
         a, b, c, d = _make_many(4)
@@ -162,12 +162,12 @@ class FlattenTest(test.TestCase):
         flo.link(c, d)
 
         g = f_utils.flatten(flo)
-        self.assertEquals(4, len(g))
-        self.assertEquals(3, g.number_of_edges())
-        self.assertEquals(set([a]),
-                          set(g_utils.get_no_predecessors(g)))
-        self.assertEquals(set([d]),
-                          set(g_utils.get_no_successors(g)))
+        self.assertEqual(4, len(g))
+        self.assertEqual(3, g.number_of_edges())
+        self.assertEqual(set([a]),
+                         set(g_utils.get_no_predecessors(g)))
+        self.assertEqual(set([d]),
+                         set(g_utils.get_no_successors(g)))
 
     def test_flatten_checks_for_dups(self):
         flo = gf.Flow("test").add(

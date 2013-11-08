@@ -40,8 +40,8 @@ class GreenExecutorTest(test.TestCase):
             for f in self.make_funcs(called, 2):
                 e.submit(f)
 
-        self.assertEquals(1, called[0])
-        self.assertEquals(1, called[1])
+        self.assertEqual(1, called[0])
+        self.assertEqual(1, called[1])
 
     def test_no_construction(self):
         self.assertRaises(AssertionError, eu.GreenExecutor, 0)
@@ -59,7 +59,7 @@ class GreenExecutorTest(test.TestCase):
             f = e.submit(funcs[0])
             f.add_done_callback(call_back)
 
-        self.assertEquals(2, len(called))
+        self.assertEqual(2, len(called))
 
     def test_exception_transfer(self):
 
@@ -82,10 +82,10 @@ class GreenExecutorTest(test.TestCase):
             for i in range(0, create_am):
                 futures.append(e.submit(functools.partial(return_given, i)))
 
-        self.assertEquals(create_am, len(futures))
+        self.assertEqual(create_am, len(futures))
         for i in range(0, create_am):
             result = futures[i].result()
-            self.assertEquals(i, result)
+            self.assertEqual(i, result)
 
     def test_func_cancellation(self):
         called = collections.defaultdict(int)
@@ -103,7 +103,7 @@ class GreenExecutorTest(test.TestCase):
                 self.assertFalse(f.running())
                 f.cancel()
 
-        self.assertEquals(0, len(called))
+        self.assertEqual(0, len(called))
         for f in futures:
             self.assertTrue(f.cancelled())
             self.assertTrue(f.done())

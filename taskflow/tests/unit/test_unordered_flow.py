@@ -45,8 +45,8 @@ class UnorderedFlowTest(test.TestCase):
         data = e.storage.fetch_all()
         self.assertIn('a', data)
         self.assertIn('b', data)
-        self.assertEquals(2, data['b'])
-        self.assertEquals(1, data['a'])
+        self.assertEqual(2, data['b'])
+        self.assertEqual(1, data['a'])
 
     def test_reverting_flow(self):
         wf = uf.Flow("the-test-action")
@@ -73,4 +73,4 @@ class UnorderedFlowTest(test.TestCase):
         wf.add(DoApply2())
         e = self._make_engine(wf)
         e.run()
-        self.assertEquals(2, len(e.storage.fetch('context')))
+        self.assertEqual(2, len(e.storage.fetch('context')))
