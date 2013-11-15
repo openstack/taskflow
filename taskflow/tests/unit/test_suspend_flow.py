@@ -75,7 +75,7 @@ class AutoSuspendingTask(TestTask):
         engine.suspend()
         return result
 
-    def revert(self, engine, result):
+    def revert(self, engine, result, flow_failures):
         super(AutoSuspendingTask, self).revert(**{'result': result})
 
 
@@ -84,7 +84,7 @@ class AutoSuspendingTaskOnRevert(TestTask):
     def execute(self, engine):
         return super(AutoSuspendingTaskOnRevert, self).execute()
 
-    def revert(self, engine, result):
+    def revert(self, engine, result, flow_failures):
         super(AutoSuspendingTaskOnRevert, self).revert(**{'result': result})
         engine.suspend()
 
