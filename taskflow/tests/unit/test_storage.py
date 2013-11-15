@@ -94,6 +94,8 @@ class StorageTest(test.TestCase):
         s.save('42', fail, states.FAILURE)
         self.assertEqual(s.get('42'), fail)
         self.assertEqual(s.get_task_state('42'), states.FAILURE)
+        self.assertIs(s.has_failures(), True)
+        self.assertEqual(s.get_failures(), {'my task': fail})
 
     def test_get_failure_from_reverted_task(self):
         fail = misc.Failure(exc_info=(RuntimeError, RuntimeError(), None))
@@ -106,6 +108,18 @@ class StorageTest(test.TestCase):
 
         s.set_task_state('42', states.REVERTED)
         self.assertEqual(s.get('42'), fail)
+
+    def test_get_failure_after_reload(self):
+        fail = misc.Failure(exc_info=(RuntimeError, RuntimeError(), None))
+        s = self._get_storage()
+        s.add_task('42', 'my task')
+        s.save('42', fail, states.FAILURE)
+
+        s2 = storage.Storage(backend=self.backend, flow_detail=s._flowdetail)
+        self.assertIs(s2.has_failures(), True)
+        self.assertEqual(s2.get_failures(), {'my task': fail})
+        self.assertEqual(s2.get('42'), fail)
+        self.assertEqual(s2.get_task_state('42'), states.FAILURE)
 
     def test_get_non_existing_var(self):
         s = self._get_storage()

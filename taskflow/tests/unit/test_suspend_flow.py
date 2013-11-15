@@ -152,15 +152,36 @@ class SuspendFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
         engine.run()
-        self.assertEqual(engine.storage.get_flow_state(), states.SUSPENDED)
-        self.assertEqual(
-            self.values,
-            ['a', 'b',
-             'c reverted(Failure: RuntimeError: Woot!)',
-             'b reverted(5)'])
 
         # pretend we are resuming
         engine2 = self._make_engine(flow, engine.storage._flowdetail)
+        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
+            engine2.run()
+        self.assertEqual(engine2.storage.get_flow_state(), states.REVERTED)
+        self.assertEqual(
+            self.values,
+            ['a',
+             'b',
+             'c reverted(Failure: RuntimeError: Woot!)',
+             'b reverted(5)',
+             'a reverted(5)'])
+
+    def test_suspend_and_revert_even_if_task_is_gone(self):
+        flow = lf.Flow('linear').add(
+            TestTask(self.values, 'a'),
+            AutoSuspendingTaskOnRevert(self.values, 'b'),
+            FailingTask(self.values, 'c')
+        )
+        engine = self._make_engine(flow)
+        engine.storage.inject({'engine': engine})
+        engine.run()
+
+        # pretend we are resuming, but task 'c' gone when flow got updated
+        flow2 = lf.Flow('linear').add(
+            TestTask(self.values, 'a'),
+            AutoSuspendingTaskOnRevert(self.values, 'b')
+        )
+        engine2 = self._make_engine(flow2, engine.storage._flowdetail)
         with self.assertRaisesRegexp(RuntimeError, '^Woot'):
             engine2.run()
         self.assertEqual(engine2.storage.get_flow_state(), states.REVERTED)

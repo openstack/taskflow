@@ -54,7 +54,6 @@ class ActionEngine(base.EngineBase):
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
-        self._failures = {}  # task uuid => failure
         self._root = None
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
@@ -72,7 +71,8 @@ class ActionEngine(base.EngineBase):
         self._change_state(state)
         if state == states.SUSPENDED:
             return
-        misc.Failure.reraise_if_any(self._failures.values())
+        failures = self.storage.get_failures()
+        misc.Failure.reraise_if_any(failures.values())
         if current_failure:
             current_failure.reraise()
 
@@ -104,7 +104,7 @@ class ActionEngine(base.EngineBase):
         missing = self._flow.requires - external_provides
         if missing:
             raise exc.MissingDependencies(self._flow, sorted(missing))
-        if self._failures:
+        if self.storage.has_failures():
             self._revert()
         else:
             self._run()
@@ -145,8 +145,6 @@ class ActionEngine(base.EngineBase):
         a given state with a given result. This is a *internal* to the action
         engine and its associated action classes, not for use externally.
         """
-        if isinstance(result, misc.Failure):
-            self._failures[task_action.uuid] = result
         details = dict(engine=self,
                        task_name=task_action.name,
                        task_uuid=task_action.uuid,
@@ -160,7 +158,6 @@ class ActionEngine(base.EngineBase):
                            task_uuid=uuid,
                            result=None)
             self.task_notifier.notify(states.PENDING, details)
-        self._failures = {}
         self._change_state(states.PENDING)
 
     @lock_utils.locked
@@ -177,8 +174,6 @@ class ActionEngine(base.EngineBase):
         self._change_state(states.RESUMING)  # does nothing in PENDING state
         task_graph = flow_utils.flatten(self._flow)
         self._root = self._graph_action(task_graph)
-        loaded_failures = {}
-
         for task in task_graph.nodes_iter():
             try:
                 task_id = self.storage.get_uuid_by_name(task.name)
@@ -187,24 +182,9 @@ class ActionEngine(base.EngineBase):
                 task_version = misc.get_version_string(task)
                 self.storage.add_task(task_name=task.name, uuid=task_id,
                                       task_version=task_version)
-            try:
-                result = self.storage.get(task_id)
-            except exc.NotFound:
-                result = None
-
-            if isinstance(result, misc.Failure):
-                # NOTE(imelnikov): old failure may have exc_info which
-                # might get lost during serialization, so we preserve
-                # old failure object if possible.
-                old_failure = self._failures.get(task_id, None)
-                if result.matches(old_failure):
-                    loaded_failures[task_id] = old_failure
-                else:
-                    loaded_failures[task_id] = result
 
             self.storage.set_result_mapping(task_id, task.save_as)
             self._root.add(task, task_action.TaskAction(task, task_id))
-        self._failures = loaded_failures
         self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
     @property
