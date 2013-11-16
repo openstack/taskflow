@@ -86,10 +86,11 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.provides, set(['x', 'a', 'b', 'c']))
 
     def test_linear_flow_provides_out_of_order(self):
-        with self.assertRaises(exceptions.InvariantViolationException):
-            lf.Flow('lf').add(
-                utils.TaskOneArg('task2'),
-                utils.TaskOneReturn('task1', provides='x'))
+        flow = lf.Flow('lf')
+        self.assertRaises(exceptions.InvariantViolationException,
+                          flow.add,
+                          utils.TaskOneArg('task2'),
+                          utils.TaskOneReturn('task1', provides='x'))
 
     def test_linear_flow_provides_required_values(self):
         flow = lf.Flow('lf').add(
@@ -110,8 +111,10 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_linear_flow_self_requires(self):
         flow = lf.Flow('uf')
-        with self.assertRaises(exceptions.InvariantViolationException):
-            flow.add(utils.TaskNoRequiresNoReturns(rebind=['x'], provides='x'))
+        self.assertRaises(exceptions.InvariantViolationException,
+                          flow.add,
+                          utils.TaskNoRequiresNoReturns(rebind=['x'],
+                                                        provides='x'))
 
     def test_unordered_flow_without_dependencies(self):
         flow = uf.Flow('uf').add(
@@ -122,8 +125,10 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_unordered_flow_self_requires(self):
         flow = uf.Flow('uf')
-        with self.assertRaises(exceptions.InvariantViolationException):
-            flow.add(utils.TaskNoRequiresNoReturns(rebind=['x'], provides='x'))
+        self.assertRaises(exceptions.InvariantViolationException,
+                          flow.add,
+                          utils.TaskNoRequiresNoReturns(rebind=['x'],
+                                                        provides='x'))
 
     def test_unordered_flow_reuires_values(self):
         flow = uf.Flow('uf').add(
@@ -147,22 +152,25 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.provides, set(['x', 'a', 'b', 'c']))
 
     def test_unordered_flow_provides_required_values(self):
-        with self.assertRaises(exceptions.InvariantViolationException):
-            uf.Flow('uf').add(
-                utils.TaskOneReturn('task1', provides='x'),
-                utils.TaskOneArg('task2'))
+        flow = uf.Flow('uf')
+        self.assertRaises(exceptions.InvariantViolationException,
+                          flow.add,
+                          utils.TaskOneReturn('task1', provides='x'),
+                          utils.TaskOneArg('task2'))
 
     def test_unordered_flow_requires_provided_value_other_call(self):
         flow = uf.Flow('uf')
         flow.add(utils.TaskOneReturn('task1', provides='x'))
-        with self.assertRaises(exceptions.InvariantViolationException):
-            flow.add(utils.TaskOneArg('task2'))
+        self.assertRaises(exceptions.InvariantViolationException,
+                          flow.add,
+                          utils.TaskOneArg('task2'))
 
     def test_unordered_flow_provides_required_value_other_call(self):
         flow = uf.Flow('uf')
         flow.add(utils.TaskOneArg('task2'))
-        with self.assertRaises(exceptions.InvariantViolationException):
-            flow.add(utils.TaskOneReturn('task1', provides='x'))
+        self.assertRaises(exceptions.InvariantViolationException,
+                          flow.add,
+                          utils.TaskOneReturn('task1', provides='x'))
 
     def test_unordered_flow_multi_provides_and_requires_values(self):
         flow = uf.Flow('uf').add(
@@ -196,9 +204,11 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.provides, set())
 
     def test_graph_flow_self_requires(self):
-        with self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path'):
-            gf.Flow('g-1-req-error').add(
-                utils.TaskOneArgOneReturn(requires=['a'], provides='a'))
+        flow = gf.Flow('g-1-req-error')
+        self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path',
+                                flow.add,
+                                utils.TaskOneArgOneReturn(requires=['a'],
+                                                          provides='a'))
 
     def test_graph_flow_reuires_values(self):
         flow = gf.Flow('gf').add(
@@ -231,8 +241,9 @@ class FlowDependenciesTest(test.TestCase):
     def test_graph_flow_provides_provided_value_other_call(self):
         flow = gf.Flow('gf')
         flow.add(utils.TaskOneReturn('task1', provides='x'))
-        with self.assertRaises(exceptions.DependencyFailure):
-            flow.add(utils.TaskOneReturn('task2', provides='x'))
+        self.assertRaises(exceptions.DependencyFailure,
+                          flow.add,
+                          utils.TaskOneReturn('task2', provides='x'))
 
     def test_graph_flow_multi_provides_and_requires_values(self):
         flow = gf.Flow('gf').add(
@@ -245,8 +256,12 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.provides, set(['d', 'e', 'f', 'i', 'j', 'k']))
 
     def test_graph_cyclic_dependency(self):
-        with self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path'):
-            gf.Flow('g-3-cyclic').add(
-                utils.TaskOneArgOneReturn(provides='a', requires=['b']),
-                utils.TaskOneArgOneReturn(provides='b', requires=['c']),
-                utils.TaskOneArgOneReturn(provides='c', requires=['a']))
+        flow = gf.Flow('g-3-cyclic')
+        self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path',
+                                flow.add,
+                                utils.TaskOneArgOneReturn(provides='a',
+                                                          requires=['b']),
+                                utils.TaskOneArgOneReturn(provides='b',
+                                                          requires=['c']),
+                                utils.TaskOneArgOneReturn(provides='c',
+                                                          requires=['a']))

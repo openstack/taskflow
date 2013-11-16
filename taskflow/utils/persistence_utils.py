@@ -207,7 +207,7 @@ def _format_meta(metadata, indent):
     for (k, v) in metadata.items():
         # Progress for now is a special snowflake and will be formatted
         # in percent format.
-        if k == 'progress' and isinstance(v, (float, int, long)):
+        if k == 'progress' and isinstance(v, misc.NUMERIC_TYPES):
             v = "%0.2f%%" % (v * 100.0)
         lines.append("%s+ %s = %s" % (" " * (indent + 2), k, v))
     return lines

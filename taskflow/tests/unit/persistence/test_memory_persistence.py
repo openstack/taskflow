@@ -23,6 +23,7 @@ from taskflow.tests.unit.persistence import base
 
 class MemoryPersistenceTest(test.TestCase, base.PersistenceTestMixin):
     def setUp(self):
+        super(MemoryPersistenceTest, self).setUp()
         self._backend = impl_memory.MemoryBackend({})
 
     def _get_connection(self):

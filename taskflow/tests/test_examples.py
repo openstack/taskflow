@@ -98,7 +98,7 @@ class ExamplesTestCase(taskflow.test.TestCase):
             #   replace them with some constant string
             output = self.uuid_re.sub('<SOME UUID>', output)
             expected_output = self.uuid_re.sub('<SOME UUID>', expected_output)
-            self.assertMultiLineEqual(output, expected_output)
+            self.assertEqual(output, expected_output)
 
 ExamplesTestCase.update()
 

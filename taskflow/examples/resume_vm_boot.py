@@ -81,7 +81,7 @@ def get_backend():
 class PrintText(task.Task):
     """Just inserts some text print outs in a workflow."""
     def __init__(self, print_what, no_slow=False):
-        content_hash = hashlib.md5(print_what).hexdigest()[0:8]
+        content_hash = hashlib.md5(print_what.encode('utf-8')).hexdigest()[0:8]
         super(PrintText, self).__init__(name="Print: %s" % (content_hash))
         self._text = print_what
         self._no_slow = no_slow
@@ -257,8 +257,9 @@ except (IndexError, ValueError):
 # Set up how we want our engine to run, serial, parallel...
 engine_conf = {
     'engine': 'parallel',
-    'executor': e_utils.GreenExecutor(5),
 }
+if e_utils.EVENTLET_AVAILABLE:
+    engine_conf['executor'] = e_utils.GreenExecutor(5)
 
 # Create/fetch a logbook that will track the workflows work.
 book = None

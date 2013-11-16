@@ -132,8 +132,7 @@ class SuspendFlowTest(utils.EngineTestBase):
             ['a', 'b',
              'c reverted(Failure: RuntimeError: Woot!)',
              'b reverted(5)'])
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
         self.assertEqual(
             self.values,
@@ -155,8 +154,7 @@ class SuspendFlowTest(utils.EngineTestBase):
 
         # pretend we are resuming
         engine2 = self._make_engine(flow, engine.storage._flowdetail)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine2.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine2.run)
         self.assertEqual(engine2.storage.get_flow_state(), states.REVERTED)
         self.assertEqual(
             self.values,
@@ -182,8 +180,7 @@ class SuspendFlowTest(utils.EngineTestBase):
             AutoSuspendingTaskOnRevert(self.values, 'b')
         )
         engine2 = self._make_engine(flow2, engine.storage._flowdetail)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine2.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine2.run)
         self.assertEqual(engine2.storage.get_flow_state(), states.REVERTED)
         self.assertEqual(
             self.values,
@@ -207,8 +204,7 @@ class SuspendFlowTest(utils.EngineTestBase):
             engine.storage.get_uuid_by_name(engine.storage.injector_name),
             None,
             states.FAILURE)
-        with self.assertRaises(exc.MissingDependencies):
-            engine.run()
+        self.assertRaises(exc.MissingDependencies, engine.run)
 
 
 class SingleThreadedEngineTest(SuspendFlowTest,

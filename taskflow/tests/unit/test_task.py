@@ -71,8 +71,8 @@ class TaskTestCase(test.TestCase):
         self.assertEqual(my_task.save_as, {'food': 0})
 
     def test_bad_provides(self):
-        with self.assertRaisesRegexp(TypeError, '^Task provides'):
-            MyTask(provides=object())
+        self.assertRaisesRegexp(TypeError, '^Task provides',
+                                MyTask, provides=object())
 
     def test_requires_by_default(self):
         my_task = MyTask()
@@ -100,8 +100,9 @@ class TaskTestCase(test.TestCase):
         })
 
     def test_requires_explicit_not_enough(self):
-        with self.assertRaisesRegexp(ValueError, '^Missing arguments'):
-            MyTask(auto_extract=False, requires=('spam', 'eggs'))
+        self.assertRaisesRegexp(ValueError, '^Missing arguments',
+                                MyTask,
+                                auto_extract=False, requires=('spam', 'eggs'))
 
     def test_requires_ignores_optional(self):
         my_task = DefaultArgTask()
@@ -128,8 +129,8 @@ class TaskTestCase(test.TestCase):
         })
 
     def test_rebind_unknown(self):
-        with self.assertRaisesRegexp(ValueError, '^Extra arguments'):
-            MyTask(rebind={'foo': 'bar'})
+        self.assertRaisesRegexp(ValueError, '^Extra arguments',
+                                MyTask, rebind={'foo': 'bar'})
 
     def test_rebind_unknown_kwargs(self):
         task = KwargsTask(rebind={'foo': 'bar'})
@@ -155,8 +156,8 @@ class TaskTestCase(test.TestCase):
         })
 
     def test_rebind_list_more(self):
-        with self.assertRaisesRegexp(ValueError, '^Extra arguments'):
-            MyTask(rebind=('a', 'b', 'c', 'd'))
+        self.assertRaisesRegexp(ValueError, '^Extra arguments',
+                                MyTask, rebind=('a', 'b', 'c', 'd'))
 
     def test_rebind_list_more_kwargs(self):
         task = KwargsTask(rebind=('a', 'b', 'c'))
@@ -167,8 +168,8 @@ class TaskTestCase(test.TestCase):
         })
 
     def test_rebind_list_bad_value(self):
-        with self.assertRaisesRegexp(TypeError, '^Invalid rebind value:'):
-            MyTask(rebind=object())
+        self.assertRaisesRegexp(TypeError, '^Invalid rebind value:',
+                                MyTask, rebind=object())
 
     def test_default_provides(self):
         task = DefaultProvidesTask()

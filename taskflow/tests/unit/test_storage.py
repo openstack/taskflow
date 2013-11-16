@@ -124,8 +124,7 @@ class StorageTest(test.TestCase):
     def test_get_non_existing_var(self):
         s = self._get_storage()
         s.add_task('42', 'my task')
-        with self.assertRaises(exceptions.NotFound):
-            s.get('42')
+        self.assertRaises(exceptions.NotFound, s.get, '42')
 
     def test_reset(self):
         s = self._get_storage()
@@ -133,8 +132,7 @@ class StorageTest(test.TestCase):
         s.save('42', 5)
         s.reset('42')
         self.assertEqual(s.get_task_state('42'), states.PENDING)
-        with self.assertRaises(exceptions.NotFound):
-            s.get('42')
+        self.assertRaises(exceptions.NotFound, s.get, '42')
 
     def test_reset_unknown_task(self):
         s = self._get_storage()
@@ -151,11 +149,9 @@ class StorageTest(test.TestCase):
         s.reset_tasks()
 
         self.assertEqual(s.get_task_state('42'), states.PENDING)
-        with self.assertRaises(exceptions.NotFound):
-            s.get('42')
+        self.assertRaises(exceptions.NotFound, s.get, '42')
         self.assertEqual(s.get_task_state('43'), states.PENDING)
-        with self.assertRaises(exceptions.NotFound):
-            s.get('43')
+        self.assertRaises(exceptions.NotFound, s.get, '43')
 
     def test_reset_tasks_does_not_breaks_inject(self):
         s = self._get_storage()
@@ -182,9 +178,9 @@ class StorageTest(test.TestCase):
 
     def test_fetch_unknown_name(self):
         s = self._get_storage()
-        with self.assertRaisesRegexp(exceptions.NotFound,
-                                     "^Name 'xxx' is not mapped"):
-            s.fetch('xxx')
+        self.assertRaisesRegexp(exceptions.NotFound,
+                                "^Name 'xxx' is not mapped",
+                                s.fetch, 'xxx')
 
     def test_default_task_progress(self):
         s = self._get_storage()
@@ -230,8 +226,7 @@ class StorageTest(test.TestCase):
         s.add_task('42', 'my task')
         name = 'my result'
         s.set_result_mapping('42', {name: None})
-        with self.assertRaises(exceptions.NotFound):
-            s.get(name)
+        self.assertRaises(exceptions.NotFound, s.get, name)
         self.assertEqual(s.fetch_all(), {})
 
     def test_save_multiple_results(self):
@@ -297,8 +292,8 @@ class StorageTest(test.TestCase):
     def test_fetch_not_found_args(self):
         s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
-        with self.assertRaises(exceptions.NotFound):
-            s.fetch_mapped_args({'viking': 'helmet'})
+        self.assertRaises(exceptions.NotFound,
+                          s.fetch_mapped_args, {'viking': 'helmet'})
 
     def test_set_and_get_task_state(self):
         s = self._get_storage()
@@ -309,8 +304,8 @@ class StorageTest(test.TestCase):
 
     def test_get_state_of_unknown_task(self):
         s = self._get_storage()
-        with self.assertRaisesRegexp(exceptions.NotFound, '^Unknown'):
-            s.get_task_state('42')
+        self.assertRaisesRegexp(exceptions.NotFound, '^Unknown',
+                                s.get_task_state, '42')
 
     def test_task_by_name(self):
         s = self._get_storage()
@@ -319,9 +314,9 @@ class StorageTest(test.TestCase):
 
     def test_unknown_task_by_name(self):
         s = self._get_storage()
-        with self.assertRaisesRegexp(exceptions.NotFound,
-                                     '^Unknown task name:'):
-            s.get_uuid_by_name('42')
+        self.assertRaisesRegexp(exceptions.NotFound,
+                                '^Unknown task name:',
+                                s.get_uuid_by_name, '42')
 
     def test_initial_flow_state(self):
         s = self._get_storage()
@@ -348,9 +343,8 @@ class StorageTest(test.TestCase):
         s.save('42', {})
         mocked_warning.assert_called_once_with(
             mock.ANY, 'my task', 'key', 'result')
-        with self.assertRaisesRegexp(exceptions.NotFound,
-                                     '^Unable to find result'):
-            s.fetch('result')
+        self.assertRaisesRegexp(exceptions.NotFound,
+                                '^Unable to find result', s.fetch, 'result')
 
     @mock.patch.object(storage.LOG, 'warning')
     def test_empty_result_is_checked(self, mocked_warning):
@@ -360,9 +354,8 @@ class StorageTest(test.TestCase):
         s.save('42', ())
         mocked_warning.assert_called_once_with(
             mock.ANY, 'my task', 0, 'a')
-        with self.assertRaisesRegexp(exceptions.NotFound,
-                                     '^Unable to find result'):
-            s.fetch('a')
+        self.assertRaisesRegexp(exceptions.NotFound,
+                                '^Unable to find result', s.fetch, 'a')
 
     @mock.patch.object(storage.LOG, 'warning')
     def test_short_result_is_checked(self, mocked_warning):
@@ -373,9 +366,8 @@ class StorageTest(test.TestCase):
         mocked_warning.assert_called_once_with(
             mock.ANY, 'my task', 1, 'b')
         self.assertEqual(s.fetch('a'), 'result')
-        with self.assertRaisesRegexp(exceptions.NotFound,
-                                     '^Unable to find result'):
-            s.fetch('b')
+        self.assertRaisesRegexp(exceptions.NotFound,
+                                '^Unable to find result', s.fetch, 'b')
 
     @mock.patch.object(storage.LOG, 'warning')
     def test_multiple_providers_are_checked(self, mocked_warning):

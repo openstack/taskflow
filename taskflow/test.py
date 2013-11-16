@@ -16,17 +16,41 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import unittest2
+from testtools import compat
+from testtools import matchers
+from testtools import testcase
 
 
-class TestCase(unittest2.TestCase):
-    """Test case base class for all unit tests."""
+class TestCase(testcase.TestCase):
+    """Test case base class for all taskflow unit tests."""
 
-    def setUp(self):
-        super(TestCase, self).setUp()
+    def assertRaisesRegexp(self, exc_class, pattern, callable_obj,
+                           *args, **kwargs):
+        # TODO(harlowja): submit a pull/review request to testtools to add
+        # this method to there codebase instead of having it exist in ours
+        # since it really doesn't belong here.
 
-    def tearDown(self):
-        super(TestCase, self).tearDown()
+        class ReRaiseOtherTypes(object):
+            def match(self, matchee):
+                if not issubclass(matchee[0], exc_class):
+                    compat.reraise(*matchee)
+
+        class CaptureMatchee(object):
+            def match(self, matchee):
+                self.matchee = matchee[1]
+
+        capture = CaptureMatchee()
+        matcher = matchers.Raises(matchers.MatchesAll(ReRaiseOtherTypes(),
+                                  matchers.MatchesException(exc_class,
+                                                            pattern),
+                                  capture))
+        our_callable = testcase.Nullary(callable_obj, *args, **kwargs)
+        self.assertThat(our_callable, matcher)
+        return capture.matchee
+
+    def assertRegexpMatches(self, text, pattern):
+        matcher = matchers.MatchesRegex(pattern)
+        self.assertThat(text, matcher)
 
     def assertIsSubset(self, super_set, sub_set, msg=None):
         missing_set = set()

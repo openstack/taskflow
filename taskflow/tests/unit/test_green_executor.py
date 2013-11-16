@@ -19,11 +19,13 @@
 import collections
 import functools
 
-from taskflow import test
+import testtools
 
+from taskflow import test
 from taskflow.utils import eventlet_utils as eu
 
 
+@testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
 class GreenExecutorTest(test.TestCase):
     def make_funcs(self, called, amount):
 

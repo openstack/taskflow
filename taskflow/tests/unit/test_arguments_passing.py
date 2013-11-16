@@ -61,8 +61,9 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         })
 
     def test_bad_save_as_value(self):
-        with self.assertRaises(TypeError):
-            utils.TaskOneReturn(name='task1', provides=object())
+        self.assertRaises(TypeError,
+                          utils.TaskOneReturn,
+                          name='task1', provides=object())
 
     def test_arguments_passing(self):
         flow = utils.TaskMultiArgOneReturn(provides='result')
@@ -78,8 +79,7 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         flow = utils.TaskMultiArg()
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'x': 17})
-        with self.assertRaises(exc.MissingDependencies):
-            engine.run()
+        self.assertRaises(exc.MissingDependencies, engine.run)
 
     def test_partial_arguments_mapping(self):
         flow = utils.TaskMultiArgOneReturn(provides='result',
@@ -109,19 +109,18 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         flow = utils.TaskMultiArg(rebind={'z': 'b'})
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'y': 4, 'c': 9, 'x': 17})
-        with self.assertRaises(exc.MissingDependencies):
-            engine.run()
+        self.assertRaises(exc.MissingDependencies, engine.run)
 
     def test_invalid_argument_name_list(self):
         flow = utils.TaskMultiArg(rebind=['a', 'z', 'b'])
         engine = self._make_engine(flow)
         engine.storage.inject({'a': 1, 'b': 4, 'c': 9, 'x': 17})
-        with self.assertRaises(exc.MissingDependencies):
-            engine.run()
+        self.assertRaises(exc.MissingDependencies, engine.run)
 
     def test_bad_rebind_args_value(self):
-        with self.assertRaises(TypeError):
-            utils.TaskOneArg(rebind=object())
+        self.assertRaises(TypeError,
+                          utils.TaskOneArg,
+                          rebind=object())
 
 
 class SingleThreadedEngineTest(ArgumentsPassingTest,

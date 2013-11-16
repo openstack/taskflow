@@ -32,6 +32,7 @@ from taskflow.utils import reflection
 
 
 LOG = logging.getLogger(__name__)
+NUMERIC_TYPES = tuple(list(six.integer_types) + [float])
 
 
 def wraps(fn):
@@ -81,19 +82,29 @@ def is_valid_attribute_name(name, allow_self=False, allow_hidden=False):
         return False
     # Make the name just be a simple string in latin-1 encoding in python3
     name = six.b(name)
-    if not allow_self and name.lower().startswith('self'):
+    if not allow_self and name.lower().startswith(six.b('self')):
         return False
-    if not allow_hidden and name.startswith("_"):
+    if not allow_hidden and name.startswith(six.b("_")):
         return False
     # See: http://docs.python.org/release/2.5.2/ref/grammar.txt (or newer)
     #
     # Python identifiers should start with a letter.
-    if not name[0].isalpha():
-        return False
-    for i in range(1, len(name)):
-        # The rest of an attribute name follows: (letter | digit | "_")*
-        if not (name[i].isalpha() or name[i].isdigit() or name[i] == "_"):
+    if isinstance(name[0], six.integer_types):
+        if not chr(name[0]).isalpha():
             return False
+    else:
+        if not name[0].isalpha():
+            return False
+    for i in range(1, len(name)):
+        symbol = name[i]
+        # The rest of an attribute name follows: (letter | digit | "_")*
+        if isinstance(symbol, six.integer_types):
+            symbol = chr(symbol)
+            if not (symbol.isalpha() or symbol.isdigit() or symbol == "_"):
+                return False
+        else:
+            if not (symbol.isalpha() or symbol.isdigit() or symbol == "_"):
+                return False
     return True
 
 
@@ -108,7 +119,6 @@ class AttrDict(dict):
         if not is_valid_attribute_name(name):
             return False
         # Make the name just be a simple string in latin-1 encoding in python3
-        name = six.b(name)
         if name in cls.NO_ATTRS:
             return False
         return True

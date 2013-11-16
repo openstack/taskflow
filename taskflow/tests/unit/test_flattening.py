@@ -174,14 +174,14 @@ class FlattenTest(test.TestCase):
             t_utils.DummyTask(name="a"),
             t_utils.DummyTask(name="a")
         )
-        with self.assertRaisesRegexp(exc.InvariantViolationException,
-                                     '^Tasks with duplicate names'):
-            f_utils.flatten(flo)
+        self.assertRaisesRegexp(exc.InvariantViolationException,
+                                '^Tasks with duplicate names',
+                                f_utils.flatten, flo)
 
     def test_flatten_checks_for_dups_globally(self):
         flo = gf.Flow("test").add(
             gf.Flow("int1").add(t_utils.DummyTask(name="a")),
             gf.Flow("int2").add(t_utils.DummyTask(name="a")))
-        with self.assertRaisesRegexp(exc.InvariantViolationException,
-                                     '^Tasks with duplicate names'):
-            f_utils.flatten(flo)
+        self.assertRaisesRegexp(exc.InvariantViolationException,
+                                '^Tasks with duplicate names',
+                                f_utils.flatten, flo)

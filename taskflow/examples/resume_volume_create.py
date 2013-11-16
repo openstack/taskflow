@@ -38,7 +38,6 @@ from taskflow import engines
 from taskflow import task
 
 from taskflow.persistence import backends
-from taskflow.utils import eventlet_utils as e_utils
 from taskflow.utils import persistence_utils as p_utils
 
 
@@ -83,7 +82,7 @@ def get_backend():
 
 class PrintText(task.Task):
     def __init__(self, print_what, no_slow=False):
-        content_hash = hashlib.md5(print_what).hexdigest()[0:8]
+        content_hash = hashlib.md5(print_what.encode('utf-8')).hexdigest()[0:8]
         super(PrintText, self).__init__(name="Print: %s" % (content_hash))
         self._text = print_what
         self._no_slow = no_slow
@@ -156,13 +155,13 @@ else:
     flow_detail = find_flow_detail(backend, book_id, flow_id)
 
 # Annnnd load and run.
+engine_conf = {
+    'engine': 'serial',
+}
 engine = engines.load(flow,
                       flow_detail=flow_detail,
                       backend=backend,
-                      engine_conf={
-                          'engine': 'parallel',
-                          'executor': e_utils.GreenExecutor(10),
-                      })
+                      engine_conf=engine_conf)
 engine.run()
 
 # How to use.

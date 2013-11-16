@@ -40,6 +40,7 @@ class CheckFlowTransitionTest(test.TestCase):
             states.check_flow_transition(states.RUNNING, states.RESUMING))
 
     def test_bad_transition_raises(self):
-        with self.assertRaisesRegexp(exc.InvalidStateException,
-                                     '^Flow transition.*not allowed'):
-            states.check_flow_transition(states.FAILURE, states.SUCCESS)
+        self.assertRaisesRegexp(exc.InvalidStateException,
+                                '^Flow transition.*not allowed',
+                                states.check_flow_transition,
+                                states.FAILURE, states.SUCCESS)

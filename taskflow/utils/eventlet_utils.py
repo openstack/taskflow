@@ -19,11 +19,14 @@
 import logging
 import threading
 
-from eventlet.green import threading as gthreading
-
-from eventlet import greenpool
-from eventlet import patcher
-from eventlet import queue
+try:
+    from eventlet.green import threading as gthreading
+    from eventlet import greenpool
+    from eventlet import patcher
+    from eventlet import queue
+    EVENTLET_AVAILABLE = True
+except ImportError:
+    EVENTLET_AVAILABLE = False
 
 from concurrent import futures
 
@@ -93,6 +96,7 @@ class GreenExecutor(futures.Executor):
     """A greenthread backed executor."""
 
     def __init__(self, max_workers=1000):
+        assert EVENTLET_AVAILABLE, 'eventlet is needed to use GreenExecutor'
         assert int(max_workers) > 0, 'Max workers must be greater than zero'
         self._max_workers = int(max_workers)
         self._pool = greenpool.GreenPool(self._max_workers)

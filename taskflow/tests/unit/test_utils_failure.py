@@ -75,8 +75,7 @@ class CaptureFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
         self.assertIs(exc_info[1], self.fail_obj.exception)
 
     def test_reraises(self):
-        with self.assertRaisesRegexp(RuntimeError, '^Woot!$'):
-            self.fail_obj.reraise()
+        self.assertRaisesRegexp(RuntimeError, '^Woot!$', self.fail_obj.reraise)
 
 
 class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
@@ -95,9 +94,8 @@ class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
         self.assertIs(self.fail_obj.exc_info, None)
 
     def test_reraises(self):
-        with self.assertRaises(exceptions.WrappedFailure) as ctx:
-            self.fail_obj.reraise()
-        exc = ctx.exception
+        exc = self.assertRaises(exceptions.WrappedFailure,
+                                self.fail_obj.reraise)
         self.assertIs(exc.check(RuntimeError), RuntimeError)
 
 
@@ -110,31 +108,30 @@ class FailureObjectTestCase(test.TestCase):
             self.assertRaises(TypeError, misc.Failure)
 
     def test_unknown_argument(self):
-        with self.assertRaises(TypeError) as ctx:
-            misc.Failure(
-                exception_str='Woot!',
-                traceback_str=None,
-                exc_type_names=['Exception'],
-                hi='hi there')
+        exc = self.assertRaises(TypeError, misc.Failure,
+                                exception_str='Woot!',
+                                traceback_str=None,
+                                exc_type_names=['Exception'],
+                                hi='hi there')
         expected = "Failure.__init__ got unexpected keyword argument(s): hi"
-        self.assertEqual(str(ctx.exception), expected)
+        self.assertEqual(str(exc), expected)
 
     def test_empty_does_not_reraise(self):
         self.assertIs(misc.Failure.reraise_if_any([]), None)
 
     def test_reraises_one(self):
         fls = [_captured_failure('Woot!')]
-        with self.assertRaisesRegexp(RuntimeError, '^Woot!$'):
-            misc.Failure.reraise_if_any(fls)
+        self.assertRaisesRegexp(RuntimeError, '^Woot!$',
+                                misc.Failure.reraise_if_any, fls)
 
     def test_reraises_several(self):
         fls = [
             _captured_failure('Woot!'),
             _captured_failure('Oh, not again!')
         ]
-        with self.assertRaises(exceptions.WrappedFailure) as ctx:
-            misc.Failure.reraise_if_any(fls)
-        self.assertEqual(list(ctx.exception), fls)
+        exc = self.assertRaises(exceptions.WrappedFailure,
+                                misc.Failure.reraise_if_any, fls)
+        self.assertEqual(list(exc), fls)
 
     def test_failure_copy(self):
         fail_obj = _captured_failure('Woot!')

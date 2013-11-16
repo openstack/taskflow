@@ -36,6 +36,7 @@ from taskflow.persistence.backends import base
 from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import models
 from taskflow.persistence import logbook
+from taskflow.utils import eventlet_utils
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils
 
@@ -224,7 +225,9 @@ class SQLAlchemyBackend(base.Backend):
         # or engine arg overrides make sure we merge them in.
         engine_args.update(conf.pop('engine_args', {}))
         engine = sa.create_engine(sql_connection, **engine_args)
-        if misc.as_bool(conf.pop('checkin_yield', True)):
+        checkin_yield = conf.pop('checkin_yield',
+                                 eventlet_utils.EVENTLET_AVAILABLE)
+        if misc.as_bool(checkin_yield):
             sa.event.listen(engine, 'checkin', _thread_yield)
         if 'mysql' in e_url.drivername:
             if misc.as_bool(conf.pop('checkout_ping', True)):

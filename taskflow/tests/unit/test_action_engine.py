@@ -85,30 +85,34 @@ class EngineTaskTest(utils.EngineTestBase):
                     'fail reverted(Failure: RuntimeError: Woot!)',
                     'fail REVERTED',
                     'flow REVERTED']
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(self.values, expected)
         self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
 
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         now_expected = expected + ['fail PENDING', 'flow PENDING'] + expected
         self.assertEqual(self.values, now_expected)
         self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
 
     def test_invalid_flow_raises(self):
-        value = 'i am string, not task/flow, sorry'
-        with self.assertRaises(TypeError) as err:
+
+        def compile_bad(value):
             engine = self._make_engine(value)
             engine.compile()
-        self.assertIn(value, str(err.exception))
+
+        value = 'i am string, not task/flow, sorry'
+        err = self.assertRaises(TypeError, compile_bad, value)
+        self.assertIn(value, str(err))
 
     def test_invalid_flow_raises_from_run(self):
-        value = 'i am string, not task/flow, sorry'
-        with self.assertRaises(TypeError) as err:
+
+        def run_bad(value):
             engine = self._make_engine(value)
             engine.run()
-        self.assertIn(value, str(err.exception))
+
+        value = 'i am string, not task/flow, sorry'
+        err = self.assertRaises(TypeError, run_bad, value)
+        self.assertIn(value, str(err))
 
 
 class EngineLinearFlowTest(utils.EngineTestBase):
@@ -136,8 +140,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
             utils.FailingTask(name='fail')
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(engine.storage.fetch_all(), {})
 
     def test_sequential_flow_nested_blocks(self):
@@ -156,8 +159,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
             utils.FailingTask(name='fail')
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
 
     def test_revert_not_run_task_is_not_reverted(self):
         flow = lf.Flow('revert-not-run').add(
@@ -165,8 +167,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
             utils.NeverRunningTask(),
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(
             self.values,
             ['fail reverted(Failure: RuntimeError: Woot!)'])
@@ -180,8 +181,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
             )
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(
             self.values,
             ['task1', 'task2',
@@ -195,7 +195,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
 
             def revert(m_self, result, flow_failures):
                 self.assertEqual(result, 'RESULT')
-                self.assertEqual(flow_failures.keys(), ['fail1'])
+                self.assertEqual(list(flow_failures.keys()), ['fail1'])
                 fail = flow_failures['fail1']
                 self.assertIsInstance(fail, misc.Failure)
                 self.assertEqual(str(fail), 'Failure: RuntimeError: Woot!')
@@ -205,8 +205,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
             utils.FailingTask(self.values, 'fail1')
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
 
 
 class EngineParallelFlowTest(utils.EngineTestBase):
@@ -236,8 +235,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             utils.TaskNoRequiresNoReturns(name='task2')
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
 
     def test_parallel_revert_exception_is_reraised(self):
         # NOTE(imelnikov): if we put NastyTask and FailingTask
@@ -252,8 +250,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             utils.FailingTask(self.values, sleep=0.1)
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
 
     def test_sequential_flow_two_tasks_with_resumption(self):
         flow = lf.Flow('lf-2-r').add(
@@ -285,8 +282,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             utils.SaveOrderTask(self.values, name='task2', sleep=0.01)
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         result = set(self.values)
         # NOTE(harlowja): task 1/2 may or may not have executed, even with the
         # sleeps due to the fact that the above is an unordered flow.
@@ -303,8 +299,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
                                 name='task2')  # this should not get reverted
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
         result = set(self.values)
         self.assertEqual(result, set(['task1']))
 
@@ -319,8 +314,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             )
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
         result = set(self.values)
         # Task1, task2 may *not* have executed and also may have *not* reverted
         # since the above is an unordered flow so take that into account by
@@ -381,8 +375,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             )
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         result = set(self.values)
         # Task3 may or may not have executed, depending on scheduling and
         # task ordering selection, so it may or may not exist in the result set
@@ -407,8 +400,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             )
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         result = set(self.values)
         # Since this is an unordered flow we can not guarantee that task1 or
         # task2 will exist and be reverted, although they may exist depending
@@ -432,8 +424,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             )
         )
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
         result = set(self.values)
         possible_result = set(['task1', 'task1 reverted(5)',
                                'task2', 'task2 reverted(5)',
@@ -492,8 +483,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
             utils.SaveOrderTask(self.values, name='task1', provides='a'))
 
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(
             self.values,
             ['task1', 'task2',
@@ -508,8 +498,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
             utils.SaveOrderTask(self.values, name='task1', provides='a'))
 
         engine = self._make_engine(flow)
-        with self.assertRaisesRegexp(RuntimeError, '^Gotcha'):
-            engine.run()
+        self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
         self.assertEqual(engine.storage.get_flow_state(), states.FAILURE)
 
     def test_graph_flow_with_multireturn_and_multiargs_tasks(self):

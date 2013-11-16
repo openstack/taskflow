@@ -227,13 +227,16 @@ class AttrDictTest(test.TestCase):
         self.assertEqual(attrs, dict(obj))
 
     def test_runtime_invalid_set(self):
+
+        def bad_assign(obj):
+            obj._123 = 'b'
+
         attrs = {
             'a': 1,
         }
         obj = misc.AttrDict(**attrs)
         self.assertEqual(obj.a, 1)
-        with self.assertRaises(AttributeError):
-            obj._123 = 'b'
+        self.assertRaises(AttributeError, bad_assign, obj)
 
     def test_bypass_get(self):
         attrs = {
@@ -243,14 +246,17 @@ class AttrDictTest(test.TestCase):
         self.assertEqual(1, obj['a'])
 
     def test_bypass_set_no_get(self):
+
+        def bad_assign(obj):
+            obj._b = 'e'
+
         attrs = {
             'a': 1,
         }
         obj = misc.AttrDict(**attrs)
         self.assertEqual(1, obj['a'])
         obj['_b'] = 'c'
-        with self.assertRaises(AttributeError):
-            obj._b = 'e'
+        self.assertRaises(AttributeError, bad_assign, obj)
         self.assertEqual('c', obj['_b'])
 
 

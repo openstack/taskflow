@@ -58,12 +58,12 @@ from taskflow import task
 
 def call_jim(context):
     print("Calling jim.")
-    print("Context = %s" % (context))
+    print("Context = %s" % (sorted(context.items(), key=lambda x: x[0])))
 
 
 def call_joe(context):
     print("Calling joe.")
-    print("Context = %s" % (context))
+    print("Context = %s" % (sorted(context.items(), key=lambda x: x[0])))
 
 
 def flow_watch(state, details):

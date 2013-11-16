@@ -63,6 +63,6 @@ class FunctorTaskTest(test.TestCase):
             t(bof.run_one, revert=bof.revert_one),
             t(bof.run_fail)
         )
-        with self.assertRaisesRegexp(RuntimeError, '^Woot'):
-            taskflow.engines.run(flow)
+        self.assertRaisesRegexp(RuntimeError, '^Woot',
+                                taskflow.engines.run, flow)
         self.assertEqual(values, ['one', 'fail', 'revert one'])

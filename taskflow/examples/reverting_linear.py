@@ -98,4 +98,4 @@ except Exception as e:
     # You will also note that this is not a problem in this case since no
     # parallelism is involved; this is ensured by the usage of a linear flow,
     # which runs serially as well as the default engine type which is 'serial'.
-    print("Flow failed: %r" % e)
+    print("Flow failed: %s" % e)
