@@ -1,0 +1,8 @@
+[run]
+branch = True
+source = taskflow
+omit = taskflow/tests/*,taskflow/openstack/*,taskflow/test.py
+
+[report]
+ignore-errors = True
+
