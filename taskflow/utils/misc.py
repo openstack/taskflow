@@ -21,9 +21,11 @@ import collections
 import copy
 import errno
 import functools
+import keyword
 import logging
 import os
 import six
+import string
 import sys
 import traceback
 
@@ -32,7 +34,7 @@ from taskflow.utils import reflection
 
 
 LOG = logging.getLogger(__name__)
-NUMERIC_TYPES = tuple(list(six.integer_types) + [float])
+NUMERIC_TYPES = six.integer_types + (float,)
 
 
 def wraps(fn):
@@ -76,36 +78,26 @@ def get_duplicate_keys(iterable, key=None):
     return duplicates
 
 
+# NOTE(imelnikov): we should not use str.isalpha or str.isdigit
+# as they are locale-dependant
+_ASCII_WORD_SYMBOLS = frozenset(string.ascii_letters + string.digits + '_')
+
+
 def is_valid_attribute_name(name, allow_self=False, allow_hidden=False):
     """Validates that a string name is a valid/invalid python attribute name"""
-    if not isinstance(name, six.string_types) or len(name) == 0:
-        return False
-    # Make the name just be a simple string in latin-1 encoding in python3
-    name = six.b(name)
-    if not allow_self and name.lower().startswith(six.b('self')):
-        return False
-    if not allow_hidden and name.startswith(six.b("_")):
-        return False
-    # See: http://docs.python.org/release/2.5.2/ref/grammar.txt (or newer)
-    #
-    # Python identifiers should start with a letter.
-    if isinstance(name[0], six.integer_types):
-        if not chr(name[0]).isalpha():
-            return False
-    else:
-        if not name[0].isalpha():
-            return False
-    for i in range(1, len(name)):
-        symbol = name[i]
-        # The rest of an attribute name follows: (letter | digit | "_")*
-        if isinstance(symbol, six.integer_types):
-            symbol = chr(symbol)
-            if not (symbol.isalpha() or symbol.isdigit() or symbol == "_"):
-                return False
-        else:
-            if not (symbol.isalpha() or symbol.isdigit() or symbol == "_"):
-                return False
-    return True
+    return all((
+        isinstance(name, six.string_types),
+        len(name) > 0,
+        (allow_self or not name.lower().startswith('self')),
+        (allow_hidden or not name.lower().startswith('_')),
+
+        # NOTE(imelnikov): keywords should be forbidden
+        not keyword.iskeyword(name),
+
+        # See: http://docs.python.org/release/2.5.2/ref/grammar.txt
+        not (name[0] in string.digits),
+        all(symbol in _ASCII_WORD_SYMBOLS for symbol in name)
+    ))
 
 
 class AttrDict(dict):

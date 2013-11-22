@@ -260,6 +260,37 @@ class AttrDictTest(test.TestCase):
         self.assertEqual('c', obj['_b'])
 
 
+class IsValidAttributeNameTestCase(test.TestCase):
+    def test_a_is_ok(self):
+        self.assertTrue(misc.is_valid_attribute_name('a'))
+
+    def test_name_can_be_longer(self):
+        self.assertTrue(misc.is_valid_attribute_name('foobarbaz'))
+
+    def test_name_can_have_digits(self):
+        self.assertTrue(misc.is_valid_attribute_name('fo12'))
+
+    def test_name_cannot_start_with_digit(self):
+        self.assertFalse(misc.is_valid_attribute_name('1z'))
+
+    def test_hidden_names_are_forbidden(self):
+        self.assertFalse(misc.is_valid_attribute_name('_z'))
+
+    def test_hidden_names_can_be_allowed(self):
+        self.assertTrue(
+            misc.is_valid_attribute_name('_z', allow_hidden=True))
+
+    def test_self_is_forbidden(self):
+        self.assertFalse(misc.is_valid_attribute_name('self'))
+
+    def test_self_can_be_allowed(self):
+        self.assertTrue(
+            misc.is_valid_attribute_name('self', allow_self=True))
+
+    def test_no_unicode_please(self):
+        self.assertFalse(misc.is_valid_attribute_name('mañana'))
+
+
 class ExcInfoUtilsTest(test.TestCase):
 
     def _make_ex_info(self):
