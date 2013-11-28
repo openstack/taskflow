@@ -22,7 +22,8 @@ import abc
 import six
 
 
-class JobBoard(six.with_metaclass(abc.ABCMeta)):
+@six.add_metaclass(abc.ABCMeta)
+class JobBoard(object):
     """A jobboard is an abstract representation of a place where jobs
     can be posted, reposted, claimed and transferred. There can be multiple
     implementations of this job board, depending on the desired semantics and

@@ -108,7 +108,8 @@ def _build_arg_mapping(task_name, reqs, rebind_args, function, do_infer):
     return result
 
 
-class BaseTask(six.with_metaclass(abc.ABCMeta)):
+@six.add_metaclass(abc.ABCMeta)
+class BaseTask(object):
     """An abstraction that defines a potential piece of work that can be
     applied and can be reverted to undo the work as a single unit.
     """

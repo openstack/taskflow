@@ -393,5 +393,6 @@ class Storage(object):
         return state
 
 
-class ThreadSafeStorage(six.with_metaclass(tu.ThreadSafeMeta, Storage)):
+@six.add_metaclass(tu.ThreadSafeMeta)
+class ThreadSafeStorage(Storage):
     pass

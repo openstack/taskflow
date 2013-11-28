@@ -33,7 +33,8 @@ LOG = logging.getLogger(__name__)
 FINISH_STATES = (states.FAILURE, states.SUCCESS)
 
 
-class LoggingBase(six.with_metaclass(abc.ABCMeta)):
+@six.add_metaclass(abc.ABCMeta)
+class LoggingBase(object):
     """This provides a simple listener that can be attached to an engine which
     can be derived from to log the received actions to some logging backend. It
     provides a useful context manager access to be able to register and

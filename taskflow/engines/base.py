@@ -22,7 +22,8 @@ import abc
 import six
 
 
-class EngineBase(six.with_metaclass(abc.ABCMeta)):
+@six.add_metaclass(abc.ABCMeta)
+class EngineBase(object):
     """Base for all engines implementations"""
 
     def __init__(self, flow, flow_detail, backend, conf):

@@ -22,7 +22,8 @@ import six
 from taskflow.utils import reflection
 
 
-class Flow(six.with_metaclass(abc.ABCMeta)):
+@six.add_metaclass(abc.ABCMeta)
+class Flow(object):
     """The base abstract class of all flow implementations.
 
     A flow is a structure that defines relationships between tasks. You can

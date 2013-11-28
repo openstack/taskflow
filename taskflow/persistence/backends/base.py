@@ -21,7 +21,8 @@ import abc
 import six
 
 
-class Backend(six.with_metaclass(abc.ABCMeta)):
+@six.add_metaclass(abc.ABCMeta)
+class Backend(object):
     """Base class for persistence backends."""
 
     def __init__(self, conf):
@@ -38,7 +39,8 @@ class Backend(six.with_metaclass(abc.ABCMeta)):
         pass
 
 
-class Connection(six.with_metaclass(abc.ABCMeta)):
+@six.add_metaclass(abc.ABCMeta)
+class Connection(object):
     """Base class for backend connections."""
 
     @abc.abstractproperty

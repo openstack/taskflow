@@ -22,7 +22,8 @@ import abc
 import six
 
 
-class Action(six.with_metaclass(abc.ABCMeta)):
+@six.add_metaclass(abc.ABCMeta)
+class Action(object):
     """Base action class"""
 
     @abc.abstractmethod
