@@ -19,6 +19,7 @@
 import collections
 
 import networkx as nx
+from networkx.algorithms import traversal
 
 from taskflow import exceptions as exc
 from taskflow import flow
@@ -31,6 +32,9 @@ class Flow(flow.Flow):
     Contained *flows/tasks* will be executed according to their dependencies
     which will be resolved by using the *flows/tasks* provides and requires
     mappings or by following manually created dependency links.
+
+    From dependencies directed graph is build. If it has edge A -> B, this
+    means B depends on A.
 
     Note: Cyclic dependencies are not allowed.
     """
@@ -138,10 +142,10 @@ class Flow(flow.Flow):
         return self
 
     def __len__(self):
-        return self._graph.number_of_nodes()
+        return self.graph.number_of_nodes()
 
     def __iter__(self):
-        for n in self._graph.nodes_iter():
+        for n in self.graph.nodes_iter():
             yield n
 
     @property
@@ -161,3 +165,60 @@ class Flow(flow.Flow):
     @property
     def graph(self):
         return self._graph
+
+
+class TargetedFlow(Flow):
+    """Graph flow with a target.
+
+    Adds possibility to execute a flow up to certain graph node
+    (task or subflow).
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(TargetedFlow, self).__init__(*args, **kwargs)
+        self._subgraph = None
+        self._target = None
+
+    def set_target(self, target_item):
+        """Set target for the flow.
+
+        Any items (tasks or subflows) not needed for the target
+        item will not be executed.
+        """
+        if not self._graph.has_node(target_item):
+            raise ValueError('Item %s not found' % target_item)
+        self._target = target_item
+        self._subgraph = None
+
+    def reset_target(self):
+        """Reset target for the flow.
+
+        All items of the flow will be executed.
+        """
+
+        self._target = None
+        self._subgraph = None
+
+    def add(self, *items):
+        """Adds a given task/tasks/flow/flows to this flow."""
+        super(TargetedFlow, self).add(*items)
+        # reset cached subgraph, in case it was affected
+        self._subgraph = None
+
+    def link(self, u, v):
+        """Link existing node u as a runtime dependency of existing node v."""
+        super(TargetedFlow, self).link(u, v)
+        # reset cached subgraph, in case it was affected
+        self._subgraph = None
+
+    @property
+    def graph(self):
+        if self._subgraph is not None:
+            return self._subgraph
+        if self._target is None:
+            return self._graph
+        nodes = [self._target]
+        nodes.extend(dst for _src, dst in
+                     traversal.dfs_edges(self._graph.reverse(), self._target))
+        self._subgraph = nx.freeze(self._graph.subgraph(nodes))
+        return self._subgraph

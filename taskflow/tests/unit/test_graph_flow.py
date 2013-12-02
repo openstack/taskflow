@@ -114,3 +114,97 @@ class GraphFlowTest(test.TestCase):
         edge_attrs = gu.get_edge_attrs(g, test_1, test_2)
         self.assertTrue(edge_attrs.get('manual'))
         self.assertTrue(edge_attrs.get('flatten'))
+
+
+class TargetedGraphFlowTest(test.TestCase):
+
+    def test_targeted_flow(self):
+        wf = gw.TargetedFlow("test")
+        test_1 = utils.ProvidesRequiresTask('test-1',
+                                            provides=['a'], requires=[])
+        test_2 = utils.ProvidesRequiresTask('test-2',
+                                            provides=['b'], requires=['a'])
+        test_3 = utils.ProvidesRequiresTask('test-3',
+                                            provides=[], requires=['b'])
+        test_4 = utils.ProvidesRequiresTask('test-4',
+                                            provides=[], requires=['b'])
+        wf.add(test_1, test_2, test_3, test_4)
+        wf.set_target(test_3)
+        g = fu.flatten(wf)
+        self.assertEqual(3, len(g))
+        self.assertFalse(g.has_node(test_4))
+        self.assertFalse('c' in wf.provides)
+
+    def test_targeted_flow_reset(self):
+        wf = gw.TargetedFlow("test")
+        test_1 = utils.ProvidesRequiresTask('test-1',
+                                            provides=['a'], requires=[])
+        test_2 = utils.ProvidesRequiresTask('test-2',
+                                            provides=['b'], requires=['a'])
+        test_3 = utils.ProvidesRequiresTask('test-3',
+                                            provides=[], requires=['b'])
+        test_4 = utils.ProvidesRequiresTask('test-4',
+                                            provides=['c'], requires=['b'])
+        wf.add(test_1, test_2, test_3, test_4)
+        wf.set_target(test_3)
+        wf.reset_target()
+        g = fu.flatten(wf)
+        self.assertEqual(4, len(g))
+        self.assertTrue(g.has_node(test_4))
+
+    def test_targeted_flow_bad_target(self):
+        wf = gw.TargetedFlow("test")
+        test_1 = utils.ProvidesRequiresTask('test-1',
+                                            provides=['a'], requires=[])
+        test_2 = utils.ProvidesRequiresTask('test-2',
+                                            provides=['b'], requires=['a'])
+        wf.add(test_1)
+        self.assertRaisesRegexp(ValueError, '^Item .* not found',
+                                wf.set_target, test_2)
+
+    def test_targeted_flow_one_node(self):
+        wf = gw.TargetedFlow("test")
+        test_1 = utils.ProvidesRequiresTask('test-1',
+                                            provides=['a'], requires=[])
+        wf.add(test_1)
+        wf.set_target(test_1)
+        g = fu.flatten(wf)
+        self.assertEqual(1, len(g))
+        self.assertTrue(g.has_node(test_1))
+
+    def test_recache_on_add(self):
+        wf = gw.TargetedFlow("test")
+        test_1 = utils.ProvidesRequiresTask('test-1',
+                                            provides=[], requires=['a'])
+        wf.add(test_1)
+        wf.set_target(test_1)
+        self.assertEqual(1, len(wf.graph))
+        test_2 = utils.ProvidesRequiresTask('test-2',
+                                            provides=['a'], requires=[])
+        wf.add(test_2)
+        self.assertEqual(2, len(wf.graph))
+
+    def test_recache_on_add_no_deps(self):
+        wf = gw.TargetedFlow("test")
+        test_1 = utils.ProvidesRequiresTask('test-1',
+                                            provides=[], requires=[])
+        wf.add(test_1)
+        wf.set_target(test_1)
+        self.assertEqual(1, len(wf.graph))
+        test_2 = utils.ProvidesRequiresTask('test-2',
+                                            provides=[], requires=[])
+        wf.add(test_2)
+        self.assertEqual(1, len(wf.graph))
+
+    def test_recache_on_link(self):
+        wf = gw.TargetedFlow("test")
+        test_1 = utils.ProvidesRequiresTask('test-1',
+                                            provides=[], requires=[])
+        test_2 = utils.ProvidesRequiresTask('test-2',
+                                            provides=[], requires=[])
+        wf.add(test_1, test_2)
+        wf.set_target(test_1)
+        self.assertEqual(1, len(wf.graph))
+        wf.link(test_2, test_1)
+        self.assertEqual(2, len(wf.graph))
+        self.assertEqual([(test_2, test_1)], list(wf.graph.edges()))
