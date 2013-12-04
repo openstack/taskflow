@@ -16,8 +16,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
+import functools
 import sys
 
+from taskflow import states
 from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.utils import lock_utils
@@ -61,6 +64,46 @@ class ClassWithInit(object):
         pass
 
 
+class CallbackEqualityTest(test.TestCase):
+    def test_different_simple_callbacks(self):
+
+        def a():
+            pass
+
+        def b():
+            pass
+
+        self.assertFalse(reflection.is_same_callback(a, b))
+
+    def test_static_instance_callbacks(self):
+
+        class A(object):
+
+            @staticmethod
+            def b(a, b, c):
+                pass
+
+        a = A()
+        b = A()
+
+        self.assertTrue(reflection.is_same_callback(a.b, b.b))
+
+    def test_different_instance_callbacks(self):
+
+        class A(object):
+            def b(self):
+                pass
+
+            def __eq__(self, other):
+                return True
+
+        b = A()
+        c = A()
+
+        self.assertFalse(reflection.is_same_callback(b.b, c.b))
+        self.assertTrue(reflection.is_same_callback(b.b, c.b, strict=False))
+
+
 class GetCallableNameTest(test.TestCase):
 
     def test_mere_function(self):
@@ -97,6 +140,88 @@ class GetCallableNameTest(test.TestCase):
         name = reflection.get_callable_name(CallableClass().__call__)
         self.assertEqual(name, '.'.join((__name__, 'CallableClass',
                                          '__call__')))
+
+
+class NotifierTest(test.TestCase):
+
+    def test_notify_called(self):
+        call_collector = []
+
+        def call_me(state, details):
+            call_collector.append((state, details))
+
+        notifier = misc.TransitionNotifier()
+        notifier.register(misc.TransitionNotifier.ANY, call_me)
+        notifier.notify(states.SUCCESS, {})
+        notifier.notify(states.SUCCESS, {})
+
+        self.assertEqual(2, len(call_collector))
+        self.assertEqual(1, len(notifier))
+
+    def test_notify_register_deregister(self):
+
+        def call_me(state, details):
+            pass
+
+        class A(object):
+            def call_me_too(self, state, details):
+                pass
+
+        notifier = misc.TransitionNotifier()
+        notifier.register(misc.TransitionNotifier.ANY, call_me)
+        a = A()
+        notifier.register(misc.TransitionNotifier.ANY, a.call_me_too)
+
+        self.assertEqual(2, len(notifier))
+        notifier.deregister(misc.TransitionNotifier.ANY, call_me)
+        notifier.deregister(misc.TransitionNotifier.ANY, a.call_me_too)
+        self.assertEqual(0, len(notifier))
+
+    def test_notify_reset(self):
+
+        def call_me(state, details):
+            pass
+
+        notifier = misc.TransitionNotifier()
+        notifier.register(misc.TransitionNotifier.ANY, call_me)
+        self.assertEqual(1, len(notifier))
+
+        notifier.reset()
+        self.assertEqual(0, len(notifier))
+
+    def test_bad_notify(self):
+
+        def call_me(state, details):
+            pass
+
+        notifier = misc.TransitionNotifier()
+        self.assertRaises(KeyError, notifier.register,
+                          misc.TransitionNotifier.ANY, call_me,
+                          kwargs={'details': 5})
+
+    def test_selective_notify(self):
+        call_counts = collections.defaultdict(list)
+
+        def call_me_on(registered_state, state, details):
+            call_counts[registered_state].append((state, details))
+
+        notifier = misc.TransitionNotifier()
+        notifier.register(states.SUCCESS,
+                          functools.partial(call_me_on, states.SUCCESS))
+        notifier.register(misc.TransitionNotifier.ANY,
+                          functools.partial(call_me_on,
+                                            misc.TransitionNotifier.ANY))
+
+        self.assertEqual(2, len(notifier))
+        notifier.notify(states.SUCCESS, {})
+
+        self.assertEqual(1, len(call_counts[misc.TransitionNotifier.ANY]))
+        self.assertEqual(1, len(call_counts[states.SUCCESS]))
+
+        notifier.notify(states.FAILURE, {})
+        self.assertEqual(2, len(call_counts[misc.TransitionNotifier.ANY]))
+        self.assertEqual(1, len(call_counts[states.SUCCESS]))
+        self.assertEqual(2, len(call_counts))
 
 
 class GetCallableArgsTest(test.TestCase):

@@ -93,6 +93,29 @@ def get_method_self(method):
         return None
 
 
+def is_same_callback(callback1, callback2, strict=True):
+    """Returns if the two callbacks are the same."""
+    if callback1 is callback2:
+        # This happens when plain methods are given (or static/non-bound
+        # methods).
+        return True
+    if callback1 == callback2:
+        if not strict:
+            return True
+        # If two bound method are equal if functions themselves are equal
+        # and objects they are applied to are equal. This means that a bound
+        # method could be the same bound method on another object if the
+        # objects have __eq__ methods that return true (when in fact it is a
+        # different bound method). Python u so crazy!
+        try:
+            self1 = six.get_method_self(callback1)
+            self2 = six.get_method_self(callback2)
+            return self1 is self2
+        except AttributeError:
+            pass
+    return False
+
+
 def is_bound_method(method):
     """Returns if the method given is a bound to a object or not."""
     return bool(get_method_self(method))
