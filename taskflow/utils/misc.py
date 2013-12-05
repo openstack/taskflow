@@ -214,8 +214,16 @@ class TransitionNotifier(object):
     def __init__(self):
         self._listeners = collections.defaultdict(list)
 
+    def __len__(self):
+        """Returns how many callbacks are registered"""
+
+        count = 0
+        for (_s, callbacks) in six.iteritems(self._listeners):
+            count += len(callbacks)
+        return count
+
     def reset(self):
-        self._listeners = collections.defaultdict(list)
+        self._listeners.clear()
 
     def notify(self, state, details):
         listeners = list(self._listeners.get(self.ANY, []))
@@ -255,7 +263,7 @@ class TransitionNotifier(object):
         if state not in self._listeners:
             return
         for i, (cb, args, kwargs) in enumerate(self._listeners[state]):
-            if cb is callback:
+            if reflection.is_same_callback(cb, callback):
                 self._listeners[state].pop(i)
                 break
 
