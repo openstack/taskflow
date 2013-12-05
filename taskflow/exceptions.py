@@ -88,6 +88,11 @@ class DependencyFailure(TaskFlowException):
     pass
 
 
+class EmptyFlow(TaskFlowException):
+    """Raised when flow doesn't contain tasks."""
+    pass
+
+
 class WrappedFailure(TaskFlowException):
     """Wraps one or several failures
 

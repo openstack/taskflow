@@ -173,6 +173,8 @@ class ActionEngine(base.EngineBase):
                                                 ' specified')
         self._change_state(states.RESUMING)  # does nothing in PENDING state
         task_graph = flow_utils.flatten(self._flow)
+        if task_graph.number_of_nodes() == 0:
+            raise exc.EmptyFlow("Flow %s is empty." % self._flow.name)
         self._root = self._graph_action(task_graph)
         for task in task_graph.nodes_iter():
             try:

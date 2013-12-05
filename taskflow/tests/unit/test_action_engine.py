@@ -28,6 +28,7 @@ from taskflow.patterns import unordered_flow as uf
 import taskflow.engines
 
 from taskflow.engines.action_engine import engine as eng
+from taskflow import exceptions as exc
 from taskflow.persistence import logbook
 from taskflow import states
 from taskflow import task
@@ -116,6 +117,11 @@ class EngineTaskTest(utils.EngineTestBase):
 
 
 class EngineLinearFlowTest(utils.EngineTestBase):
+
+    def test_run_empty_flow(self):
+        flow = lf.Flow('flow-1')
+        engine = self._make_engine(flow)
+        self.assertRaises(exc.EmptyFlow, engine.run)
 
     def test_sequential_flow_one_task(self):
         flow = lf.Flow('flow-1').add(
@@ -209,6 +215,11 @@ class EngineLinearFlowTest(utils.EngineTestBase):
 
 
 class EngineParallelFlowTest(utils.EngineTestBase):
+
+    def test_run_empty_flow(self):
+        flow = uf.Flow('p-1')
+        engine = self._make_engine(flow)
+        self.assertRaises(exc.EmptyFlow, engine.run)
 
     def test_parallel_flow_one_task(self):
         flow = uf.Flow('p-1').add(
@@ -433,6 +444,17 @@ class EngineParallelFlowTest(utils.EngineTestBase):
 
 
 class EngineGraphFlowTest(utils.EngineTestBase):
+
+    def test_run_empty_flow(self):
+        flow = gf.Flow('g-1')
+        engine = self._make_engine(flow)
+        self.assertRaises(exc.EmptyFlow, engine.run)
+
+    def test_run_nested_empty_flows(self):
+        flow = gf.Flow('g-1').add(lf.Flow('l-1'),
+                                  gf.Flow('g-2'))
+        engine = self._make_engine(flow)
+        self.assertRaises(exc.EmptyFlow, engine.run)
 
     def test_graph_flow_one_task(self):
         flow = gf.Flow('g-1').add(
