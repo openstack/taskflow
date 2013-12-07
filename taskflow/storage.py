@@ -152,9 +152,9 @@ class Storage(object):
     def update_task_metadata(self, uuid, update_with):
         if not update_with:
             return
-        # NOTE(harlowja): this is a read and then write, not in 1 transcation
+        # NOTE(harlowja): this is a read and then write, not in 1 transaction
         # so it is entirely possible that we could write over another writes
-        # metadata update.
+        # metadata update. Maybe add some merging logic later?
         td = self._taskdetail_by_uuid(uuid)
         if not td.meta:
             td.meta = {}
@@ -168,20 +168,21 @@ class Storage(object):
         :param progress: task progress
         :param details: task specific progress information
         """
-        td = self._taskdetail_by_uuid(uuid)
-        if not td.meta:
-            td.meta = {}
-        td.meta['progress'] = progress
+        metadata_update = {
+            'progress': progress,
+        }
         if details is not None:
             # NOTE(imelnikov): as we can update progress without
             # updating details (e.g. automatically from engine)
             # we save progress value with details, too
             if details:
-                td.meta['progress_details'] = dict(at_progress=progress,
-                                                   details=details)
+                metadata_update['progress_details'] = {
+                    'at_progress': progress,
+                    'details': details,
+                }
             else:
-                td.meta['progress_details'] = None
-        self._with_connection(self._save_task_detail, task_detail=td)
+                metadata_update['progress_details'] = None
+        self.update_task_metadata(uuid, metadata_update)
 
     def get_task_progress(self, uuid):
         """Get progress of task with given uuid.
