@@ -204,12 +204,14 @@ class TargetedFlow(Flow):
         super(TargetedFlow, self).add(*items)
         # reset cached subgraph, in case it was affected
         self._subgraph = None
+        return self
 
     def link(self, u, v):
         """Link existing node u as a runtime dependency of existing node v."""
         super(TargetedFlow, self).link(u, v)
         # reset cached subgraph, in case it was affected
         self._subgraph = None
+        return self
 
     @property
     def graph(self):
