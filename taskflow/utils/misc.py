@@ -246,8 +246,8 @@ class TransitionNotifier(object):
 
     def register(self, state, callback, args=None, kwargs=None):
         assert isinstance(callback, collections.Callable)
-        for i, (cb, args, kwargs) in enumerate(self._listeners.get(state, [])):
-            if cb is callback:
+        for (cb, _args, _kwargs) in self._listeners.get(state, []):
+            if reflection.is_same_callback(cb, callback):
                 raise ValueError("Callback %s already registered" % (callback))
         if kwargs:
             for k in self.RESERVED_KEYS:
