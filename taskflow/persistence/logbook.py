@@ -18,6 +18,7 @@
 #    under the License.
 
 import logging
+import six
 
 from taskflow.openstack.common import uuidutils
 
@@ -92,7 +93,7 @@ class FlowDetail(object):
     def __init__(self, name, uuid):
         self._uuid = uuid
         self._name = name
-        self._taskdetails = []
+        self._taskdetails_by_id = {}
         self.state = None
         # Any other metadata to include about this flow while storing. For
         # example timing information could be stored here, other misc. flow
@@ -103,18 +104,15 @@ class FlowDetail(object):
         """Updates the objects state to be the same as the given one."""
         if fd is self:
             return
-        self._taskdetails = list(fd._taskdetails)
+        self._taskdetails_by_id = dict(fd._taskdetails_by_id)
         self.state = fd.state
         self.meta = fd.meta
 
     def add(self, td):
-        self._taskdetails.append(td)
+        self._taskdetails_by_id[td.uuid] = td
 
     def find(self, td_uuid):
-        for self_td in self:
-            if self_td.uuid == td_uuid:
-                return self_td
-        return None
+        return self._taskdetails_by_id.get(td_uuid)
 
     def find_by_name(self, td_name):
         for self_td in self:
@@ -131,11 +129,11 @@ class FlowDetail(object):
         return self._name
 
     def __iter__(self):
-        for td in self._taskdetails:
+        for td in six.itervalues(self._taskdetails_by_id):
             yield td
 
     def __len__(self):
-        return len(self._taskdetails)
+        return len(self._taskdetails_by_id)
 
 
 class TaskDetail(object):
