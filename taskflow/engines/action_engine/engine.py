@@ -26,7 +26,6 @@ from taskflow.engines import base
 
 from taskflow import exceptions as exc
 from taskflow.openstack.common import excutils
-from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow import storage as t_storage
 
@@ -140,14 +139,15 @@ class ActionEngine(base.EngineBase):
                        old_state=old_state)
         self.notifier.notify(state, details)
 
-    def _on_task_state_change(self, task_action, state, result=None):
+    def _on_task_state_change(self, task_name, state, result=None):
         """Notifies the engine that the following task action has completed
         a given state with a given result. This is a *internal* to the action
         engine and its associated action classes, not for use externally.
         """
+        task_uuid = self.storage.get_task_uuid(task_name)
         details = dict(engine=self,
-                       task_name=task_action.name,
-                       task_uuid=task_action.uuid,
+                       task_name=task_name,
+                       task_uuid=task_uuid,
                        result=result)
         self.task_notifier.notify(state, details)
 
@@ -177,16 +177,10 @@ class ActionEngine(base.EngineBase):
             raise exc.EmptyFlow("Flow %s is empty." % self._flow.name)
         self._root = self._graph_action(task_graph)
         for task in task_graph.nodes_iter():
-            try:
-                task_id = self.storage.get_uuid_by_name(task.name)
-            except exc.NotFound:
-                task_id = uuidutils.generate_uuid()
-                task_version = misc.get_version_string(task)
-                self.storage.add_task(task_name=task.name, uuid=task_id,
-                                      task_version=task_version)
+            task_version = misc.get_version_string(task)
+            self.storage.ensure_task(task.name, task_version, task.save_as)
+            self._root.add(task, task_action.TaskAction(task))
 
-            self.storage.set_result_mapping(task_id, task.save_as)
-            self._root.add(task, task_action.TaskAction(task, task_id))
         self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
     @property

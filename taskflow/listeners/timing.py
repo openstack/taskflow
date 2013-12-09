@@ -44,25 +44,25 @@ class TimingListener(base.ListenerBase):
         super(TimingListener, self).deregister()
         self._timers.clear()
 
-    def _record_ending(self, timer, task_uuid):
+    def _record_ending(self, timer, task_name):
         meta_update = {
             'duration': float(timer.elapsed()),
         }
         try:
             # Don't let storage failures throw exceptions in a listener
             # method.
-            self._engine.storage.update_task_metadata(task_uuid, meta_update)
+            self._engine.storage.update_task_metadata(task_name, meta_update)
         except excp.StorageError:
             LOG.exception("Failure to store duration update %s for task %s",
-                          meta_update, task_uuid)
+                          meta_update, task_name)
 
     def _task_receiver(self, state, details):
-        task_uuid = details['task_uuid']
+        task_name = details['task_name']
         if state == states.PENDING:
-            self._timers.pop(task_uuid, None)
+            self._timers.pop(task_name, None)
         elif state in STARTING_STATES:
-            self._timers[task_uuid] = misc.StopWatch()
-            self._timers[task_uuid].start()
+            self._timers[task_name] = misc.StopWatch()
+            self._timers[task_name].start()
         elif state in FINISHED_STATES:
-            if task_uuid in self._timers:
-                self._record_ending(self._timers[task_uuid], task_uuid)
+            if task_name in self._timers:
+                self._record_ending(self._timers[task_name], task_name)

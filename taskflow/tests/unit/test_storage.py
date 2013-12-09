@@ -20,6 +20,7 @@ import contextlib
 import mock
 
 from taskflow import exceptions
+from taskflow.openstack.common import uuidutils
 from taskflow.persistence.backends import impl_memory
 from taskflow.persistence import logbook
 from taskflow import states
@@ -47,8 +48,9 @@ class StorageTest(test.TestCase):
     def test_non_saving_storage(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
         s = storage.Storage(flow_detail=flow_detail)  # no backend
-        s.add_task('42', 'my task')
-        self.assertEqual(s.get_uuid_by_name('my task'), '42')
+        s.ensure_task('my_task')
+        self.assertTrue(
+            uuidutils.is_uuid_like(s.get_task_uuid('my_task')))
 
     def test_flow_name_and_uuid(self):
         fd = logbook.FlowDetail(name='test-fd', uuid='aaaa')
@@ -56,102 +58,120 @@ class StorageTest(test.TestCase):
         self.assertEqual(s.flow_name, 'test-fd')
         self.assertEqual(s.flow_uuid, 'aaaa')
 
-    def test_add_task(self):
+    def test_ensure_task(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        self.assertEqual(s.get_task_state('42'), states.PENDING)
+        s.ensure_task('my task')
+        self.assertEqual(s.get_task_state('my task'), states.PENDING)
+        self.assertTrue(
+            uuidutils.is_uuid_like(s.get_task_uuid('my task')))
 
-    def test_add_task_fd(self):
+    def test_ensure_task_fd(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
         s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
-        s.add_task('42', 'my task', '3.11')
-        td = flow_detail.find('42')
-        self.assertIsNot(td, None)
-        self.assertEqual(td.uuid, '42')
+        s.ensure_task('my task', '3.11')
+        td = flow_detail.find(s.get_task_uuid('my task'))
+        self.assertIsNotNone(td)
         self.assertEqual(td.name, 'my task')
         self.assertEqual(td.version, '3.11')
         self.assertEqual(td.state, states.PENDING)
 
+    def test_get_without_save(self):
+        _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
+        td = logbook.TaskDetail(name='my_task', uuid='42')
+        flow_detail.add(td)
+
+        s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
+        self.assertEquals('42', s.get_task_uuid('my_task'))
+
+    def test_ensure_existing_task(self):
+        _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
+        td = logbook.TaskDetail(name='my_task', uuid='42')
+        flow_detail.add(td)
+
+        s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
+        s.ensure_task('my_task')
+        self.assertEquals('42', s.get_task_uuid('my_task'))
+
     def test_save_and_get(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.save('42', 5)
-        self.assertEqual(s.get('42'), 5)
+        s.ensure_task('my task')
+        s.save('my task', 5)
+        self.assertEqual(s.get('my task'), 5)
         self.assertEqual(s.fetch_all(), {})
-        self.assertEqual(s.get_task_state('42'), states.SUCCESS)
+        self.assertEqual(s.get_task_state('my task'), states.SUCCESS)
 
     def test_save_and_get_other_state(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.save('42', 5, states.FAILURE)
-        self.assertEqual(s.get('42'), 5)
-        self.assertEqual(s.get_task_state('42'), states.FAILURE)
+        s.ensure_task('my task')
+        s.save('my task', 5, states.FAILURE)
+        self.assertEqual(s.get('my task'), 5)
+        self.assertEqual(s.get_task_state('my task'), states.FAILURE)
 
     def test_save_and_get_failure(self):
         fail = misc.Failure(exc_info=(RuntimeError, RuntimeError(), None))
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.save('42', fail, states.FAILURE)
-        self.assertEqual(s.get('42'), fail)
-        self.assertEqual(s.get_task_state('42'), states.FAILURE)
+        s.ensure_task('my task')
+        s.save('my task', fail, states.FAILURE)
+        self.assertEqual(s.get('my task'), fail)
+        self.assertEqual(s.get_task_state('my task'), states.FAILURE)
         self.assertIs(s.has_failures(), True)
         self.assertEqual(s.get_failures(), {'my task': fail})
 
     def test_get_failure_from_reverted_task(self):
         fail = misc.Failure(exc_info=(RuntimeError, RuntimeError(), None))
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.save('42', fail, states.FAILURE)
+        s.ensure_task('my task')
+        s.save('my task', fail, states.FAILURE)
 
-        s.set_task_state('42', states.REVERTING)
-        self.assertEqual(s.get('42'), fail)
+        s.set_task_state('my task', states.REVERTING)
+        self.assertEqual(s.get('my task'), fail)
 
-        s.set_task_state('42', states.REVERTED)
-        self.assertEqual(s.get('42'), fail)
+        s.set_task_state('my task', states.REVERTED)
+        self.assertEqual(s.get('my task'), fail)
 
     def test_get_failure_after_reload(self):
         fail = misc.Failure(exc_info=(RuntimeError, RuntimeError(), None))
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.save('42', fail, states.FAILURE)
+        s.ensure_task('my task')
+        s.save('my task', fail, states.FAILURE)
 
         s2 = storage.Storage(backend=self.backend, flow_detail=s._flowdetail)
         self.assertIs(s2.has_failures(), True)
         self.assertEqual(s2.get_failures(), {'my task': fail})
-        self.assertEqual(s2.get('42'), fail)
-        self.assertEqual(s2.get_task_state('42'), states.FAILURE)
+        self.assertEqual(s2.get('my task'), fail)
+        self.assertEqual(s2.get_task_state('my task'), states.FAILURE)
 
     def test_get_non_existing_var(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        self.assertRaises(exceptions.NotFound, s.get, '42')
+        s.ensure_task('my task')
+        self.assertRaises(exceptions.NotFound, s.get, 'my task')
 
     def test_reset(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.save('42', 5)
-        s.reset('42')
-        self.assertEqual(s.get_task_state('42'), states.PENDING)
-        self.assertRaises(exceptions.NotFound, s.get, '42')
+        s.ensure_task('my task')
+        s.save('my task', 5)
+        s.reset('my task')
+        self.assertEqual(s.get_task_state('my task'), states.PENDING)
+        self.assertRaises(exceptions.NotFound, s.get, 'my task')
 
     def test_reset_unknown_task(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        self.assertEqual(s.reset('42'), None)
+        s.ensure_task('my task')
+        self.assertEqual(s.reset('my task'), None)
 
     def test_reset_tasks(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.save('42', 5)
-        s.add_task('43', 'my other task')
-        s.save('43', 7)
+        s.ensure_task('my task')
+        s.save('my task', 5)
+        s.ensure_task('my other task')
+        s.save('my other task', 7)
 
         s.reset_tasks()
 
-        self.assertEqual(s.get_task_state('42'), states.PENDING)
-        self.assertRaises(exceptions.NotFound, s.get, '42')
-        self.assertEqual(s.get_task_state('43'), states.PENDING)
-        self.assertRaises(exceptions.NotFound, s.get, '43')
+        self.assertEqual(s.get_task_state('my task'), states.PENDING)
+        self.assertRaises(exceptions.NotFound, s.get, 'my task')
+        self.assertEqual(s.get_task_state('my other task'), states.PENDING)
+        self.assertRaises(exceptions.NotFound, s.get, 'my other task')
 
     def test_reset_tasks_does_not_breaks_inject(self):
         s = self._get_storage()
@@ -169,10 +189,9 @@ class StorageTest(test.TestCase):
 
     def test_fetch_by_name(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
         name = 'my result'
-        s.set_result_mapping('42', {name: None})
-        s.save('42', 5)
+        s.ensure_task('my task', '1.0', {name: None})
+        s.save('my task', 5)
         self.assertEqual(s.fetch(name), 5)
         self.assertEqual(s.fetch_all(), {name: 5})
 
@@ -184,56 +203,55 @@ class StorageTest(test.TestCase):
 
     def test_default_task_progress(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        self.assertEqual(s.get_task_progress('42'), 0.0)
-        self.assertEqual(s.get_task_progress_details('42'), None)
+        s.ensure_task('my task')
+        self.assertEqual(s.get_task_progress('my task'), 0.0)
+        self.assertEqual(s.get_task_progress_details('my task'), None)
 
     def test_task_progress(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
+        s.ensure_task('my task')
 
-        s.set_task_progress('42', 0.5, {'test_data': 11})
-        self.assertEqual(s.get_task_progress('42'), 0.5)
-        self.assertEqual(s.get_task_progress_details('42'), {
+        s.set_task_progress('my task', 0.5, {'test_data': 11})
+        self.assertEqual(s.get_task_progress('my task'), 0.5)
+        self.assertEqual(s.get_task_progress_details('my task'), {
             'at_progress': 0.5,
             'details': {'test_data': 11}
         })
 
-        s.set_task_progress('42', 0.7, {'test_data': 17})
-        self.assertEqual(s.get_task_progress('42'), 0.7)
-        self.assertEqual(s.get_task_progress_details('42'), {
+        s.set_task_progress('my task', 0.7, {'test_data': 17})
+        self.assertEqual(s.get_task_progress('my task'), 0.7)
+        self.assertEqual(s.get_task_progress_details('my task'), {
             'at_progress': 0.7,
             'details': {'test_data': 17}
         })
 
-        s.set_task_progress('42', 0.99)
-        self.assertEqual(s.get_task_progress('42'), 0.99)
-        self.assertEqual(s.get_task_progress_details('42'), {
+        s.set_task_progress('my task', 0.99)
+        self.assertEqual(s.get_task_progress('my task'), 0.99)
+        self.assertEqual(s.get_task_progress_details('my task'), {
             'at_progress': 0.7,
             'details': {'test_data': 17}
         })
 
     def test_task_progress_erase(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
+        s.ensure_task('my task')
 
-        s.set_task_progress('42', 0.8, {})
-        self.assertEqual(s.get_task_progress('42'), 0.8)
-        self.assertEqual(s.get_task_progress_details('42'), None)
+        s.set_task_progress('my task', 0.8, {})
+        self.assertEqual(s.get_task_progress('my task'), 0.8)
+        self.assertEqual(s.get_task_progress_details('my task'), None)
 
     def test_fetch_result_not_ready(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
         name = 'my result'
-        s.set_result_mapping('42', {name: None})
+        s.ensure_task('my task', result_mapping={name: None})
         self.assertRaises(exceptions.NotFound, s.get, name)
         self.assertEqual(s.fetch_all(), {})
 
     def test_save_multiple_results(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.set_result_mapping('42', {'foo': 0, 'bar': 1, 'whole': None})
-        s.save('42', ('spam', 'eggs'))
+        result_mapping = {'foo': 0, 'bar': 1, 'whole': None}
+        s.ensure_task('my task', result_mapping=result_mapping)
+        s.save('my task', ('spam', 'eggs'))
         self.assertEqual(s.fetch_all(), {
             'foo': 'spam',
             'bar': 'eggs',
@@ -242,9 +260,8 @@ class StorageTest(test.TestCase):
 
     def test_mapping_none(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.set_result_mapping('42', None)
-        s.save('42', 5)
+        s.ensure_task('my task')
+        s.save('my task', 5)
         self.assertEqual(s.fetch_all(), {})
 
     def test_inject(self):
@@ -298,25 +315,26 @@ class StorageTest(test.TestCase):
     def test_set_and_get_task_state(self):
         s = self._get_storage()
         state = states.PENDING
-        s.add_task('42', 'my task')
-        s.set_task_state('42', state)
-        self.assertEqual(s.get_task_state('42'), state)
+        s.ensure_task('my task')
+        s.set_task_state('my task', state)
+        self.assertEqual(s.get_task_state('my task'), state)
 
     def test_get_state_of_unknown_task(self):
         s = self._get_storage()
         self.assertRaisesRegexp(exceptions.NotFound, '^Unknown',
-                                s.get_task_state, '42')
+                                s.get_task_state, 'my task')
 
     def test_task_by_name(self):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        self.assertEqual(s.get_uuid_by_name('my task'), '42')
+        s.ensure_task('my task')
+        self.assertTrue(
+            uuidutils.is_uuid_like(s.get_task_uuid('my task')))
 
     def test_unknown_task_by_name(self):
         s = self._get_storage()
         self.assertRaisesRegexp(exceptions.NotFound,
                                 '^Unknown task name:',
-                                s.get_uuid_by_name, '42')
+                                s.get_task_uuid, '42')
 
     def test_initial_flow_state(self):
         s = self._get_storage()
@@ -338,9 +356,8 @@ class StorageTest(test.TestCase):
     @mock.patch.object(storage.LOG, 'warning')
     def test_result_is_checked(self, mocked_warning):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.set_result_mapping('42', {'result': 'key'})
-        s.save('42', {})
+        s.ensure_task('my task', result_mapping={'result': 'key'})
+        s.save('my task', {})
         mocked_warning.assert_called_once_with(
             mock.ANY, 'my task', 'key', 'result')
         self.assertRaisesRegexp(exceptions.NotFound,
@@ -349,9 +366,8 @@ class StorageTest(test.TestCase):
     @mock.patch.object(storage.LOG, 'warning')
     def test_empty_result_is_checked(self, mocked_warning):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.set_result_mapping('42', {'a': 0})
-        s.save('42', ())
+        s.ensure_task('my task', result_mapping={'a': 0})
+        s.save('my task', ())
         mocked_warning.assert_called_once_with(
             mock.ANY, 'my task', 0, 'a')
         self.assertRaisesRegexp(exceptions.NotFound,
@@ -360,9 +376,8 @@ class StorageTest(test.TestCase):
     @mock.patch.object(storage.LOG, 'warning')
     def test_short_result_is_checked(self, mocked_warning):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.set_result_mapping('42', {'a': 0, 'b': 1})
-        s.save('42', ['result'])
+        s.ensure_task('my task', result_mapping={'a': 0, 'b': 1})
+        s.save('my task', ['result'])
         mocked_warning.assert_called_once_with(
             mock.ANY, 'my task', 1, 'b')
         self.assertEqual(s.fetch('a'), 'result')
@@ -372,11 +387,9 @@ class StorageTest(test.TestCase):
     @mock.patch.object(storage.LOG, 'warning')
     def test_multiple_providers_are_checked(self, mocked_warning):
         s = self._get_storage()
-        s.add_task('42', 'my task')
-        s.set_result_mapping('42', {'result': 'key'})
+        s.ensure_task('my task', result_mapping={'result': 'key'})
         self.assertEqual(mocked_warning.mock_calls, [])
-        s.add_task('43', 'my other task')
-        s.set_result_mapping('43', {'result': 'key'})
+        s.ensure_task('my other task', result_mapping={'result': 'key'})
         mocked_warning.assert_called_once_with(
             mock.ANY, 'result')
 
@@ -385,7 +398,5 @@ class StorageTest(test.TestCase):
         s = self._get_storage()
         s.inject({'result': 'DONE'})
         self.assertEqual(mocked_warning.mock_calls, [])
-        s.add_task('43', 'my other task')
-        s.set_result_mapping('43', {'result': 'key'})
-        mocked_warning.assert_called_once_with(
-            mock.ANY, 'result')
+        s.ensure_task('my other task', result_mapping={'result': 'key'})
+        mocked_warning.assert_called_once_with(mock.ANY, 'result')

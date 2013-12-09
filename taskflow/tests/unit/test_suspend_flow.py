@@ -200,10 +200,8 @@ class SuspendFlowTest(utils.EngineTestBase):
         engine.run()
         self.assertEqual(engine.storage.get_flow_state(), states.SUSPENDED)
         # uninject engine
-        engine.storage.save(
-            engine.storage.get_uuid_by_name(engine.storage.injector_name),
-            None,
-            states.FAILURE)
+        engine.storage.save(engine.storage.injector_name,
+                            None, states.FAILURE)
         self.assertRaises(exc.MissingDependencies, engine.run)
 
 

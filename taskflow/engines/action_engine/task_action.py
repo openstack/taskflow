@@ -40,42 +40,37 @@ def _autobind(task, bind_name, bind_func, **kwargs):
 
 class TaskAction(base.Action):
 
-    def __init__(self, task, task_id):
+    def __init__(self, task):
         self._task = task
-        self._id = task_id
 
     @property
     def name(self):
         return self._task.name
 
-    @property
-    def uuid(self):
-        return self._id
-
     def _change_state(self, engine, state, result=None, progress=None):
         """Update result and change state."""
-        old_state = engine.storage.get_task_state(self.uuid)
+        old_state = engine.storage.get_task_state(self.name)
         if not states.check_task_transition(old_state, state):
             return False
         if state in SAVE_RESULT_STATES:
-            engine.storage.save(self.uuid, result, state)
+            engine.storage.save(self.name, result, state)
         else:
-            engine.storage.set_task_state(self.uuid, state)
+            engine.storage.set_task_state(self.name, state)
         if progress is not None:
-            engine.storage.set_task_progress(self.uuid, progress)
-        engine._on_task_state_change(self, state, result=result)
+            engine.storage.set_task_progress(self.name, progress)
+        engine._on_task_state_change(self.name, state, result=result)
         return True
 
     def _on_update_progress(self, task, event_data, progress, **kwargs):
         """Update task progress value that stored in engine."""
         try:
             engine = event_data['engine']
-            engine.storage.set_task_progress(self.uuid, progress, kwargs)
+            engine.storage.set_task_progress(self.name, progress, kwargs)
         except Exception:
             # Update progress callbacks should never fail, so capture and log
             # the emitted exception instead of raising it.
-            LOG.exception("Failed setting task progress for %s (%s) to %0.3f",
-                          task, self.uuid, progress)
+            LOG.exception("Failed setting task progress for %s to %0.3f",
+                          task, progress)
 
     def _change_state_update_task(self, engine, state, progress, result=None):
         stated_changed = self._change_state(engine, state,
@@ -111,7 +106,7 @@ class TaskAction(base.Action):
                        'update_progress', self._on_update_progress,
                        engine=engine):
             kwargs = engine.storage.fetch_mapped_args(self._task.rebind)
-            kwargs['result'] = engine.storage.get(self._id)
+            kwargs['result'] = engine.storage.get(self.name)
             kwargs['flow_failures'] = engine.storage.get_failures()
             try:
                 self._task.revert(**kwargs)

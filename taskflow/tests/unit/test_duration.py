@@ -57,7 +57,7 @@ class TestDuration(test.TestCase):
             e = self.make_engine(flo, fd, be)
             with timing.TimingListener(e):
                 e.run()
-            t_uuid = e.storage.get_uuid_by_name("test-1")
+            t_uuid = e.storage.get_task_uuid("test-1")
             td = fd.find(t_uuid)
             self.assertIsNotNone(td)
             self.assertIsNotNone(td.meta)

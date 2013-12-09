@@ -70,11 +70,17 @@ class Storage(object):
         self._failures = {}
         self._reload_failures()
 
-        injector_td = self._flowdetail.find_by_name(self.injector_name)
-        if injector_td is not None and injector_td.results is not None:
+        self._task_name_to_uuid = dict((td.name, td.uuid)
+                                       for td in self._flowdetail)
+
+        try:
+            injector_td = self._taskdetail_by_name(self.injector_name)
+        except exceptions.NotFound:
+            pass
+        else:
             names = six.iterkeys(injector_td.results)
-            self.set_result_mapping(injector_td.uuid,
-                                    dict((name, name) for name in names))
+            self._set_result_mapping(injector_td.name,
+                                     dict((name, name) for name in names))
 
     def _with_connection(self, functor, *args, **kwargs):
         # NOTE(harlowja): Activate the given function with a backend
@@ -85,7 +91,25 @@ class Storage(object):
         with contextlib.closing(self._backend.get_connection()) as conn:
             functor(conn, *args, **kwargs)
 
-    def add_task(self, uuid, task_name, task_version=None):
+    def ensure_task(self, task_name, task_version=None, result_mapping=None):
+        """Ensure that there is taskdetail that correspond the task
+
+        If task does not exist, adds a record for it. Added task will have
+        PENDING state. Sets result mapping for the task from result_mapping
+        argument.
+
+        Returns uuid for the task details corresponding to the task with
+        given name.
+        """
+        try:
+            task_id = self._task_name_to_uuid[task_name]
+        except KeyError:
+            task_id = uuidutils.generate_uuid()
+            self._add_task(task_id, task_name, task_version)
+        self._set_result_mapping(task_name, result_mapping)
+        return task_id
+
+    def _add_task(self, uuid, task_name, task_version=None):
         """Add the task to storage
 
         Task becomes known to storage by that name and uuid.
@@ -104,6 +128,7 @@ class Storage(object):
             self._save_task_detail(conn, task_detail=td)
 
         self._with_connection(save_both)
+        self._task_name_to_uuid[task_name] = uuid
 
     @property
     def flow_name(self):
@@ -119,18 +144,14 @@ class Storage(object):
         # added item to the flow detail).
         self._flowdetail.update(conn.update_flow_details(self._flowdetail))
 
-    def get_uuid_by_name(self, task_name):
-        """Get uuid of task with given name"""
-        td = self._flowdetail.find_by_name(task_name)
-        if td is not None:
-            return td.uuid
-        else:
-            raise exceptions.NotFound("Unknown task name: %r" % task_name)
+    def _taskdetail_by_name(self, task_name):
+        try:
+            td = self._flowdetail.find(self._task_name_to_uuid[task_name])
+        except KeyError:
+            td = None
 
-    def _taskdetail_by_uuid(self, uuid):
-        td = self._flowdetail.find(uuid)
         if td is None:
-            raise exceptions.NotFound("Unknown task: %r" % uuid)
+            raise exceptions.NotFound("Unknown task name: %s" % task_name)
         return td
 
     def _save_task_detail(self, conn, task_detail):
@@ -139,32 +160,37 @@ class Storage(object):
         # is also modifying the task detail).
         task_detail.update(conn.update_task_details(task_detail))
 
-    def set_task_state(self, uuid, state):
+    def get_task_uuid(self, task_name):
+        """Get task uuid by given name"""
+        td = self._taskdetail_by_name(task_name)
+        return td.uuid
+
+    def set_task_state(self, task_name, state):
         """Set task state"""
-        td = self._taskdetail_by_uuid(uuid)
+        td = self._taskdetail_by_name(task_name)
         td.state = state
         self._with_connection(self._save_task_detail, task_detail=td)
 
-    def get_task_state(self, uuid):
-        """Get state of task with given uuid"""
-        return self._taskdetail_by_uuid(uuid).state
+    def get_task_state(self, task_name):
+        """Get state of task with given name"""
+        return self._taskdetail_by_name(task_name).state
 
-    def update_task_metadata(self, uuid, update_with):
+    def update_task_metadata(self, task_name, update_with):
         if not update_with:
             return
         # NOTE(harlowja): this is a read and then write, not in 1 transaction
         # so it is entirely possible that we could write over another writes
         # metadata update. Maybe add some merging logic later?
-        td = self._taskdetail_by_uuid(uuid)
+        td = self._taskdetail_by_name(task_name)
         if not td.meta:
             td.meta = {}
         td.meta.update(update_with)
         self._with_connection(self._save_task_detail, task_detail=td)
 
-    def set_task_progress(self, uuid, progress, details=None):
+    def set_task_progress(self, task_name, progress, details=None):
         """Set task progress.
 
-        :param uuid: task uuid
+        :param task_name: task name
         :param progress: task progress
         :param details: task specific progress information
         """
@@ -182,39 +208,39 @@ class Storage(object):
                 }
             else:
                 metadata_update['progress_details'] = None
-        self.update_task_metadata(uuid, metadata_update)
+        self.update_task_metadata(task_name, metadata_update)
 
-    def get_task_progress(self, uuid):
-        """Get progress of task with given uuid.
+    def get_task_progress(self, task_name):
+        """Get progress of task with given name.
 
-        :param uuid: task uuid
+        :param task_name: task name
         :returns: current task progress value
         """
-        meta = self._taskdetail_by_uuid(uuid).meta
+        meta = self._taskdetail_by_name(task_name).meta
         if not meta:
             return 0.0
         return meta.get('progress', 0.0)
 
-    def get_task_progress_details(self, uuid):
-        """Get progress details of task with given uuid.
+    def get_task_progress_details(self, task_name):
+        """Get progress details of task with given name.
 
-        :param uuid: task uuid
+        :param task_name: task name
         :returns: None if progress_details not defined, else progress_details
                  dict
         """
-        meta = self._taskdetail_by_uuid(uuid).meta
+        meta = self._taskdetail_by_name(task_name).meta
         if not meta:
             return None
         return meta.get('progress_details')
 
-    def _check_all_results_provided(self, uuid, task_name, data):
+    def _check_all_results_provided(self, task_name, data):
         """Warn if task did not provide some of results
 
         This may happen if task returns shorter tuple or list or dict
         without all needed keys. It may also happen if task returns
         result of wrong type.
         """
-        result_mapping = self._result_mappings.get(uuid, None)
+        result_mapping = self._result_mappings.get(task_name, None)
         if result_mapping is None:
             return
         for name, index in six.iteritems(result_mapping):
@@ -225,9 +251,9 @@ class Storage(object):
                             "with index %r (name %s)",
                             task_name, index, name)
 
-    def save(self, uuid, data, state=states.SUCCESS):
+    def save(self, task_name, data, state=states.SUCCESS):
         """Put result for task with id 'uuid' to storage"""
-        td = self._taskdetail_by_uuid(uuid)
+        td = self._taskdetail_by_name(task_name)
         td.state = state
         if state == states.FAILURE and isinstance(data, misc.Failure):
             td.results = None
@@ -236,7 +262,7 @@ class Storage(object):
         else:
             td.results = data
             td.failure = None
-            self._check_all_results_provided(uuid, td.name, data)
+            self._check_all_results_provided(td.name, data)
         self._with_connection(self._save_task_detail, task_detail=td)
 
     def _cache_failure(self, name, fail):
@@ -257,13 +283,14 @@ class Storage(object):
             if td.failure is not None:
                 self._cache_failure(td.name, td.failure)
 
-    def get(self, uuid):
-        """Get result for task with id 'uuid' to storage"""
-        td = self._taskdetail_by_uuid(uuid)
+    def get(self, task_name):
+        """Get result for task with name 'task_name' to storage"""
+        td = self._taskdetail_by_name(task_name)
         if td.failure is not None:
             return self._cache_failure(td.name, td.failure)
         if td.state not in STATES_WITH_RESULTS:
-            raise exceptions.NotFound("Result for task %r is not known" % uuid)
+            raise exceptions.NotFound(
+                "Result for task %s is not known" % task_name)
         return td.results
 
     def get_failures(self):
@@ -288,9 +315,9 @@ class Storage(object):
         self._failures.pop(td.name, None)
         return True
 
-    def reset(self, uuid, state=states.PENDING):
+    def reset(self, task_name, state=states.PENDING):
         """Remove result for task with id 'uuid' from storage"""
-        td = self._taskdetail_by_uuid(uuid)
+        td = self._taskdetail_by_name(task_name)
         if self._reset_task(td, state):
             self._with_connection(self._save_task_detail, task_detail=td)
 
@@ -316,31 +343,32 @@ class Storage(object):
         This method should be used to put flow parameters (requirements that
         are not satisfied by any task in the flow) into storage.
         """
-        injector_td = self._flowdetail.find_by_name(self.injector_name)
-        if injector_td is None:
+        try:
+            injector_td = self._taskdetail_by_name(self.injector_name)
+        except exceptions.NotFound:
             injector_uuid = uuidutils.generate_uuid()
-            self.add_task(injector_uuid, self.injector_name)
+            self._add_task(injector_uuid, self.injector_name)
             results = dict(pairs)
         else:
-            injector_uuid = injector_td.uuid
             results = injector_td.results.copy()
             results.update(pairs)
-        self.save(injector_uuid, results)
-        names = six.iterkeys(results)
-        self.set_result_mapping(injector_uuid,
-                                dict((name, name) for name in names))
 
-    def set_result_mapping(self, uuid, mapping):
+        self.save(self.injector_name, results)
+        names = six.iterkeys(results)
+        self._set_result_mapping(self.injector_name,
+                                 dict((name, name) for name in names))
+
+    def _set_result_mapping(self, task_name, mapping):
         """Set mapping for naming task results
 
-        The result saved with given uuid would be accessible by names
+        The result saved with given name would be accessible by names
         defined in mapping. Mapping is a dict name => index. If index
         is None, the whole result will have this name; else, only
         part of it, result[index].
         """
         if not mapping:
             return
-        self._result_mappings[uuid] = mapping
+        self._result_mappings[task_name] = mapping
         for name, index in six.iteritems(mapping):
             entries = self._reverse_mapping.setdefault(name, [])
 
@@ -348,14 +376,14 @@ class Storage(object):
             # the same task twice (e.g when we are injecting 'a' and then
             # injecting 'a' again), so we should not log warning below in
             # that case and we should have only one item for each pair
-            # (uuid, index) in entries. It should be put to the end of
+            # (task_name, index) in entries. It should be put to the end of
             # entries list because order matters on fetching.
             try:
-                entries.remove((uuid, index))
+                entries.remove((task_name, index))
             except ValueError:
                 pass
 
-            entries.append((uuid, index))
+            entries.append((task_name, index))
             if len(entries) > 1:
                 LOG.warning("Multiple provider mappings being created for %r",
                             name)
@@ -367,9 +395,9 @@ class Storage(object):
         except KeyError:
             raise exceptions.NotFound("Name %r is not mapped" % name)
         # Return the first one that is found.
-        for uuid, index in reversed(indexes):
+        for task_name, index in reversed(indexes):
             try:
-                result = self.get(uuid)
+                result = self.get(task_name)
                 return _item_from_result(result, index, name)
             except exceptions.NotFound:
                 pass

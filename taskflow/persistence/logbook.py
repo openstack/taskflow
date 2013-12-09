@@ -114,12 +114,6 @@ class FlowDetail(object):
     def find(self, td_uuid):
         return self._taskdetails_by_id.get(td_uuid)
 
-    def find_by_name(self, td_name):
-        for self_td in self:
-            if self_td.name == td_name:
-                return self_td
-        return None
-
     @property
     def uuid(self):
         return self._uuid
