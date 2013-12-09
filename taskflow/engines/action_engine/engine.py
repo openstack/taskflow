@@ -49,7 +49,8 @@ class ActionEngine(base.EngineBase):
     reversion to commence. See the valid states in the states module to learn
     more about what other states the tasks & flow being ran can go through.
     """
-    _graph_action = None
+    _graph_action_cls = None
+    _task_action_cls = task_action.TaskAction
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
@@ -58,6 +59,8 @@ class ActionEngine(base.EngineBase):
         self._state_lock = threading.RLock()
         self.notifier = misc.TransitionNotifier()
         self.task_notifier = misc.TransitionNotifier()
+        self.task_action = self._task_action_cls(self.storage,
+                                                 self.task_notifier)
 
     def _revert(self, current_failure=None):
         self._change_state(states.REVERTING)
@@ -139,18 +142,6 @@ class ActionEngine(base.EngineBase):
                        old_state=old_state)
         self.notifier.notify(state, details)
 
-    def _on_task_state_change(self, task_name, state, result=None):
-        """Notifies the engine that the following task action has completed
-        a given state with a given result. This is a *internal* to the action
-        engine and its associated action classes, not for use externally.
-        """
-        task_uuid = self.storage.get_task_uuid(task_name)
-        details = dict(engine=self,
-                       task_name=task_name,
-                       task_uuid=task_uuid,
-                       result=result)
-        self.task_notifier.notify(state, details)
-
     def _reset(self):
         for name, uuid in self.storage.reset_tasks():
             details = dict(engine=self,
@@ -169,17 +160,16 @@ class ActionEngine(base.EngineBase):
         if self._root is not None:
             return
 
-        assert self._graph_action is not None, ('Graph action class must be'
-                                                ' specified')
+        assert self._graph_action_cls is not None, (
+            'Graph action class must be specified')
         self._change_state(states.RESUMING)  # does nothing in PENDING state
         task_graph = flow_utils.flatten(self._flow)
         if task_graph.number_of_nodes() == 0:
             raise exc.EmptyFlow("Flow %s is empty." % self._flow.name)
-        self._root = self._graph_action(task_graph)
+        self._root = self._graph_action_cls(task_graph)
         for task in task_graph.nodes_iter():
             task_version = misc.get_version_string(task)
             self.storage.ensure_task(task.name, task_version, task.save_as)
-            self._root.add(task, task_action.TaskAction(task))
 
         self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
@@ -194,13 +184,13 @@ class ActionEngine(base.EngineBase):
 
 class SingleThreadedActionEngine(ActionEngine):
     # NOTE(harlowja): This one attempts to run in a serial manner.
-    _graph_action = graph_action.SequentialGraphAction
+    _graph_action_cls = graph_action.SequentialGraphAction
     _storage_cls = t_storage.Storage
 
 
 class MultiThreadedActionEngine(ActionEngine):
     # NOTE(harlowja): This one attempts to run in a parallel manner.
-    _graph_action = graph_action.ParallelGraphAction
+    _graph_action_cls = graph_action.ParallelGraphAction
     _storage_cls = t_storage.ThreadSafeStorage
 
     def __init__(self, flow, flow_detail, backend, conf):

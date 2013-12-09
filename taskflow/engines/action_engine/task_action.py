@@ -2,7 +2,7 @@
 
 # vim: tabstop=4 shiftwidth=4 softtabstop=4
 
-#    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
+#    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -19,7 +19,6 @@
 import contextlib
 import logging
 
-from taskflow.engines.action_engine import base_action as base
 from taskflow.openstack.common import excutils
 from taskflow import states
 from taskflow.utils import misc
@@ -38,79 +37,65 @@ def _autobind(task, bind_name, bind_func, **kwargs):
         task.unbind(bind_name, bind_func)
 
 
-class TaskAction(base.Action):
+class TaskAction(object):
+    def __init__(self, storage, notifier):
+        self._storage = storage
+        self._notifier = notifier
 
-    def __init__(self, task):
-        self._task = task
-
-    @property
-    def name(self):
-        return self._task.name
-
-    def _change_state(self, engine, state, result=None, progress=None):
-        """Update result and change state."""
-        old_state = engine.storage.get_task_state(self.name)
+    def _change_state(self, task, state, result=None, progress=None):
+        old_state = self._storage.get_task_state(task.name)
         if not states.check_task_transition(old_state, state):
             return False
         if state in SAVE_RESULT_STATES:
-            engine.storage.save(self.name, result, state)
+            self._storage.save(task.name, result, state)
         else:
-            engine.storage.set_task_state(self.name, state)
+            self._storage.set_task_state(task.name, state)
         if progress is not None:
-            engine.storage.set_task_progress(self.name, progress)
-        engine._on_task_state_change(self.name, state, result=result)
+            self._storage.set_task_progress(task.name, progress)
+
+        task_uuid = self._storage.get_task_uuid(task.name)
+        details = dict(task_name=task.name,
+                       task_uuid=task_uuid,
+                       result=result)
+        self._notifier.notify(state, details)
+        if progress is not None:
+            task.update_progress(progress)
         return True
 
     def _on_update_progress(self, task, event_data, progress, **kwargs):
-        """Update task progress value that stored in engine."""
+        """Should be called when task updates its progress"""
         try:
-            engine = event_data['engine']
-            engine.storage.set_task_progress(self.name, progress, kwargs)
+            self._storage.set_task_progress(task.name, progress, kwargs)
         except Exception:
             # Update progress callbacks should never fail, so capture and log
             # the emitted exception instead of raising it.
             LOG.exception("Failed setting task progress for %s to %0.3f",
                           task, progress)
 
-    def _change_state_update_task(self, engine, state, progress, result=None):
-        stated_changed = self._change_state(engine, state,
-                                            result=result, progress=progress)
-        if not stated_changed:
-            return False
-        self._task.update_progress(progress)
-        return True
-
-    def execute(self, engine):
-        if not self._change_state_update_task(engine, states.RUNNING, 0.0):
+    def execute(self, task):
+        if not self._change_state(task, states.RUNNING, progress=0.0):
             return
-        with _autobind(self._task,
-                       'update_progress', self._on_update_progress,
-                       engine=engine):
+        with _autobind(task, 'update_progress', self._on_update_progress):
             try:
-                kwargs = engine.storage.fetch_mapped_args(self._task.rebind)
-                result = self._task.execute(**kwargs)
+                kwargs = self._storage.fetch_mapped_args(task.rebind)
+                result = task.execute(**kwargs)
             except Exception:
                 failure = misc.Failure()
-                self._change_state(engine, states.FAILURE, result=failure)
+                self._change_state(task, states.FAILURE, result=failure)
                 failure.reraise()
-        self._change_state_update_task(engine, states.SUCCESS, 1.0,
-                                       result=result)
 
-    def revert(self, engine):
-        if not self._change_state_update_task(engine, states.REVERTING, 0.0):
-            # NOTE(imelnikov): in all the other states, the task
-            # execution was at least attempted, so we should give
-            # task a chance for cleanup
+        self._change_state(task, states.SUCCESS, result=result, progress=1.0)
+
+    def revert(self, task):
+        if not self._change_state(task, states.REVERTING, progress=0.0):
             return
-        with _autobind(self._task,
-                       'update_progress', self._on_update_progress,
-                       engine=engine):
-            kwargs = engine.storage.fetch_mapped_args(self._task.rebind)
-            kwargs['result'] = engine.storage.get(self.name)
-            kwargs['flow_failures'] = engine.storage.get_failures()
+        with _autobind(task, 'update_progress', self._on_update_progress):
+            kwargs = self._storage.fetch_mapped_args(task.rebind)
+            kwargs['result'] = self._storage.get(task.name)
+            kwargs['flow_failures'] = self._storage.get_failures()
             try:
-                self._task.revert(**kwargs)
+                task.revert(**kwargs)
             except Exception:
                 with excutils.save_and_reraise_exception():
-                    self._change_state(engine, states.FAILURE)
-        self._change_state_update_task(engine, states.REVERTED, 1.0)
+                    self._change_state(task, states.FAILURE)
+        self._change_state(task, states.REVERTED, progress=1.0)

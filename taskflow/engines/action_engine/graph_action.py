@@ -22,25 +22,20 @@ import threading
 
 from concurrent import futures
 
-from taskflow.engines.action_engine import base_action as base
 from taskflow import states as st
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
 
-class GraphAction(base.Action):
+class GraphAction(object):
 
     def __init__(self, graph):
         self._graph = graph
-        self._action_mapping = {}
 
     @property
     def graph(self):
         return self._graph
-
-    def add(self, node, action):
-        self._action_mapping[node] = action
 
     def _succ(self, node):
         return self._graph.successors(node)
@@ -80,8 +75,7 @@ class SequentialGraphAction(GraphAction):
 
         while to_execute and engine.is_running:
             node = to_execute.pop()
-            action = self._action_mapping[node]
-            action.execute(engine)  # raises on failure
+            engine.task_action.execute(node)
             to_execute += self._resolve_dependencies(node, deps_counter)
 
         if to_execute:
@@ -94,8 +88,7 @@ class SequentialGraphAction(GraphAction):
 
         while to_revert and engine.is_reverting:
             node = to_revert.pop()
-            action = self._action_mapping[node]
-            action.revert(engine)  # raises on failure
+            engine.task_action.revert(node)
             to_revert += self._resolve_dependencies(node, deps_counter, True)
 
         if to_revert:
@@ -140,10 +133,9 @@ class ParallelGraphAction(SequentialGraphAction):
             if has_failed.is_set():
                 # Someone failed, don't even bother running.
                 return
-            action = self._action_mapping[node]
             try:
                 if engine.is_running:
-                    action.execute(engine)
+                    engine.task_action.execute(node)
                 else:
                     was_suspended.set()
                     return

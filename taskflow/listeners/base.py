@@ -127,7 +127,7 @@ class LoggingBase(ListenerBase):
 
     def _flow_receiver(self, state, details):
         self._log("%s has moved flow '%s' (%s) into state '%s'",
-                  details['engine'], details['flow_name'],
+                  self._engine, details['flow_name'],
                   details['flow_uuid'], state)
 
     def _task_receiver(self, state, details):
@@ -141,10 +141,10 @@ class LoggingBase(ListenerBase):
                 was_failure = True
             self._log("%s has moved task '%s' (%s) into state '%s'"
                       " with result '%s' (failure=%s)",
-                      details['engine'], details['task_name'],
+                      self._engine, details['task_name'],
                       details['task_uuid'], state, result, was_failure,
                       exc_info=exc_info)
         else:
             self._log("%s has moved task '%s' (%s) into state '%s'",
-                      details['engine'], details['task_name'],
+                      self._engine, details['task_name'],
                       details['task_uuid'], state)
