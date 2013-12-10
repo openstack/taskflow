@@ -21,6 +21,18 @@ from testtools import matchers
 from testtools import testcase
 
 
+class GreaterThanEqual(object):
+    """Matches if the item is geq than the matchers reference object."""
+
+    def __init__(self, source):
+        self.source = source
+
+    def match(self, other):
+        if other >= self.source:
+            return None
+        return matchers.Mismatch("%s was not >= %s" % (other, self.source))
+
+
 class TestCase(testcase.TestCase):
     """Test case base class for all taskflow unit tests."""
 
@@ -47,6 +59,14 @@ class TestCase(testcase.TestCase):
         our_callable = testcase.Nullary(callable_obj, *args, **kwargs)
         self.assertThat(our_callable, matcher)
         return capture.matchee
+
+    def assertGreater(self, first, second):
+        matcher = matchers.GreaterThan(first)
+        self.assertThat(second, matcher)
+
+    def assertGreaterEqual(self, first, second):
+        matcher = GreaterThanEqual(first)
+        self.assertThat(second, matcher)
 
     def assertRegexpMatches(self, text, pattern):
         matcher = matchers.MatchesRegex(pattern)

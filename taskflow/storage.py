@@ -149,6 +149,18 @@ class Storage(object):
         """Get state of task with given uuid"""
         return self._taskdetail_by_uuid(uuid).state
 
+    def update_task_metadata(self, uuid, update_with):
+        if not update_with:
+            return
+        # NOTE(harlowja): this is a read and then write, not in 1 transcation
+        # so it is entirely possible that we could write over another writes
+        # metadata update.
+        td = self._taskdetail_by_uuid(uuid)
+        if not td.meta:
+            td.meta = {}
+        td.meta.update(update_with)
+        self._with_connection(self._save_task_detail, task_detail=td)
+
     def set_task_progress(self, uuid, progress, details=None):
         """Set task progress.
 
