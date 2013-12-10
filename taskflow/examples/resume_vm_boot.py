@@ -45,9 +45,9 @@ from taskflow.utils import eventlet_utils as e_utils
 from taskflow.utils import persistence_utils as p_utils
 
 
-# INTRO: This examples shows how a hierachy of flows can be used to create a vm
-# in a reliable & resumable manner using taskflow + a miniature version of what
-# nova does while booting a vm.
+# INTRO: This examples shows how a hierarchy of flows can be used to create a
+# vm in a reliable & resumable manner using taskflow + a miniature version of
+# what nova does while booting a vm.
 
 
 @contextlib.contextmanager

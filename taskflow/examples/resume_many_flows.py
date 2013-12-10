@@ -28,7 +28,7 @@ import tempfile
 # script which doesn't 'crash' and it will resume all the given engines flows
 # that did not complete and run them to completion (instead of crashing).
 #
-# This shows how a set of tasks can be finished even after repeatingly being
+# This shows how a set of tasks can be finished even after repeatedly being
 # crashed, *crash resistance* if you may call it, due to the engine concept as
 # well as the persistence layer which keeps track of the state a flow
 # transitions through and persists the intermediary inputs and outputs and

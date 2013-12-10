@@ -167,7 +167,7 @@ def as_bool(val):
 
 
 def as_int(obj, quiet=False):
-    """Converts an arbitary value into a integer."""
+    """Converts an arbitrary value into a integer."""
     # Try "2" -> 2
     try:
         return int(obj)
@@ -204,7 +204,7 @@ def ensure_tree(path):
 
 class TransitionNotifier(object):
     """A utility helper class that can be used to subscribe to
-    notifications of events occuring as well as allow a entity to post said
+    notifications of events occurring as well as allow a entity to post said
     notifications to subscribers.
     """
 
@@ -412,7 +412,7 @@ class Failure(object):
         """Check if any of exc_classes caused the failure
 
         Arguments of this method can be exception types or type
-        names (stings). If captured excption is instance of
+        names (stings). If captured exception is instance of
         exception of given type, the corresponding argument is
         returned. Else, None is returned.
         """

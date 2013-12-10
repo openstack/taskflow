@@ -80,7 +80,7 @@ flow = lf.Flow('root').add(
         # Calculate 'z1 = x1+y1 = 5'
         #
         # Rebind here means that the execute() function x argument will be
-        # satisified from a previous output named 'x1', and the y argument
+        # satisfied from a previous output named 'x1', and the y argument
         # of execute() will be populated from the previous output named 'y1'
         #
         # The output (result of adding) will be mapped into a variable named
@@ -95,6 +95,6 @@ flow = lf.Flow('root').add(
 
 # The result here will be all results (from all tasks) which is stored in an
 # in-memory storage location that backs this engine since it is not configured
-# with persistance storage.
+# with persistence storage.
 result = taskflow.engines.run(flow, engine_conf='parallel')
 print(result)

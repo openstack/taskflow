@@ -55,7 +55,7 @@ class LogBook(object):
     def add(self, flow_detail):
         """Adds a new entry to the underlying logbook.
 
-        Does not *guarantee* that the details will be immediatly saved.
+        Does not *guarantee* that the details will be immediately saved.
         """
         self._flowdetails.append(flow_detail)
 
@@ -139,11 +139,11 @@ class FlowDetail(object):
 
 
 class TaskDetail(object):
-    """This class contains an entry that contains the persistance of a task
+    """This class contains an entry that contains the persistence of a task
     after or before (or during) it is running including any results it may have
     produced, any state that it may be in (failed for example), any exception
-    that occured when running and any associated stacktrace that may have
-    occuring during that exception being thrown and any other metadata that
+    that occurred when running and any associated stacktrace that may have
+    occurring during that exception being thrown and any other metadata that
     should be stored along-side the details about this task.
 
     The data contained within this class need *not* backed by the backend

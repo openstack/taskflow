@@ -37,7 +37,7 @@ from taskflow import task
 # a given ~phone~ number (provided as a function input) in a linear fashion
 # (one after the other).
 #
-# For a workflow which is serial this shows a extremly simple way
+# For a workflow which is serial this shows a extremely simple way
 # of structuring your tasks (the code that does the work) into a linear
 # sequence (the flow) and then passing the work off to an engine, with some
 # initial data to be ran in a reliable manner.
@@ -78,7 +78,7 @@ def task_watch(state, details):
 # as tasks. There was previous work done to just allow a function to be
 # directly passed, but in python 3.0 there is no easy way to capture an
 # instance method, so this wrapping approach was decided upon instead which
-# can attach to instance methods (if thats desired).
+# can attach to instance methods (if that's desired).
 flow = lf.Flow("Call-them")
 flow.add(task.FunctorTask(execute=call_jim))
 flow.add(task.FunctorTask(execute=call_joe))

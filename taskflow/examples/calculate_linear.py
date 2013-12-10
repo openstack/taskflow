@@ -39,7 +39,7 @@ from taskflow import task
 # are bound with ('z', 'd') keys from the engines storage mechanism.
 #
 # A multiplier task uses a binding that another task also provides, but this
-# example explicitly shows that 'z' parameter is binded with 'a' key
+# example explicitly shows that 'z' parameter is bound with 'a' key
 # This shows that if a task depends on a key named the same as a key provided
 # from another task the name can be remapped to take the desired key from a
 # different origin.
@@ -73,7 +73,8 @@ class Adder(task.Task):
         return x + y
 
 
-# This task multiplies an input variable by a multipler and returns the result.
+# This task multiplies an input variable by a multiplier and returns the
+# result.
 #
 # Note that since this task does not have a revert() function (since
 # multiplication is a stateless operation) and there are no side-effects that
@@ -112,6 +113,6 @@ flow = lf.Flow('root').add(
 
 # The result here will be all results (from all tasks) which is stored in an
 # in-memory storage location that backs this engine since it is not configured
-# with persistance storage.
+# with persistence storage.
 results = taskflow.engines.run(flow)
 print(results)

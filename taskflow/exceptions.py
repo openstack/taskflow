@@ -73,7 +73,7 @@ class JobNotFound(TaskFlowException):
 
 
 class MissingDependencies(InvalidStateException):
-    """Raised when a entity has dependencies that can not be satisified."""
+    """Raised when a entity has dependencies that can not be satisfied."""
     message = ("%(who)s requires %(requirements)s but no other entity produces"
                " said requirements")
 

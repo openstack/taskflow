@@ -33,7 +33,7 @@ from taskflow import task
 
 # INTRO: In this example we create two tasks, each of which ~calls~ a given
 # ~phone~ number (provided as a function input) in a linear fashion (one after
-# the other). For a workflow which is serial this shows a extremly simple way
+# the other). For a workflow which is serial this shows a extremely simple way
 # of structuring your tasks (the code that does the work) into a linear
 # sequence (the flow) and then passing the work off to an engine, with some
 # initial data to be ran in a reliable manner.

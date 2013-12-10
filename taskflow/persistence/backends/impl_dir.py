@@ -333,7 +333,7 @@ class Connection(base.Connection):
         def _step_book():
             self._run_with_process_lock("book", _step_flow)
 
-        # Acquire all locks by going through this little hiearchy.
+        # Acquire all locks by going through this little hierarchy.
         self._run_with_process_lock("init", _step_book)
 
     @lock_utils.locked
@@ -368,7 +368,7 @@ class Connection(base.Connection):
                 if e.errno != errno.ENOENT:
                     raise
 
-        # Acquire all locks by going through this little hiearchy.
+        # Acquire all locks by going through this little hierarchy.
         self._run_with_process_lock("book", _destroy_book)
 
     def _get_logbook(self, book_uuid):

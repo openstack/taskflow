@@ -104,7 +104,7 @@ def verify(spec, **kwargs):
 
 # These two functions connect into the state transition notification emission
 # points that the engine outputs, they can be used to log state transitions
-# that are occuring, or they can be used to suspend the engine (or perform
+# that are occurring, or they can be used to suspend the engine (or perform
 # other useful activities).
 def flow_watch(state, details):
     print('Flow => %s' % state)
@@ -124,7 +124,7 @@ flow = lf.Flow("make-auto").add(
         # These *_installed outputs allow for other tasks to depend on certain
         # actions being performed (aka the components were installed), another
         # way to do this is to link() the tasks manually instead of creating
-        # an 'artifical' data dependency that accomplishes the same goal the
+        # an 'artificial' data dependency that accomplishes the same goal the
         # manual linking would result in.
         task.FunctorTask(install_engine, provides='engine_installed'),
         task.FunctorTask(install_doors, provides='doors_installed'),

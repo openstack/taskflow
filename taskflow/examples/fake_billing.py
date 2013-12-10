@@ -70,7 +70,7 @@ class UrlCaller(object):
                 status_cb(float(i) / len(data))
 
 
-# Since engines save the output of tasks to a optional persistant storage
+# Since engines save the output of tasks to a optional persistent storage
 # backend resources have to be dealt with in a slightly different manner since
 # resources are transient and can not be persisted (or serialized). For tasks
 # that require access to a set of resources it is a common pattern to provide
@@ -158,7 +158,7 @@ class DeclareSuccess(task.Task):
 resources = ResourceFetcher()
 flow = lf.Flow("initialize-me")
 
-# 1. First we extract the api request into a useable format.
+# 1. First we extract the api request into a usable format.
 # 2. Then we go ahead and make a database entry for our request.
 flow.add(ExtractInputRequest(resources), MakeDBEntry(resources))
 

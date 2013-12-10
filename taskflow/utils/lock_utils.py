@@ -80,7 +80,7 @@ class MultiLock(object):
 
         def is_locked(lock):
             # NOTE(harlowja): the threading2 lock doesn't seem to have this
-            # attribute, so thats why we are checking it existing first.
+            # attribute, so that's why we are checking it existing first.
             if hasattr(lock, 'locked'):
                 return lock.locked()
             return False

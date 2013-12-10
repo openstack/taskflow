@@ -301,7 +301,7 @@ class Storage(object):
         """Add values into storage
 
         This method should be used to put flow parameters (requirements that
-        are not satisified by any task in the flow) into storage.
+        are not satisfied by any task in the flow) into storage.
         """
         injector_td = self._flowdetail.find_by_name(self.injector_name)
         if injector_td is None:

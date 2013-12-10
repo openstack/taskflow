@@ -109,7 +109,7 @@ class ParallelGraphAction(SequentialGraphAction):
         nodes which can run (those which have there dependencies satisfied
         or those with no dependencies) and submitting them to the executor
         to be ran, and then after running this process will be repeated until
-        no more nodes can be ran (or a failure has a occured and all nodes
+        no more nodes can be ran (or a failure has a occurred and all nodes
         were stopped from further running).
         """
         # A deque is a thread safe push/pop/popleft/append implementation

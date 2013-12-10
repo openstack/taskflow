@@ -41,7 +41,7 @@ from taskflow.persistence import backends
 from taskflow.utils import persistence_utils as p_utils
 
 
-# INTRO: This examples shows how a hierachy of flows can be used to create a
+# INTRO: This examples shows how a hierarchy of flows can be used to create a
 # pseudo-volume in a reliable & resumable manner using taskflow + a miniature
 # version of what cinder does while creating a volume (very miniature).
 
