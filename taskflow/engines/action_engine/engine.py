@@ -20,6 +20,7 @@ import threading
 
 from concurrent import futures
 
+from taskflow.engines.action_engine import executor
 from taskflow.engines.action_engine import graph_action
 from taskflow.engines.action_engine import task_action
 from taskflow.engines import base
@@ -51,6 +52,7 @@ class ActionEngine(base.EngineBase):
     """
     _graph_action_cls = None
     _task_action_cls = task_action.TaskAction
+    _task_executor_cls = executor.SerialTaskExecutor
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
@@ -59,7 +61,9 @@ class ActionEngine(base.EngineBase):
         self._state_lock = threading.RLock()
         self.notifier = misc.TransitionNotifier()
         self.task_notifier = misc.TransitionNotifier()
+        self._task_executor = self._task_executor_cls()
         self.task_action = self._task_action_cls(self.storage,
+                                                 self._task_executor,
                                                  self.task_notifier)
 
     def _revert(self, current_failure=None):
@@ -106,10 +110,14 @@ class ActionEngine(base.EngineBase):
         missing = self._flow.requires - external_provides
         if missing:
             raise exc.MissingDependencies(self._flow, sorted(missing))
-        if self.storage.has_failures():
-            self._revert()
-        else:
-            self._run()
+        self._task_executor.start()
+        try:
+            if self.storage.has_failures():
+                self._revert()
+            else:
+                self._run()
+        finally:
+            self._task_executor.stop()
 
     def _run(self):
         self._change_state(states.RUNNING)

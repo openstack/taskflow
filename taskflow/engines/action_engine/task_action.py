@@ -16,10 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import contextlib
 import logging
 
-from taskflow.openstack.common import excutils
 from taskflow import states
 from taskflow.utils import misc
 
@@ -28,18 +26,10 @@ LOG = logging.getLogger(__name__)
 SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 
 
-@contextlib.contextmanager
-def _autobind(task, bind_name, bind_func, **kwargs):
-    try:
-        task.bind(bind_name, bind_func, **kwargs)
-        yield task
-    finally:
-        task.unbind(bind_name, bind_func)
-
-
 class TaskAction(object):
-    def __init__(self, storage, notifier):
+    def __init__(self, storage, task_executor, notifier):
         self._storage = storage
+        self._task_executor = task_executor
         self._notifier = notifier
 
     def _change_state(self, task, state, result=None, progress=None):
@@ -75,27 +65,29 @@ class TaskAction(object):
     def execute(self, task):
         if not self._change_state(task, states.RUNNING, progress=0.0):
             return
-        with _autobind(task, 'update_progress', self._on_update_progress):
-            try:
-                kwargs = self._storage.fetch_mapped_args(task.rebind)
-                result = task.execute(**kwargs)
-            except Exception:
-                failure = misc.Failure()
-                self._change_state(task, states.FAILURE, result=failure)
-                failure.reraise()
 
+        kwargs = self._storage.fetch_mapped_args(task.rebind)
+        future = self._task_executor.execute_task(task, kwargs,
+                                                  self._on_update_progress)
+        self._task_executor.wait_for_any(future)
+        _task, _event, result = future.result()
+        if isinstance(result, misc.Failure):
+            self._change_state(task, states.FAILURE, result=result)
+            result.reraise()
         self._change_state(task, states.SUCCESS, result=result, progress=1.0)
 
     def revert(self, task):
         if not self._change_state(task, states.REVERTING, progress=0.0):
             return
-        with _autobind(task, 'update_progress', self._on_update_progress):
-            kwargs = self._storage.fetch_mapped_args(task.rebind)
-            kwargs['result'] = self._storage.get(task.name)
-            kwargs['flow_failures'] = self._storage.get_failures()
-            try:
-                task.revert(**kwargs)
-            except Exception:
-                with excutils.save_and_reraise_exception():
-                    self._change_state(task, states.FAILURE)
+        kwargs = self._storage.fetch_mapped_args(task.rebind)
+        task_result = self._storage.get(task.name)
+        failures = self._storage.get_failures()
+        future = self._task_executor.revert_task(task, kwargs,
+                                                 task_result, failures,
+                                                 self._on_update_progress)
+        self._task_executor.wait_for_any(future)
+        _task, _event, result = future.result()
+        if isinstance(result, misc.Failure):
+            self._change_state(task, states.FAILURE)
+            result.reraise()
         self._change_state(task, states.REVERTED, progress=1.0)
