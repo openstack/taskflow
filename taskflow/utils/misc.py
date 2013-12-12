@@ -155,7 +155,7 @@ class ExponentialBackoff(object):
     def __iter__(self):
         if self.attempts <= 0:
             raise StopIteration()
-        for i in xrange(0, self.attempts):
+        for i in six.moves.range(0, self.attempts):
             yield self.exponent ** i
 
     def __str__(self):
