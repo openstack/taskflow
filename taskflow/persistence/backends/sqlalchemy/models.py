@@ -39,7 +39,7 @@ class TimestampMixin(object):
     updated_at = Column(DateTime, onupdate=timeutils.utcnow)
 
 
-class Json(types.TypeDecorator, types.MutableType):
+class Json(types.TypeDecorator):
     impl = types.Text
 
     def process_bind_param(self, value, dialect):
@@ -49,7 +49,7 @@ class Json(types.TypeDecorator, types.MutableType):
         return jsonutils.loads(value)
 
 
-class Failure(types.TypeDecorator, types.MutableType):
+class Failure(types.TypeDecorator):
     """Put misc.Failure object into database column.
 
     We convert Failure object to dict, serialize that dict into
