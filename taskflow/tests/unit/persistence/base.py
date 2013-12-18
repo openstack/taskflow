@@ -69,6 +69,26 @@ class PersistenceTestMixin(object):
             conn.save_logbook(lb)
             conn.update_flow_details(fd)
 
+    def test_flow_detail_meta_update(self):
+        lb_id = uuidutils.generate_uuid()
+        lb_name = 'lb-%s' % (lb_id)
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        fd.meta = {'test': 42}
+        lb.add(fd)
+
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+            conn.update_flow_details(fd)
+
+        fd.meta['test'] = 43
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.update_flow_details(fd)
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb_id)
+        fd2 = lb2.find(fd.uuid)
+        self.assertEqual(fd2.meta.get('test'), 43)
+
     def test_task_detail_save(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
@@ -90,6 +110,31 @@ class PersistenceTestMixin(object):
             conn.save_logbook(lb)
             conn.update_flow_details(fd)
             conn.update_task_details(td)
+
+    def test_task_detail_meta_update(self):
+        lb_id = uuidutils.generate_uuid()
+        lb_name = 'lb-%s' % (lb_id)
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb.add(fd)
+        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td.meta = {'test': 42}
+        fd.add(td)
+
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+            conn.update_flow_details(fd)
+            conn.update_task_details(td)
+
+        td.meta['test'] = 43
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.update_task_details(td)
+
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb_id)
+        fd2 = lb2.find(fd.uuid)
+        td2 = fd2.find(td.uuid)
+        self.assertEqual(td2.meta.get('test'), 43)
 
     def test_task_detail_with_failure(self):
         lb_id = uuidutils.generate_uuid()
