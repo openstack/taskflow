@@ -27,7 +27,7 @@ import logging
 import time
 
 import sqlalchemy as sa
-from sqlalchemy import exceptions as sa_exc
+from sqlalchemy import exc as sa_exc
 from sqlalchemy import orm as sa_orm
 from sqlalchemy import pool as sa_pool
 
