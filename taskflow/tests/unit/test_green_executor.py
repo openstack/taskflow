@@ -18,8 +18,9 @@
 
 import collections
 import functools
-
 import testtools
+
+from concurrent import futures
 
 from taskflow import test
 from taskflow.utils import eventlet_utils as eu
@@ -80,32 +81,64 @@ class GreenExecutorTest(test.TestCase):
 
         create_am = 50
         with eu.GreenExecutor(2) as e:
-            futures = []
+            fs = []
             for i in range(0, create_am):
-                futures.append(e.submit(functools.partial(return_given, i)))
+                fs.append(e.submit(functools.partial(return_given, i)))
 
-        self.assertEqual(create_am, len(futures))
+        self.assertEqual(create_am, len(fs))
         for i in range(0, create_am):
-            result = futures[i].result()
+            result = fs[i].result()
             self.assertEqual(i, result)
 
     def test_func_cancellation(self):
         called = collections.defaultdict(int)
 
-        futures = []
+        fs = []
         with eu.GreenExecutor(2) as e:
             for func in self.make_funcs(called, 2):
-                futures.append(e.submit(func))
+                fs.append(e.submit(func))
             # Greenthreads don't start executing until we wait for them
             # to, since nothing here does IO, this will work out correctly.
             #
             # If something here did a blocking call, then eventlet could swap
             # one of the executors threads in, but nothing in this test does.
-            for f in futures:
+            for f in fs:
                 self.assertFalse(f.running())
                 f.cancel()
 
         self.assertEqual(0, len(called))
-        for f in futures:
+        for f in fs:
             self.assertTrue(f.cancelled())
             self.assertTrue(f.done())
+
+
+class WaitForAnyTestCase(test.TestCase):
+
+    @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
+    def test_green_waits_and_finishes(self):
+        def foo():
+            pass
+
+        e = eu.GreenExecutor()
+
+        f1 = e.submit(foo)
+        f2 = e.submit(foo)
+        # this test assumes that our foo will end within 10 seconds
+        done, not_done = eu.wait_for_any([f1, f2], 10)
+        self.assertIn(len(done), (1, 2))
+        self.assertTrue(any((f1 in done, f2 in done)))
+
+    def test_threaded_waits_and_finishes(self):
+        def foo():
+            pass
+
+        e = futures.ThreadPoolExecutor(2)
+        try:
+            f1 = e.submit(foo)
+            f2 = e.submit(foo)
+            # this test assumes that our foo will end within 10 seconds
+            done, not_done = eu.wait_for_any([f1, f2], 10)
+            self.assertIn(len(done), (1, 2))
+            self.assertTrue(any((f1 in done, f2 in done)))
+        finally:
+            e.shutdown()

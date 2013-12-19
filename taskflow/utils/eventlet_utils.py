@@ -19,6 +19,8 @@
 import logging
 import threading
 
+from concurrent import futures
+
 try:
     from eventlet.green import threading as gthreading
     from eventlet import greenpool
@@ -28,7 +30,6 @@ try:
 except ImportError:
     EVENTLET_AVAILABLE = False
 
-from concurrent import futures
 
 from taskflow.utils import lock_utils
 
@@ -129,3 +130,56 @@ class GreenExecutor(futures.Executor):
             self._work_queue.put(_TOMBSTONE)
         if wait:
             self._pool.waitall()
+
+
+class _FirstCompletedWaiter(object):
+    """Provides the event that wait_for_any() block on."""
+    def __init__(self, is_green):
+        if is_green:
+            assert EVENTLET_AVAILABLE, 'eventlet is needed to use this feature'
+            self.event = gthreading.Event()
+        else:
+            self.event = threading.Event()
+        self.finished_futures = []
+
+    def add_result(self, future):
+        self.finished_futures.append(future)
+        self.event.set()
+
+    def add_exception(self, future):
+        self.finished_futures.append(future)
+        self.event.set()
+
+    def add_cancelled(self, future):
+        self.finished_futures.append(future)
+        self.event.set()
+
+
+def _done_futures(fs):
+    return set(f for f in fs
+               if f._state in [futures._base.CANCELLED_AND_NOTIFIED,
+                               futures._base.FINISHED])
+
+
+def wait_for_any(fs, timeout=None):
+    """Wait for one of the futures to complete.
+
+    Works correctly with both green and non-green futures.
+    Returns pair (done, not_done).
+    """
+    with futures._base._AcquireFutures(fs):
+        done = _done_futures(fs)
+        if done:
+            return done, set(fs) - done
+        is_green = any(isinstance(f, _GreenFuture) for f in fs)
+        waiter = _FirstCompletedWaiter(is_green)
+        for f in fs:
+            f._waiters.append(waiter)
+
+    waiter.event.wait(timeout)
+    for f in fs:
+        f._waiters.remove(waiter)
+
+    with futures._base._AcquireFutures(fs):
+        done = _done_futures(fs)
+        return done, set(fs) - done
