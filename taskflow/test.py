@@ -16,6 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
+
 from testtools import compat
 from testtools import matchers
 from testtools import testcase
@@ -88,3 +90,51 @@ class TestCase(testcase.TestCase):
                 self.fail(msg)
             else:
                 current_tail = current_tail[super_index + 1:]
+
+
+class MockTestCase(TestCase):
+
+    def setUp(self):
+        super(MockTestCase, self).setUp()
+        self.master_mock = mock.Mock(name='master_mock')
+
+    def _patch(self, target, autospec=True, **kwargs):
+        """Patch target and attach it to the master mock."""
+        patcher = mock.patch(target, autospec=autospec, **kwargs)
+        mocked = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        attach_as = kwargs.pop('attach_as', None)
+        if attach_as is not None:
+            self.master_mock.attach_mock(mocked, attach_as)
+
+        return mocked
+
+    def _patch_class(self, module, name, autospec=True, attach_as=None):
+        """Patch class, create class instance mock and attach them to
+        the master mock.
+        """
+        if autospec:
+            instance_mock = mock.Mock(spec_set=getattr(module, name))
+        else:
+            instance_mock = mock.Mock()
+
+        patcher = mock.patch.object(module, name, autospec=autospec)
+        class_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+        class_mock.return_value = instance_mock
+
+        if attach_as is None:
+            attach_class_as = name
+            attach_instance_as = name.lower()
+        else:
+            attach_class_as = attach_as + '_class'
+            attach_instance_as = attach_as
+
+        self.master_mock.attach_mock(class_mock, attach_class_as)
+        self.master_mock.attach_mock(instance_mock, attach_instance_as)
+
+        return class_mock, instance_mock
+
+    def _reset_master_mock(self):
+        self.master_mock.reset_mock()

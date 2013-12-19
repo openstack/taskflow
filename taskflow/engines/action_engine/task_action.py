@@ -27,6 +27,7 @@ SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 
 
 class TaskAction(object):
+
     def __init__(self, storage, task_executor, notifier):
         self._storage = storage
         self._task_executor = task_executor
@@ -66,7 +67,8 @@ class TaskAction(object):
         if not self._change_state(task, states.RUNNING, progress=0.0):
             return
         kwargs = self._storage.fetch_mapped_args(task.rebind)
-        return self._task_executor.execute_task(task, kwargs,
+        task_uuid = self._storage.get_task_uuid(task.name)
+        return self._task_executor.execute_task(task, task_uuid, kwargs,
                                                 self._on_update_progress)
 
     def complete_execution(self, task, result):
@@ -80,9 +82,10 @@ class TaskAction(object):
         if not self._change_state(task, states.REVERTING, progress=0.0):
             return
         kwargs = self._storage.fetch_mapped_args(task.rebind)
+        task_uuid = self._storage.get_task_uuid(task.name)
         task_result = self._storage.get(task.name)
         failures = self._storage.get_failures()
-        future = self._task_executor.revert_task(task, kwargs,
+        future = self._task_executor.revert_task(task, task_uuid, kwargs,
                                                  task_result, failures,
                                                  self._on_update_progress)
         return future

@@ -122,6 +122,11 @@ def is_bound_method(method):
     return bool(get_method_self(method))
 
 
+def is_subclass(obj, cls):
+    """Returns if the object is class and it is subclass of a given class."""
+    return inspect.isclass(obj) and issubclass(obj, cls)
+
+
 def _get_arg_spec(function):
     if isinstance(function, type):
         bound = True
