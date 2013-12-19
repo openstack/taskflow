@@ -598,7 +598,7 @@ class MultiThreadedEngineTest(EngineTaskTest,
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
         self.assertIsInstance(engine, eng.MultiThreadedActionEngine)
-        self.assertIs(engine.executor, None)
+        self.assertIs(engine._executor, None)
 
     def test_using_common_executor(self):
         flow = utils.TaskNoRequiresNoReturns(name='task1')
@@ -606,7 +606,7 @@ class MultiThreadedEngineTest(EngineTaskTest,
         try:
             e1 = self._make_engine(flow, executor=executor)
             e2 = self._make_engine(flow, executor=executor)
-            self.assertIs(e1.executor, e2.executor)
+            self.assertIs(e1._executor, e2._executor)
         finally:
             executor.shutdown(wait=True)
 

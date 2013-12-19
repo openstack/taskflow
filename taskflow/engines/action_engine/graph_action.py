@@ -16,11 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
 import logging
-import threading
-
-from concurrent import futures
 
 from taskflow import states as st
 from taskflow.utils import misc
@@ -67,130 +63,75 @@ class GraphAction(object):
         return deps_counter
 
 
-class SequentialGraphAction(GraphAction):
+_WAITING_TIMEOUT = 60  # in seconds
+
+
+class FutureGraphAction(GraphAction):
+    """Graph action build around futures returned by task action.
+
+    This graph action schedules all task it can for execution and than
+    waits on returned futures. If task executor is able to execute tasks
+    in parallel, this enables parallel flow run and reversion.
+    """
 
     def execute(self, engine):
-        deps_counter = self._get_nodes_dependencies_count()
-        to_execute = self._browse_nodes_to_execute(deps_counter)
+        was_suspended = self._run(engine, lambda: engine.is_running,
+                                  engine.task_action.schedule_execution,
+                                  engine.task_action.complete_execution,
+                                  revert=False)
 
-        while to_execute and engine.is_running:
-            node = to_execute.pop()
-            engine.task_action.execute(node)
-            to_execute += self._resolve_dependencies(node, deps_counter)
-
-        if to_execute:
-            return st.SUSPENDED
-        return st.SUCCESS
+        return st.SUSPENDED if was_suspended else st.SUCCESS
 
     def revert(self, engine):
-        deps_counter = self._get_nodes_dependencies_count(True)
-        to_revert = self._browse_nodes_to_execute(deps_counter)
+        was_suspended = self._run(engine, lambda: engine.is_reverting,
+                                  engine.task_action.schedule_reversion,
+                                  engine.task_action.complete_reversion,
+                                  revert=True)
+        return st.SUSPENDED if was_suspended else st.REVERTED
 
-        while to_revert and engine.is_reverting:
-            node = to_revert.pop()
-            engine.task_action.revert(node)
-            to_revert += self._resolve_dependencies(node, deps_counter, True)
+    def _run(self, engine, running, schedule_node, complete_node, revert):
+        deps_counter = self._get_nodes_dependencies_count(revert)
+        not_done = []
 
-        if to_revert:
-            return st.SUSPENDED
-        return st.REVERTED
-
-
-class ParallelGraphAction(SequentialGraphAction):
-    def execute(self, engine):
-        """This action executes the provided graph in parallel by selecting
-        nodes which can run (those which have there dependencies satisfied
-        or those with no dependencies) and submitting them to the executor
-        to be ran, and then after running this process will be repeated until
-        no more nodes can be ran (or a failure has a occurred and all nodes
-        were stopped from further running).
-        """
-        # A deque is a thread safe push/pop/popleft/append implementation
-        all_futures = collections.deque()
-        executor = engine.executor
-        has_failed = threading.Event()
-        deps_lock = threading.RLock()
-        deps_counter = self._get_nodes_dependencies_count()
-        was_suspended = threading.Event()
-
-        def submit_followups(node):
-            # Mutating the deps_counter isn't thread safe.
-            with deps_lock:
-                to_execute = self._resolve_dependencies(node, deps_counter)
-            submit_count = 0
-            for n in to_execute:
-                try:
-                    all_futures.append(executor.submit(run_node, n))
-                    submit_count += 1
-                except RuntimeError:
-                    # Someone shutdown the executor while we are still
-                    # using it, get out as quickly as we can...
-                    has_failed.set()
-                    break
-            return submit_count
-
-        def run_node(node):
-            if has_failed.is_set():
-                # Someone failed, don't even bother running.
-                return
-            try:
-                if engine.is_running:
-                    engine.task_action.execute(node)
+        def schedule(nodes):
+            for node in nodes:
+                future = schedule_node(node)
+                if future is not None:
+                    not_done.append(future)
                 else:
-                    was_suspended.set()
-                    return
-            except Exception:
-                # Make sure others don't continue working (although they may
-                # be already actively working, but u can't stop that anyway).
-                has_failed.set()
-                raise
-            if has_failed.is_set():
-                # Someone else failed, don't even bother submitting any
-                # followup jobs.
-                return
-            # NOTE(harlowja): the future itself will not return until after it
-            # submits followup tasks, this keeps the parent thread waiting for
-            # more results since the all_futures deque will not be empty until
-            # everyone stops submitting followups.
-            submitted = submit_followups(node)
-            LOG.debug("After running %s, %s followup actions were submitted",
-                      node, submitted)
+                    schedule(self._resolve_dependencies(
+                        node, deps_counter, revert))
 
-        # Nothing to execute in the first place
-        if not deps_counter:
-            return st.SUCCESS
-
-        # Ensure that we obtain the lock just in-case the functions submitted
-        # immediately themselves start submitting there own jobs (which could
-        # happen if they are very quick).
-        with deps_lock:
-            to_execute = self._browse_nodes_to_execute(deps_counter)
-            for n in to_execute:
-                try:
-                    all_futures.append(executor.submit(run_node, n))
-                except RuntimeError:
-                    # Someone shutdown the executor while we are still using
-                    # it, get out as quickly as we can....
-                    break
-
-        # Keep on continuing to consume the futures until there are no more
-        # futures to consume so that we can get there failures. Notice that
-        # results are not captured, as results of tasks go into storage and
-        # do not get returned here.
+        schedule(self._browse_nodes_to_execute(deps_counter))
         failures = []
-        while len(all_futures):
-            # Take in FIFO order, not in LIFO order.
-            f = all_futures.popleft()
-            try:
-                f.result()
-            except futures.CancelledError:
-                # TODO(harlowja): can we use the cancellation feature to
-                # actually achieve cancellation in taskflow??
-                pass
-            except Exception:
-                failures.append(misc.Failure())
+
+        was_suspended = False
+        while not_done:
+            # NOTE(imelnikov): if timeout occurs before any of futures
+            # completes, done list will be empty and we'll just go
+            # for next iteration
+            done, not_done = engine.task_action.wait_for_any(
+                not_done, _WAITING_TIMEOUT)
+
+            not_done = list(not_done)
+            next_nodes = []
+            for future in done:
+                node, _event, result = future.result()
+                complete_node(node, result)
+                if isinstance(result, misc.Failure):
+                    failures.append(result)
+                else:
+                    next_nodes.extend(self._resolve_dependencies(
+                        node, deps_counter, revert))
+
+            if next_nodes:
+                if running() and not failures:
+                    schedule(next_nodes)
+                else:
+                    # NOTE(imelnikov): engine stopped while there were
+                    # still some tasks to do, so we either failed
+                    # or were suspended
+                    was_suspended = True
+
         misc.Failure.reraise_if_any(failures)
-        if was_suspended.is_set():
-            return st.SUSPENDED
-        else:
-            return st.SUCCESS
+        return was_suspended

@@ -62,21 +62,21 @@ class TaskAction(object):
             LOG.exception("Failed setting task progress for %s to %0.3f",
                           task, progress)
 
-    def execute(self, task):
+    def schedule_execution(self, task):
         if not self._change_state(task, states.RUNNING, progress=0.0):
             return
-
         kwargs = self._storage.fetch_mapped_args(task.rebind)
-        future = self._task_executor.execute_task(task, kwargs,
-                                                  self._on_update_progress)
-        self._task_executor.wait_for_any(future)
-        _task, _event, result = future.result()
+        return self._task_executor.execute_task(task, kwargs,
+                                                self._on_update_progress)
+
+    def complete_execution(self, task, result):
         if isinstance(result, misc.Failure):
             self._change_state(task, states.FAILURE, result=result)
-            result.reraise()
-        self._change_state(task, states.SUCCESS, result=result, progress=1.0)
+        else:
+            self._change_state(task, states.SUCCESS,
+                               result=result, progress=1.0)
 
-    def revert(self, task):
+    def schedule_reversion(self, task):
         if not self._change_state(task, states.REVERTING, progress=0.0):
             return
         kwargs = self._storage.fetch_mapped_args(task.rebind)
@@ -85,9 +85,13 @@ class TaskAction(object):
         future = self._task_executor.revert_task(task, kwargs,
                                                  task_result, failures,
                                                  self._on_update_progress)
-        self._task_executor.wait_for_any(future)
-        _task, _event, result = future.result()
-        if isinstance(result, misc.Failure):
+        return future
+
+    def complete_reversion(self, task, rev_result):
+        if isinstance(rev_result, misc.Failure):
             self._change_state(task, states.FAILURE)
-            result.reraise()
-        self._change_state(task, states.REVERTED, progress=1.0)
+        else:
+            self._change_state(task, states.REVERTED, progress=1.0)
+
+    def wait_for_any(self, fs, timeout):
+        return self._task_executor.wait_for_any(fs, timeout)

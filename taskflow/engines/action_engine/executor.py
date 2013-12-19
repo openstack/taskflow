@@ -22,6 +22,7 @@ import six
 
 from concurrent import futures
 
+from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
@@ -83,7 +84,7 @@ class TaskExecutorBase(object):
         """Schedules task reversion"""
 
     @abc.abstractmethod
-    def wait_for_any(self, fs):
+    def wait_for_any(self, fs, timeout=None):
         """Wait for futures returned by this executor to complete"""
 
     def start(self):
@@ -114,7 +115,7 @@ class SerialTaskExecutor(TaskExecutorBase):
             _revert_task(task, arguments, result,
                          failures, progress_callback))
 
-    def wait_for_any(self, fs):
+    def wait_for_any(self, fs, timeout=None):
         # NOTE(imelnikov): this executor returns only done futures
         return fs, []
 
@@ -140,8 +141,8 @@ class ParallelTaskExecutor(TaskExecutorBase):
             _revert_task, task,
             arguments, result, failures, progress_callback)
 
-    def wait_for_any(self, fs):
-        return futures.wait(fs, return_when=futures.FIRST_COMPLETED)
+    def wait_for_any(self, fs, timeout=None):
+        return eu.wait_for_any(fs, timeout)
 
     def start(self):
         if self._own_executor:

@@ -18,8 +18,6 @@
 
 import threading
 
-from concurrent import futures
-
 from taskflow.engines.action_engine import executor
 from taskflow.engines.action_engine import graph_action
 from taskflow.engines.action_engine import task_action
@@ -34,7 +32,6 @@ from taskflow.utils import flow_utils
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
-from taskflow.utils import threading_utils
 
 
 class ActionEngine(base.EngineBase):
@@ -192,46 +189,19 @@ class ActionEngine(base.EngineBase):
 
 class SingleThreadedActionEngine(ActionEngine):
     # NOTE(harlowja): This one attempts to run in a serial manner.
-    _graph_action_cls = graph_action.SequentialGraphAction
+    _graph_action_cls = graph_action.FutureGraphAction
     _storage_cls = t_storage.Storage
 
 
 class MultiThreadedActionEngine(ActionEngine):
     # NOTE(harlowja): This one attempts to run in a parallel manner.
-    _graph_action_cls = graph_action.ParallelGraphAction
+    _graph_action_cls = graph_action.FutureGraphAction
     _storage_cls = t_storage.ThreadSafeStorage
 
+    def _task_executor_cls(self):
+        return executor.ParallelTaskExecutor(self._executor)
+
     def __init__(self, flow, flow_detail, backend, conf):
+        self._executor = conf.get('executor', None)
         super(MultiThreadedActionEngine, self).__init__(
             flow, flow_detail, backend, conf)
-        self._executor = conf.get('executor', None)
-
-    @lock_utils.locked
-    def run(self):
-        if self._executor is None:
-            # NOTE(harlowja): since no executor was provided we have to create
-            # one, and also ensure that we shutdown the one we create to
-            # ensure that we don't leak threads.
-            thread_count = threading_utils.get_optimal_thread_count()
-            self._executor = futures.ThreadPoolExecutor(thread_count)
-            owns_executor = True
-        else:
-            owns_executor = False
-
-        try:
-            ActionEngine.run(self)
-        finally:
-            # Don't forget to shutdown the executor!!
-            if owns_executor:
-                try:
-                    self._executor.shutdown(wait=True)
-                finally:
-                    self._executor = None
-
-    @property
-    def executor(self):
-        """Returns the current executor, if no executor is provided on
-        construction then this executor will change each time the engine
-        is ran.
-        """
-        return self._executor
