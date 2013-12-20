@@ -132,26 +132,22 @@ class GreenExecutor(futures.Executor):
             self._pool.waitall()
 
 
-class _FirstCompletedWaiter(object):
-    """Provides the event that wait_for_any() block on."""
+class _Waiter(object):
+    """Provides the event that wait_for_any() blocks on."""
     def __init__(self, is_green):
         if is_green:
             assert EVENTLET_AVAILABLE, 'eventlet is needed to use this feature'
             self.event = gthreading.Event()
         else:
             self.event = threading.Event()
-        self.finished_futures = []
 
     def add_result(self, future):
-        self.finished_futures.append(future)
         self.event.set()
 
     def add_exception(self, future):
-        self.finished_futures.append(future)
         self.event.set()
 
     def add_cancelled(self, future):
-        self.finished_futures.append(future)
         self.event.set()
 
 
@@ -172,7 +168,7 @@ def wait_for_any(fs, timeout=None):
         if done:
             return done, set(fs) - done
         is_green = any(isinstance(f, _GreenFuture) for f in fs)
-        waiter = _FirstCompletedWaiter(is_green)
+        waiter = _Waiter(is_green)
         for f in fs:
             f._waiters.append(waiter)
 
