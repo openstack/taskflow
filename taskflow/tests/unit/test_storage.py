@@ -81,7 +81,7 @@ class StorageTest(test.TestCase):
         flow_detail.add(td)
 
         s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
-        self.assertEquals('42', s.get_task_uuid('my_task'))
+        self.assertEqual('42', s.get_task_uuid('my_task'))
 
     def test_ensure_existing_task(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
@@ -90,7 +90,7 @@ class StorageTest(test.TestCase):
 
         s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
         s.ensure_task('my_task')
-        self.assertEquals('42', s.get_task_uuid('my_task'))
+        self.assertEqual('42', s.get_task_uuid('my_task'))
 
     def test_save_and_get(self):
         s = self._get_storage()
