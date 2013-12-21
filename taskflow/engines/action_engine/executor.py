@@ -22,7 +22,7 @@ import six
 
 from concurrent import futures
 
-from taskflow.utils import eventlet_utils as eu
+from taskflow.utils import async_utils
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
@@ -142,7 +142,7 @@ class ParallelTaskExecutor(TaskExecutorBase):
             arguments, result, failures, progress_callback)
 
     def wait_for_any(self, fs, timeout=None):
-        return eu.wait_for_any(fs, timeout)
+        return async_utils.wait_for_any(fs, timeout)
 
     def start(self):
         if self._own_executor:

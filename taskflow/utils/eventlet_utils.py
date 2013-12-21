@@ -22,7 +22,7 @@ import threading
 from concurrent import futures
 
 try:
-    from eventlet.green import threading as gthreading
+    from eventlet.green import threading as green_threading
     from eventlet import greenpool
     from eventlet import patcher
     from eventlet import queue
@@ -81,16 +81,16 @@ class _Worker(object):
                          self.worker_id, self.executor, exc_info=True)
 
 
-class _GreenFuture(futures.Future):
+class GreenFuture(futures.Future):
     def __init__(self):
-        super(_GreenFuture, self).__init__()
+        super(GreenFuture, self).__init__()
         # NOTE(harlowja): replace the built-in condition with a greenthread
         # compatible one so that when getting the result of this future the
         # functions will correctly yield to eventlet. If this is not done then
         # waiting on the future never actually causes the greenthreads to run
         # and thus you wait for infinity.
         if not patcher.is_monkey_patched('threading'):
-            self._condition = gthreading.Condition()
+            self._condition = green_threading.Condition()
 
 
 class GreenExecutor(futures.Executor):
@@ -109,7 +109,7 @@ class GreenExecutor(futures.Executor):
     def submit(self, fn, *args, **kwargs):
         if self._shutdown:
             raise RuntimeError('cannot schedule new futures after shutdown')
-        f = _GreenFuture()
+        f = GreenFuture()
         w = _WorkItem(f, fn, args, kwargs)
         self._work_queue.put(w)
         # Spin up any new workers (since they are spun up on demand and
@@ -130,52 +130,3 @@ class GreenExecutor(futures.Executor):
             self._work_queue.put(_TOMBSTONE)
         if wait:
             self._pool.waitall()
-
-
-class _Waiter(object):
-    """Provides the event that wait_for_any() blocks on."""
-    def __init__(self, is_green):
-        if is_green:
-            assert EVENTLET_AVAILABLE, 'eventlet is needed to use this feature'
-            self.event = gthreading.Event()
-        else:
-            self.event = threading.Event()
-
-    def add_result(self, future):
-        self.event.set()
-
-    def add_exception(self, future):
-        self.event.set()
-
-    def add_cancelled(self, future):
-        self.event.set()
-
-
-def _done_futures(fs):
-    return set(f for f in fs
-               if f._state in [futures._base.CANCELLED_AND_NOTIFIED,
-                               futures._base.FINISHED])
-
-
-def wait_for_any(fs, timeout=None):
-    """Wait for one of the futures to complete.
-
-    Works correctly with both green and non-green futures.
-    Returns pair (done, not_done).
-    """
-    with futures._base._AcquireFutures(fs):
-        done = _done_futures(fs)
-        if done:
-            return done, set(fs) - done
-        is_green = any(isinstance(f, _GreenFuture) for f in fs)
-        waiter = _Waiter(is_green)
-        for f in fs:
-            f._waiters.append(waiter)
-
-    waiter.event.wait(timeout)
-    for f in fs:
-        f._waiters.remove(waiter)
-
-    with futures._base._AcquireFutures(fs):
-        done = _done_futures(fs)
-        return done, set(fs) - done

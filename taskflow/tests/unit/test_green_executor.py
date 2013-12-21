@@ -23,6 +23,7 @@ import testtools
 from concurrent import futures
 
 from taskflow import test
+from taskflow.utils import async_utils as au
 from taskflow.utils import eventlet_utils as eu
 
 
@@ -124,7 +125,7 @@ class WaitForAnyTestCase(test.TestCase):
         f1 = e.submit(foo)
         f2 = e.submit(foo)
         # this test assumes that our foo will end within 10 seconds
-        done, not_done = eu.wait_for_any([f1, f2], 10)
+        done, not_done = au.wait_for_any([f1, f2], 10)
         self.assertIn(len(done), (1, 2))
         self.assertTrue(any((f1 in done, f2 in done)))
 
@@ -137,7 +138,7 @@ class WaitForAnyTestCase(test.TestCase):
             f1 = e.submit(foo)
             f2 = e.submit(foo)
             # this test assumes that our foo will end within 10 seconds
-            done, not_done = eu.wait_for_any([f1, f2], 10)
+            done, not_done = au.wait_for_any([f1, f2], 10)
             self.assertIn(len(done), (1, 2))
             self.assertTrue(any((f1 in done, f2 in done)))
         finally:
