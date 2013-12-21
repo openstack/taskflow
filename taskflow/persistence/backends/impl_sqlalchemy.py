@@ -123,6 +123,17 @@ def _thread_yield(dbapi_con, con_record):
     time.sleep(0)
 
 
+def _set_mode_traditional(dbapi_con, con_record):
+    """Set engine mode to 'traditional'.
+
+    Required to prevent silent truncates at insert or update operations
+    under MySQL. By default MySQL truncates inserted string if it longer
+    than a declared field just with warning. That is fraught with data
+    corruption.
+    """
+    dbapi_con.cursor().execute("SET SESSION sql_mode = TRADITIONAL;")
+
+
 def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
     """Ensures that MySQL connections checked out of the pool are alive.
 
@@ -232,6 +243,8 @@ class SQLAlchemyBackend(base.Backend):
         if 'mysql' in e_url.drivername:
             if misc.as_bool(conf.pop('checkout_ping', True)):
                 sa.event.listen(engine, 'checkout', _ping_listener)
+            if misc.as_bool(conf.pop('mysql_traditional_mode', True)):
+                sa.event.listen(engine, 'checkout', _set_mode_traditional)
         try:
             max_retries = misc.as_int(conf.pop('max_retries', None))
         except TypeError:
