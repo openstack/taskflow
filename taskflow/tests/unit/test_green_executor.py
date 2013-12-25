@@ -20,10 +20,7 @@ import collections
 import functools
 import testtools
 
-from concurrent import futures
-
 from taskflow import test
-from taskflow.utils import async_utils as au
 from taskflow.utils import eventlet_utils as eu
 
 
@@ -111,35 +108,3 @@ class GreenExecutorTest(test.TestCase):
         for f in fs:
             self.assertTrue(f.cancelled())
             self.assertTrue(f.done())
-
-
-class WaitForAnyTestCase(test.TestCase):
-
-    @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
-    def test_green_waits_and_finishes(self):
-        def foo():
-            pass
-
-        e = eu.GreenExecutor()
-
-        f1 = e.submit(foo)
-        f2 = e.submit(foo)
-        # this test assumes that our foo will end within 10 seconds
-        done, not_done = au.wait_for_any([f1, f2], 10)
-        self.assertIn(len(done), (1, 2))
-        self.assertTrue(any((f1 in done, f2 in done)))
-
-    def test_threaded_waits_and_finishes(self):
-        def foo():
-            pass
-
-        e = futures.ThreadPoolExecutor(2)
-        try:
-            f1 = e.submit(foo)
-            f2 = e.submit(foo)
-            # this test assumes that our foo will end within 10 seconds
-            done, not_done = au.wait_for_any([f1, f2], 10)
-            self.assertIn(len(done), (1, 2))
-            self.assertTrue(any((f1 in done, f2 in done)))
-        finally:
-            e.shutdown()

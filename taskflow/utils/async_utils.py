@@ -70,4 +70,11 @@ def wait_for_any(fs, timeout=None):
 
     with futures._base._AcquireFutures(fs):
         done = _done_futures(fs)
-        return done, set(fs) - done
+    return done, set(fs) - done
+
+
+def make_completed_future(result):
+    """Make with completed with given result"""
+    future = futures.Future()
+    future.set_result(result)
+    return future

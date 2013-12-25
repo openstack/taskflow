@@ -99,19 +99,13 @@ class TaskExecutorBase(object):
 class SerialTaskExecutor(TaskExecutorBase):
     """Execute task one after another."""
 
-    @staticmethod
-    def _completed_future(result):
-        future = futures.Future()
-        future.set_result(result)
-        return future
-
     def execute_task(self, task, arguments, progress_callback=_noop):
-        return self._completed_future(
+        return async_utils.make_completed_future(
             _execute_task(task, arguments, progress_callback))
 
     def revert_task(self, task, arguments, result, failures,
                     progress_callback=_noop):
-        return self._completed_future(
+        return async_utils.make_completed_future(
             _revert_task(task, arguments, result,
                          failures, progress_callback))
 
