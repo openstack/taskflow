@@ -20,6 +20,7 @@ import threading
 
 from taskflow.engines.action_engine import executor
 from taskflow.engines.action_engine import graph_action
+from taskflow.engines.action_engine import graph_analyzer
 from taskflow.engines.action_engine import task_action
 from taskflow.engines import base
 
@@ -47,12 +48,14 @@ class ActionEngine(base.EngineBase):
     reversion to commence. See the valid states in the states module to learn
     more about what other states the tasks & flow being ran can go through.
     """
-    _graph_action_cls = None
+    _graph_action_cls = graph_action.FutureGraphAction
+    _graph_analyzer_cls = graph_analyzer.GraphAnalyzer
     _task_action_cls = task_action.TaskAction
     _task_executor_cls = executor.SerialTaskExecutor
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
+        self._analyzer = None
         self._root = None
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
@@ -66,7 +69,7 @@ class ActionEngine(base.EngineBase):
     def _revert(self, current_failure=None):
         self._change_state(states.REVERTING)
         try:
-            state = self._root.revert(self)
+            state = self._root.revert()
         except Exception:
             with excutils.save_and_reraise_exception():
                 self._change_state(states.FAILURE)
@@ -95,7 +98,7 @@ class ActionEngine(base.EngineBase):
     @property
     def execution_graph(self):
         self.compile()
-        return self._root.graph
+        return self._analyzer.graph
 
     @lock_utils.locked
     def run(self):
@@ -119,7 +122,7 @@ class ActionEngine(base.EngineBase):
     def _run(self):
         self._change_state(states.RUNNING)
         try:
-            state = self._root.execute(self)
+            state = self._root.execute()
         except Exception:
             self._change_state(states.FAILURE)
             self._revert(misc.Failure())
@@ -165,37 +168,30 @@ class ActionEngine(base.EngineBase):
         if self._root is not None:
             return
 
-        assert self._graph_action_cls is not None, (
-            'Graph action class must be specified')
         self._change_state(states.RESUMING)  # does nothing in PENDING state
         task_graph = flow_utils.flatten(self._flow)
         if task_graph.number_of_nodes() == 0:
             raise exc.EmptyFlow("Flow %s is empty." % self._flow.name)
-        self._root = self._graph_action_cls(task_graph)
+        self._analyzer = self._graph_analyzer_cls(task_graph,
+                                                  self.storage)
+        self._root = self._graph_action_cls(self._analyzer,
+                                            self.storage,
+                                            self.task_action)
         for task in task_graph.nodes_iter():
             task_version = misc.get_version_string(task)
             self.storage.ensure_task(task.name, task_version, task.save_as)
 
         self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
-    @property
-    def is_running(self):
-        return self.storage.get_flow_state() == states.RUNNING
-
-    @property
-    def is_reverting(self):
-        return self.storage.get_flow_state() == states.REVERTING
-
 
 class SingleThreadedActionEngine(ActionEngine):
-    # NOTE(harlowja): This one attempts to run in a serial manner.
-    _graph_action_cls = graph_action.FutureGraphAction
+    """Engine that runs tasks in serial manner"""
     _storage_cls = t_storage.Storage
 
 
 class MultiThreadedActionEngine(ActionEngine):
-    # NOTE(harlowja): This one attempts to run in a parallel manner.
-    _graph_action_cls = graph_action.FutureGraphAction
+    """Engine that runs tasks in parallel manner"""
+
     _storage_cls = t_storage.ThreadSafeStorage
 
     def _task_executor_cls(self):

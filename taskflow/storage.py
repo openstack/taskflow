@@ -175,6 +175,10 @@ class Storage(object):
         """Get state of task with given name"""
         return self._taskdetail_by_name(task_name).state
 
+    def get_tasks_states(self, task_names):
+        return dict((name, self.get_task_state(name))
+                    for name in task_names)
+
     def update_task_metadata(self, task_name, update_with):
         if not update_with:
             return

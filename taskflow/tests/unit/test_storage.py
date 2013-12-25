@@ -65,6 +65,17 @@ class StorageTest(test.TestCase):
         self.assertTrue(
             uuidutils.is_uuid_like(s.get_task_uuid('my task')))
 
+    def test_get_tasks_states(self):
+        s = self._get_storage()
+        s.ensure_task('my task')
+        s.ensure_task('my task2')
+        s.save('my task', 'foo')
+        expected = {
+            'my task': states.SUCCESS,
+            'my task2': states.PENDING,
+        }
+        self.assertEqual(s.get_tasks_states(['my task', 'my task2']), expected)
+
     def test_ensure_task_fd(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
         s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
