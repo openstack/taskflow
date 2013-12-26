@@ -29,8 +29,8 @@ class Flow(flow.Flow):
     depend on outputs (provided names/values) of tasks/flows that follow it.
     """
 
-    def __init__(self, name):
-        super(Flow, self).__init__(name)
+    def __init__(self, name, retry=None):
+        super(Flow, self).__init__(name, retry)
         self._children = []
 
     def add(self, *items):
@@ -77,6 +77,7 @@ class Flow(flow.Flow):
     @property
     def provides(self):
         provides = set()
+        provides.update(self._retry_provides)
         for subflow in self._children:
             provides.update(subflow.provides)
         return provides
@@ -85,6 +86,8 @@ class Flow(flow.Flow):
     def requires(self):
         requires = set()
         provides = set()
+        requires.update(self._retry_requires)
+        provides.update(self._retry_provides)
         for subflow in self._children:
             requires.update(subflow.requires - provides)
             provides.update(subflow.provides)
