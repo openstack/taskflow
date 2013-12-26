@@ -4,116 +4,85 @@ function usage {
   echo "Usage: $0 [OPTION]..."
   echo "Run Taskflow's test suite(s)"
   echo ""
-  echo "  -V, --virtual-env        Always use virtualenv.  Install automatically if not present"
-  echo "  -N, --no-virtual-env     Don't use virtualenv.  Run tests in local environment"
   echo "  -f, --force              Force a clean re-build of the virtual environment. Useful when dependencies have been added."
-  echo "  -u, --update             Update the virtual environment with any newer package versions"
   echo "  -p, --pep8               Just run pep8"
   echo "  -P, --no-pep8            Don't run static code checks"
+  echo "  -v, --verbose            Increase verbosity of reporting output"
   echo "  -h, --help               Print this usage message"
   echo ""
-  echo "Note: with no options specified, the script will try to run the tests in a virtual environment,"
-  echo "      If no virtualenv is found, the script will ask if you would like to create one.  If you "
-  echo "      prefer to run tests NOT in a virtual environment, simply pass the -N option."
   exit
 }
 
 function process_option {
   case "$1" in
     -h|--help) usage;;
-    -V|--virtual-env) let always_venv=1; let never_venv=0;;
-    -N|--no-virtual-env) let always_venv=0; let never_venv=1;;
     -p|--pep8) let just_pep8=1;;
     -P|--no-pep8) let no_pep8=1;;
     -f|--force) let force=1;;
-    -u|--update) update=1;;
-    -c|--coverage) noseopts="$noseopts --with-coverage --cover-package=taskflow";;
-    -*) noseopts="$noseopts $1";;
-    *) noseargs="$noseargs $1"
+    -v|--verbose) let verbose=1;;
+    *) pos_args="$pos_args $1"
   esac
 }
 
-venv=.venv
-with_venv=tools/with_venv.sh
-always_venv=0
-never_venv=0
+verbose=0
 force=0
-noseopts=
-noseargs=
-wrapper=""
+pos_args=""
 just_pep8=0
 no_pep8=0
-update=0
-
-export NOSE_WITH_OPENSTACK=1
-export NOSE_OPENSTACK_COLOR=1
-export NOSE_OPENSTACK_RED=0.05
-export NOSE_OPENSTACK_YELLOW=0.025
-export NOSE_OPENSTACK_SHOW_ELAPSED=1
-export NOSE_OPENSTACK_STDOUT=1
+tox_args=""
+tox=""
 
 for arg in "$@"; do
   process_option $arg
 done
 
+py=`which python`
+if [ -z "$py" ]; then
+    echo "Python is required to use $0"
+    echo "Please install it via your distributions package management system."
+    exit 1
+fi
+
+py_envs=`python -c 'import sys; print("py%s%s" % (sys.version_info[0:2]))'`
+py_envs=${PY_ENVS:-$py_envs}
+
 function run_tests {
-  # Cleanup *pyc
-  ${wrapper} find . -type f -name "*.pyc" -delete
-  ${wrapper} $NOSETESTS
+    local tox_cmd="${tox} ${tox_args} -e $py_envs ${pos_args}"
+    echo "Running tests for environments $py_envs via $tox_cmd"
+    bash -c "$tox_cmd"
 }
 
-function run_pep8 {
-  echo "Running pep8 ..."
-  PEP8_EXCLUDE=".venv,.tox,dist,doc,openstack"
-  PEP8_OPTIONS="--exclude=$PEP8_EXCLUDE --repeat"
-  PEP8_IGNORE="--ignore=E125,E126,E711,E712"
-  PEP8_INCLUDE="."
-
-  ${wrapper} pep8 $PEP8_OPTIONS $PEP8_INCLUDE $PEP8_IGNORE
+function run_flake8 {
+  local tox_cmd="${tox} ${tox_args} -e pep8 ${pos_args}"
+  echo "Running flake8 via $tox_cmd"
+  bash -c "$tox_cmd"
 }
 
+if [ $force -eq 1 ]; then
+  tox_args="$tox_args -r"
+fi
 
-NOSETESTS="nosetests $noseopts $noseargs"
+if [ $verbose -eq 1 ]; then
+  tox_args="$tox_args -v"
+fi
 
-if [ $never_venv -eq 0 ]
-then
-  # Remove the virtual environment if --force used
-  if [ $force -eq 1 ]; then
-    echo "Cleaning virtualenv..."
-    rm -rf ${venv}
-  fi
-  if [ $update -eq 1 ]; then
-    echo "Updating virtualenv..."
-    python tools/install_venv.py
-  fi
-  if [ -e ${venv} ]; then
-    wrapper="${with_venv}"
-  else
-    if [ $always_venv -eq 1 ]; then
-      # Automatically install the virtualenv
-      python tools/install_venv.py
-      wrapper="${with_venv}"
-    else
-      echo -e "No virtual environment found...create one? (Y/n) \c"
-      read use_ve
-      if [ "x$use_ve" = "xY" -o "x$use_ve" = "x" -o "x$use_ve" = "xy" ]; then
-        # Install the virtualenv and run the test suite in it
-        python tools/install_venv.py
-		wrapper=${with_venv}
-      fi
-    fi
-  fi
+tox=`which tox`
+if [ -z "$tox" ]; then
+    echo "Tox is required to use $0"
+    echo "Please install it via \`pip\` or via your distributions" \
+         "package management system."
+    echo "Visit http://tox.readthedocs.org/ for additional installation" \
+         "instructions."
+    exit 1
 fi
 
 if [ $just_pep8 -eq 1 ]; then
-    run_pep8
-    exit
+  run_flake8
+  exit
 fi
 
 run_tests || exit
 
-if [ -z "$noseargs" ]; then
-    if [ $no_pep8 -eq 0 ]; then
-        run_pep8
-    fi
+if [ $no_pep8 -eq 0 ]; then
+  run_flake8
 fi
