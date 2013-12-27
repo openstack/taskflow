@@ -22,14 +22,17 @@ from taskflow import states as st
 
 
 class GraphAnalyzer(object):
-    """Analyzes graph to get next nodes for execution or reversion"""
+    """Analyzes a execution graph to get the next nodes for execution or
+    reversion by utilizing the graphs nodes and edge relations and comparing
+    the node state against the states stored in storage.
+    """
 
     def __init__(self, graph, storage):
         self._graph = graph
         self._storage = storage
 
     @property
-    def graph(self):
+    def execution_graph(self):
         return self._graph
 
     def browse_nodes_for_execute(self, node=None):
