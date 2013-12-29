@@ -57,6 +57,7 @@ _ALLOWED_FLOW_TRANSITIONS = frozenset((
     (RUNNING, SUCCESS),       # all tasks finished successfully
     (RUNNING, FAILURE),       # some of task failed
     (RUNNING, SUSPENDING),    # engine.suspend was called
+    (RUNNING, RESUMING),      # resuming from a previous running
 
     (SUCCESS, RUNNING),       # see note below
 
@@ -66,6 +67,7 @@ _ALLOWED_FLOW_TRANSITIONS = frozenset((
     (REVERTING, REVERTED),    # revert done
     (REVERTING, FAILURE),     # revert failed
     (REVERTING, SUSPENDING),  # engine.suspend was called
+    (REVERTING, RESUMING),    # resuming from a previous reverting
 
     (REVERTED, PENDING),      # try again
 
@@ -73,6 +75,7 @@ _ALLOWED_FLOW_TRANSITIONS = frozenset((
     (SUSPENDING, SUCCESS),    # all tasks finished while we were waiting
     (SUSPENDING, FAILURE),    # some tasks failed while we were waiting
     (SUSPENDING, REVERTED),   # all tasks were reverted while we were waiting
+    (SUSPENDING, RESUMING),   # resuming from a previous suspending
 
     (SUSPENDED, RUNNING),     # restart from suspended
     (SUSPENDED, REVERTING),   # revert from suspended
@@ -118,8 +121,6 @@ def check_flow_transition(old_state, new_state):
         return True
     if pair in _IGNORED_FLOW_TRANSITIONS:
         return False
-    if new_state == RESUMING:
-        return True
     raise exc.InvalidStateException(
         "Flow transition from %s to %s is not allowed" % pair)
 
