@@ -31,23 +31,6 @@ LOG = logging.getLogger(__name__)
 STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
 
 
-def _item_from_result(result, index, name):
-    """Attempts to fetch a index/key from a given result."""
-    if index is None:
-        return result
-    try:
-        return result[index]
-    except (IndexError, KeyError, ValueError, TypeError):
-        # NOTE(harlowja): The result that the uuid returned can not be
-        # accessed in the manner that the index is requesting. Perhaps
-        # the result is a dictionary-like object and that key does
-        # not exist (key error), or the result is a tuple/list and a
-        # non-numeric key is being requested (index error), or there
-        # was no result and an attempt to index into None is being
-        # requested (type error).
-        raise exceptions.NotFound("Unable to find result %r" % name)
-
-
 class Storage(object):
     """Interface between engines and logbook
 
@@ -249,7 +232,7 @@ class Storage(object):
             return
         for name, index in six.iteritems(result_mapping):
             try:
-                _item_from_result(data, index, name)
+                misc.item_from(data, index, name=name)
             except exceptions.NotFound:
                 LOG.warning("Task %s did not supply result "
                             "with index %r (name %s)",
@@ -402,7 +385,7 @@ class Storage(object):
         for task_name, index in reversed(indexes):
             try:
                 result = self.get(task_name)
-                return _item_from_result(result, index, name)
+                return misc.item_from(result, index, name=name)
             except exceptions.NotFound:
                 pass
         raise exceptions.NotFound("Unable to find result %r" % name)
