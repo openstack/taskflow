@@ -17,6 +17,7 @@
 #    under the License.
 
 import contextlib
+
 import mock
 
 from taskflow import exceptions

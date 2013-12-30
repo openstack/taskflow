@@ -17,8 +17,9 @@
 #    under the License.
 
 import contextlib
-import six
 import time
+
+import six
 
 from taskflow.persistence.backends import impl_memory
 from taskflow import task

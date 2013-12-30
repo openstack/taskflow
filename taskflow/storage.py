@@ -18,6 +18,7 @@
 
 import contextlib
 import logging
+
 import six
 
 from taskflow import exceptions

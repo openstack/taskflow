@@ -18,9 +18,9 @@
 
 import abc
 import contextlib
-import six
 
 from concurrent import futures
+import six
 
 from taskflow.utils import async_utils
 from taskflow.utils import misc

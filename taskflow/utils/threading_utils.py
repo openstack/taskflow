@@ -18,9 +18,10 @@
 
 import logging
 import multiprocessing
-import six
 import threading
 import types
+
+import six
 
 from taskflow.utils import lock_utils
 

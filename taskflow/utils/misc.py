@@ -24,11 +24,12 @@ import functools
 import keyword
 import logging
 import os
-import six
 import string
 import sys
 import time
 import traceback
+
+import six
 
 from taskflow import exceptions
 from taskflow.utils import reflection

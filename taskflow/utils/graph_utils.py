@@ -16,10 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
-
 import networkx as nx
-from networkx import algorithms
+import six
 
 
 def get_edge_attrs(graph, u, v):
@@ -47,7 +45,7 @@ def merge_graphs(graphs, allow_overlaps=False):
                                                              len(overlaps)))
         # Keep the target graphs name.
         name = graph.name
-        graph = algorithms.compose(graph, g)
+        graph = nx.algorithms.compose(graph, g)
         graph.name = name
     return graph
 

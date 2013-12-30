@@ -21,9 +21,10 @@ import errno
 import logging
 import os
 import shutil
-import six
 import threading
 import weakref
+
+import six
 
 from taskflow import exceptions as exc
 from taskflow.openstack.common import jsonutils

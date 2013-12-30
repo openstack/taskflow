@@ -18,6 +18,7 @@
 #    under the License.
 
 import logging
+
 import six
 
 from taskflow.openstack.common import uuidutils

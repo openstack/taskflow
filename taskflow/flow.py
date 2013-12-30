@@ -17,6 +17,7 @@
 #    under the License.
 
 import abc
+
 import six
 
 from taskflow.utils import reflection
