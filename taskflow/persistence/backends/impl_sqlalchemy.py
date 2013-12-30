@@ -210,11 +210,9 @@ class SQLAlchemyBackend(base.Backend):
             'convert_unicode': misc.as_bool(conf.pop('convert_unicode', True)),
             'pool_recycle': 3600,
         }
-        try:
-            idle_timeout = misc.as_int(conf.pop('idle_timeout', None))
+        if 'idle_timeout' in conf:
+            idle_timeout = misc.as_int(conf.pop('idle_timeout'))
             engine_args['pool_recycle'] = idle_timeout
-        except TypeError:
-            pass
         sql_connection = conf.pop('connection')
         e_url = sa.engine.url.make_url(sql_connection)
         if 'sqlite' in e_url.drivername:
@@ -228,10 +226,8 @@ class SQLAlchemyBackend(base.Backend):
             for (k, lookup_key) in [('pool_size', 'max_pool_size'),
                                     ('max_overflow', 'max_overflow'),
                                     ('pool_timeout', 'pool_timeout')]:
-                try:
-                    engine_args[k] = misc.as_int(conf.pop(lookup_key, None))
-                except TypeError:
-                    pass
+                if lookup_key in conf:
+                    engine_args[k] = misc.as_int(conf.pop(lookup_key))
         # If the configuration dict specifies any additional engine args
         # or engine arg overrides make sure we merge them in.
         engine_args.update(conf.pop('engine_args', {}))
