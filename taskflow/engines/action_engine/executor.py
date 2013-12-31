@@ -17,7 +17,6 @@
 #    under the License.
 
 import abc
-import contextlib
 
 from concurrent import futures
 import six
@@ -31,21 +30,8 @@ EXECUTED = 'executed'
 REVERTED = 'reverted'
 
 
-@contextlib.contextmanager
-def _autobind(task, bind_name, bind_func, **kwargs):
-    task.bind(bind_name, bind_func, **kwargs)
-    try:
-        yield task
-    finally:
-        task.unbind(bind_name, bind_func)
-
-
-def _noop(*args, **kwargs):
-    pass
-
-
 def _execute_task(task, arguments, progress_callback):
-    with _autobind(task, 'update_progress', progress_callback):
+    with task.autobind('update_progress', progress_callback):
         try:
             result = task.execute(**arguments)
         except Exception:
@@ -59,7 +45,7 @@ def _revert_task(task, arguments, result, failures, progress_callback):
     kwargs = arguments.copy()
     kwargs['result'] = result
     kwargs['flow_failures'] = failures
-    with _autobind(task, 'update_progress', progress_callback):
+    with task.autobind('update_progress', progress_callback):
         try:
             result = task.revert(**kwargs)
         except Exception:
@@ -79,12 +65,12 @@ class TaskExecutorBase(object):
     """
 
     @abc.abstractmethod
-    def execute_task(self, task, arguments, progress_callback=_noop):
+    def execute_task(self, task, arguments, progress_callback=None):
         """Schedules task execution."""
 
     @abc.abstractmethod
     def revert_task(self, task, arguments, result, failures,
-                    progress_callback=_noop):
+                    progress_callback=None):
         """Schedules task reversion"""
 
     @abc.abstractmethod
@@ -103,12 +89,12 @@ class TaskExecutorBase(object):
 class SerialTaskExecutor(TaskExecutorBase):
     """Execute task one after another."""
 
-    def execute_task(self, task, arguments, progress_callback=_noop):
+    def execute_task(self, task, arguments, progress_callback=None):
         return async_utils.make_completed_future(
             _execute_task(task, arguments, progress_callback))
 
     def revert_task(self, task, arguments, result, failures,
-                    progress_callback=_noop):
+                    progress_callback=None):
         return async_utils.make_completed_future(
             _revert_task(task, arguments, result,
                          failures, progress_callback))
@@ -129,12 +115,12 @@ class ParallelTaskExecutor(TaskExecutorBase):
         self._executor = executor
         self._own_executor = executor is None
 
-    def execute_task(self, task, arguments, progress_callback=_noop):
+    def execute_task(self, task, arguments, progress_callback=None):
         return self._executor.submit(
             _execute_task, task, arguments, progress_callback)
 
     def revert_task(self, task, arguments, result, failures,
-                    progress_callback=_noop):
+                    progress_callback=None):
         return self._executor.submit(
             _revert_task, task,
             arguments, result, failures, progress_callback)

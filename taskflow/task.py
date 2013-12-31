@@ -19,6 +19,7 @@
 
 import abc
 import collections
+import contextlib
 import logging
 
 import six
@@ -188,6 +189,26 @@ class BaseTask(object):
             except Exception:
                 LOG.exception("Failed calling `%s` on event '%s'",
                               reflection.get_callable_name(handler), event)
+
+    @contextlib.contextmanager
+    def autobind(self, event_name, handler_func, **kwargs):
+        """Binds a given function to the task for a given event name and then
+        unbinds that event name and associated function automatically on exit.
+        """
+        bound = False
+        if handler_func is not None:
+            try:
+                self.bind(event_name, handler_func, **kwargs)
+                bound = True
+            except ValueError:
+                LOG.exception("Failed binding functor `%s` as a reciever of"
+                              " event '%s' notifications emitted from task %s",
+                              handler_func, event_name, self)
+        try:
+            yield self
+        finally:
+            if bound:
+                self.unbind(event_name, handler_func)
 
     def bind(self, event, handler, **kwargs):
         """Attach a handler to an event for the task.
