@@ -17,8 +17,9 @@
 #    under the License.
 
 import inspect
-import six
 import types
+
+import six
 
 
 def get_member_names(obj, exclude_hidden=True):
