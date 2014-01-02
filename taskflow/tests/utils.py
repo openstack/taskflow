@@ -36,7 +36,7 @@ def make_reverting_task(token, blowup=False):
     if blowup:
 
         def blow_up(context, *args, **kwargs):
-            raise Exception("I blew up")
+            raise RuntimeError("I blew up")
 
         return task.FunctorTask(blow_up, name='blowup_%s' % token)
     else:
