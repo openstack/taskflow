@@ -52,7 +52,15 @@ class Flow(flow.Flow):
                     "by other item(s) of unordered flow %(flow)s"
                     % dict(item=item.name, flow=self.name,
                            oo=sorted(bad_provs)))
-            provides |= item_provides
+            same_provides = provides & item.provides
+            if same_provides:
+                raise exceptions.DependencyFailure(
+                    "%(item)s provides %(value)s but is already being"
+                    " provided by %(flow)s and duplicate producers"
+                    " are disallowed"
+                    % dict(item=item.name, flow=self.name,
+                           value=sorted(same_provides)))
+            provides |= item.provides
 
         for item in items:
             bad_reqs = provides & item.requires

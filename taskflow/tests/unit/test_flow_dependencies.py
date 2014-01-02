@@ -110,11 +110,24 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.provides, set(['x', 'y', 'q', 'i', 'j', 'k']))
 
     def test_linear_flow_self_requires(self):
-        flow = lf.Flow('uf')
+        flow = lf.Flow('lf')
         self.assertRaises(exceptions.InvariantViolationException,
                           flow.add,
                           utils.TaskNoRequiresNoReturns(rebind=['x'],
                                                         provides='x'))
+
+    def test_linear_flow_provides_same_values(self):
+        flow = lf.Flow('lf').add(utils.TaskOneReturn(provides='x'))
+        self.assertRaises(exceptions.DependencyFailure,
+                          flow.add,
+                          utils.TaskOneReturn(provides='x'))
+
+    def test_linear_flow_provides_same_values_one_add(self):
+        flow = lf.Flow('lf')
+        self.assertRaises(exceptions.DependencyFailure,
+                          flow.add,
+                          utils.TaskOneReturn(provides='x'),
+                          utils.TaskOneReturn(provides='x'))
 
     def test_unordered_flow_without_dependencies(self):
         flow = uf.Flow('uf').add(
@@ -182,6 +195,19 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.requires, set(['a', 'b', 'c', 'x', 'y', 'z']))
         self.assertEqual(flow.provides, set(['d', 'e', 'f', 'i', 'j', 'k']))
 
+    def test_unordered_flow_provides_same_values(self):
+        flow = uf.Flow('uf').add(utils.TaskOneReturn(provides='x'))
+        self.assertRaises(exceptions.DependencyFailure,
+                          flow.add,
+                          utils.TaskOneReturn(provides='x'))
+
+    def test_unordered_flow_provides_same_values_one_add(self):
+        flow = uf.Flow('uf')
+        self.assertRaises(exceptions.DependencyFailure,
+                          flow.add,
+                          utils.TaskOneReturn(provides='x'),
+                          utils.TaskOneReturn(provides='x'))
+
     def test_nested_flows_requirements(self):
         flow = uf.Flow('uf').add(
             lf.Flow('lf').add(
@@ -195,6 +221,13 @@ class FlowDependenciesTest(test.TestCase):
                                           provides=['q'])))
         self.assertEqual(flow.requires, set(['a', 'b', 'c']))
         self.assertEqual(flow.provides, set(['x', 'y', 'z', 'q']))
+
+    def test_nested_flows_provides_same_values(self):
+        flow = lf.Flow('lf').add(
+            uf.Flow('uf').add(utils.TaskOneReturn(provides='x')))
+        self.assertRaises(exceptions.DependencyFailure,
+                          flow.add,
+                          gf.Flow('gf').add(utils.TaskOneReturn(provides='x')))
 
     def test_graph_flow_without_dependencies(self):
         flow = gf.Flow('gf').add(

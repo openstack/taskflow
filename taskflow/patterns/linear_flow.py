@@ -40,6 +40,7 @@ class Flow(flow.Flow):
         # NOTE(imelnikov): we add item to the end of flow, so it should
         # not provide anything previous items of the flow require
         requires = self.requires
+        provides = self.provides
         for item in items:
             requires |= item.requires
             out_of_order = requires & item.provides
@@ -49,6 +50,15 @@ class Flow(flow.Flow):
                     "by previous item(s) of linear flow %(flow)s"
                     % dict(item=item.name, flow=self.name,
                            oo=sorted(out_of_order)))
+            same_provides = provides & item.provides
+            if same_provides:
+                raise exceptions.DependencyFailure(
+                    "%(item)s provides %(value)s but is already being"
+                    " provided by %(flow)s and duplicate producers"
+                    " are disallowed"
+                    % dict(item=item.name, flow=self.name,
+                           value=sorted(same_provides)))
+            provides |= item.provides
 
         self._children.extend(items)
         return self
