@@ -53,7 +53,7 @@ class UnorderedFlowTest(test.TestCase):
         wf.add(utils.make_reverting_task('1'))
         wf.add(utils.make_reverting_task('2', blowup=True))
         e = self._make_engine(wf)
-        self.assertRaises(Exception, e.run)
+        self.assertRaisesRegexp(RuntimeError, '^I blew up', e.run)
 
     def test_functor_flow(self):
 
