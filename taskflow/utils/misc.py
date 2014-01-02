@@ -148,15 +148,16 @@ class ExponentialBackoff(object):
     provided an exponent and a number of items to yield. This object may be
     iterated over multiple times (yielding the same sequence each time).
     """
-    def __init__(self, attempts, exponent=2):
-        self.attempts = int(attempts)
+    def __init__(self, count, exponent=2, max_backoff=3600):
+        self.count = max(0, int(count))
         self.exponent = exponent
+        self.max_backoff = max(0, int(max_backoff))
 
     def __iter__(self):
-        if self.attempts <= 0:
+        if self.count <= 0:
             raise StopIteration()
-        for i in six.moves.range(0, self.attempts):
-            yield self.exponent ** i
+        for i in six.moves.range(0, self.count):
+            yield min(self.exponent ** i, self.max_backoff)
 
     def __str__(self):
         return "ExponentialBackoff: %s" % ([str(v) for v in self])

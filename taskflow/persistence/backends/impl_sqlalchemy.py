@@ -188,7 +188,7 @@ class SQLAlchemyBackend(base.Backend):
         # after a given number of backoffs (with a backoff sleeping period
         # between each attempt)...
         attempts_left = max_retries
-        for sleepy_secs in misc.ExponentialBackoff(attempts=max_retries):
+        for sleepy_secs in misc.ExponentialBackoff(max_retries):
             LOG.warn("SQL connection failed due to '%s', %s attempts left.",
                      failures[-1].exc, attempts_left)
             LOG.info("Attempting to test the connection again in %s seconds.",
