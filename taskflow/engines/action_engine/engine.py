@@ -98,7 +98,7 @@ class ActionEngine(base.EngineBase):
     @property
     def execution_graph(self):
         self.compile()
-        return self._analyzer.graph
+        return self._analyzer.execution_graph
 
     @lock_utils.locked
     def run(self):
