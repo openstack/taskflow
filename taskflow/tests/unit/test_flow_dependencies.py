@@ -64,14 +64,14 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.requires, set())
         self.assertEqual(flow.provides, set())
 
-    def test_linear_flow_reuires_values(self):
+    def test_linear_flow_requires_values(self):
         flow = lf.Flow('lf').add(
             utils.TaskOneArg('task1'),
             utils.TaskMultiArg('task2'))
         self.assertEqual(flow.requires, set(['x', 'y', 'z']))
         self.assertEqual(flow.provides, set())
 
-    def test_linear_flow_reuires_rebind_values(self):
+    def test_linear_flow_requires_rebind_values(self):
         flow = lf.Flow('lf').add(
             utils.TaskOneArg('task1', rebind=['q']),
             utils.TaskMultiArg('task2'))
@@ -143,14 +143,14 @@ class FlowDependenciesTest(test.TestCase):
                           utils.TaskNoRequiresNoReturns(rebind=['x'],
                                                         provides='x'))
 
-    def test_unordered_flow_reuires_values(self):
+    def test_unordered_flow_requires_values(self):
         flow = uf.Flow('uf').add(
             utils.TaskOneArg('task1'),
             utils.TaskMultiArg('task2'))
         self.assertEqual(flow.requires, set(['x', 'y', 'z']))
         self.assertEqual(flow.provides, set())
 
-    def test_unordered_flow_reuires_rebind_values(self):
+    def test_unordered_flow_requires_rebind_values(self):
         flow = uf.Flow('uf').add(
             utils.TaskOneArg('task1', rebind=['q']),
             utils.TaskMultiArg('task2'))
@@ -243,14 +243,14 @@ class FlowDependenciesTest(test.TestCase):
                                 utils.TaskOneArgOneReturn(requires=['a'],
                                                           provides='a'))
 
-    def test_graph_flow_reuires_values(self):
+    def test_graph_flow_requires_values(self):
         flow = gf.Flow('gf').add(
             utils.TaskOneArg('task1'),
             utils.TaskMultiArg('task2'))
         self.assertEqual(flow.requires, set(['x', 'y', 'z']))
         self.assertEqual(flow.provides, set())
 
-    def test_graph_flow_reuires_rebind_values(self):
+    def test_graph_flow_requires_rebind_values(self):
         flow = gf.Flow('gf').add(
             utils.TaskOneArg('task1', rebind=['q']),
             utils.TaskMultiArg('task2'))
