@@ -29,8 +29,8 @@ from taskflow.utils import threading_utils
 
 @contextlib.contextmanager
 def _autobind(task, bind_name, bind_func, **kwargs):
+    task.bind(bind_name, bind_func, **kwargs)
     try:
-        task.bind(bind_name, bind_func, **kwargs)
         yield task
     finally:
         task.unbind(bind_name, bind_func)
