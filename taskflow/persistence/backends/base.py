@@ -26,6 +26,11 @@ class Backend(object):
     """Base class for persistence backends."""
 
     def __init__(self, conf):
+        if not conf:
+            conf = {}
+        if not isinstance(conf, dict):
+            raise TypeError("Configuration dictionary expected not: %s"
+                            % type(conf))
         self._conf = conf
 
     @abc.abstractmethod
