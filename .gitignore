@@ -52,5 +52,8 @@ build
 AUTHORS
 ChangeLog
 
+# doc
+doc/_build/
+
 .idea
 env
