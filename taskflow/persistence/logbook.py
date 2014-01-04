@@ -26,11 +26,12 @@ LOG = logging.getLogger(__name__)
 
 
 class LogBook(object):
-    """This class that contains an append-only list of flow detail
-    entries for a given *job* so that the job can track what 'work' has been
-    completed for resumption/reverting and miscellaneous tracking purposes.
+    """This class that contains a dict of flow detail entries for a
+    given *job* so that the job can track what 'work' has been
+    completed for resumption/reverting and miscellaneous tracking
+    purposes.
 
-    The data contained within this class need *not* backed by the backend
+    The data contained within this class need *not* be backed by the backend
     storage in real time. The data in this class will only be guaranteed to be
     persisted when a save occurs via some backend connection.
     """
@@ -40,7 +41,7 @@ class LogBook(object):
         else:
             self._uuid = uuidutils.generate_uuid()
         self._name = name
-        self._flowdetails = []
+        self._flowdetails_by_id = {}
         self._updated_at = updated_at
         self._created_at = created_at
         self.meta = None
@@ -53,18 +54,15 @@ class LogBook(object):
     def updated_at(self):
         return self._updated_at
 
-    def add(self, flow_detail):
+    def add(self, fd):
         """Adds a new entry to the underlying logbook.
 
         Does not *guarantee* that the details will be immediately saved.
         """
-        self._flowdetails.append(flow_detail)
+        self._flowdetails_by_id[fd.uuid] = fd
 
     def find(self, flow_uuid):
-        for fd in self._flowdetails:
-            if fd.uuid == flow_uuid:
-                return fd
-        return None
+        return self._flowdetails_by_id.get(flow_uuid, None)
 
     @property
     def uuid(self):
@@ -75,18 +73,18 @@ class LogBook(object):
         return self._name
 
     def __iter__(self):
-        for fd in self._flowdetails:
+        for fd in six.itervalues(self._flowdetails_by_id):
             yield fd
 
     def __len__(self):
-        return len(self._flowdetails)
+        return len(self._flowdetails_by_id)
 
 
 class FlowDetail(object):
-    """This class contains an append-only list of task detail entries for a
-    given flow along with any metadata associated with that flow.
+    """This class contains a dict of task detail entries for a given
+    flow along with any metadata associated with that flow.
 
-    The data contained within this class need *not* backed by the backend
+    The data contained within this class need *not* be backed by the backend
     storage in real time. The data in this class will only be guaranteed to be
     persisted when a save/update occurs via some backend connection.
     """
