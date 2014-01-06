@@ -28,6 +28,7 @@ nosetests.xml
 .venv
 cover
 .testrepository
+htmlcov
 
 # Translations
 *.mo
