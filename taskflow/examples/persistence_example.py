@@ -16,7 +16,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import contextlib
 import logging
 import os
 import sys
@@ -25,18 +24,20 @@ import traceback
 
 logging.basicConfig(level=logging.ERROR)
 
+self_dir = os.path.abspath(os.path.dirname(__file__))
 top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir,
                                        os.pardir))
 sys.path.insert(0, top_dir)
+sys.path.insert(0, self_dir)
 
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
-from taskflow.persistence import backends
 from taskflow.persistence import logbook
 from taskflow import task
 from taskflow.utils import persistence_utils as p_utils
 
+import example_utils  # noqa
 
 # INTRO: In this example we create two tasks, one that will say hi and one
 # that will say bye with optional capability to raise an error while
@@ -48,6 +49,7 @@ from taskflow.utils import persistence_utils as p_utils
 # persistence allows for you to examine what is stored (using a sqlite client)
 # as well as shows you what happens during reversion and what happens to
 # the database during both of these modes (failing or not failing).
+
 
 def print_wrapped(text):
     print("-" * (len(text)))
@@ -81,48 +83,44 @@ def make_flow(blowup=False):
     return flow
 
 
-# Persist the flow and task state here, if the file exists already blowup
+# Persist the flow and task state here, if the file/dir exists already blowup
 # if not don't blowup, this allows a user to see both the modes and to
 # see what is stored in each case.
-persist_filename = os.path.join(tempfile.gettempdir(), "persisting.db")
-if os.path.isfile(persist_filename):
+if example_utils.SQLALCHEMY_AVAILABLE:
+    persist_path = os.path.join(tempfile.gettempdir(), "persisting.db")
+    backend_uri = "sqlite:///%s" % (persist_path)
+else:
+    persist_path = os.path.join(tempfile.gettempdir(), "persisting")
+    backend_uri = "file:///%s" % (persist_path)
+
+if os.path.exists(persist_path):
     blowup = False
 else:
     blowup = True
 
-# Ensure schema upgraded before we continue working.
-backend_config = {
-    'connection': "sqlite:///%s" % (persist_filename),
-}
-with contextlib.closing(backends.fetch(backend_config)) as be:
-    with contextlib.closing(be.get_connection()) as conn:
-        conn.upgrade()
+with example_utils.get_backend(backend_uri) as backend:
+    # Now we can run.
+    engine_config = {
+        'backend': backend,
+        'engine_conf': 'serial',
+        'book': logbook.LogBook("my-test"),
+    }
 
-# Now we can run.
-engine_config = {
-    'backend': backend_config,
-    'engine_conf': 'serial',
-    'book': logbook.LogBook("my-test"),
-}
-
-# Make a flow that will blowup if the file doesn't exist previously, if it
-# did exist, assume we won't blowup (and therefore this shows the undo
-# and redo that a flow will go through).
-flow = make_flow(blowup=blowup)
-print_wrapped("Running")
-
-try:
-    eng = engines.load(flow, **engine_config)
-    eng.run()
+    # Make a flow that will blowup if the file doesn't exist previously, if it
+    # did exist, assume we won't blowup (and therefore this shows the undo
+    # and redo that a flow will go through).
+    flow = make_flow(blowup=blowup)
+    print_wrapped("Running")
     try:
-        os.unlink(persist_filename)
-    except (OSError, IOError):
-        pass
-except Exception:
-    # NOTE(harlowja): don't exit with non-zero status code, so that we can
-    # print the book contents, as well as avoiding exiting also makes the
-    # unit tests (which also runs these examples) pass.
-    traceback.print_exc(file=sys.stdout)
+        eng = engines.load(flow, **engine_config)
+        eng.run()
+        if not blowup:
+            example_utils.rm_path(persist_path)
+    except Exception:
+        # NOTE(harlowja): don't exit with non-zero status code, so that we can
+        # print the book contents, as well as avoiding exiting also makes the
+        # unit tests (which also runs these examples) pass.
+        traceback.print_exc(file=sys.stdout)
 
-print_wrapped("Book contents")
-print(p_utils.pformat(engine_config['book']))
+    print_wrapped("Book contents")
+    print(p_utils.pformat(engine_config['book']))

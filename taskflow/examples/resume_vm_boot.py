@@ -26,10 +26,12 @@ import time
 
 logging.basicConfig(level=logging.ERROR)
 
+self_dir = os.path.abspath(os.path.dirname(__file__))
 top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir,
                                        os.pardir))
 sys.path.insert(0, top_dir)
+sys.path.insert(0, self_dir)
 
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
@@ -40,10 +42,10 @@ from taskflow import engines
 from taskflow import exceptions as exc
 from taskflow import task
 
-from taskflow.persistence import backends
 from taskflow.utils import eventlet_utils as e_utils
 from taskflow.utils import persistence_utils as p_utils
 
+import example_utils  # noqa
 
 # INTRO: This examples shows how a hierarchy of flows can be used to create a
 # vm in a reliable & resumable manner using taskflow + a miniature version of
@@ -65,17 +67,6 @@ def print_wrapped(text):
     print("-" * (len(text)))
     print(text)
     print("-" * (len(text)))
-
-
-def get_backend():
-    try:
-        backend_uri = sys.argv[1]
-    except Exception:
-        backend_uri = 'sqlite://'
-
-    backend = backends.fetch({'connection': backend_uri})
-    backend.get_connection().upgrade()
-    return backend
 
 
 class PrintText(task.Task):
@@ -243,50 +234,51 @@ def create_flow():
 print_wrapped("Initializing")
 
 # Setup the persistence & resumption layer.
-backend = get_backend()
-try:
-    book_id, flow_id = sys.argv[2].split("+", 1)
-    if not uuidutils.is_uuid_like(book_id):
+with example_utils.get_backend() as backend:
+    try:
+        book_id, flow_id = sys.argv[2].split("+", 1)
+        if not uuidutils.is_uuid_like(book_id):
+            book_id = None
+        if not uuidutils.is_uuid_like(flow_id):
+            flow_id = None
+    except (IndexError, ValueError):
         book_id = None
-    if not uuidutils.is_uuid_like(flow_id):
         flow_id = None
-except (IndexError, ValueError):
-    book_id = None
-    flow_id = None
 
-# Set up how we want our engine to run, serial, parallel...
-engine_conf = {
-    'engine': 'parallel',
-}
-if e_utils.EVENTLET_AVAILABLE:
-    engine_conf['executor'] = e_utils.GreenExecutor(5)
+    # Set up how we want our engine to run, serial, parallel...
+    engine_conf = {
+        'engine': 'parallel',
+    }
+    if e_utils.EVENTLET_AVAILABLE:
+        engine_conf['executor'] = e_utils.GreenExecutor(5)
 
-# Create/fetch a logbook that will track the workflows work.
-book = None
-flow_detail = None
-if all([book_id, flow_id]):
-    with contextlib.closing(backend.get_connection()) as conn:
-        try:
-            book = conn.get_logbook(book_id)
-            flow_detail = book.find(flow_id)
-        except exc.NotFound:
-            pass
-if book is None and flow_detail is None:
-    book = p_utils.temporary_log_book(backend)
-    engine = engines.load_from_factory(create_flow,
-                                       backend=backend, book=book,
-                                       engine_conf=engine_conf)
-    print("!! Your tracking id is: '%s+%s'" % (book.uuid,
-                                               engine.storage.flow_uuid))
-    print("!! Please submit this on later runs for tracking purposes")
-else:
-    # Attempt to load from a previously potentially partially completed flow.
-    engine = engines.load_from_detail(flow_detail,
-                                      backend=backend, engine_conf=engine_conf)
+    # Create/fetch a logbook that will track the workflows work.
+    book = None
+    flow_detail = None
+    if all([book_id, flow_id]):
+        with contextlib.closing(backend.get_connection()) as conn:
+            try:
+                book = conn.get_logbook(book_id)
+                flow_detail = book.find(flow_id)
+            except exc.NotFound:
+                pass
+    if book is None and flow_detail is None:
+        book = p_utils.temporary_log_book(backend)
+        engine = engines.load_from_factory(create_flow,
+                                           backend=backend, book=book,
+                                           engine_conf=engine_conf)
+        print("!! Your tracking id is: '%s+%s'" % (book.uuid,
+                                                   engine.storage.flow_uuid))
+        print("!! Please submit this on later runs for tracking purposes")
+    else:
+        # Attempt to load from a previously partially completed flow.
+        engine = engines.load_from_detail(flow_detail,
+                                          backend=backend,
+                                          engine_conf=engine_conf)
 
-# Make me my vm please!
-print_wrapped('Running')
-engine.run()
+    # Make me my vm please!
+    print_wrapped('Running')
+    engine.run()
 
 # How to use.
 #

@@ -22,16 +22,20 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
+self_dir = os.path.abspath(os.path.dirname(__file__))
 top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir,
                                        os.pardir))
 sys.path.insert(0, top_dir)
+sys.path.insert(0, self_dir)
 
 import taskflow.engines
+
 from taskflow.patterns import linear_flow as lf
-from taskflow.persistence import backends
 from taskflow import task
 from taskflow.utils import persistence_utils as p_utils
+
+import example_utils  # noqa
 
 # INTRO: In this example linear_flow is used to group three tasks, one which
 # will suspend the future work the engine may do. This suspend engine is then
@@ -59,17 +63,6 @@ def print_task_states(flowdetail, msg):
                    for td in flowdetail)
     for item in items:
         print(" %s==%s: %s, result=%s" % item)
-
-
-def get_backend():
-    try:
-        backend_uri = sys.argv[1]
-    except Exception:
-        backend_uri = 'sqlite://'
-
-    backend = backends.fetch({'connection': backend_uri})
-    backend.get_connection().upgrade()
-    return backend
 
 
 def find_flow_detail(backend, lb_id, fd_id):
@@ -102,40 +95,38 @@ def flow_factory():
 
 ### INITIALIZE PERSISTENCE ####################################
 
-backend = get_backend()
-logbook = p_utils.temporary_log_book(backend)
+with example_utils.get_backend() as backend:
+    logbook = p_utils.temporary_log_book(backend)
 
+    ### CREATE AND RUN THE FLOW: FIRST ATTEMPT ####################
 
-### CREATE AND RUN THE FLOW: FIRST ATTEMPT ####################
+    flow = flow_factory()
+    flowdetail = p_utils.create_flow_detail(flow, logbook, backend)
+    engine = taskflow.engines.load(flow, flow_detail=flowdetail,
+                                   backend=backend)
 
-flow = flow_factory()
-flowdetail = p_utils.create_flow_detail(flow, logbook, backend)
-engine = taskflow.engines.load(flow, flow_detail=flowdetail,
-                               backend=backend)
+    print_task_states(flowdetail, "At the beginning, there is no state")
+    print_wrapped("Running")
+    engine.run()
+    print_task_states(flowdetail, "After running")
 
-print_task_states(flowdetail, "At the beginning, there is no state")
-print_wrapped("Running")
-engine.run()
-print_task_states(flowdetail, "After running")
+    ### RE-CREATE, RESUME, RUN ####################################
 
+    print_wrapped("Resuming and running again")
 
-### RE-CREATE, RESUME, RUN ####################################
-
-print_wrapped("Resuming and running again")
-
-# NOTE(harlowja): reload the flow detail from backend, this will allow us to
-# resume the flow from its suspended state, but first we need to search for
-# the right flow details in the correct logbook where things are stored.
-#
-# We could avoid re-loading the engine and just do engine.run() again, but this
-# example shows how another process may unsuspend a given flow and start it
-# again for situations where this is useful to-do (say the process running
-# the above flow crashes).
-flow2 = flow_factory()
-flowdetail2 = find_flow_detail(backend, logbook.uuid,
-                               flowdetail.uuid)
-engine2 = taskflow.engines.load(flow2,
-                                flow_detail=flowdetail2,
-                                backend=backend)
-engine2.run()
-print_task_states(flowdetail2, "At the end")
+    # NOTE(harlowja): reload the flow detail from backend, this will allow us
+    # to resume the flow from its suspended state, but first we need to search
+    # for the right flow details in the correct logbook where things are
+    # stored.
+    #
+    # We could avoid re-loading the engine and just do engine.run() again, but
+    # this example shows how another process may unsuspend a given flow and
+    # start it again for situations where this is useful to-do (say the process
+    # running the above flow crashes).
+    flow2 = flow_factory()
+    flowdetail2 = find_flow_detail(backend, logbook.uuid, flowdetail.uuid)
+    engine2 = taskflow.engines.load(flow2,
+                                    flow_detail=flowdetail2,
+                                    backend=backend)
+    engine2.run()
+    print_task_states(flowdetail2, "At the end")

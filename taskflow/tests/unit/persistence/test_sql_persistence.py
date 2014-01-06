@@ -19,11 +19,19 @@
 import os
 import tempfile
 
-from taskflow.persistence.backends import impl_sqlalchemy
+import testtools
+
+try:
+    from taskflow.persistence.backends import impl_sqlalchemy
+    SQLALCHEMY_AVAILABLE = True
+except ImportError:
+    SQLALCHEMY_AVAILABLE = False
+
 from taskflow import test
 from taskflow.tests.unit.persistence import base
 
 
+@testtools.skipIf(not SQLALCHEMY_AVAILABLE, 'sqlalchemy is not available')
 class SqlPersistenceTest(test.TestCase, base.PersistenceTestMixin):
     """Inherits from the base test and sets up a sqlite temporary db."""
     def _get_connection(self):
