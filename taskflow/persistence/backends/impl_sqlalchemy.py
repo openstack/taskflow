@@ -123,7 +123,7 @@ def _thread_yield(dbapi_con, con_record):
     time.sleep(0)
 
 
-def _set_mode_traditional(dbapi_con, con_record):
+def _set_mode_traditional(dbapi_con, con_record, connection_proxy):
     """Set engine mode to 'traditional'.
 
     Required to prevent silent truncates at insert or update operations
