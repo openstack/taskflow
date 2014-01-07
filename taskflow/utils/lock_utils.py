@@ -77,6 +77,9 @@ class MultiLock(object):
         self._locked = [False] * len(locks)
 
     def __enter__(self):
+        self.acquire()
+
+    def acquire(self):
 
         def is_locked(lock):
             # NOTE(harlowja): reentrant locks (rlock) don't have this
@@ -90,10 +93,14 @@ class MultiLock(object):
                 raise threading.ThreadError("Lock %s not previously released"
                                             % (i + 1))
             self._locked[i] = False
+
         for (i, lock) in enumerate(self._locks):
             self._locked[i] = lock.acquire()
 
     def __exit__(self, type, value, traceback):
+        self.release()
+
+    def release(self):
         for (i, locked) in enumerate(self._locked):
             try:
                 if locked:
@@ -127,9 +134,16 @@ class _InterProcessLock(object):
     def path(self):
         return self._fname
 
-    def __enter__(self):
-        self._lockfile = open(self.path, 'w')
+    def release(self):
+        try:
+            self.unlock()
+            self._lockfile.close()
+        except IOError:
+            LOG.exception("Could not release the acquired lock `%s`",
+                          self.path)
 
+    def acquire(self):
+        self._lockfile = open(self.path, 'w')
         while True:
             try:
                 # Using non-blocking locks since green threads are not
@@ -137,20 +151,19 @@ class _InterProcessLock(object):
                 # Also upon reading the MSDN docs for locking(), it seems
                 # to have a laughable 10 attempts "blocking" mechanism.
                 self.trylock()
-                return self
+                return True
             except IOError as e:
                 if e.errno in (errno.EACCES, errno.EAGAIN):
                     time.sleep(WAIT_TIME)
                 else:
                     raise
 
+    def __enter__(self):
+        self.acquire()
+        return self
+
     def __exit__(self, exc_type, exc_val, exc_tb):
-        try:
-            self.unlock()
-            self._lockfile.close()
-        except IOError:
-            LOG.exception("Could not release the acquired lock `%s`",
-                          self.path)
+        self.release()
 
     def trylock(self):
         raise NotImplementedError()
