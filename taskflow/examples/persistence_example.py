@@ -20,6 +20,7 @@ import contextlib
 import logging
 import os
 import sys
+import tempfile
 import traceback
 
 logging.basicConfig(level=logging.ERROR)
@@ -35,8 +36,6 @@ from taskflow.persistence import backends
 from taskflow.persistence import logbook
 from taskflow import task
 from taskflow.utils import persistence_utils as p_utils
-
-import tempfile
 
 
 # INTRO: In this example we create two tasks, one that will say hi and one
@@ -61,7 +60,7 @@ class HiTask(task.Task):
         print("Hi!")
 
     def revert(self, **kwargs):
-        print("Whooops, said hi to early, take that back!")
+        print("Whooops, said hi too early, take that back!")
 
 
 class ByeTask(task.Task):
@@ -77,9 +76,9 @@ class ByeTask(task.Task):
 
 # This generates your flow structure (at this stage nothing is ran).
 def make_flow(blowup=False):
-    flo = lf.Flow("hello-world")
-    flo.add(HiTask(), ByeTask(blowup))
-    return flo
+    flow = lf.Flow("hello-world")
+    flow.add(HiTask(), ByeTask(blowup))
+    return flow
 
 
 # Persist the flow and task state here, if the file exists already blowup
@@ -109,11 +108,11 @@ engine_config = {
 # Make a flow that will blowup if the file doesn't exist previously, if it
 # did exist, assume we won't blowup (and therefore this shows the undo
 # and redo that a flow will go through).
-flo = make_flow(blowup=blowup)
+flow = make_flow(blowup=blowup)
 print_wrapped("Running")
 
 try:
-    eng = engines.load(flo, **engine_config)
+    eng = engines.load(flow, **engine_config)
     eng.run()
     try:
         os.unlink(persist_filename)

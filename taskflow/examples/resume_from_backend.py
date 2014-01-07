@@ -131,10 +131,11 @@ print_wrapped("Resuming and running again")
 # example shows how another process may unsuspend a given flow and start it
 # again for situations where this is useful to-do (say the process running
 # the above flow crashes).
+flow2 = flow_factory()
 flowdetail2 = find_flow_detail(backend, logbook.uuid,
                                flowdetail.uuid)
-engine2 = taskflow.engines.load(flow_factory(),
-                                flow_detail=flowdetail,
+engine2 = taskflow.engines.load(flow2,
+                                flow_detail=flowdetail2,
                                 backend=backend)
 engine2.run()
-print_task_states(flowdetail, "At the end")
+print_task_states(flowdetail2, "At the end")

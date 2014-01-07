@@ -39,7 +39,7 @@ from taskflow import task
 # phone ~calls~.
 #
 # This simulated calling makes it appear like all three calls occur or all
-# three don't occur (transactional like capabilities). No persistence layer is
+# three don't occur (transaction-like capabilities). No persistence layer is
 # used here so reverting and executing will not handle process failure.
 #
 # This example shows a basic usage of the taskflow structures without involving
