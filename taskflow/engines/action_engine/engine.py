@@ -62,9 +62,9 @@ class ActionEngine(base.EngineBase):
         self.notifier = misc.TransitionNotifier()
         self.task_notifier = misc.TransitionNotifier()
         self._task_executor = self._task_executor_cls()
-        self.task_action = self._task_action_cls(self.storage,
-                                                 self._task_executor,
-                                                 self.task_notifier)
+        self._task_action = self._task_action_cls(self.storage,
+                                                  self._task_executor,
+                                                  self.task_notifier)
 
     def _revert(self, current_failure=None):
         self._change_state(states.REVERTING)
@@ -176,7 +176,7 @@ class ActionEngine(base.EngineBase):
                                                   self.storage)
         self._root = self._graph_action_cls(self._analyzer,
                                             self.storage,
-                                            self.task_action)
+                                            self._task_action)
         for task in task_graph.nodes_iter():
             task_version = misc.get_version_string(task)
             self.storage.ensure_task(task.name, task_version, task.save_as)
