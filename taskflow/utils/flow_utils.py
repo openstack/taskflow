@@ -20,6 +20,7 @@ import threading
 import networkx as nx
 
 from taskflow import exceptions
+from taskflow import flow
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
@@ -86,6 +87,21 @@ class Flattener(object):
             return self._flatten_task
         else:
             return None
+
+    def _connect_retry(self, retry, graph):
+        graph.add_node(retry)
+        # All graph nodes that has not predecessors should be depended on its
+        # retry
+        for n in gu.get_no_predecessors(graph):
+            if n != retry:
+                # modified that the same copy isn't modified.
+                graph.add_edge(retry, n, FLATTEN_EDGE_DATA.copy())
+
+        # Add link to retry for each node of subgraph that hasn't
+        # a parent retry
+        for n in graph.nodes_iter():
+            if n != retry and 'retry' not in graph.node[n]:
+                graph.add_node(n, {'retry': retry})
 
     def _flatten_linear(self, flow):
         """Flattens a linear flow."""
@@ -154,6 +170,8 @@ class Flattener(object):
 
     def _post_item_flatten(self, item, graph):
         """Called before a item is flattened; any post-flattening actions."""
+        if isinstance(item, flow.Flow) and item.retry:
+            self._connect_retry(item.retry, graph)
         LOG.debug("Finished flattening '%s'", item)
         # NOTE(harlowja): this one can be expensive to calculate (especially
         # the cycle detection), so only do it if we know debugging is enabled
