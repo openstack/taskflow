@@ -26,6 +26,10 @@ from taskflow.utils import async_utils
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
+# Revert or execution events...
+EXECUTED = 'executed'
+REVERTED = 'reverted'
+
 
 @contextlib.contextmanager
 def _autobind(task, bind_name, bind_func, **kwargs):
@@ -48,7 +52,7 @@ def _execute_task(task, arguments, progress_callback):
             # NOTE(imelnikov): wrap current exception with Failure
             # object and return it
             result = misc.Failure()
-    return task, 'executed', result
+    return (task, EXECUTED, result)
 
 
 def _revert_task(task, arguments, result, failures, progress_callback):
@@ -62,7 +66,7 @@ def _revert_task(task, arguments, result, failures, progress_callback):
             # NOTE(imelnikov): wrap current exception with Failure
             # object and return it
             result = misc.Failure()
-    return task, 'reverted', result
+    return (task, REVERTED, result)
 
 
 @six.add_metaclass(abc.ABCMeta)
