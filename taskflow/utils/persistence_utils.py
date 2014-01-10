@@ -20,6 +20,8 @@ import contextlib
 import copy
 import logging
 
+import six
+
 from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
@@ -265,3 +267,74 @@ def pformat(book, indent=0):
     for flow_detail in book:
         lines.append(pformat_flow_detail(flow_detail, indent=indent + 1))
     return "\n".join(lines)
+
+
+def _str_2_datetime(text):
+    """Converts an iso8601 string/text into a datetime object (or none)."""
+    if text is None:
+        return None
+    if not isinstance(text, six.string_types):
+        raise ValueError("Can only convert strings into a datetime object and"
+                         " not %r" % (text))
+    if not len(text):
+        return None
+    return timeutils.parse_isotime(text)
+
+
+def format_task_detail(td):
+    return {
+        'failure': failure_to_dict(td.failure),
+        'meta': td.meta,
+        'name': td.name,
+        'results': td.results,
+        'state': td.state,
+        'version': td.version,
+    }
+
+
+def unformat_task_detail(uuid, td_data):
+    td = logbook.TaskDetail(name=td_data['name'], uuid=uuid)
+    td.state = td_data.get('state')
+    td.results = td_data.get('results')
+    td.failure = failure_from_dict(td_data.get('failure'))
+    td.meta = td_data.get('meta')
+    td.version = td_data.get('version')
+    return td
+
+
+def format_flow_detail(fd):
+    return {
+        'name': fd.name,
+        'meta': fd.meta,
+        'state': fd.state,
+    }
+
+
+def unformat_flow_detail(uuid, fd_data):
+    fd = logbook.FlowDetail(name=fd_data['name'], uuid=uuid)
+    fd.state = fd_data.get('state')
+    fd.meta = fd_data.get('meta')
+    return fd
+
+
+def format_logbook(lb, created_at=None):
+    lb_data = {
+        'name': lb.name,
+        'meta': lb.meta,
+    }
+    if created_at:
+        lb_data['created_at'] = timeutils.isotime(at=created_at)
+        lb_data['updated_at'] = timeutils.isotime()
+    else:
+        lb_data['created_at'] = timeutils.isotime()
+        lb_data['updated_at'] = None
+    return lb_data
+
+
+def unformat_logbook(uuid, lb_data):
+    lb = logbook.LogBook(name=lb_data['name'],
+                         uuid=uuid,
+                         updated_at=_str_2_datetime(lb_data['updated_at']),
+                         created_at=_str_2_datetime(lb_data['created_at']))
+    lb.meta = lb_data.get('meta')
+    return lb

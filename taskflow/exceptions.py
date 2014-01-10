@@ -22,6 +22,11 @@ class TaskFlowException(Exception):
     pass
 
 
+class ConnectionFailure(TaskFlowException):
+    """Raised when some type of connection can not be opened or is lost."""
+    pass
+
+
 class Duplicate(TaskFlowException):
     """Raised when a duplicate entry is found."""
     pass

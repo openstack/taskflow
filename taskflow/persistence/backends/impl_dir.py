@@ -28,9 +28,7 @@ import six
 
 from taskflow import exceptions as exc
 from taskflow.openstack.common import jsonutils
-from taskflow.openstack.common import timeutils
 from taskflow.persistence.backends import base
-from taskflow.persistence import logbook
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
@@ -169,7 +167,7 @@ class Connection(base.Connection):
         if e_td is not None:
             task_detail = p_utils.task_details_merge(e_td, task_detail)
         td_path = os.path.join(self._task_path, task_detail.uuid)
-        td_data = _format_task_detail(task_detail)
+        td_data = p_utils.format_task_detail(task_detail)
         self._write_to(td_path, jsonutils.dumps(td_data))
         return task_detail
 
@@ -185,7 +183,7 @@ class Connection(base.Connection):
         def _get():
             td_path = os.path.join(self._task_path, uuid)
             td_data = jsonutils.loads(self._read_from(td_path))
-            return _unformat_task_detail(uuid, td_data)
+            return p_utils.unformat_task_detail(uuid, td_data)
 
         if lock:
             return self._run_with_process_lock('task', _get)
@@ -198,7 +196,7 @@ class Connection(base.Connection):
             fd_path = os.path.join(self._flow_path, uuid)
             meta_path = os.path.join(fd_path, 'metadata')
             meta = jsonutils.loads(self._read_from(meta_path))
-            fd = _unformat_flow_detail(uuid, meta)
+            fd = p_utils.unformat_flow_detail(uuid, meta)
             td_to_load = []
             td_path = os.path.join(fd_path, 'tasks')
             try:
@@ -244,8 +242,9 @@ class Connection(base.Connection):
             flow_detail = e_fd
         flow_path = os.path.join(self._flow_path, flow_detail.uuid)
         misc.ensure_tree(flow_path)
-        self._write_to(os.path.join(flow_path, 'metadata'),
-                       jsonutils.dumps(_format_flow_detail(flow_detail)))
+        self._write_to(
+            os.path.join(flow_path, 'metadata'),
+            jsonutils.dumps(p_utils.format_flow_detail(flow_detail)))
         if len(flow_detail):
             task_path = os.path.join(flow_path, 'tasks')
             misc.ensure_tree(task_path)
@@ -290,9 +289,8 @@ class Connection(base.Connection):
         created_at = None
         if e_lb is not None:
             created_at = e_lb.created_at
-        self._write_to(os.path.join(book_path, 'metadata'),
-                       jsonutils.dumps(_format_logbook(book,
-                                                       created_at=created_at)))
+        self._write_to(os.path.join(book_path, 'metadata'), jsonutils.dumps(
+            p_utils.format_logbook(book, created_at=created_at)))
         if len(book):
             flow_path = os.path.join(book_path, 'flows')
             misc.ensure_tree(flow_path)
@@ -382,7 +380,7 @@ class Connection(base.Connection):
                 raise exc.NotFound("No logbook found with id: %s" % book_uuid)
             else:
                 raise
-        lb = _unformat_logbook(book_uuid, meta)
+        lb = p_utils.unformat_logbook(book_uuid, meta)
         fd_path = os.path.join(book_path, 'flows')
         fd_uuids = []
         try:
@@ -399,78 +397,3 @@ class Connection(base.Connection):
     def get_logbook(self, book_uuid):
         return self._run_with_process_lock("book",
                                            self._get_logbook, book_uuid)
-
-
-###
-# Internal <-> external model + other helper functions.
-###
-
-def _str_2_datetime(text):
-    """Converts an iso8601 string/text into a datetime object (or none)."""
-    if text is None:
-        return None
-    if not isinstance(text, six.string_types):
-        raise ValueError("Can only convert strings into a datetime object and"
-                         " not %r" % (text))
-    if not len(text):
-        return None
-    return timeutils.parse_isotime(text)
-
-
-def _format_task_detail(task_detail):
-    return {
-        'failure': p_utils.failure_to_dict(task_detail.failure),
-        'meta': task_detail.meta,
-        'name': task_detail.name,
-        'results': task_detail.results,
-        'state': task_detail.state,
-        'version': task_detail.version,
-    }
-
-
-def _unformat_task_detail(uuid, td_data):
-    td = logbook.TaskDetail(name=td_data['name'], uuid=uuid)
-    td.state = td_data.get('state')
-    td.results = td_data.get('results')
-    td.failure = p_utils.failure_from_dict(td_data.get('failure'))
-    td.meta = td_data.get('meta')
-    td.version = td_data.get('version')
-    return td
-
-
-def _format_flow_detail(flow_detail):
-    return {
-        'name': flow_detail.name,
-        'meta': flow_detail.meta,
-        'state': flow_detail.state,
-    }
-
-
-def _unformat_flow_detail(uuid, fd_data):
-    fd = logbook.FlowDetail(name=fd_data['name'], uuid=uuid)
-    fd.state = fd_data.get('state')
-    fd.meta = fd_data.get('meta')
-    return fd
-
-
-def _format_logbook(book, created_at=None):
-    lb_data = {
-        'name': book.name,
-        'meta': book.meta,
-    }
-    if created_at:
-        lb_data['created_at'] = timeutils.isotime(at=created_at)
-        lb_data['updated_at'] = timeutils.isotime()
-    else:
-        lb_data['created_at'] = timeutils.isotime()
-        lb_data['updated_at'] = None
-    return lb_data
-
-
-def _unformat_logbook(uuid, lb_data):
-    lb = logbook.LogBook(name=lb_data['name'],
-                         uuid=uuid,
-                         updated_at=_str_2_datetime(lb_data['updated_at']),
-                         created_at=_str_2_datetime(lb_data['created_at']))
-    lb.meta = lb_data.get('meta')
-    return lb

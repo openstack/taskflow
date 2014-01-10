@@ -4,3 +4,6 @@ coverage>=3.6
 mock>=1.0
 testrepository>=0.0.17
 testtools>=0.9.32
+# ZooKeeper
+kazoo>=1.3.1
+zake>=0.0.7
