@@ -255,7 +255,7 @@ class Task(BaseTask):
 
 
 class FunctorTask(BaseTask):
-    """Adaptor to make task from a callable
+    """Adaptor to make a task from a callable
 
     Take any callable and make a task from it.
     """
@@ -263,7 +263,11 @@ class FunctorTask(BaseTask):
     def __init__(self, execute, name=None, provides=None,
                  requires=None, auto_extract=True, rebind=None, revert=None,
                  version=None):
-        """Initialize FunctorTask instance with given callable and kwargs"""
+        assert six.callable(execute), ("Function to use for executing must be"
+                                       " callable")
+        if revert:
+            assert six.callable(revert), ("Function to use for reverting must"
+                                          " be callable")
         if name is None:
             name = reflection.get_callable_name(execute)
         super(FunctorTask, self).__init__(name, provides=provides)
