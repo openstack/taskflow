@@ -26,10 +26,12 @@ import time
 
 logging.basicConfig(level=logging.ERROR)
 
+self_dir = os.path.abspath(os.path.dirname(__file__))
 top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir,
                                        os.pardir))
 sys.path.insert(0, top_dir)
+sys.path.insert(0, self_dir)
 
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
@@ -37,9 +39,9 @@ from taskflow.patterns import linear_flow as lf
 from taskflow import engines
 from taskflow import task
 
-from taskflow.persistence import backends
 from taskflow.utils import persistence_utils as p_utils
 
+import example_utils  # noqa
 
 # INTRO: This examples shows how a hierarchy of flows can be used to create a
 # pseudo-volume in a reliable & resumable manner using taskflow + a miniature
@@ -67,17 +69,6 @@ def find_flow_detail(backend, book_id, flow_id):
     with contextlib.closing(backend.get_connection()) as conn:
         lb = conn.get_logbook(book_id)
         return lb.find(flow_id)
-
-
-def get_backend():
-    try:
-        backend_uri = sys.argv[1]
-    except Exception:
-        backend_uri = 'sqlite://'
-
-    backend = backends.fetch({'connection': backend_uri})
-    backend.get_connection().upgrade()
-    return backend
 
 
 class PrintText(task.Task):
@@ -131,38 +122,39 @@ flow = lf.Flow("root").add(
     PrintText("Finished volume create", no_slow=True))
 
 # Setup the persistence & resumption layer.
-backend = get_backend()
-try:
-    book_id, flow_id = sys.argv[2].split("+", 1)
-except (IndexError, ValueError):
-    book_id = None
-    flow_id = None
+with example_utils.get_backend() as backend:
+    try:
+        book_id, flow_id = sys.argv[2].split("+", 1)
+    except (IndexError, ValueError):
+        book_id = None
+        flow_id = None
 
-if not all([book_id, flow_id]):
-    # If no 'tracking id' (think a fedex or ups tracking id) is provided then
-    # we create one by creating a logbook (where flow details are stored) and
-    # creating a flow detail (where flow and task state is stored). The
-    # combination of these 2 objects unique ids (uuids) allows the users of
-    # taskflow to reassociate the workflows that were potentially running (and
-    # which may have partially completed) back with taskflow so that those
-    # workflows can be resumed (or reverted) after a process/thread/engine
-    # has failed in someway.
-    logbook = p_utils.temporary_log_book(backend)
-    flow_detail = p_utils.create_flow_detail(flow, logbook, backend)
-    print("!! Your tracking id is: '%s+%s'" % (logbook.uuid, flow_detail.uuid))
-    print("!! Please submit this on later runs for tracking purposes")
-else:
-    flow_detail = find_flow_detail(backend, book_id, flow_id)
+    if not all([book_id, flow_id]):
+        # If no 'tracking id' (think a fedex or ups tracking id) is provided
+        # then we create one by creating a logbook (where flow details are
+        # stored) and creating a flow detail (where flow and task state is
+        # stored). The combination of these 2 objects unique ids (uuids) allows
+        # the users of taskflow to reassociate the workflows that were
+        # potentially running (and which may have partially completed) back
+        # with taskflow so that those workflows can be resumed (or reverted)
+        # after a process/thread/engine has failed in someway.
+        logbook = p_utils.temporary_log_book(backend)
+        flow_detail = p_utils.create_flow_detail(flow, logbook, backend)
+        print("!! Your tracking id is: '%s+%s'" % (logbook.uuid,
+                                                   flow_detail.uuid))
+        print("!! Please submit this on later runs for tracking purposes")
+    else:
+        flow_detail = find_flow_detail(backend, book_id, flow_id)
 
-# Annnnd load and run.
-engine_conf = {
-    'engine': 'serial',
-}
-engine = engines.load(flow,
-                      flow_detail=flow_detail,
-                      backend=backend,
-                      engine_conf=engine_conf)
-engine.run()
+    # Annnnd load and run.
+    engine_conf = {
+        'engine': 'serial',
+    }
+    engine = engines.load(flow,
+                          flow_detail=flow_detail,
+                          backend=backend,
+                          engine_conf=engine_conf)
+    engine.run()
 
 # How to use.
 #

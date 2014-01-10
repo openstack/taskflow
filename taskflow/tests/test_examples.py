@@ -49,9 +49,8 @@ def root_path(*args):
 
 def run_example(name):
     path = root_path('taskflow', 'examples', '%s.py' % name)
-    obj = subprocess.Popen(
-        [sys.executable, path],
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    obj = subprocess.Popen([sys.executable, path],
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = obj.communicate()
     if output[1]:
         raise RuntimeError('Example wrote to stderr:\n%s'
@@ -60,15 +59,14 @@ def run_example(name):
 
 
 def expected_output_path(name):
-    return root_path('taskflow', 'examples',
-                     '%s.out.txt' % name)
+    return root_path('taskflow', 'examples', '%s.out.txt' % name)
 
 
 def list_examples():
-    ext = '.py'
     examples_dir = root_path('taskflow', 'examples')
     for filename in os.listdir(examples_dir):
-        if filename.endswith(ext):
+        name, ext = os.path.splitext(filename)
+        if ext == ".py" and 'utils' not in name.lower():
             yield filename[:-len(ext)]
 
 

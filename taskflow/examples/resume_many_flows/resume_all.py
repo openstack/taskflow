@@ -25,16 +25,17 @@ logging.basicConfig(level=logging.ERROR)
 self_dir = os.path.abspath(os.path.dirname(__file__))
 top_dir = os.path.abspath(
     os.path.join(self_dir, os.pardir, os.pardir, os.pardir))
+example_dir = os.path.abspath(os.path.join(self_dir, os.pardir))
 
 sys.path.insert(0, top_dir)
-sys.path.insert(0, self_dir)
+sys.path.insert(0, example_dir)
 
 
 import taskflow.engines
 
 from taskflow import states
 
-import my_utils  # noqa
+import example_utils  # noqa
 
 
 FINISHED_STATES = (states.SUCCESS, states.FAILURE, states.REVERTED)
@@ -48,12 +49,12 @@ def resume(flowdetail, backend):
 
 
 def main():
-    backend = my_utils.get_backend()
-    logbooks = list(backend.get_connection().get_logbooks())
-    for lb in logbooks:
-        for fd in lb:
-            if fd.state not in FINISHED_STATES:
-                resume(fd, backend)
+    with example_utils.get_backend() as backend:
+        logbooks = list(backend.get_connection().get_logbooks())
+        for lb in logbooks:
+            for fd in lb:
+                if fd.state not in FINISHED_STATES:
+                    resume(fd, backend)
 
 
 if __name__ == '__main__':

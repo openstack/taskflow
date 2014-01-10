@@ -21,6 +21,11 @@ import subprocess
 import sys
 import tempfile
 
+self_dir = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, self_dir)
+
+import example_utils  # noqa
+
 # INTRO: In this example we create a common persistence database (sqlite based)
 # and then we run a few set of processes which themselves use this persistence
 # database, those processes 'crash' (in a simulated way) by exiting with a
@@ -58,10 +63,15 @@ def _path_to(name):
 
 
 def main():
+    backend_uri = None
+    tmp_path = None
     try:
-        fd, db_path = tempfile.mkstemp(prefix='tf-resume-example')
-        os.close(fd)
-        backend_uri = 'sqlite:///%s' % db_path
+        if example_utils.SQLALCHEMY_AVAILABLE:
+            tmp_path = tempfile.mktemp(prefix='tf-resume-example')
+            backend_uri = "sqlite:///%s" % (tmp_path)
+        else:
+            tmp_path = tempfile.mkdtemp(prefix='tf-resume-example')
+            backend_uri = 'file:///%s' % (tmp_path)
 
         def run_example(name, add_env=None):
             _exec([sys.executable, _path_to(name), backend_uri], add_env)
@@ -78,7 +88,8 @@ def main():
         print('\nResuming all failed flows')
         run_example('resume_all.py')
     finally:
-        os.unlink(db_path)
+        if tmp_path:
+            example_utils.rm_path(tmp_path)
 
 if __name__ == '__main__':
     main()

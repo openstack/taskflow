@@ -25,19 +25,21 @@ logging.basicConfig(level=logging.ERROR)
 self_dir = os.path.abspath(os.path.dirname(__file__))
 top_dir = os.path.abspath(
     os.path.join(self_dir, os.pardir, os.pardir, os.pardir))
+example_dir = os.path.abspath(os.path.join(self_dir, os.pardir))
 
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
+sys.path.insert(0, example_dir)
 
 import taskflow.engines
 
+import example_utils  # noqa
 import my_flows  # noqa
-import my_utils  # noqa
 
 
-backend = my_utils.get_backend()
-engine = taskflow.engines.load_from_factory(my_flows.flow_factory,
-                                            backend=backend)
-print('Running flow %s %s' % (engine.storage.flow_name,
-                              engine.storage.flow_uuid))
-engine.run()
+with example_utils.get_backend() as backend:
+    engine = taskflow.engines.load_from_factory(my_flows.flow_factory,
+                                                backend=backend)
+    print('Running flow %s %s' % (engine.storage.flow_name,
+                                  engine.storage.flow_uuid))
+    engine.run()
