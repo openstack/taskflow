@@ -82,6 +82,8 @@ class FutureGraphAction(object):
             not_done = list(not_done)
             next_nodes = []
             for future in done:
+                # NOTE(harlowja): event will be used in the future for smart
+                # reversion (ignoring it for now).
                 node, _event, result = future.result()
                 complete_node(node, result)
                 if isinstance(result, misc.Failure):
