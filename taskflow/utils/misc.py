@@ -333,7 +333,7 @@ class TransitionNotifier(object):
                                " state transition %s"), callback, state)
 
     def register(self, state, callback, args=None, kwargs=None):
-        assert isinstance(callback, collections.Callable)
+        assert six.callable(callback), "Callback must be callable"
         if self.is_registered(state, callback):
             raise ValueError("Callback %s already registered" % (callback))
         if kwargs:
