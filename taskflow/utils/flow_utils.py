@@ -147,7 +147,7 @@ def _post_flatten(graph):
     dup_names = misc.get_duplicate_keys(graph.nodes_iter(),
                                         key=lambda node: node.name)
     if dup_names:
-        raise exceptions.InvariantViolationException(
+        raise exceptions.InvariantViolation(
             "Tasks with duplicate names found: %s"
             % ', '.join(sorted(dup_names)))
     return graph

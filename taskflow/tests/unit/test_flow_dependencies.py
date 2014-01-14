@@ -87,7 +87,7 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_linear_flow_provides_out_of_order(self):
         flow = lf.Flow('lf')
-        self.assertRaises(exceptions.InvariantViolationException,
+        self.assertRaises(exceptions.InvariantViolation,
                           flow.add,
                           utils.TaskOneArg('task2'),
                           utils.TaskOneReturn('task1', provides='x'))
@@ -111,7 +111,7 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_linear_flow_self_requires(self):
         flow = lf.Flow('lf')
-        self.assertRaises(exceptions.InvariantViolationException,
+        self.assertRaises(exceptions.InvariantViolation,
                           flow.add,
                           utils.TaskNoRequiresNoReturns(rebind=['x'],
                                                         provides='x'))
@@ -138,7 +138,7 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_unordered_flow_self_requires(self):
         flow = uf.Flow('uf')
-        self.assertRaises(exceptions.InvariantViolationException,
+        self.assertRaises(exceptions.InvariantViolation,
                           flow.add,
                           utils.TaskNoRequiresNoReturns(rebind=['x'],
                                                         provides='x'))
@@ -166,7 +166,7 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_unordered_flow_provides_required_values(self):
         flow = uf.Flow('uf')
-        self.assertRaises(exceptions.InvariantViolationException,
+        self.assertRaises(exceptions.InvariantViolation,
                           flow.add,
                           utils.TaskOneReturn('task1', provides='x'),
                           utils.TaskOneArg('task2'))
@@ -174,14 +174,14 @@ class FlowDependenciesTest(test.TestCase):
     def test_unordered_flow_requires_provided_value_other_call(self):
         flow = uf.Flow('uf')
         flow.add(utils.TaskOneReturn('task1', provides='x'))
-        self.assertRaises(exceptions.InvariantViolationException,
+        self.assertRaises(exceptions.InvariantViolation,
                           flow.add,
                           utils.TaskOneArg('task2'))
 
     def test_unordered_flow_provides_required_value_other_call(self):
         flow = uf.Flow('uf')
         flow.add(utils.TaskOneArg('task2'))
-        self.assertRaises(exceptions.InvariantViolationException,
+        self.assertRaises(exceptions.InvariantViolation,
                           flow.add,
                           utils.TaskOneReturn('task1', provides='x'))
 

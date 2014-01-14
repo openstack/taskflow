@@ -112,7 +112,7 @@ def check_flow_transition(old_state, new_state):
 
     If transition can be performed, it returns True. If transition
     should be ignored, it returns False. If transition is not
-    valid, it raises InvalidStateException.
+    valid, it raises InvalidState exception.
     """
     if old_state == new_state:
         return False
@@ -121,8 +121,8 @@ def check_flow_transition(old_state, new_state):
         return True
     if pair in _IGNORED_FLOW_TRANSITIONS:
         return False
-    raise exc.InvalidStateException(
-        "Flow transition from %s to %s is not allowed" % pair)
+    raise exc.InvalidState("Flow transition from %s to %s is not allowed"
+                           % pair)
 
 
 ## Task state transitions

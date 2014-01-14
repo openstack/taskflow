@@ -45,24 +45,19 @@ class AlreadyExists(TaskFlowException):
     pass
 
 
-class ClosedException(TaskFlowException):
-    """Raised when an access on a closed object occurs."""
-    pass
-
-
-class InvalidStateException(TaskFlowException):
+class InvalidState(TaskFlowException):
     """Raised when a task/job/workflow is in an invalid state when an
     operation is attempting to apply to said task/job/workflow.
     """
     pass
 
 
-class InvariantViolationException(TaskFlowException):
+class InvariantViolation(TaskFlowException):
     """Raised when flow invariant violation is attempted."""
     pass
 
 
-class UnclaimableJobException(TaskFlowException):
+class UnclaimableJob(TaskFlowException):
     """Raised when a job can not be claimed."""
     pass
 
@@ -72,7 +67,7 @@ class JobNotFound(TaskFlowException):
     pass
 
 
-class MissingDependencies(InvalidStateException):
+class MissingDependencies(InvariantViolation):
     """Raised when a entity has dependencies that can not be satisfied."""
     message = ("%(who)s requires %(requirements)s but no other entity produces"
                " said requirements")

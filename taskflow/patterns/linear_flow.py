@@ -45,7 +45,7 @@ class Flow(flow.Flow):
             requires |= item.requires
             out_of_order = requires & item.provides
             if out_of_order:
-                raise exceptions.InvariantViolationException(
+                raise exceptions.InvariantViolation(
                     "%(item)s provides %(oo)s that are required "
                     "by previous item(s) of linear flow %(flow)s"
                     % dict(item=item.name, flow=self.name,
