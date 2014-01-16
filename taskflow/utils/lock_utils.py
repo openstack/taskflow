@@ -79,8 +79,8 @@ class MultiLock(object):
     def __enter__(self):
 
         def is_locked(lock):
-            # NOTE(harlowja): the threading2 lock doesn't seem to have this
-            # attribute, so that's why we are checking it existing first.
+            # NOTE(harlowja): reentrant locks (rlock) don't have this
+            # attribute, but normal non-reentrant locks do, how odd...
             if hasattr(lock, 'locked'):
                 return lock.locked()
             return False
