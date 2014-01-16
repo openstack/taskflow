@@ -416,6 +416,10 @@ class Failure(object):
                     'Failure.__init__ got unexpected keyword argument(s): %s'
                     % ', '.join(six.iterkeys(kwargs)))
 
+    @classmethod
+    def from_exception(cls, exception):
+        return cls((type(exception), exception, None))
+
     def _matches(self, other):
         if self is other:
             return True

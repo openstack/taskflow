@@ -99,6 +99,13 @@ class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
         self.assertIs(exc.check(RuntimeError), RuntimeError)
 
 
+class FromExceptionTestCase(test.TestCase, GeneralFailureObjTestsMixin):
+
+    def setUp(self):
+        super(FromExceptionTestCase, self).setUp()
+        self.fail_obj = misc.Failure.from_exception(RuntimeError('Woot!'))
+
+
 class FailureObjectTestCase(test.TestCase):
 
     def test_dont_catch_base_exception(self):
