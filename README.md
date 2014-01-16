@@ -14,12 +14,12 @@ Join us
 Help
 ----
 
-### Tox.ini
+**Tox.ini**
 
-To generate tox.ini, use the `toxgen.py` tool located in `tools/` and provide
-that script as input the `tox-tmpl.ini` file to generate the final `tox.ini`
-file.
+To generate tox.ini, use the `toxgen.py` script by first installing
+[toxgen](https://pypi.python.org/pypi/toxgen/) and then provide that script
+as input the `tox-tmpl.ini` file to generate the final `tox.ini` file.
 
-For example:
+*For example:*
 
-    $ ./tools/toxgen.py -i tox-tmpl.ini -o tox.ini
+    $ toxgen.py -i tox-tmpl.ini -o tox.ini
