@@ -92,7 +92,7 @@ def create_flow_detail(flow, book=None, backend=None, meta=None):
         return flow_detail
 
 
-def _copy_functon(deep_copy):
+def _copy_function(deep_copy):
     if deep_copy:
         return copy.deepcopy
     else:
@@ -110,7 +110,7 @@ def task_details_merge(td_e, td_new, deep_copy=False):
     if td_e is td_new:
         return td_e
 
-    copy_fn = _copy_functon(deep_copy)
+    copy_fn = _copy_function(deep_copy)
     if td_e.state != td_new.state:
         # NOTE(imelnikov): states are just strings, no need to copy
         td_e.state = td_new.state
@@ -141,7 +141,7 @@ def flow_details_merge(fd_e, fd_new, deep_copy=False):
     if fd_e is fd_new:
         return fd_e
 
-    copy_fn = _copy_functon(deep_copy)
+    copy_fn = _copy_function(deep_copy)
     if fd_e.meta != fd_new.meta:
         fd_e.meta = copy_fn(fd_new.meta)
     if fd_e.state != fd_new.state:
@@ -161,7 +161,7 @@ def logbook_merge(lb_e, lb_new, deep_copy=False):
     if lb_e is lb_new:
         return lb_e
 
-    copy_fn = _copy_functon(deep_copy)
+    copy_fn = _copy_function(deep_copy)
     if lb_e.meta != lb_new.meta:
         lb_e.meta = copy_fn(lb_new.meta)
     return lb_e
