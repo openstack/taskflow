@@ -179,7 +179,7 @@ def check_task_transition(old_state, new_state):
 
     If transition can be performed, it returns True. If transition
     should be ignored, it returns False. If transition is not
-    valid, it raises InvalidStateException.
+    valid, it raises InvalidState exception.
     """
     pair = (old_state, new_state)
     if pair in _ALLOWED_TASK_TRANSITIONS:
@@ -189,5 +189,5 @@ def check_task_transition(old_state, new_state):
     # TODO(harlowja): Should we check/allow for 3rd party states to be
     # triggered during RUNNING by having a concept of a sub-state that we also
     # verify against??
-    raise exc.InvalidStateException(
-        "Task transition from %s to %s is not allowed" % pair)
+    raise exc.InvalidState("Task transition from %s to %s is not allowed"
+                           % pair)
