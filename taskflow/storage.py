@@ -89,7 +89,7 @@ class Storage(object):
             functor(conn, *args, **kwargs)
 
     def ensure_task(self, task_name, task_version=None, result_mapping=None):
-        """Ensure that there is taskdetail that correspond the task.
+        """Ensure that there is taskdetail that corresponds the task.
 
         If task does not exist, adds a record for it. Added task will have
         PENDING state. Sets result mapping for the task from result_mapping
@@ -103,30 +103,57 @@ class Storage(object):
                 task_id = self._task_name_to_uuid[task_name]
             except KeyError:
                 task_id = uuidutils.generate_uuid()
-                self._add_task(task_id, task_name, task_version)
+                self._create_atom_detail(logbook.TaskDetail, task_name,
+                                         task_id, task_version)
+            else:
+                td = self._flowdetail.find(task_id)
+                if td.atom_type != logbook.TASK_DETAIL:
+                    raise exceptions.AlreadyExists(
+                        "Task detail %s already exists in flow detail %s." %
+                        (task_name, self._flowdetail.name))
             self._set_result_mapping(task_name, result_mapping)
         return task_id
 
-    def _add_task(self, uuid, task_name, task_version=None):
-        """Add the task to storage.
+    def ensure_retry(self, retry_name, retry_version=None,
+                     result_mapping=None):
+        """Ensure that there is atom detail that corresponds the retry.
 
-        Task becomes known to storage by that name and uuid.
-        Task state is set to PENDING.
+        If retry does not exist, adds a record for it. Added retry
+        will have PENDING state. Sets result mapping for the retry from
+        result_mapping argument. Initializes retry result as an empty
+        collections of results and failures history.
+
+        Returns uuid for the retry details corresponding to the retry
+        with given name.
         """
+        with self._lock.write_lock():
+            try:
+                retry_id = self._task_name_to_uuid[retry_name]
+            except KeyError:
+                retry_id = uuidutils.generate_uuid()
+                self._create_atom_detail(logbook.RetryDetail, retry_name,
+                                         retry_id, retry_version)
+            else:
+                td = self._flowdetail.find(retry_id)
+                if td.atom_type != logbook.RETRY_DETAIL:
+                    raise exceptions.AlreadyExists(
+                        "Task detail %s already exists in flow detail %s." %
+                        (retry_name, self._flowdetail.name))
+            self._set_result_mapping(retry_name, result_mapping)
+        return retry_id
 
-        def save_both(conn, td):
-            """Saves the flow and the task detail with the same connection."""
-            self._save_flow_detail(conn)
-            self._save_task_detail(conn, td)
+    def _create_atom_detail(self, _detail_cls, name, uuid, task_version=None):
+        """Add the atom detail to flow detail.
 
-        # TODO(imelnikov): check that task with same uuid or
-        # task name does not exist.
-        td = logbook.TaskDetail(name=task_name, uuid=uuid)
-        td.state = states.PENDING
-        td.version = task_version
-        self._flowdetail.add(td)
-        self._with_connection(save_both, td)
-        self._task_name_to_uuid[task_name] = uuid
+        Atom becomes known to storage by that name and uuid.
+        Atom state is set to PENDING.
+        """
+        ad = _detail_cls(name, uuid)
+        ad.state = states.PENDING
+        ad.version = task_version
+        self._flowdetail.add(ad)
+        self._with_connection(self._save_flow_detail)
+        self._task_name_to_uuid[ad.name] = ad.uuid
 
     @property
     def flow_name(self):
@@ -163,7 +190,7 @@ class Storage(object):
             return td.uuid
 
     def set_task_state(self, task_name, state):
-        """Set task state."""
+        """Set task or retry state."""
         with self._lock.write_lock():
             td = self._taskdetail_by_name(task_name)
             td.state = state
@@ -263,14 +290,27 @@ class Storage(object):
             td = self._taskdetail_by_name(task_name)
             td.state = state
             if state == states.FAILURE and isinstance(data, misc.Failure):
-                td.results = None
+                # Do not clean retry history
+                if td.atom_type != logbook.RETRY_DETAIL:
+                    td.results = None
                 td.failure = data
                 self._failures[td.name] = data
             else:
-                td.results = data
+                if td.atom_type == logbook.RETRY_DETAIL:
+                    td.results.append((data, {}))
+                else:
+                    td.results = data
                 td.failure = None
                 self._check_all_results_provided(td.name, data)
-            self._with_connection(self._save_task_detail, td)
+            self._with_connection(self._save_task_detail, task_detail=td)
+
+    def cleanup_retry_history(self, retry_name, state):
+        """Cleanup history of retry with given name."""
+        with self._lock.write_lock():
+            td = self._taskdetail_by_name(retry_name)
+            td.state = state
+            td.results = []
+            self._with_connection(self._save_task_detail, task_detail=td)
 
     def get(self, task_name):
         """Get result for task with name 'task_name' to storage."""
@@ -345,7 +385,9 @@ class Storage(object):
             try:
                 td = self._taskdetail_by_name(self.injector_name)
             except exceptions.NotFound:
-                self._add_task(uuidutils.generate_uuid(), self.injector_name)
+                uuid = uuidutils.generate_uuid()
+                self._create_atom_detail(logbook.TaskDetail,
+                                         self.injector_name, uuid)
                 td = self._taskdetail_by_name(self.injector_name)
                 td.results = dict(pairs)
                 td.state = states.SUCCESS
@@ -397,7 +439,16 @@ class Storage(object):
             for (task_name, index) in reversed(indexes):
                 try:
                     result = self.get(task_name)
-                    return misc.item_from(result, index, name=name)
+                    td = self._taskdetail_by_name(task_name)
+
+                    # If it is a retry's result then fetch values from the
+                    # latest retry run.
+                    if td.atom_type == logbook.RETRY_DETAIL:
+                        if result:
+                            result = result[-1][0]
+                        else:
+                            result = None
+                    return misc.item_from(result, index, name)
                 except exceptions.NotFound:
                     pass
             raise exceptions.NotFound("Unable to find result %r" % name)
@@ -435,6 +486,12 @@ class Storage(object):
             if state is None:
                 state = states.PENDING
             return state
+
+    def get_retry_history(self, name):
+        """Fetch retry results history."""
+        with self._lock.read_lock():
+            td = self._taskdetail_by_name(name)
+            return td.results
 
 
 class MultiThreadedStorage(Storage):

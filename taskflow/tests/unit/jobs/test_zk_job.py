@@ -26,10 +26,10 @@ from zake import utils as zake_utils
 
 from taskflow import exceptions as excp
 from taskflow.jobs.backends import impl_zookeeper
-from taskflow.openstack.common import jsonutils
 from taskflow import states
 from taskflow import test
 
+from taskflow.openstack.common import jsonutils
 from taskflow.persistence.backends import impl_dir
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils

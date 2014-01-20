@@ -17,11 +17,17 @@
 
 import logging
 
+import abc
 import six
 
 from taskflow.openstack.common import uuidutils
 
 LOG = logging.getLogger(__name__)
+
+TASK_DETAIL = 'TASK_DETAIL'
+RETRY_DETAIL = 'RETRY_DETAIL'
+
+ATOM_TYPES = [TASK_DETAIL, RETRY_DETAIL]
 
 
 class LogBook(object):
@@ -127,13 +133,15 @@ class FlowDetail(object):
         return len(self._taskdetails_by_id)
 
 
-class TaskDetail(object):
-    """This class contains an entry that contains the persistence of a task
-    after or before (or during) it is running including any results it may have
-    produced, any state that it may be in (failed for example), any exception
-    that occurred when running and any associated stacktrace that may have
-    occurring during that exception being thrown and any other metadata that
-    should be stored along-side the details about this task.
+@six.add_metaclass(abc.ABCMeta)
+class AtomDetail(object):
+    """This is a base class that contains an entry that contains the
+    persistence of an atom after or before (or during) it is running including
+    any results it may have produced, any state that it may be in (failed
+    for example), any exception that occurred when running and any associated
+    stacktrace that may have occurring during that exception being thrown
+    and any other metadata that should be stored along-side the details
+    about this atom.
 
     The data contained within this class need *not* backed by the backend
     storage in real time. The data in this class will only be guaranteed to be
@@ -145,19 +153,19 @@ class TaskDetail(object):
         # TODO(harlowja): decide if these should be passed in and therefore
         # immutable or let them be assigned?
         #
-        # The state the task was last in.
+        # The state the atom was last in.
         self.state = None
         # The results it may have produced (useful for reverting).
         self.results = None
-        # An Failure object that holds exception the task may have thrown
+        # An Failure object that holds exception the atom may have thrown
         # (or part of it), useful for knowing what failed.
         self.failure = None
-        # Any other metadata to include about this task while storing. For
-        # example timing information could be stored here, other misc. task
+        # Any other metadata to include about this atom while storing. For
+        # example timing information could be stored here, other misc. atom
         # related items.
         self.meta = None
-        # The version of the task this task details was associated with which
-        # is quite useful for determining what versions of tasks this detail
+        # The version of the atom this atom details was associated with which
+        # is quite useful for determining what versions of atoms this detail
         # information can be associated with.
         self.version = None
 
@@ -178,3 +186,37 @@ class TaskDetail(object):
     @property
     def name(self):
         return self._name
+
+    @abc.abstractproperty
+    def atom_type(self):
+        """Identifies atom type represented by this detail."""
+
+
+class TaskDetail(AtomDetail):
+    """This class represents a task detail for flow task object."""
+    def __init__(self, name, uuid):
+        super(TaskDetail, self).__init__(name, uuid)
+
+    @property
+    def atom_type(self):
+        return TASK_DETAIL
+
+
+class RetryDetail(AtomDetail):
+    """This class represents a retry detail for retry controller object."""
+    def __init__(self, name, uuid):
+        super(RetryDetail, self).__init__(name, uuid)
+        self.results = []
+
+    @property
+    def atom_type(self):
+        return RETRY_DETAIL
+
+
+def get_atom_detail_class(atom_type):
+    if atom_type == TASK_DETAIL:
+        return TaskDetail
+    elif atom_type == RETRY_DETAIL:
+        return RetryDetail
+    else:
+        raise TypeError("Unknown atom type")
