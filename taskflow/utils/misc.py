@@ -75,6 +75,24 @@ def get_version_string(obj):
     return obj_version
 
 
+def item_from(container, index, name=None):
+    """Attempts to fetch a index/key from a given container."""
+    if index is None:
+        return container
+    try:
+        return container[index]
+    except (IndexError, KeyError, ValueError, TypeError):
+        # NOTE(harlowja): Perhaps the container is a dictionary-like object
+        # and that key does not exist (key error), or the container is a
+        # tuple/list and a non-numeric key is being requested (index error),
+        # or there was no container and an attempt to index into none/other
+        # unsubscriptable type is being requested (type error).
+        if name is None:
+            name = index
+        raise exceptions.NotFound("Unable to find %r in container %s"
+                                  % (name, container))
+
+
 def get_duplicate_keys(iterable, key=None):
     if key is not None:
         iterable = six.moves.map(key, iterable)
