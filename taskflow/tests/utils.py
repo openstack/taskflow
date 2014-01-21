@@ -20,6 +20,7 @@ import six
 
 from taskflow import exceptions
 from taskflow.persistence.backends import impl_memory
+from taskflow import retry
 from taskflow import task
 from taskflow.utils import misc
 
@@ -269,3 +270,12 @@ class FailureMatcher(object):
 
     def __eq__(self, other):
         return self._failure.matches(other)
+
+
+class OneReturnRetry(retry.AlwaysRevert):
+
+    def execute(self, **kwargs):
+        return 1
+
+    def revert(self, **kwargs):
+        pass

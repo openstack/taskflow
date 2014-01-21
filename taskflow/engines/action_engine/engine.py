@@ -19,11 +19,13 @@ import threading
 from taskflow.engines.action_engine import executor
 from taskflow.engines.action_engine import graph_action
 from taskflow.engines.action_engine import graph_analyzer
+from taskflow.engines.action_engine import retry_action
 from taskflow.engines.action_engine import task_action
 from taskflow.engines import base
 
 from taskflow import exceptions as exc
 from taskflow.openstack.common import excutils
+from taskflow import retry
 from taskflow import states
 from taskflow import storage as t_storage
 
@@ -50,6 +52,7 @@ class ActionEngine(base.EngineBase):
     _graph_analyzer_cls = graph_analyzer.GraphAnalyzer
     _task_action_cls = task_action.TaskAction
     _task_executor_cls = executor.SerialTaskExecutor
+    _retry_action_cls = retry_action.RetryAction
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
@@ -60,6 +63,7 @@ class ActionEngine(base.EngineBase):
         self._state_lock = threading.RLock()
         self._task_executor = None
         self._task_action = None
+        self._retry_action = None
 
     def _revert(self, current_failure=None):
         self._change_state(states.REVERTING)
@@ -150,24 +154,27 @@ class ActionEngine(base.EngineBase):
             self.task_notifier.notify(states.PENDING, details)
         self._change_state(states.PENDING)
 
-    def _ensure_storage_for(self, task_graph):
+    def _ensure_storage_for(self, execution_graph):
         # NOTE(harlowja): signal to the tasks that exist that we are about to
         # resume, if they have a previous state, they will now transition to
         # a resuming state (and then to suspended).
         self._change_state(states.RESUMING)  # does nothing in PENDING state
-        for task in task_graph.nodes_iter():
-            task_version = misc.get_version_string(task)
-            self.storage.ensure_task(task.name, task_version, task.save_as)
+        for node in execution_graph.nodes_iter():
+            version = misc.get_version_string(node)
+            if isinstance(node, retry.Retry):
+                self.storage.ensure_retry(node.name, version, node.save_as)
+            else:
+                self.storage.ensure_task(node.name, version, node.save_as)
         self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
     @lock_utils.locked
     def compile(self):
         if self._compiled:
             return
-        task_graph = flow_utils.flatten(self._flow)
-        if task_graph.number_of_nodes() == 0:
+        execution_graph = flow_utils.flatten(self._flow)
+        if execution_graph.number_of_nodes() == 0:
             raise exc.EmptyFlow("Flow %s is empty." % self._flow.name)
-        self._analyzer = self._graph_analyzer_cls(task_graph,
+        self._analyzer = self._graph_analyzer_cls(execution_graph,
                                                   self.storage)
         if self._task_executor is None:
             self._task_executor = self._task_executor_cls()
@@ -175,15 +182,19 @@ class ActionEngine(base.EngineBase):
             self._task_action = self._task_action_cls(self.storage,
                                                       self._task_executor,
                                                       self.task_notifier)
+        if self._retry_action is None:
+            self._retry_action = self._retry_action_cls(self.storage,
+                                                        self.task_notifier)
         self._root = self._graph_action_cls(self._analyzer,
                                             self.storage,
-                                            self._task_action)
+                                            self._task_action,
+                                            self._retry_action)
         # NOTE(harlowja): Perform initial state manipulation and setup.
         #
         # TODO(harlowja): This doesn't seem like it should be in a compilation
         # function since compilation seems like it should not modify any
         # external state.
-        self._ensure_storage_for(task_graph)
+        self._ensure_storage_for(execution_graph)
         self._compiled = True
 
 

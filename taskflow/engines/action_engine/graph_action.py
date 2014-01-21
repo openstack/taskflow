@@ -15,6 +15,7 @@
 #    under the License.
 
 from taskflow import states as st
+from taskflow import task
 from taskflow.utils import misc
 
 
@@ -29,10 +30,11 @@ class FutureGraphAction(object):
     in parallel, this enables parallel flow run and reversion.
     """
 
-    def __init__(self, analyzer, storage, task_action):
+    def __init__(self, analyzer, storage, task_action, retry_action):
         self._analyzer = analyzer
         self._storage = storage
         self._task_action = task_action
+        self._retry_action = retry_action
 
     def is_running(self):
         return self._storage.get_flow_state() == st.RUNNING
@@ -45,6 +47,7 @@ class FutureGraphAction(object):
             self.is_running,
             self._task_action.schedule_execution,
             self._task_action.complete_execution,
+            self._retry_action.execute,
             self._analyzer.browse_nodes_for_execute)
         return st.SUSPENDED if was_suspended else st.SUCCESS
 
@@ -53,14 +56,21 @@ class FutureGraphAction(object):
             self.is_reverting,
             self._task_action.schedule_reversion,
             self._task_action.complete_reversion,
+            self._retry_action.revert,
             self._analyzer.browse_nodes_for_revert)
         return st.SUSPENDED if was_suspended else st.REVERTED
 
-    def _run(self, running, schedule_node, complete_node, get_next_nodes):
+    def _run(self, running, schedule_task, complete_task,
+             complete_retry, get_next_nodes):
 
         def schedule(nodes, not_done):
             for node in nodes:
-                future = schedule_node(node)
+                if isinstance(node, task.BaseTask):
+                    future = schedule_task(node)
+                else:
+                    # Retry controller is always executed immediately in the
+                    # main thread and it should not be scheduled.
+                    future = complete_retry(node)
                 if future is not None:
                     not_done.append(future)
                 else:
@@ -82,7 +92,8 @@ class FutureGraphAction(object):
                 # NOTE(harlowja): event will be used in the future for smart
                 # reversion (ignoring it for now).
                 node, _event, result = future.result()
-                complete_node(node, result)
+                if isinstance(node, task.BaseTask):
+                    complete_task(node, result)
                 if isinstance(result, misc.Failure):
                     failures.append(result)
                 else:
