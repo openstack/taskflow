@@ -52,10 +52,18 @@ def run_example(name):
     obj = subprocess.Popen([sys.executable, path],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output = obj.communicate()
-    if output[1]:
-        raise RuntimeError('Example wrote to stderr:\n%s'
-                           % output[1].decode())
-    return output[0].decode()
+    stdout = output[0].decode()
+    stderr = output[1].decode()
+
+    rc = obj.wait()
+    if rc != 0:
+        raise RuntimeError('Example %s failed, return code=%s\n'
+                           '<<<Begin captured STDOUT>>>\n%s'
+                           '<<<End captured STDOUT>>>\n'
+                           '<<<Begin captured STDERR>>>\n%s'
+                           '<<<End captured STDERR>>>'
+                           % (name, rc, stdout, stderr))
+    return stdout
 
 
 def expected_output_path(name):
@@ -67,7 +75,7 @@ def list_examples():
     for filename in os.listdir(examples_dir):
         name, ext = os.path.splitext(filename)
         if ext == ".py" and 'utils' not in name.lower():
-            yield filename[:-len(ext)]
+            yield name
 
 
 class ExamplesTestCase(taskflow.test.TestCase):
