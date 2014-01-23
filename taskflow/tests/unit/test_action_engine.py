@@ -118,6 +118,11 @@ class EngineTaskTest(utils.EngineTestBase):
         err = self.assertRaises(TypeError, run_bad, value)
         self.assertIn(value, str(err))
 
+    def test_nasty_failing_task_exception_reraised(self):
+        flow = utils.NastyFailingTask()
+        engine = self._make_engine(flow)
+        self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
+
 
 class EngineLinearFlowTest(utils.EngineTestBase):
 
@@ -226,15 +231,15 @@ class EngineParallelFlowTest(utils.EngineTestBase):
 
     def test_parallel_flow_one_task(self):
         flow = uf.Flow('p-1').add(
-            utils.SaveOrderTask(name='task1', sleep=0.01)
+            utils.SaveOrderTask(name='task1')
         )
         self._make_engine(flow).run()
         self.assertEqual(self.values, ['task1'])
 
     def test_parallel_flow_two_tasks(self):
         flow = uf.Flow('p-2').add(
-            utils.SaveOrderTask(name='task1', sleep=0.01),
-            utils.SaveOrderTask(name='task2', sleep=0.01)
+            utils.SaveOrderTask(name='task1'),
+            utils.SaveOrderTask(name='task2')
         )
         self._make_engine(flow).run()
 
@@ -242,14 +247,16 @@ class EngineParallelFlowTest(utils.EngineTestBase):
         self.assertEqual(result, set(['task1', 'task2']))
         self.assertEqual(len(flow), 2)
 
-    def test_parallel_revert_common(self):
+    def test_parallel_revert(self):
         flow = uf.Flow('p-r-3').add(
             utils.TaskNoRequiresNoReturns(name='task1'),
-            utils.FailingTask(sleep=0.01),
+            utils.FailingTask(name='fail'),
             utils.TaskNoRequiresNoReturns(name='task2')
         )
         engine = self._make_engine(flow)
         self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+        self.assertIn('fail reverted(Failure: RuntimeError: Woot!)',
+                      self.values)
 
     def test_parallel_revert_exception_is_reraised(self):
         # NOTE(imelnikov): if we put NastyTask and FailingTask
@@ -261,7 +268,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
                 utils.TaskNoRequiresNoReturns(name='task1'),
                 utils.NastyTask()
             ),
-            utils.FailingTask(sleep=0.1)
+            utils.FailingTask()
         )
         engine = self._make_engine(flow)
         self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
@@ -289,153 +296,91 @@ class EngineParallelFlowTest(utils.EngineTestBase):
         self.assertEqual(engine.storage.fetch_all(),
                          {'x1': 17, 'x2': 5})
 
-    def test_parallel_revert_specific(self):
-        flow = uf.Flow('p-r-r').add(
-            utils.SaveOrderTask(name='task1', sleep=0.01),
-            utils.FailingTask(name='fail', sleep=0.01),
-            utils.SaveOrderTask(name='task2', sleep=0.01)
-        )
-        engine = self._make_engine(flow)
-        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
-        result = set(self.values)
-        # NOTE(harlowja): task 1/2 may or may not have executed, even with the
-        # sleeps due to the fact that the above is an unordered flow.
-        possible_result = set(['task1', 'task2',
-                               'fail reverted(Failure: RuntimeError: Woot!)',
-                               'task2 reverted(5)', 'task1 reverted(5)'])
-        self.assertIsSubset(possible_result, result)
 
-    def test_nested_parallel_revert_exception_is_reraised(self):
-        flow = uf.Flow('p-root').add(
-            utils.SaveOrderTask(name='task1'),
-            utils.SaveOrderTask(name='task2'),
-            lf.Flow('p-inner').add(
-                utils.SaveOrderTask(name='task3', sleep=0.1),
-                utils.NastyTask(),
-                utils.FailingTask(name='fail', sleep=0.01)
-            )
-        )
-        engine = self._make_engine(flow)
-        self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
-        result = set(self.values)
-        # Task1, task2 may *not* have executed and also may have *not* reverted
-        # since the above is an unordered flow so take that into account by
-        # ensuring that the superset is matched.
-        possible_result = set(['task1', 'task1 reverted(5)',
-                               'task2', 'task2 reverted(5)',
-                               'task3', 'task3 reverted(5)',
-                               'fail reverted(Failure: RuntimeError: Woot!)'])
-        self.assertIsSubset(possible_result, result)
+class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
 
-    def test_parallel_revert_exception_do_not_revert_linear_tasks(self):
-        flow = lf.Flow('l-root').add(
+    def test_revert_ok_for_unordered_in_linear(self):
+        flow = lf.Flow('p-root').add(
             utils.SaveOrderTask(name='task1'),
             utils.SaveOrderTask(name='task2'),
             uf.Flow('p-inner').add(
-                utils.SaveOrderTask(name='task3', sleep=0.1),
-                utils.NastyTask(),
-                utils.FailingTask(sleep=0.01, name='fail')
-            )
-        )
-        engine = self._make_engine(flow)
-        # Depending on when (and if failing task) is executed the exception
-        # raised could be either woot or gotcha since the above unordered
-        # sub-flow does not guarantee that the ordering will be maintained,
-        # even with sleeping.
-        was_nasty = False
-        try:
-            engine.run()
-            self.assertTrue(False)
-        except RuntimeError as e:
-            self.assertRegexpMatches(str(e), '^Gotcha|^Woot')
-            if 'Gotcha!' in str(e):
-                was_nasty = True
-        result = set(self.values)
-        possible_result = set(['task1', 'task2',
-                               'task3', 'task3 reverted(5)',
-                               'fail reverted(Failure: RuntimeError: Woot!)'])
-        if not was_nasty:
-            possible_result.update(['task1 reverted(5)', 'task2 reverted(5)'])
-        self.assertIsSubset(possible_result, result)
-        # If the nasty task killed reverting, then task1 and task2 should not
-        # have reverted, but if the failing task stopped execution then task1
-        # and task2 should have reverted.
-        if was_nasty:
-            must_not_have = ['task1 reverted(5)', 'task2 reverted(5)']
-            for r in must_not_have:
-                self.assertNotIn(r, result)
-        else:
-            must_have = ['task1 reverted(5)', 'task2 reverted(5)']
-            for r in must_have:
-                self.assertIn(r, result)
-
-    def test_parallel_nested_to_linear_revert(self):
-        flow = lf.Flow('l-root').add(
-            utils.SaveOrderTask(name='task1'),
-            utils.SaveOrderTask(name='task2'),
-            uf.Flow('p-inner').add(
-                utils.SaveOrderTask(name='task3', sleep=0.1),
-                utils.FailingTask(name='fail', sleep=0.01)
-            )
-        )
-        engine = self._make_engine(flow)
-        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
-        result = set(self.values)
-        # Task3 may or may not have executed, depending on scheduling and
-        # task ordering selection, so it may or may not exist in the result set
-        possible_result = set(['task1', 'task1 reverted(5)',
-                               'task2', 'task2 reverted(5)',
-                               'task3', 'task3 reverted(5)',
-                               'fail reverted(Failure: RuntimeError: Woot!)'])
-        self.assertIsSubset(possible_result, result)
-        # These must exist, since the linearity of the linear flow ensures
-        # that they were executed first.
-        must_have = ['task1', 'task1 reverted(5)',
-                     'task2', 'task2 reverted(5)']
-        for r in must_have:
-            self.assertIn(r, result)
-
-    def test_linear_nested_to_parallel_revert(self):
-        flow = uf.Flow('p-root').add(
-            utils.SaveOrderTask(name='task1'),
-            utils.SaveOrderTask(name='task2'),
-            lf.Flow('l-inner').add(
-                utils.SaveOrderTask(name='task3', sleep=0.1),
-                utils.FailingTask(name='fail', sleep=0.01)
-            )
-        )
-        engine = self._make_engine(flow)
-        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
-        result = set(self.values)
-        # Since this is an unordered flow we can not guarantee that task1 or
-        # task2 will exist and be reverted, although they may exist depending
-        # on how the OS thread scheduling and execution graph algorithm...
-        possible_result = set([
-            'task1', 'task1 reverted(5)',
-            'task2', 'task2 reverted(5)',
-            'task3', 'task3 reverted(5)',
-            'fail reverted(Failure: RuntimeError: Woot!)'
-        ])
-        self.assertIsSubset(possible_result, result)
-
-    def test_linear_nested_to_parallel_revert_exception(self):
-        flow = uf.Flow('p-root').add(
-            utils.SaveOrderTask(name='task1', sleep=0.01),
-            utils.SaveOrderTask(name='task2', sleep=0.01),
-            lf.Flow('l-inner').add(
                 utils.SaveOrderTask(name='task3'),
-                utils.NastyTask(),
-                utils.FailingTask(name='fail', sleep=0.01)
+                utils.FailingTask('fail')
+            )
+        )
+        engine = self._make_engine(flow)
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+
+        # NOTE(imelnikov): we don't know if task 3 was run, but if it was,
+        # it should have been reverted in correct order.
+        possible_values_no_task3 = [
+            'task1', 'task2',
+            'fail reverted(Failure: RuntimeError: Woot!)',
+            'task2 reverted(5)', 'task1 reverted(5)'
+        ]
+        self.assertIsSuperAndSubsequence(self.values,
+                                         possible_values_no_task3)
+        if 'task3' in self.values:
+            possible_values_task3 = [
+                'task1', 'task2', 'task3',
+                'task3 reverted(5)', 'task2 reverted(5)', 'task1 reverted(5)'
+            ]
+            self.assertIsSuperAndSubsequence(self.values,
+                                             possible_values_task3)
+
+    def test_revert_raises_for_unordered_in_linear(self):
+        flow = lf.Flow('p-root').add(
+            utils.SaveOrderTask(name='task1'),
+            utils.SaveOrderTask(name='task2'),
+            uf.Flow('p-inner').add(
+                utils.SaveOrderTask(name='task3'),
+                utils.NastyFailingTask()
             )
         )
         engine = self._make_engine(flow)
         self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
-        result = set(self.values)
-        possible_result = set(['task1', 'task1 reverted(5)',
-                               'task2', 'task2 reverted(5)',
-                               'fail reverted(Failure: RuntimeError: Woot!)',
-                               'task3'])
-        self.assertIsSubset(possible_result, result)
+
+        # NOTE(imelnikov): we don't know if task 3 was run, but if it was,
+        # it should have been reverted in correct order.
+        possible_values = ['task1', 'task2', 'task3',
+                           'task3 reverted(5)']
+        self.assertIsSuperAndSubsequence(possible_values, self.values)
+        possible_values_no_task3 = ['task1', 'task2']
+        self.assertIsSuperAndSubsequence(self.values,
+                                         possible_values_no_task3)
+
+    def test_revert_ok_for_linear_in_unordered(self):
+        flow = uf.Flow('p-root').add(
+            utils.SaveOrderTask(name='task1'),
+            lf.Flow('p-inner').add(
+                utils.SaveOrderTask(name='task2'),
+                utils.FailingTask('fail')
+            )
+        )
+        engine = self._make_engine(flow)
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+        self.assertIn('fail reverted(Failure: RuntimeError: Woot!)',
+                      self.values)
+
+        # NOTE(imelnikov): if task1 was run, it should have been reverted.
+        if 'task1' in self.values:
+            task1_story = ['task1', 'task1 reverted(5)']
+            self.assertIsSuperAndSubsequence(self.values, task1_story)
+        # NOTE(imelnikov): task2 should have been run and reverted
+        task2_story = ['task2', 'task2 reverted(5)']
+        self.assertIsSuperAndSubsequence(self.values, task2_story)
+
+    def test_revert_raises_for_linear_in_unordered(self):
+        flow = uf.Flow('p-root').add(
+            utils.SaveOrderTask(name='task1'),
+            lf.Flow('p-inner').add(
+                utils.SaveOrderTask(name='task2'),
+                utils.NastyFailingTask()
+            )
+        )
+        engine = self._make_engine(flow)
+        self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
+        self.assertNotIn('task2 reverted(5)', self.values)
 
 
 class EngineGraphFlowTest(utils.EngineTestBase):
@@ -558,6 +503,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
 class SingleThreadedEngineTest(EngineTaskTest,
                                EngineLinearFlowTest,
                                EngineParallelFlowTest,
+                               EngineLinearAndUnorderedExceptionsTest,
                                EngineGraphFlowTest,
                                test.TestCase):
     def _make_engine(self, flow, flow_detail=None):
@@ -578,6 +524,7 @@ class SingleThreadedEngineTest(EngineTaskTest,
 class MultiThreadedEngineTest(EngineTaskTest,
                               EngineLinearFlowTest,
                               EngineParallelFlowTest,
+                              EngineLinearAndUnorderedExceptionsTest,
                               EngineGraphFlowTest,
                               test.TestCase):
     def _make_engine(self, flow, flow_detail=None, executor=None):
@@ -607,6 +554,7 @@ class MultiThreadedEngineTest(EngineTaskTest,
 class ParallelEngineWithEventletTest(EngineTaskTest,
                                      EngineLinearFlowTest,
                                      EngineParallelFlowTest,
+                                     EngineLinearAndUnorderedExceptionsTest,
                                      EngineGraphFlowTest,
                                      test.TestCase):
 

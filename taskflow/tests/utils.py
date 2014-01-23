@@ -17,7 +17,6 @@
 #    under the License.
 
 import contextlib
-import time
 
 import six
 
@@ -78,24 +77,18 @@ class ProvidesRequiresTask(task.Task):
 
 class SaveOrderTask(task.Task):
 
-    def __init__(self, name=None, sleep=None,
-                 *args, **kwargs):
+    def __init__(self, name=None, *args, **kwargs):
         super(SaveOrderTask, self).__init__(name=name, *args, **kwargs)
         self.values = EngineTestBase.values
-        self._sleep = sleep
 
     def execute(self, **kwargs):
         self.update_progress(0.0)
-        if self._sleep:
-            time.sleep(self._sleep)
         self.values.append(self.name)
         self.update_progress(1.0)
         return 5
 
     def revert(self, **kwargs):
         self.update_progress(0)
-        if self._sleep:
-            time.sleep(self._sleep)
         self.values.append(self.name + ' reverted(%s)'
                            % kwargs.get('result'))
         self.update_progress(1.0)
@@ -104,8 +97,6 @@ class SaveOrderTask(task.Task):
 class FailingTask(SaveOrderTask):
     def execute(self, **kwargs):
         self.update_progress(0)
-        if self._sleep:
-            time.sleep(self._sleep)
         self.update_progress(0.99)
         raise RuntimeError('Woot!')
 
@@ -116,6 +107,11 @@ class NastyTask(task.Task):
 
     def revert(self, **kwargs):
         raise RuntimeError('Gotcha!')
+
+
+class NastyFailingTask(NastyTask):
+    def execute(self, **kwargs):
+        raise RuntimeError('Woot!')
 
 
 class TaskNoRequiresNoReturns(task.Task):

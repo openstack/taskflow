@@ -72,15 +72,19 @@ class TestCase(testcase.TestCase):
         matcher = matchers.MatchesRegex(pattern)
         self.assertThat(text, matcher)
 
-    def assertIsSubset(self, super_set, sub_set, msg=None):
-        missing_set = set()
-        for e in sub_set:
-            if e not in super_set:
-                missing_set.add(e)
-        if len(missing_set):
-            if msg is not None:
+    def assertIsSuperAndSubsequence(self, super_seq, sub_seq, msg=None):
+        super_seq = list(super_seq)
+        sub_seq = list(sub_seq)
+        current_tail = super_seq
+        for sub_elem in sub_seq:
+            try:
+                super_index = current_tail.index(sub_elem)
+            except ValueError:
+                # element not found
+                if msg is None:
+                    msg = ("%r is not subsequence of %r: "
+                           "element %r not found in tail %r"
+                           % (sub_seq, super_seq, sub_elem, current_tail))
                 self.fail(msg)
             else:
-                self.fail("Subset %s has %s elements which are not in the "
-                          "superset %s." % (sub_set, list(missing_set),
-                                            list(super_set)))
+                current_tail = current_tail[super_index + 1:]
