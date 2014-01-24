@@ -40,7 +40,10 @@ class Flow(flow.Flow):
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
-        # check that items are actually independent
+        if not items:
+            return self
+
+        # NOTE(harlowja): check that items to be added are actually independent
         provides = self.provides
         old_requires = self.requires
         for item in items:
