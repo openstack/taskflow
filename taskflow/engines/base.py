@@ -21,6 +21,8 @@ import abc
 
 import six
 
+from taskflow.utils import misc
+
 
 @six.add_metaclass(abc.ABCMeta)
 class EngineBase(object):
@@ -29,16 +31,43 @@ class EngineBase(object):
     def __init__(self, flow, flow_detail, backend, conf):
         self._flow = flow
         self._flow_detail = flow_detail
-        self.storage = self._storage_cls(flow_detail, backend)
+        self._backend = backend
+        if not conf:
+            self._conf = {}
+        else:
+            self._conf = dict(conf)
+        self._storage = None
+        self.notifier = misc.TransitionNotifier()
+        self.task_notifier = misc.TransitionNotifier()
+
+    @property
+    def storage(self):
+        """The storage unit for this flow."""
+        if self._storage is None:
+            self._storage = self._storage_cls(self._flow_detail, self._backend)
+        return self._storage
 
     @abc.abstractproperty
     def _storage_cls(self):
-        """Storage class"""
+        """Storage class that will be used to generate storage objects"""
 
     @abc.abstractmethod
     def compile(self):
-        """Check the flow and convert it to internal representation"""
+        """Compiles the contained flow into a structure which the engine can
+        use to run or if this can not be done then an exception is thrown
+        indicating why this compilation could not be achieved.
+        """
 
     @abc.abstractmethod
     def run(self):
-        """Run the flow"""
+        """Runs the flow in the engine to completion (or die trying)."""
+
+    @abc.abstractmethod
+    def suspend(self):
+        """Attempts to suspend the engine.
+
+        If the engine is currently running tasks then this will attempt to
+        suspend future work from being started (currently active tasks can
+        not currently be preempted) and move the engine into a suspend state
+        which can then later be resumed from.
+        """

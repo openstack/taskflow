@@ -62,8 +62,6 @@ class ActionEngine(base.EngineBase):
         self._state_lock = threading.RLock()
         self._task_executor = None
         self._task_action = None
-        self.notifier = misc.TransitionNotifier()
-        self.task_notifier = misc.TransitionNotifier()
 
     def _revert(self, current_failure=None):
         self._change_state(states.REVERTING)
@@ -85,13 +83,6 @@ class ActionEngine(base.EngineBase):
         return "%s: %s" % (reflection.get_class_name(self), id(self))
 
     def suspend(self):
-        """Attempts to suspend the engine.
-
-        If the engine is currently running tasks then this will attempt to
-        suspend future work from being started (currently active tasks can
-        not currently be preempted) and move the engine into a suspend state
-        which can then later be resumed from.
-        """
         if not self._compiled:
             raise exc.InvariantViolation("Can not suspend an engine"
                                          " which has not been compiled")
@@ -173,10 +164,6 @@ class ActionEngine(base.EngineBase):
 
     @lock_utils.locked
     def compile(self):
-        """Compiles the contained flow into a structure which the engine can
-        use to run or if this can not be done then an exception is thrown
-        indicating why this compilation could not be achieved.
-        """
         if self._compiled:
             return
         task_graph = flow_utils.flatten(self._flow)
