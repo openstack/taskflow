@@ -57,14 +57,13 @@ class ActionEngine(base.EngineBase):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
         self._analyzer = None
         self._root = None
+        self._compiled = False
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
+        self._task_executor = None
+        self._task_action = None
         self.notifier = misc.TransitionNotifier()
         self.task_notifier = misc.TransitionNotifier()
-        self._task_executor = self._task_executor_cls()
-        self._task_action = self._task_action_cls(self.storage,
-                                                  self._task_executor,
-                                                  self.task_notifier)
 
     def _revert(self, current_failure=None):
         self._change_state(states.REVERTING)
@@ -93,6 +92,9 @@ class ActionEngine(base.EngineBase):
         not currently be preempted) and move the engine into a suspend state
         which can then later be resumed from.
         """
+        if not self._compiled:
+            raise exc.InvariantViolation("Can not suspend an engine"
+                                         " which has not been compiled")
         self._change_state(states.SUSPENDING)
 
     @property
@@ -159,29 +161,45 @@ class ActionEngine(base.EngineBase):
             self.task_notifier.notify(states.PENDING, details)
         self._change_state(states.PENDING)
 
+    def _ensure_storage_for(self, task_graph):
+        # NOTE(harlowja): signal to the tasks that exist that we are about to
+        # resume, if they have a previous state, they will now transition to
+        # a resuming state (and then to suspended).
+        self._change_state(states.RESUMING)  # does nothing in PENDING state
+        for task in task_graph.nodes_iter():
+            task_version = misc.get_version_string(task)
+            self.storage.ensure_task(task.name, task_version, task.save_as)
+        self._change_state(states.SUSPENDED)  # does nothing in PENDING state
+
     @lock_utils.locked
     def compile(self):
         """Compiles the contained flow into a structure which the engine can
         use to run or if this can not be done then an exception is thrown
         indicating why this compilation could not be achieved.
         """
-        if self._root is not None:
+        if self._compiled:
             return
-
-        self._change_state(states.RESUMING)  # does nothing in PENDING state
         task_graph = flow_utils.flatten(self._flow)
         if task_graph.number_of_nodes() == 0:
             raise exc.EmptyFlow("Flow %s is empty." % self._flow.name)
         self._analyzer = self._graph_analyzer_cls(task_graph,
                                                   self.storage)
+        if self._task_executor is None:
+            self._task_executor = self._task_executor_cls()
+        if self._task_action is None:
+            self._task_action = self._task_action_cls(self.storage,
+                                                      self._task_executor,
+                                                      self.task_notifier)
         self._root = self._graph_action_cls(self._analyzer,
                                             self.storage,
                                             self._task_action)
-        for task in task_graph.nodes_iter():
-            task_version = misc.get_version_string(task)
-            self.storage.ensure_task(task.name, task_version, task.save_as)
-
-        self._change_state(states.SUSPENDED)  # does nothing in PENDING state
+        # NOTE(harlowja): Perform inital state manipulation and setup.
+        #
+        # TODO(harlowja): This doesn't seem like it should be in a compilation
+        # function since compilation seems like it should not modify any
+        # external state.
+        self._ensure_storage_for(task_graph)
+        self._compiled = True
 
 
 class SingleThreadedActionEngine(ActionEngine):
@@ -198,6 +216,6 @@ class MultiThreadedActionEngine(ActionEngine):
         return executor.ParallelTaskExecutor(self._executor)
 
     def __init__(self, flow, flow_detail, backend, conf):
-        self._executor = conf.get('executor', None)
         super(MultiThreadedActionEngine, self).__init__(
             flow, flow_detail, backend, conf)
+        self._executor = conf.get('executor', None)
