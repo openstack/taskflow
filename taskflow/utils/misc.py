@@ -32,11 +32,58 @@ import traceback
 import six
 
 from taskflow import exceptions
+from taskflow.openstack.common import jsonutils
 from taskflow.utils import reflection
 
 
 LOG = logging.getLogger(__name__)
 NUMERIC_TYPES = six.integer_types + (float,)
+
+
+def binary_encode(text, encoding='utf-8'):
+    """Converts a string of into a binary type using given encoding.
+
+    Does nothing if text not unicode string.
+    """
+    if isinstance(text, six.binary_type):
+        return text
+    elif isinstance(text, six.text_type):
+        return text.encode(encoding)
+    else:
+        raise TypeError("Expected binary or string type")
+
+
+def binary_decode(data, encoding='utf-8'):
+    """Converts a binary type into a text type using given encoding.
+
+    Does nothing if data is already unicode string.
+    """
+    if isinstance(data, six.binary_type):
+        return data.decode(encoding)
+    elif isinstance(data, six.text_type):
+        return data
+    else:
+        raise TypeError("Expected binary or string type")
+
+
+def decode_json(raw_data, root_types=(dict,)):
+    """Parse raw data to get JSON object.
+
+    Decodes a JSON from a given raw data binary and checks that the root
+    type of that decoded object is in the allowed set of types (by
+    default a JSON object/dict should be the root type).
+    """
+    try:
+        data = jsonutils.loads(binary_decode(raw_data))
+    except UnicodeDecodeError as e:
+        raise ValueError("Expected UTF-8 decodable data: %s" % e)
+    except ValueError as e:
+        raise ValueError("Expected JSON decodable data: %s" % e)
+    if root_types and not isinstance(data, tuple(root_types)):
+        ok_types = ", ".join(str(t) for t in root_types)
+        raise ValueError("Expected (%s) root types not: %s"
+                         % (ok_types, type(data)))
+    return data
 
 
 def wallclock():
