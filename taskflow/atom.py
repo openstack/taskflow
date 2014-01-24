@@ -108,8 +108,11 @@ def _build_arg_mapping(task_name, reqs, rebind_args, function, do_infer):
 
 
 class Atom(object):
-    """An abstract flow atom that makes a flow progress. Atom is a named
-       object that operates with flow data.
+    """An abstract flow atom that causes a flow to progress (in some manner).
+
+    An atom is a named object that operates with input flow data to perform
+    some action that furthers the overall flows progress. It usually also
+    produces some of its own named output as a result of this process.
     """
 
     def __init__(self, name=None, provides=None):
@@ -138,8 +141,10 @@ class Atom(object):
 
     @property
     def provides(self):
+        """Any outputs this atom produces."""
         return set(self.save_as)
 
     @property
     def requires(self):
+        """Any inputs this atom requires to execute."""
         return set(self.rebind.values())
