@@ -33,7 +33,7 @@ STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
 
 
 class Storage(object):
-    """Interface between engines and logbook
+    """Interface between engines and logbook.
 
     This class provides a simple interface to save tasks of a given flow and
     associated activity and results to persistence layer (logbook,
@@ -50,7 +50,7 @@ class Storage(object):
         self._flowdetail = flow_detail
 
         # NOTE(imelnikov): failure serialization looses information,
-        # so we cache failures here, in task name -> misc.Failure mapping
+        # so we cache failures here, in task name -> misc.Failure mapping.
         self._failures = {}
         self._reload_failures()
 
@@ -76,7 +76,7 @@ class Storage(object):
             functor(conn, *args, **kwargs)
 
     def ensure_task(self, task_name, task_version=None, result_mapping=None):
-        """Ensure that there is taskdetail that correspond the task
+        """Ensure that there is taskdetail that correspond the task.
 
         If task does not exist, adds a record for it. Added task will have
         PENDING state. Sets result mapping for the task from result_mapping
@@ -94,20 +94,20 @@ class Storage(object):
         return task_id
 
     def _add_task(self, uuid, task_name, task_version=None):
-        """Add the task to storage
+        """Add the task to storage.
 
         Task becomes known to storage by that name and uuid.
         Task state is set to PENDING.
         """
         # TODO(imelnikov): check that task with same uuid or
-        # task name does not exist
+        # task name does not exist.
         td = logbook.TaskDetail(name=task_name, uuid=uuid)
         td.state = states.PENDING
         td.version = task_version
         self._flowdetail.add(td)
 
         def save_both(conn):
-            """Saves the flow and the task detail with the same connection"""
+            """Saves the flow and the task detail with the same connection."""
             self._save_flow_detail(conn)
             self._save_task_detail(conn, task_detail=td)
 
@@ -145,18 +145,18 @@ class Storage(object):
         task_detail.update(conn.update_task_details(task_detail))
 
     def get_task_uuid(self, task_name):
-        """Get task uuid by given name"""
+        """Get task uuid by given name."""
         td = self._taskdetail_by_name(task_name)
         return td.uuid
 
     def set_task_state(self, task_name, state):
-        """Set task state"""
+        """Set task state."""
         td = self._taskdetail_by_name(task_name)
         td.state = state
         self._with_connection(self._save_task_detail, task_detail=td)
 
     def get_task_state(self, task_name):
-        """Get state of task with given name"""
+        """Get state of task with given name."""
         return self._taskdetail_by_name(task_name).state
 
     def get_tasks_states(self, task_names):
@@ -188,7 +188,7 @@ class Storage(object):
         if details is not None:
             # NOTE(imelnikov): as we can update progress without
             # updating details (e.g. automatically from engine)
-            # we save progress value with details, too
+            # we save progress value with details, too.
             if details:
                 metadata_update['progress_details'] = {
                     'at_progress': progress,
@@ -222,7 +222,7 @@ class Storage(object):
         return meta.get('progress_details')
 
     def _check_all_results_provided(self, task_name, data):
-        """Warn if task did not provide some of results
+        """Warn if task did not provide some of results.
 
         This may happen if task returns shorter tuple or list or dict
         without all needed keys. It may also happen if task returns
@@ -240,7 +240,7 @@ class Storage(object):
                             task_name, index, name)
 
     def save(self, task_name, data, state=states.SUCCESS):
-        """Put result for task with id 'uuid' to storage"""
+        """Put result for task with id 'uuid' to storage."""
         td = self._taskdetail_by_name(task_name)
         td.state = state
         if state == states.FAILURE and isinstance(data, misc.Failure):
@@ -266,13 +266,13 @@ class Storage(object):
         return fail
 
     def _reload_failures(self):
-        """Refresh failures cache"""
+        """Refresh failures cache."""
         for td in self._flowdetail:
             if td.failure is not None:
                 self._cache_failure(td.name, td.failure)
 
     def get(self, task_name):
-        """Get result for task with name 'task_name' to storage"""
+        """Get result for task with name 'task_name' to storage."""
         td = self._taskdetail_by_name(task_name)
         if td.failure is not None:
             return self._cache_failure(td.name, td.failure)
@@ -289,7 +289,7 @@ class Storage(object):
         return self._failures.copy()
 
     def has_failures(self):
-        """Returns True if there are failed tasks in the storage"""
+        """Returns True if there are failed tasks in the storage."""
         return bool(self._failures)
 
     def _reset_task(self, td, state):
@@ -304,7 +304,7 @@ class Storage(object):
         return True
 
     def reset(self, task_name, state=states.PENDING):
-        """Remove result for task with id 'uuid' from storage"""
+        """Remove result for task with id 'uuid' from storage."""
         td = self._taskdetail_by_name(task_name)
         if self._reset_task(td, state):
             self._with_connection(self._save_task_detail, task_detail=td)
@@ -326,7 +326,7 @@ class Storage(object):
         return result
 
     def inject(self, pairs):
-        """Add values into storage
+        """Add values into storage.
 
         This method should be used to put flow parameters (requirements that
         are not satisfied by any task in the flow) into storage.
@@ -347,7 +347,7 @@ class Storage(object):
                                  dict((name, name) for name in names))
 
     def _set_result_mapping(self, task_name, mapping):
-        """Set mapping for naming task results
+        """Set mapping for naming task results.
 
         The result saved with given name would be accessible by names
         defined in mapping. Mapping is a dict name => index. If index
@@ -377,7 +377,7 @@ class Storage(object):
                             name)
 
     def fetch(self, name):
-        """Fetch named task result"""
+        """Fetch named task result."""
         try:
             indexes = self._reverse_mapping[name]
         except KeyError:
@@ -392,7 +392,7 @@ class Storage(object):
         raise exceptions.NotFound("Unable to find result %r" % name)
 
     def fetch_all(self):
-        """Fetch all named task results known so far
+        """Fetch all named task results known so far.
 
         Should be used for debugging and testing purposes mostly.
         """
@@ -405,17 +405,17 @@ class Storage(object):
         return result
 
     def fetch_mapped_args(self, args_mapping):
-        """Fetch arguments for the task using arguments mapping"""
+        """Fetch arguments for the task using arguments mapping."""
         return dict((key, self.fetch(name))
                     for key, name in six.iteritems(args_mapping))
 
     def set_flow_state(self, state):
-        """Set flowdetails state and save it"""
+        """Set flowdetails state and save it."""
         self._flowdetail.state = state
         self._with_connection(self._save_flow_detail)
 
     def get_flow_state(self):
-        """Set state from flowdetails"""
+        """Set state from flowdetails."""
         state = self._flowdetail.state
         if state is None:
             state = states.PENDING

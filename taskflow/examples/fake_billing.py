@@ -65,7 +65,7 @@ class UrlCaller(object):
         for i in range(0, len(data)):
             time.sleep(sleep_time)
             # As we send the data, each chunk we 'fake' send will progress
-            # the sending progress that much further to 100%
+            # the sending progress that much further to 100%.
             if status_cb:
                 status_cb(float(i) / len(data))
 

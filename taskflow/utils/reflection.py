@@ -47,7 +47,7 @@ def get_class_name(obj):
 
 
 def get_all_class_names(obj, up_to=object):
-    """Get class names of object parent classes
+    """Get class names of object parent classes.
 
     Iterate over all class names object is instance or subclass of,
     in order of method resolution (mro). If up_to parameter is provided,
@@ -61,7 +61,7 @@ def get_all_class_names(obj, up_to=object):
 
 
 def get_callable_name(function):
-    """Generate a name from callable
+    """Generate a name from callable.
 
     Tries to do the best to guess fully qualified callable name.
     """
@@ -136,7 +136,7 @@ def _get_arg_spec(function):
 
 
 def get_callable_args(function, required_only=False):
-    """Get names of callable arguments
+    """Get names of callable arguments.
 
     Special arguments (like *args and **kwargs) are not included into
     output.
@@ -154,6 +154,6 @@ def get_callable_args(function, required_only=False):
 
 
 def accepts_kwargs(function):
-    """Returns True if function accepts kwargs"""
+    """Returns True if function accepts kwargs."""
     argspec, _bound = _get_arg_spec(function)
     return bool(argspec.keywords)

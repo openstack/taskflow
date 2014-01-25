@@ -29,7 +29,7 @@ from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
-# NOTE(harlowja): on these states will results be useable, all other states
+# NOTE(harlowja): on these states will results be usable, all other states
 # do not produce results.
 FINISH_STATES = (states.FAILURE, states.SUCCESS)
 

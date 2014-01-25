@@ -180,7 +180,7 @@ class ActionEngine(base.EngineBase):
         self._root = self._graph_action_cls(self._analyzer,
                                             self.storage,
                                             self._task_action)
-        # NOTE(harlowja): Perform inital state manipulation and setup.
+        # NOTE(harlowja): Perform initial state manipulation and setup.
         #
         # TODO(harlowja): This doesn't seem like it should be in a compilation
         # function since compilation seems like it should not modify any
@@ -190,12 +190,12 @@ class ActionEngine(base.EngineBase):
 
 
 class SingleThreadedActionEngine(ActionEngine):
-    """Engine that runs tasks in serial manner"""
+    """Engine that runs tasks in serial manner."""
     _storage_cls = t_storage.Storage
 
 
 class MultiThreadedActionEngine(ActionEngine):
-    """Engine that runs tasks in parallel manner"""
+    """Engine that runs tasks in parallel manner."""
 
     _storage_cls = t_storage.ThreadSafeStorage
 

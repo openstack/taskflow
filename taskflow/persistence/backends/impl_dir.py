@@ -144,7 +144,7 @@ class Connection(base.Connection):
                 pass
 
     def get_logbooks(self):
-        # NOTE(harlowja): don't hold the lock while iterating
+        # NOTE(harlowja): don't hold the lock while iterating.
         with self._lock:
             books = list(self._get_logbooks())
         for b in books:
@@ -406,7 +406,7 @@ class Connection(base.Connection):
 ###
 
 def _str_2_datetime(text):
-    """Converts an iso8601 string/text into a datetime object (or none)"""
+    """Converts an iso8601 string/text into a datetime object (or none)."""
     if text is None:
         return None
     if not isinstance(text, six.string_types):

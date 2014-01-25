@@ -49,8 +49,7 @@ class TimingListener(base.ListenerBase):
             'duration': float(timer.elapsed()),
         }
         try:
-            # Don't let storage failures throw exceptions in a listener
-            # method.
+            # Don't let storage failures throw exceptions in a listener method.
             self._engine.storage.update_task_metadata(task_name, meta_update)
         except excp.StorageError:
             LOG.exception("Failure to store duration update %s for task %s",

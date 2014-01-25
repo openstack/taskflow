@@ -89,7 +89,7 @@ class EmptyFlow(TaskFlowException):
 
 
 class WrappedFailure(TaskFlowException):
-    """Wraps one or several failures
+    """Wraps one or several failures.
 
     When exception cannot be re-raised (for example, because
     the value and traceback is lost in serialization) or
@@ -101,17 +101,17 @@ class WrappedFailure(TaskFlowException):
         self._causes = []
         for cause in causes:
             if cause.check(type(self)) and cause.exception:
-                # NOTE(imelnikov): flatten wrapped failures
+                # NOTE(imelnikov): flatten wrapped failures.
                 self._causes.extend(cause.exception)
             else:
                 self._causes.append(cause)
 
     def __iter__(self):
-        """Iterate over failures that caused the exception"""
+        """Iterate over failures that caused the exception."""
         return iter(self._causes)
 
     def __len__(self):
-        """Return number of wrapped failures"""
+        """Return number of wrapped failures."""
         return len(self._causes)
 
     def check(self, *exc_classes):

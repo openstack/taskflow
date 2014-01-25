@@ -26,7 +26,7 @@ from taskflow.utils import misc
 
 
 class PrintingListener(base.LoggingBase):
-    """Writes the task and flow notifications messages to stdout or stderr"""
+    """Writes the task and flow notifications messages to stdout or stderr."""
     def __init__(self, engine,
                  task_listen_for=(misc.TransitionNotifier.ANY,),
                  flow_listen_for=(misc.TransitionNotifier.ANY,),

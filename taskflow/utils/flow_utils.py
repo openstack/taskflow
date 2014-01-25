@@ -99,12 +99,12 @@ def _flatten_task(task):
 def _flatten_graph(flow, flattened):
     graph = nx.DiGraph(name=_graph_name(flow))
     subgraph_map = {}
-    # Flatten all nodes
+    # Flatten all nodes.
     for n in flow.graph.nodes_iter():
         subgraph = _flatten(n, flattened)
         subgraph_map[n] = subgraph
         graph = gu.merge_graphs([graph, subgraph])
-    # Reconnect all nodes to there corresponding subgraphs
+    # Reconnect all nodes to there corresponding subgraphs.
     for (u, v) in flow.graph.edges_iter():
         # Retain and update the original edge attributes.
         u_v_attrs = gu.get_edge_attrs(flow.graph, u, v)

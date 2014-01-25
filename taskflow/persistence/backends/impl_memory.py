@@ -152,8 +152,8 @@ class Connection(base.Connection):
             e_lb._updated_at = timeutils.utcnow()
 
         p_utils.logbook_merge(e_lb, book, deep_copy=True)
-        # Add anything in to the new logbook that isn't already
-        # in the existing logbook.
+        # Add anything in to the new logbook that isn't already in the existing
+        # logbook.
         for flow_detail in book:
             try:
                 e_fd = self.backend.flow_details[flow_detail.uuid]
@@ -178,6 +178,6 @@ class Connection(base.Connection):
         return list(self.backend.log_books.values())
 
     def get_logbooks(self):
-        # NOTE(harlowja): don't hold the lock while iterating
+        # NOTE(harlowja): don't hold the lock while iterating.
         for lb in self._get_logbooks():
             yield lb

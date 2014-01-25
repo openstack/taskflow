@@ -41,7 +41,7 @@ class Flow(flow.Flow):
             return self
 
         # NOTE(imelnikov): we add item to the end of flow, so it should
-        # not provide anything previous items of the flow require
+        # not provide anything previous items of the flow require.
         requires = self.requires
         provides = self.provides
         for item in items:

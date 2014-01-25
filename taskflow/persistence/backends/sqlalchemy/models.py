@@ -71,7 +71,7 @@ class Failure(types.TypeDecorator):
 
 
 class ModelBase(TimestampMixin):
-    """Base model for all taskflow objects"""
+    """Base model for all taskflow objects."""
     uuid = Column(String, default=uuidutils.generate_uuid,
                   primary_key=True, nullable=False, unique=True)
     name = Column(String, nullable=True)
@@ -79,7 +79,7 @@ class ModelBase(TimestampMixin):
 
 
 class LogBook(BASE, ModelBase):
-    """Represents a logbook for a set of flows"""
+    """Represents a logbook for a set of flows."""
     __tablename__ = 'logbooks'
 
     # Relationships

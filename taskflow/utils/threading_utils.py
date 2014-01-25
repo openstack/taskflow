@@ -40,7 +40,7 @@ def get_optimal_thread_count():
 
 
 class ThreadSafeMeta(type):
-    """Metaclass that adds locking to all pubic methods of a class"""
+    """Metaclass that adds locking to all pubic methods of a class."""
 
     def __new__(cls, name, bases, attrs):
         for attr_name, attr_value in six.iteritems(attrs):

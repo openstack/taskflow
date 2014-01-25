@@ -33,7 +33,7 @@ class GraphFlowTest(test.TestCase):
         return taskflow.engines.load(flow, store={})
 
     def _capture_states(self):
-        # TODO(harlowja): move function to shared helper
+        # TODO(harlowja): move function to shared helper.
         capture_where = collections.defaultdict(list)
 
         def do_capture(state, details):

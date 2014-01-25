@@ -53,7 +53,7 @@ class TaskAction(object):
         return True
 
     def _on_update_progress(self, task, event_data, progress, **kwargs):
-        """Should be called when task updates its progress"""
+        """Should be called when task updates its progress."""
         try:
             self._storage.set_task_progress(task.name, progress, kwargs)
         except Exception:

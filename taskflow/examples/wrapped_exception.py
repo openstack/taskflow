@@ -77,11 +77,11 @@ def wrap_all_failures():
 
 
 class FirstException(Exception):
-    """Exception that first task raises"""
+    """Exception that first task raises."""
 
 
 class SecondException(Exception):
-    """Exception that second task raises"""
+    """Exception that second task raises."""
 
 
 class FirstTask(task.Task):

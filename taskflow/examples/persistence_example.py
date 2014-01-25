@@ -84,8 +84,8 @@ def make_flow(blowup=False):
 
 
 # Persist the flow and task state here, if the file/dir exists already blowup
-# if not don't blowup, this allows a user to see both the modes and to
-# see what is stored in each case.
+# if not don't blowup, this allows a user to see both the modes and to see
+# what is stored in each case.
 if example_utils.SQLALCHEMY_AVAILABLE:
     persist_path = os.path.join(tempfile.gettempdir(), "persisting.db")
     backend_uri = "sqlite:///%s" % (persist_path)

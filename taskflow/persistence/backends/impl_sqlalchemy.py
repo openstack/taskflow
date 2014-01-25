@@ -89,17 +89,17 @@ POSTGRES_CONN_ERRORS = (
     'could not connect to server',
 )
 POSTGRES_GONE_WAY_AWAY_ERRORS = (
-    # Server terminated while in progress (postgres errors are pretty weird)
+    # Server terminated while in progress (postgres errors are pretty weird).
     'server closed the connection unexpectedly',
     'terminating connection due to administrator command',
 )
 
-# These connection urls mean sqlite is being used as an in-memory DB
+# These connection urls mean sqlite is being used as an in-memory DB.
 SQLITE_IN_MEMORY = ('sqlite://', 'sqlite:///', 'sqlite:///:memory:')
 
 
 def _in_any(reason, err_haystack):
-    """Checks if any elements of the haystack are in the given reason"""
+    """Checks if any elements of the haystack are in the given reason."""
     for err in err_haystack:
         if reason.find(str(err)) != -1:
             return True
@@ -137,7 +137,7 @@ def _set_mode_traditional(dbapi_con, con_record, connection_proxy):
 def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
     """Ensures that MySQL connections checked out of the pool are alive.
 
-    Modified + borrowed from: http://bit.ly/14BYaW6
+    Modified + borrowed from: http://bit.ly/14BYaW6.
     """
     try:
         dbapi_conn.cursor().execute('select 1')
@@ -218,7 +218,7 @@ class SQLAlchemyBackend(base.Backend):
         if 'sqlite' in e_url.drivername:
             engine_args["poolclass"] = sa_pool.NullPool
 
-            # Adjustments for in-memory sqlite usage
+            # Adjustments for in-memory sqlite usage.
             if sql_connection.lower().strip() in SQLITE_IN_MEMORY:
                 engine_args["poolclass"] = sa_pool.StaticPool
                 engine_args["connect_args"] = {'check_same_thread': False}

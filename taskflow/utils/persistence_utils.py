@@ -86,7 +86,7 @@ def create_flow_detail(flow, book=None, backend=None, meta=None):
             with contextlib.closing(backend.get_connection()) as conn:
                 conn.save_logbook(book)
         # Return the one from the saved logbook instead of the local one so
-        # that the freshest version is given back
+        # that the freshest version is given back.
         return book.find(flow_id)
     else:
         return flow_detail
@@ -112,7 +112,7 @@ def task_details_merge(td_e, td_new, deep_copy=False):
 
     copy_fn = _copy_function(deep_copy)
     if td_e.state != td_new.state:
-        # NOTE(imelnikov): states are just strings, no need to copy
+        # NOTE(imelnikov): states are just strings, no need to copy.
         td_e.state = td_new.state
     if td_e.results != td_new.results:
         td_e.results = copy_fn(td_new.results)
@@ -145,7 +145,7 @@ def flow_details_merge(fd_e, fd_new, deep_copy=False):
     if fd_e.meta != fd_new.meta:
         fd_e.meta = copy_fn(fd_new.meta)
     if fd_e.state != fd_new.state:
-        # NOTE(imelnikov): states are just strings, no need to copy
+        # NOTE(imelnikov): states are just strings, no need to copy.
         fd_e.state = fd_new.state
     return fd_e
 
@@ -168,7 +168,7 @@ def logbook_merge(lb_e, lb_new, deep_copy=False):
 
 
 def failure_to_dict(failure):
-    """Convert misc.Failure object to JSON-serializable dict"""
+    """Convert misc.Failure object to JSON-serializable dict."""
     if not failure:
         return None
     if not isinstance(failure, misc.Failure):
@@ -185,8 +185,7 @@ def failure_to_dict(failure):
 def failure_from_dict(data):
     """Restore misc.Failure object from dict.
 
-    The dict should be similar to what failure_to_dict() function
-    produces.
+    The dict should be similar to what failure_to_dict() function produces.
     """
     if not data:
         return None
@@ -227,7 +226,7 @@ def _format_shared(obj, indent):
 
 
 def pformat_task_detail(task_detail, indent=0):
-    """Pretty formats a task detail"""
+    """Pretty formats a task detail."""
     lines = ["%sTask: '%s'" % (" " * (indent), task_detail.name)]
     lines.extend(_format_shared(task_detail, indent=indent + 1))
     lines.append("%s- version = %s"
@@ -241,7 +240,7 @@ def pformat_task_detail(task_detail, indent=0):
 
 
 def pformat_flow_detail(flow_detail, indent=0):
-    """Pretty formats a flow detail"""
+    """Pretty formats a flow detail."""
     lines = ["%sFlow: '%s'" % (" " * indent, flow_detail.name)]
     lines.extend(_format_shared(flow_detail, indent=indent + 1))
     lines.extend(_format_meta(flow_detail.meta, indent=indent + 1))
@@ -251,7 +250,7 @@ def pformat_flow_detail(flow_detail, indent=0):
 
 
 def pformat(book, indent=0):
-    """Pretty formats a logbook"""
+    """Pretty formats a logbook."""
     lines = ["%sLogbook: '%s'" % (" " * indent, book.name)]
     lines.extend(_format_shared(book, indent=indent + 1))
     lines.extend(_format_meta(book.meta, indent=indent + 1))

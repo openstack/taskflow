@@ -36,8 +36,8 @@ class GraphAnalyzer(object):
         return self._graph
 
     def browse_nodes_for_execute(self, node=None):
-        """Browse next nodes to execute for given node if
-           specified and for whole graph otherwise.
+        """Browse next nodes to execute for given node if specified and
+        for whole graph otherwise.
         """
         if node:
             nodes = self._graph.successors(node)
@@ -51,8 +51,8 @@ class GraphAnalyzer(object):
         return available_nodes
 
     def browse_nodes_for_revert(self, node=None):
-        """Browse next nodes to revert for given node if
-           specified and for whole graph otherwise.
+        """Browse next nodes to revert for given node if specified and
+        for whole graph otherwise.
         """
         if node:
             nodes = self._graph.predecessors(node)
@@ -66,7 +66,7 @@ class GraphAnalyzer(object):
         return available_nodes
 
     def _is_ready_for_execute(self, task):
-        """Checks if task is ready to be executed"""
+        """Checks if task is ready to be executed."""
 
         state = self._storage.get_task_state(task.name)
         if not st.check_task_transition(state, st.RUNNING):
@@ -81,7 +81,7 @@ class GraphAnalyzer(object):
                    for state in six.itervalues(task_states))
 
     def _is_ready_for_revert(self, task):
-        """Checks if task is ready to be reverted"""
+        """Checks if task is ready to be reverted."""
 
         state = self._storage.get_task_state(task.name)
         if not st.check_task_transition(state, st.REVERTING):

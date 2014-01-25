@@ -145,13 +145,13 @@ _ALLOWED_TASK_TRANSITIONS = frozenset((
     # NOTE(harlowja): allow the tasks to restart if in the same state
     # as a they were in before as a task may be 'killed' while in one of the
     # below states and it is permissible to let the task to re-enter that
-    # same state to try to finish
+    # same state to try to finish.
     (REVERTING, REVERTING),
     (RUNNING, RUNNING),
 
     # NOTE(harlowja): the task was 'killed' while in one of the starting/ending
     # states and it is permissible to let the task to start running or
-    # reverting again (if it really wants too)
+    # reverting again (if it really wants too).
     (REVERTING, RUNNING),
     (RUNNING, REVERTING),
 ))
@@ -166,7 +166,7 @@ _IGNORED_TASK_TRANSITIONS = [
 #
 # NOTE(harlowja): the above ALLOWED_TASK_TRANSITIONS does allow
 # transitions to certain equivalent states (but only for a few special
-# cases)
+# cases).
 _IGNORED_TASK_TRANSITIONS.extend(
     (a, a) for a in (PENDING, FAILURE, SUCCESS, REVERTED)
 )

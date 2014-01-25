@@ -74,7 +74,7 @@ def wait_for_any(fs, timeout=None):
 
 
 def make_completed_future(result):
-    """Make with completed with given result"""
+    """Make with completed with given result."""
     future = futures.Future()
     future.set_result(result)
     return future

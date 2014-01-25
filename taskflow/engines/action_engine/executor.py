@@ -25,7 +25,7 @@ from taskflow.utils import async_utils
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
-# Revert or execution events...
+# Execution and reversion events.
 EXECUTED = 'executed'
 REVERTED = 'reverted'
 
@@ -36,7 +36,7 @@ def _execute_task(task, arguments, progress_callback):
             result = task.execute(**arguments)
         except Exception:
             # NOTE(imelnikov): wrap current exception with Failure
-            # object and return it
+            # object and return it.
             result = misc.Failure()
     return (task, EXECUTED, result)
 
@@ -50,7 +50,7 @@ def _revert_task(task, arguments, result, failures, progress_callback):
             result = task.revert(**kwargs)
         except Exception:
             # NOTE(imelnikov): wrap current exception with Failure
-            # object and return it
+            # object and return it.
             result = misc.Failure()
     return (task, REVERTED, result)
 
@@ -71,18 +71,18 @@ class TaskExecutorBase(object):
     @abc.abstractmethod
     def revert_task(self, task, arguments, result, failures,
                     progress_callback=None):
-        """Schedules task reversion"""
+        """Schedules task reversion."""
 
     @abc.abstractmethod
     def wait_for_any(self, fs, timeout=None):
-        """Wait for futures returned by this executor to complete"""
+        """Wait for futures returned by this executor to complete."""
 
     def start(self):
-        """Prepare to execute tasks"""
+        """Prepare to execute tasks."""
         pass
 
     def stop(self):
-        """Finalize task executor"""
+        """Finalize task executor."""
         pass
 
 
@@ -100,7 +100,7 @@ class SerialTaskExecutor(TaskExecutorBase):
                          failures, progress_callback))
 
     def wait_for_any(self, fs, timeout=None):
-        # NOTE(imelnikov): this executor returns only done futures
+        # NOTE(imelnikov): this executor returns only done futures.
         return fs, []
 
 

@@ -17,7 +17,7 @@
 #    under the License.
 
 
-"""Run examples as unit tests
+"""Run examples as unit tests.
 
 This module executes examples as unit tests, thus ensuring they at least
 can be executed with current taskflow. For examples with deterministic
@@ -111,7 +111,7 @@ ExamplesTestCase.update()
 
 
 def make_output_files():
-    """Generate output files for all examples"""
+    """Generate output files for all examples."""
     for name in list_examples():
         output = run_example(name)
         with open(expected_output_path(name), 'w') as f:

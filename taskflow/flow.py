@@ -54,7 +54,7 @@ class Flow(object):
 
     @property
     def name(self):
-        """A non-unique name for this flow (human readable)"""
+        """A non-unique name for this flow (human readable)."""
         return self._name
 
     @abc.abstractmethod

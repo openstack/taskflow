@@ -121,7 +121,7 @@ class GetCallableNameTest(test.TestCase):
 
     def test_static_method(self):
         # NOTE(imelnikov): static method are just functions, class name
-        #   is not recorded anywhere in them
+        # is not recorded anywhere in them.
         name = reflection.get_callable_name(Class.static_method)
         self.assertEqual(name, '.'.join((__name__, 'static_method')))
 
@@ -332,14 +332,14 @@ class AttrDictTest(test.TestCase):
 
     def test_invalid_create(self):
         attrs = {
-            # Python attributes can't start with a number
+            # Python attributes can't start with a number.
             '123_abc': 1,
         }
         self.assertRaises(AttributeError, misc.AttrDict, **attrs)
 
     def test_no_overwrite(self):
         attrs = {
-            # Python attributes can't start with a number
+            # Python attributes can't start with a number.
             'update': 1,
         }
         self.assertRaises(AttributeError, misc.AttrDict, **attrs)
@@ -438,7 +438,7 @@ class StopWatchUtilsTest(test.TestCase):
         watch = misc.StopWatch()
         watch.start()
         time.sleep(0.2)
-        # NOTE(harlowja): Allow for a slight variation by using 0.19
+        # NOTE(harlowja): Allow for a slight variation by using 0.19.
         self.assertGreaterEqual(0.19, watch.elapsed())
 
     def test_pause_resume(self):

@@ -51,14 +51,14 @@ def merge_graphs(graphs, allow_overlaps=False):
 
 
 def get_no_successors(graph):
-    """Returns an iterator for all nodes with no successors"""
+    """Returns an iterator for all nodes with no successors."""
     for n in graph.nodes_iter():
         if not len(graph.successors(n)):
             yield n
 
 
 def get_no_predecessors(graph):
-    """Returns an iterator for all nodes with no predecessors"""
+    """Returns an iterator for all nodes with no predecessors."""
     for n in graph.nodes_iter():
         if not len(graph.predecessors(n)):
             yield n
@@ -96,5 +96,5 @@ def pformat(graph):
 
 
 def export_graph_to_dot(graph):
-    """Exports the graph to a dot format (requires pydot library)"""
+    """Exports the graph to a dot format (requires pydot library)."""
     return nx.to_pydot(graph).to_string()

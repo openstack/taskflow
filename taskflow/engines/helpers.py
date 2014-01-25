@@ -31,7 +31,7 @@ ENGINES_NAMESPACE = 'taskflow.engines'
 
 def load(flow, store=None, flow_detail=None, book=None,
          engine_conf=None, backend=None, namespace=ENGINES_NAMESPACE):
-    """Load flow into engine
+    """Load flow into engine.
 
     This function creates and prepares engine to run the
     flow. All that is left is to run the engine with 'run()' method.
@@ -59,7 +59,7 @@ def load(flow, store=None, flow_detail=None, book=None,
     if engine_conf is None:
         engine_conf = {'engine': 'default'}
 
-    # NOTE(imelnikov): this allows simpler syntax
+    # NOTE(imelnikov): this allows simpler syntax.
     if isinstance(engine_conf, six.string_types):
         engine_conf = {'engine': engine_conf}
 
@@ -86,7 +86,7 @@ def load(flow, store=None, flow_detail=None, book=None,
 
 
 def run(flow, store=None, engine_conf=None, backend=None):
-    """Run the flow
+    """Run the flow.
 
     This function load the flow into engine (with 'load' function)
     and runs the engine.
@@ -113,7 +113,7 @@ def run(flow, store=None, engine_conf=None, backend=None):
 
 def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
                       store=None, book=None, engine_conf=None, backend=None):
-    """Load flow from factory function into engine
+    """Load flow from factory function into engine.
 
     Gets flow factory function (or name of it) and creates flow with
     it. Then, flow is loaded into engine with load(), and factory
@@ -158,9 +158,9 @@ def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
 
 
 def flow_from_detail(flow_detail):
-    """Recreate flow previously loaded with load_form_factory
+    """Recreate flow previously loaded with load_form_factory.
 
-    Gets flow factory name from metadata, calls it to recreate the flow
+    Gets flow factory name from metadata, calls it to recreate the flow.
 
     :param flow_detail: FlowDetail that holds state of the flow to load
     """
@@ -183,7 +183,7 @@ def flow_from_detail(flow_detail):
 
 
 def load_from_detail(flow_detail, store=None, engine_conf=None, backend=None):
-    """Reload flow previously loaded with load_form_factory
+    """Reload flow previously loaded with load_form_factory.
 
     Gets flow factory name from metadata, calls it to recreate the flow
     and loads flow into engine with load().

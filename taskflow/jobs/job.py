@@ -71,16 +71,16 @@ class Job(object):
 
     @property
     def uuid(self):
-        """The uuid of this job"""
+        """The uuid of this job."""
         return self._uuid
 
     @property
     def name(self):
-        """The non-uniquely identifying name of this job"""
+        """The non-uniquely identifying name of this job."""
         return self._name
 
     def __iter__(self):
-        # Don't iterate while holding the lock
+        # Don't iterate while holding the lock.
         with self._lock:
             flows = list(self._flows)
         for f in flows:

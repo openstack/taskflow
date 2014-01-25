@@ -146,7 +146,7 @@ with example_utils.get_backend() as backend:
     else:
         flow_detail = find_flow_detail(backend, book_id, flow_id)
 
-    # Annnnd load and run.
+    # Load and run.
     engine_conf = {
         'engine': 'serial',
     }

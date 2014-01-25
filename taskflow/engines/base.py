@@ -26,7 +26,7 @@ from taskflow.utils import misc
 
 @six.add_metaclass(abc.ABCMeta)
 class EngineBase(object):
-    """Base for all engines implementations"""
+    """Base for all engines implementations."""
 
     def __init__(self, flow, flow_detail, backend, conf):
         self._flow = flow
@@ -49,7 +49,7 @@ class EngineBase(object):
 
     @abc.abstractproperty
     def _storage_cls(self):
-        """Storage class that will be used to generate storage objects"""
+        """Storage class that will be used to generate storage objects."""
 
     @abc.abstractmethod
     def compile(self):

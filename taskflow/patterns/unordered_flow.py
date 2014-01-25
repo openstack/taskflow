@@ -43,7 +43,8 @@ class Flow(flow.Flow):
         if not items:
             return self
 
-        # NOTE(harlowja): check that items to be added are actually independent
+        # NOTE(harlowja): check that items to be added are actually
+        # independent.
         provides = self.provides
         old_requires = self.requires
         for item in items:

@@ -48,16 +48,16 @@ class BaseTask(atom.Atom):
     def execute(self, *args, **kwargs):
         """Activate a given task which will perform some operation and return.
 
-           This method can be used to apply some given context and given set
-           of args and kwargs to accomplish some goal. Note that the result
-           that is returned needs to be serializable so that it can be passed
-           back into this task if reverting is triggered.
+        This method can be used to apply some given context and given set
+        of args and kwargs to accomplish some goal. Note that the result
+        that is returned needs to be serializable so that it can be passed
+        back into this task if reverting is triggered.
         """
 
     def revert(self, *args, **kwargs):
         """Revert this task using the given context, result that the apply
-           provided as well as any information which may have caused
-           said reversion.
+        provided as well as any information which may have caused said
+        reversion.
         """
 
     def update_progress(self, progress, **kwargs):
@@ -144,7 +144,7 @@ class BaseTask(atom.Atom):
 
 
 class Task(BaseTask):
-    """Base class for user-defined tasks
+    """Base class for user-defined tasks.
 
     Adds following features to Task:
         - auto-generates name from type of self
@@ -157,7 +157,7 @@ class Task(BaseTask):
 
     def __init__(self, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None):
-        """Initialize task instance"""
+        """Initialize task instance."""
         if provides is None:
             provides = self.default_provides
         super(Task, self).__init__(name, provides=provides)
@@ -165,7 +165,7 @@ class Task(BaseTask):
 
 
 class FunctorTask(BaseTask):
-    """Adaptor to make a task from a callable
+    """Adaptor to make a task from a callable.
 
     Take any callable and make a task from it.
     """

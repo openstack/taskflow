@@ -190,7 +190,7 @@ class StorageTest(test.TestCase):
         s.inject({'foo': 'bar', 'spam': 'eggs'})
 
         # NOTE(imelnikov): injecting is implemented as special task
-        # so resetting tasks may break it if implemented incorrectly
+        # so resetting tasks may break it if implemented incorrectly.
         s.reset_tasks()
 
         self.assertEqual(s.fetch('spam'), 'eggs')

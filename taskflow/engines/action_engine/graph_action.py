@@ -75,7 +75,7 @@ class FutureGraphAction(object):
         while not_done:
             # NOTE(imelnikov): if timeout occurs before any of futures
             # completes, done list will be empty and we'll just go
-            # for next iteration
+            # for next iteration.
             done, not_done = self._task_action.wait_for_any(
                 not_done, _WAITING_TIMEOUT)
 
@@ -97,7 +97,7 @@ class FutureGraphAction(object):
                 else:
                     # NOTE(imelnikov): engine stopped while there were
                     # still some tasks to do, so we either failed
-                    # or were suspended
+                    # or were suspended.
                     was_suspended = True
 
         misc.Failure.reraise_if_any(failures)

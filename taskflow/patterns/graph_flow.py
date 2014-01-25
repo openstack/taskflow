@@ -27,7 +27,7 @@ from taskflow.utils import graph_utils
 
 
 class Flow(flow.Flow):
-    """Graph flow pattern
+    """Graph flow pattern.
 
     Contained *flows/tasks* will be executed according to their dependencies
     which will be resolved by using the *flows/tasks* provides and requires

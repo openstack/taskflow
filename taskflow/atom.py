@@ -28,7 +28,7 @@ LOG = logging.getLogger(__name__)
 
 
 def _save_as_to_mapping(save_as):
-    """Convert save_as to mapping name => index
+    """Convert save_as to mapping name => index.
 
     Result should follow storage convention for mappings.
     """

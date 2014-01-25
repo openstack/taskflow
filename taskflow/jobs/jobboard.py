@@ -35,7 +35,7 @@ class JobBoard(object):
 
     @property
     def name(self):
-        """The non-uniquely identifying name of this jobboard"""
+        """The non-uniquely identifying name of this jobboard."""
         return self._name
 
     @abc.abstractmethod

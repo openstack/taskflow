@@ -62,6 +62,6 @@ flow = lf.Flow('simple-linear').add(
     CallJoe()
 )
 
-# Now run that flow using the provided initial data (store below)
+# Now run that flow using the provided initial data (store below).
 taskflow.engines.run(flow, store=dict(joe_number=444,
                                       jim_number=555))

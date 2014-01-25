@@ -158,14 +158,16 @@ _ASCII_WORD_SYMBOLS = frozenset(string.ascii_letters + string.digits + '_')
 
 
 def is_valid_attribute_name(name, allow_self=False, allow_hidden=False):
-    """Validates that a string name is a valid/invalid python attribute name"""
+    """Validates that a string name is a valid/invalid python attribute
+    name.
+    """
     return all((
         isinstance(name, six.string_types),
         len(name) > 0,
         (allow_self or not name.lower().startswith('self')),
         (allow_hidden or not name.lower().startswith('_')),
 
-        # NOTE(imelnikov): keywords should be forbidden
+        # NOTE(imelnikov): keywords should be forbidden.
         not keyword.iskeyword(name),
 
         # See: http://docs.python.org/release/2.5.2/ref/grammar.txt
@@ -184,7 +186,7 @@ class AttrDict(dict):
     def _is_valid_attribute_name(cls, name):
         if not is_valid_attribute_name(name):
             return False
-        # Make the name just be a simple string in latin-1 encoding in python3
+        # Make the name just be a simple string in latin-1 encoding in python3.
         if name in cls.NO_ATTRS:
             return False
         return True
@@ -263,7 +265,7 @@ def as_int(obj, quiet=False):
 # amount of other files it does not seem so useful to include that full
 # module just for this function.
 def ensure_tree(path):
-    """Create a directory (and any ancestor directories required)
+    """Create a directory (and any ancestor directories required).
 
     :param path: Directory to create
     """
@@ -361,7 +363,7 @@ class TransitionNotifier(object):
         self._listeners = collections.defaultdict(list)
 
     def __len__(self):
-        """Returns how many callbacks are registered"""
+        """Returns how many callbacks are registered."""
 
         count = 0
         for (_s, callbacks) in six.iteritems(self._listeners):
@@ -421,12 +423,12 @@ class TransitionNotifier(object):
 
 
 def copy_exc_info(exc_info):
-    """Make copy of exception info tuple, as deep as possible"""
+    """Make copy of exception info tuple, as deep as possible."""
     if exc_info is None:
         return None
     exc_type, exc_value, tb = exc_info
     # NOTE(imelnikov): there is no need to copy type, and
-    # we can't copy traceback
+    # we can't copy traceback.
     return (exc_type, copy.deepcopy(exc_value), tb)
 
 
@@ -438,7 +440,7 @@ def are_equal_exc_info_tuples(ei1, ei2):
 
     # NOTE(imelnikov): we can't compare exceptions with '=='
     # because we want exc_info be equal to it's copy made with
-    # copy_exc_info above
+    # copy_exc_info above.
     if ei1[0] is not ei2[0]:
         return False
     if not all((type(ei1[1]) == type(ei2[1]),
@@ -558,14 +560,14 @@ class Failure(object):
             raise exceptions.WrappedFailure(failures)
 
     def reraise(self):
-        """Re-raise captured exception"""
+        """Re-raise captured exception."""
         if self._exc_info:
             six.reraise(*self._exc_info)
         else:
             raise exceptions.WrappedFailure([self])
 
     def check(self, *exc_classes):
-        """Check if any of exc_classes caused the failure
+        """Check if any of exc_classes caused the failure.
 
         Arguments of this method can be exception types or type
         names (stings). If captured exception is instance of
@@ -586,7 +588,7 @@ class Failure(object):
                                     self._exception_str)
 
     def __iter__(self):
-        """Iterate over exception type names"""
+        """Iterate over exception type names."""
         for et in self._exc_type_names:
             yield et
 

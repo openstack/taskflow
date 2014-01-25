@@ -100,7 +100,7 @@ class VolumeCreator(task.Task):
         print("Finished making volume %s" % (self._volume_id))
 
 
-# Assume there is no ordering dependency between volumes
+# Assume there is no ordering dependency between volumes.
 flow = uf.Flow("volume-maker")
 for i in range(0, VOLUME_COUNT):
     flow.add(VolumeCreator(volume_id="vol-%s" % (i)))
