@@ -25,7 +25,7 @@ from taskflow.utils import misc
 
 
 class PersistenceTestMixin(object):
-    def _get_connection():
+    def _get_connection(self):
         raise NotImplementedError()
 
     def test_logbook_save_retrieve(self):
