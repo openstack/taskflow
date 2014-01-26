@@ -112,7 +112,7 @@ ExamplesTestCase.update()
 
 def make_output_files():
     """Generate output files for all examples"""
-    for name in list_examples(False):
+    for name in list_examples():
         output = run_example(name)
         with open(expected_output_path(name), 'w') as f:
             f.write(output)
