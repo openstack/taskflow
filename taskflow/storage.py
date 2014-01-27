@@ -16,6 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
 import contextlib
 import logging
 
@@ -25,13 +26,15 @@ from taskflow import exceptions
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow import states
+from taskflow.utils import lock_utils
 from taskflow.utils import misc
-from taskflow.utils import threading_utils as tu
+from taskflow.utils import reflection
 
 LOG = logging.getLogger(__name__)
 STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
 
 
+@six.add_metaclass(abc.ABCMeta)
 class Storage(object):
     """Interface between engines and logbook.
 
@@ -48,11 +51,14 @@ class Storage(object):
         self._reverse_mapping = {}
         self._backend = backend
         self._flowdetail = flow_detail
+        self._lock = self._lock_cls()
 
         # NOTE(imelnikov): failure serialization looses information,
         # so we cache failures here, in task name -> misc.Failure mapping.
         self._failures = {}
-        self._reload_failures()
+        for td in self._flowdetail:
+            if td.failure is not None:
+                self._failures[td.name] = td.failure
 
         self._task_name_to_uuid = dict((td.name, td.uuid)
                                        for td in self._flowdetail)
@@ -66,11 +72,20 @@ class Storage(object):
             self._set_result_mapping(injector_td.name,
                                      dict((name, name) for name in names))
 
+    @abc.abstractproperty
+    def _lock_cls(self):
+        """Lock class used to generate reader/writer locks for protecting
+        read/write access to the underlying storage backend and internally
+        mutating operations.
+        """
+
     def _with_connection(self, functor, *args, **kwargs):
         # NOTE(harlowja): Activate the given function with a backend
         # connection, if a backend is provided in the first place, otherwise
         # don't call the function.
         if self._backend is None:
+            LOG.debug("No backend provided, not calling functor '%s'",
+                      reflection.get_callable_name(functor))
             return
         with contextlib.closing(self._backend.get_connection()) as conn:
             functor(conn, *args, **kwargs)
@@ -85,12 +100,13 @@ class Storage(object):
         Returns uuid for the task details corresponding to the task with
         given name.
         """
-        try:
-            task_id = self._task_name_to_uuid[task_name]
-        except KeyError:
-            task_id = uuidutils.generate_uuid()
-            self._add_task(task_id, task_name, task_version)
-        self._set_result_mapping(task_name, result_mapping)
+        with self._lock.write_lock():
+            try:
+                task_id = self._task_name_to_uuid[task_name]
+            except KeyError:
+                task_id = uuidutils.generate_uuid()
+                self._add_task(task_id, task_name, task_version)
+            self._set_result_mapping(task_name, result_mapping)
         return task_id
 
     def _add_task(self, uuid, task_name, task_version=None):
@@ -99,27 +115,29 @@ class Storage(object):
         Task becomes known to storage by that name and uuid.
         Task state is set to PENDING.
         """
+
+        def save_both(conn, td):
+            """Saves the flow and the task detail with the same connection."""
+            self._save_flow_detail(conn)
+            self._save_task_detail(conn, td)
+
         # TODO(imelnikov): check that task with same uuid or
         # task name does not exist.
         td = logbook.TaskDetail(name=task_name, uuid=uuid)
         td.state = states.PENDING
         td.version = task_version
         self._flowdetail.add(td)
-
-        def save_both(conn):
-            """Saves the flow and the task detail with the same connection."""
-            self._save_flow_detail(conn)
-            self._save_task_detail(conn, task_detail=td)
-
-        self._with_connection(save_both)
+        self._with_connection(save_both, td)
         self._task_name_to_uuid[task_name] = uuid
 
     @property
     def flow_name(self):
+        # This never changes (so no read locking needed).
         return self._flowdetail.name
 
     @property
     def flow_uuid(self):
+        # This never changes (so no read locking needed).
         return self._flowdetail.uuid
 
     def _save_flow_detail(self, conn):
@@ -130,13 +148,9 @@ class Storage(object):
 
     def _taskdetail_by_name(self, task_name):
         try:
-            td = self._flowdetail.find(self._task_name_to_uuid[task_name])
+            return self._flowdetail.find(self._task_name_to_uuid[task_name])
         except KeyError:
-            td = None
-
-        if td is None:
             raise exceptions.NotFound("Unknown task name: %s" % task_name)
-        return td
 
     def _save_task_detail(self, conn, task_detail):
         # NOTE(harlowja): we need to update our contained task detail if
@@ -146,34 +160,39 @@ class Storage(object):
 
     def get_task_uuid(self, task_name):
         """Get task uuid by given name."""
-        td = self._taskdetail_by_name(task_name)
-        return td.uuid
+        with self._lock.read_lock():
+            td = self._taskdetail_by_name(task_name)
+            return td.uuid
 
     def set_task_state(self, task_name, state):
         """Set task state."""
-        td = self._taskdetail_by_name(task_name)
-        td.state = state
-        self._with_connection(self._save_task_detail, task_detail=td)
+        with self._lock.write_lock():
+            td = self._taskdetail_by_name(task_name)
+            td.state = state
+            self._with_connection(self._save_task_detail, td)
 
     def get_task_state(self, task_name):
         """Get state of task with given name."""
-        return self._taskdetail_by_name(task_name).state
+        with self._lock.read_lock():
+            td = self._taskdetail_by_name(task_name)
+            return td.state
 
     def get_tasks_states(self, task_names):
-        return dict((name, self.get_task_state(name))
-                    for name in task_names)
+        """Gets all task states."""
+        with self._lock.read_lock():
+            return dict((name, self.get_task_state(name))
+                        for name in task_names)
 
     def update_task_metadata(self, task_name, update_with):
+        """Updates a tasks metadata."""
         if not update_with:
             return
-        # NOTE(harlowja): this is a read and then write, not in 1 transaction
-        # so it is entirely possible that we could write over another writes
-        # metadata update. Maybe add some merging logic later?
-        td = self._taskdetail_by_name(task_name)
-        if not td.meta:
-            td.meta = {}
-        td.meta.update(update_with)
-        self._with_connection(self._save_task_detail, task_detail=td)
+        with self._lock.write_lock():
+            td = self._taskdetail_by_name(task_name)
+            if not td.meta:
+                td.meta = {}
+            td.meta.update(update_with)
+            self._with_connection(self._save_task_detail, td)
 
     def set_task_progress(self, task_name, progress, details=None):
         """Set task progress.
@@ -204,10 +223,11 @@ class Storage(object):
         :param task_name: task name
         :returns: current task progress value
         """
-        meta = self._taskdetail_by_name(task_name).meta
-        if not meta:
-            return 0.0
-        return meta.get('progress', 0.0)
+        with self._lock.read_lock():
+            td = self._taskdetail_by_name(task_name)
+            if not td.meta:
+                return 0.0
+            return td.meta.get('progress', 0.0)
 
     def get_task_progress_details(self, task_name):
         """Get progress details of task with given name.
@@ -216,10 +236,11 @@ class Storage(object):
         :returns: None if progress_details not defined, else progress_details
                  dict
         """
-        meta = self._taskdetail_by_name(task_name).meta
-        if not meta:
-            return None
-        return meta.get('progress_details')
+        with self._lock.read_lock():
+            td = self._taskdetail_by_name(task_name)
+            if not td.meta:
+                return None
+            return td.meta.get('progress_details')
 
     def _check_all_results_provided(self, task_name, data):
         """Warn if task did not provide some of results.
@@ -228,69 +249,57 @@ class Storage(object):
         without all needed keys. It may also happen if task returns
         result of wrong type.
         """
-        result_mapping = self._result_mappings.get(task_name, None)
-        if result_mapping is None:
+        result_mapping = self._result_mappings.get(task_name)
+        if not result_mapping:
             return
         for name, index in six.iteritems(result_mapping):
             try:
                 misc.item_from(data, index, name=name)
             except exceptions.NotFound:
                 LOG.warning("Task %s did not supply result "
-                            "with index %r (name %s)",
-                            task_name, index, name)
+                            "with index %r (name %s)", task_name, index, name)
 
     def save(self, task_name, data, state=states.SUCCESS):
         """Put result for task with id 'uuid' to storage."""
-        td = self._taskdetail_by_name(task_name)
-        td.state = state
-        if state == states.FAILURE and isinstance(data, misc.Failure):
-            td.results = None
-            td.failure = data
-            self._failures[td.name] = data
-        else:
-            td.results = data
-            td.failure = None
-            self._check_all_results_provided(td.name, data)
-        self._with_connection(self._save_task_detail, task_detail=td)
-
-    def _cache_failure(self, name, fail):
-        """Ensure that cache has matching failure for task with this name.
-
-        We leave cached version if it matches as it may contain more
-        information. Returns cached failure.
-        """
-        cached = self._failures.get(name)
-        if fail.matches(cached):
-            return cached
-        self._failures[name] = fail
-        return fail
-
-    def _reload_failures(self):
-        """Refresh failures cache."""
-        for td in self._flowdetail:
-            if td.failure is not None:
-                self._cache_failure(td.name, td.failure)
+        with self._lock.write_lock():
+            td = self._taskdetail_by_name(task_name)
+            td.state = state
+            if state == states.FAILURE and isinstance(data, misc.Failure):
+                td.results = None
+                td.failure = data
+                self._failures[td.name] = data
+            else:
+                td.results = data
+                td.failure = None
+                self._check_all_results_provided(td.name, data)
+            self._with_connection(self._save_task_detail, td)
 
     def get(self, task_name):
         """Get result for task with name 'task_name' to storage."""
-        td = self._taskdetail_by_name(task_name)
-        if td.failure is not None:
-            return self._cache_failure(td.name, td.failure)
-        if td.state not in STATES_WITH_RESULTS:
-            raise exceptions.NotFound(
-                "Result for task %s is not known" % task_name)
-        return td.results
+        with self._lock.read_lock():
+            td = self._taskdetail_by_name(task_name)
+            if td.failure is not None:
+                cached = self._failures.get(task_name)
+                if td.failure.matches(cached):
+                    return cached
+                return td.failure
+            if td.state not in STATES_WITH_RESULTS:
+                raise exceptions.NotFound("Result for task %s is not known"
+                                          % task_name)
+            return td.results
 
     def get_failures(self):
         """Get list of failures that happened with this flow.
 
         No order guaranteed.
         """
-        return self._failures.copy()
+        with self._lock.read_lock():
+            return self._failures.copy()
 
     def has_failures(self):
         """Returns True if there are failed tasks in the storage."""
-        return bool(self._failures)
+        with self._lock.read_lock():
+            return bool(self._failures)
 
     def _reset_task(self, td, state):
         if td.name == self.injector_name:
@@ -305,25 +314,28 @@ class Storage(object):
 
     def reset(self, task_name, state=states.PENDING):
         """Remove result for task with id 'uuid' from storage."""
-        td = self._taskdetail_by_name(task_name)
-        if self._reset_task(td, state):
-            self._with_connection(self._save_task_detail, task_detail=td)
+        with self._lock.write_lock():
+            td = self._taskdetail_by_name(task_name)
+            if self._reset_task(td, state):
+                self._with_connection(self._save_task_detail, td)
 
     def reset_tasks(self):
         """Reset all tasks to PENDING state, removing results.
 
         Returns list of (name, uuid) tuples for all tasks that were reset.
         """
-        result = []
+        reset_results = []
 
         def do_reset_all(connection):
             for td in self._flowdetail:
                 if self._reset_task(td, states.PENDING):
                     self._save_task_detail(connection, td)
-                    result.append((td.name, td.uuid))
+                    reset_results.append((td.name, td.uuid))
 
-        self._with_connection(do_reset_all)
-        return result
+        with self._lock.write_lock():
+            self._with_connection(do_reset_all)
+
+        return reset_results
 
     def inject(self, pairs):
         """Add values into storage.
@@ -331,20 +343,20 @@ class Storage(object):
         This method should be used to put flow parameters (requirements that
         are not satisfied by any task in the flow) into storage.
         """
-        try:
-            injector_td = self._taskdetail_by_name(self.injector_name)
-        except exceptions.NotFound:
-            injector_uuid = uuidutils.generate_uuid()
-            self._add_task(injector_uuid, self.injector_name)
-            results = dict(pairs)
-        else:
-            results = injector_td.results.copy()
-            results.update(pairs)
-
-        self.save(self.injector_name, results)
-        names = six.iterkeys(results)
-        self._set_result_mapping(self.injector_name,
-                                 dict((name, name) for name in names))
+        with self._lock.write_lock():
+            try:
+                td = self._taskdetail_by_name(self.injector_name)
+            except exceptions.NotFound:
+                self._add_task(uuidutils.generate_uuid(), self.injector_name)
+                td = self._taskdetail_by_name(self.injector_name)
+                td.results = dict(pairs)
+                td.state = states.SUCCESS
+            else:
+                td.results.update(pairs)
+            self._with_connection(self._save_task_detail, td)
+            names = six.iterkeys(td.results)
+            self._set_result_mapping(self.injector_name,
+                                     dict((name, name) for name in names))
 
     def _set_result_mapping(self, task_name, mapping):
         """Set mapping for naming task results.
@@ -378,50 +390,60 @@ class Storage(object):
 
     def fetch(self, name):
         """Fetch named task result."""
-        try:
-            indexes = self._reverse_mapping[name]
-        except KeyError:
-            raise exceptions.NotFound("Name %r is not mapped" % name)
-        # Return the first one that is found.
-        for task_name, index in reversed(indexes):
+        with self._lock.read_lock():
             try:
-                result = self.get(task_name)
-                return misc.item_from(result, index, name=name)
-            except exceptions.NotFound:
-                pass
-        raise exceptions.NotFound("Unable to find result %r" % name)
+                indexes = self._reverse_mapping[name]
+            except KeyError:
+                raise exceptions.NotFound("Name %r is not mapped" % name)
+            # Return the first one that is found.
+            for (task_name, index) in reversed(indexes):
+                try:
+                    result = self.get(task_name)
+                    return misc.item_from(result, index, name=name)
+                except exceptions.NotFound:
+                    pass
+            raise exceptions.NotFound("Unable to find result %r" % name)
 
     def fetch_all(self):
         """Fetch all named task results known so far.
 
         Should be used for debugging and testing purposes mostly.
         """
-        result = {}
-        for name in self._reverse_mapping:
-            try:
-                result[name] = self.fetch(name)
-            except exceptions.NotFound:
-                pass
-        return result
+        with self._lock.read_lock():
+            results = {}
+            for name in self._reverse_mapping:
+                try:
+                    results[name] = self.fetch(name)
+                except exceptions.NotFound:
+                    pass
+            return results
 
     def fetch_mapped_args(self, args_mapping):
         """Fetch arguments for the task using arguments mapping."""
-        return dict((key, self.fetch(name))
-                    for key, name in six.iteritems(args_mapping))
+        with self._lock.read_lock():
+            return dict((key, self.fetch(name))
+                        for key, name in six.iteritems(args_mapping))
 
     def set_flow_state(self, state):
-        """Set flowdetails state and save it."""
-        self._flowdetail.state = state
-        self._with_connection(self._save_flow_detail)
+        """Set flow details state and save it."""
+        with self._lock.write_lock():
+            self._flowdetail.state = state
+            self._with_connection(self._save_flow_detail)
 
     def get_flow_state(self):
-        """Set state from flowdetails."""
-        state = self._flowdetail.state
-        if state is None:
-            state = states.PENDING
-        return state
+        """Get state from flow details."""
+        with self._lock.read_lock():
+            state = self._flowdetail.state
+            if state is None:
+                state = states.PENDING
+            return state
 
 
-@six.add_metaclass(tu.ThreadSafeMeta)
-class ThreadSafeStorage(Storage):
-    pass
+class MultiThreadedStorage(Storage):
+    """Storage that uses locks to protect against concurrent access."""
+    _lock_cls = lock_utils.ReaderWriterLock
+
+
+class SingleThreadedStorage(Storage):
+    """Storage that uses dummy locks when you really don't need locks."""
+    _lock_cls = lock_utils.DummyReaderWriterLock

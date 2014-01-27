@@ -16,16 +16,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
 import multiprocessing
-import threading
-import types
 
 import six
 
-from taskflow.utils import lock_utils
-
-LOG = logging.getLogger(__name__)
+if six.PY2:
+    from thread import get_ident  # noqa
+else:
+    # In python3+ the get_ident call moved (whhhy??)
+    from threading import get_ident  # noqa
 
 
 def get_optimal_thread_count():
@@ -37,20 +36,3 @@ def get_optimal_thread_count():
         # just setup two threads since its hard to know what else we
         # should do in this situation.
         return 2
-
-
-class ThreadSafeMeta(type):
-    """Metaclass that adds locking to all pubic methods of a class."""
-
-    def __new__(cls, name, bases, attrs):
-        for attr_name, attr_value in six.iteritems(attrs):
-            if isinstance(attr_value, types.FunctionType):
-                if attr_name[0] != '_':
-                    attrs[attr_name] = lock_utils.locked(attr_value)
-        return super(ThreadSafeMeta, cls).__new__(cls, name, bases, attrs)
-
-    def __call__(cls, *args, **kwargs):
-        instance = super(ThreadSafeMeta, cls).__call__(*args, **kwargs)
-        if not hasattr(instance, '_lock'):
-            instance._lock = threading.RLock()
-        return instance
