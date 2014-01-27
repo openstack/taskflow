@@ -94,7 +94,7 @@ class BaseTask(atom.Atom):
                 self.bind(event_name, handler_func, **kwargs)
                 bound = True
             except ValueError:
-                LOG.exception("Failed binding functor `%s` as a reciever of"
+                LOG.exception("Failed binding functor `%s` as a receiver of"
                               " event '%s' notifications emitted from task %s",
                               handler_func, event_name, self)
         try:

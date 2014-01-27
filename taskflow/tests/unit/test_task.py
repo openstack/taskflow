@@ -16,9 +16,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
 
 from taskflow import task
 from taskflow import test
+from taskflow.utils import reflection
 
 
 class MyTask(task.Task):
@@ -43,7 +45,13 @@ class DefaultProvidesTask(task.Task):
         return None
 
 
-class TaskTestCase(test.TestCase):
+class ProgressTask(task.Task):
+    def execute(self, values, **kwargs):
+        for value in values:
+            self.update_progress(value)
+
+
+class TaskTest(test.TestCase):
 
     def test_passed_name(self):
         my_task = MyTask(name='my name')
@@ -180,3 +188,99 @@ class TaskTestCase(test.TestCase):
         task = DefaultProvidesTask(provides=('spam', 'eggs'))
         self.assertEqual(task.provides, set(['spam', 'eggs']))
         self.assertEqual(task.save_as, {'spam': 0, 'eggs': 1})
+
+    def test_update_progress_within_bounds(self):
+        values = [0.0, 0.5, 1.0]
+        result = []
+
+        def progress_callback(task, event_data, progress):
+            result.append(progress)
+
+        task = ProgressTask()
+        with task.autobind('update_progress', progress_callback):
+            task.execute(values)
+        self.assertEqual(result, values)
+
+    @mock.patch.object(task.LOG, 'warn')
+    def test_update_progress_lower_bound(self, mocked_warn):
+        result = []
+
+        def progress_callback(task, event_data, progress):
+            result.append(progress)
+
+        task = ProgressTask()
+        with task.autobind('update_progress', progress_callback):
+            task.execute([-1.0, -0.5, 0.0])
+        self.assertEqual(result, [0.0, 0.0, 0.0])
+        self.assertEqual(mocked_warn.call_count, 2)
+
+    @mock.patch.object(task.LOG, 'warn')
+    def test_update_progress_upper_bound(self, mocked_warn):
+        result = []
+
+        def progress_callback(task, event_data, progress):
+            result.append(progress)
+
+        task = ProgressTask()
+        with task.autobind('update_progress', progress_callback):
+            task.execute([1.0, 1.5, 2.0])
+        self.assertEqual(result, [1.0, 1.0, 1.0])
+        self.assertEqual(mocked_warn.call_count, 2)
+
+    @mock.patch.object(task.LOG, 'exception')
+    def test_update_progress_handler_failure(self, mocked_exception):
+        def progress_callback(*args, **kwargs):
+            raise Exception('Woot!')
+
+        task = ProgressTask()
+        with task.autobind('update_progress', progress_callback):
+            task.execute([0.5])
+        mocked_exception.assert_called_once_with(
+            mock.ANY, reflection.get_callable_name(progress_callback),
+            'update_progress')
+
+    @mock.patch.object(task.LOG, 'exception')
+    def test_autobind_non_existent_event(self, mocked_exception):
+        event = 'test-event'
+        handler = lambda: None
+        task = MyTask()
+        with task.autobind(event, handler):
+            self.assertEqual(len(task._events_listeners), 0)
+            mocked_exception.assert_called_once_with(
+                mock.ANY, handler, event, task)
+
+    def test_autobind_handler_is_none(self):
+        task = MyTask()
+        with task.autobind('update_progress', None):
+            self.assertEqual(len(task._events_listeners), 0)
+
+    def test_unbind_any_handler(self):
+        task = MyTask()
+        self.assertEqual(len(task._events_listeners), 0)
+        task.bind('update_progress', lambda: None)
+        self.assertEqual(len(task._events_listeners), 1)
+        self.assertTrue(task.unbind('update_progress'))
+        self.assertEqual(len(task._events_listeners), 0)
+
+    def test_unbind_any_handler_empty_listeners(self):
+        task = MyTask()
+        self.assertEqual(len(task._events_listeners), 0)
+        self.assertFalse(task.unbind('update_progress'))
+        self.assertEqual(len(task._events_listeners), 0)
+
+    def test_unbind_non_existent_listener(self):
+        handler1 = lambda: None
+        handler2 = lambda: None
+        task = MyTask()
+        task.bind('update_progress', handler1)
+        self.assertEqual(len(task._events_listeners), 1)
+        self.assertFalse(task.unbind('update_progress', handler2))
+        self.assertEqual(len(task._events_listeners), 1)
+
+
+class FunctorTaskTest(test.TestCase):
+
+    def test_creation_with_version(self):
+        version = (2, 0)
+        f_task = task.FunctorTask(lambda: None, version=version)
+        self.assertEqual(f_task.version, version)
