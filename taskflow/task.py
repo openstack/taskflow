@@ -48,16 +48,29 @@ class BaseTask(atom.Atom):
     def execute(self, *args, **kwargs):
         """Activate a given task which will perform some operation and return.
 
-        This method can be used to apply some given context and given set
-        of args and kwargs to accomplish some goal. Note that the result
-        that is returned needs to be serializable so that it can be passed
-        back into this task if reverting is triggered.
+        This method can be used to perform an action on a given set of input
+        requirements (passed in via *args and **kwargs) to accomplish some type
+        of operation. This operation may provide some named outputs/results as
+        a result of it executing for later reverting (or for other tasks to
+        depend on).
+
+        NOTE(harlowja): the result (if any) that is returned should be
+        persistable so that it can be passed back into this task if
+        reverting is triggered (especially in the case where reverting
+        happens in a different python process or on a remote machine) and so
+        that the result can be transmitted to other tasks (which may be local
+        or remote).
         """
 
     def revert(self, *args, **kwargs):
-        """Revert this task using the given context, result that the apply
-        provided as well as any information which may have caused said
-        reversion.
+        """Revert this task using the result that the execute function
+        provided as well as any failure information which caused the
+        reversion to be triggered in the first place.
+
+        NOTE(harlowja): The **kwargs which are passed into the execute()
+        method will also be passed into this method. The **kwargs key 'result'
+        will contain the execute() functions result (if any) and the **kwargs
+        key 'flow_failures' will contain the failure information.
         """
 
     def update_progress(self, progress, **kwargs):
