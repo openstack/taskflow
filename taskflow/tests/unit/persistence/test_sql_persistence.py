@@ -146,24 +146,17 @@ class BackendPersistenceTestMixin(base.PersistenceTestMixin):
         """
         raise NotImplementedError()
 
-    def tearDown(self):
-        super(BackendPersistenceTestMixin, self).tearDown()
-        try:
-            if self.backend is not None:
-                self.backend.close()
-                self.backend = None
-        finally:
-            self.big_lock.release()
-
     def setUp(self):
         super(BackendPersistenceTestMixin, self).setUp()
         self.backend = None
         self.big_lock.acquire()
+        self.addCleanup(self.big_lock.release)
         conf = {
             'connection': self._reset_database(),
         }
         # Ensure upgraded to the right schema
         self.backend = impl_sqlalchemy.SQLAlchemyBackend(conf)
+        self.addCleanup(self.backend.close)
         with contextlib.closing(self._get_connection()) as conn:
             conn.upgrade()
 
