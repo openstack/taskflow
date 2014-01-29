@@ -18,29 +18,28 @@
 
 import contextlib
 
+from zake import fake_client
+
 from taskflow.persistence import backends
 from taskflow.persistence.backends import impl_zookeeper
 from taskflow import test
 from taskflow.tests.unit.persistence import base
 
 
-class ZkPersistenceTest(test.TestCase, base.PersistenceTestMixin):
+class ZakePersistenceTest(test.TestCase, base.PersistenceTestMixin):
     def _get_connection(self):
         return self._backend.get_connection()
 
     def setUp(self):
-        super(ZkPersistenceTest, self).setUp()
+        super(ZakePersistenceTest, self).setUp()
         conf = {
             "path": "/taskflow",
         }
-        self._backend = impl_zookeeper.ZkBackend(conf)
+        client = fake_client.FakeClient()
+        client.start()
+        self._backend = impl_zookeeper.ZkBackend(conf, client=client)
         conn = self._backend.get_connection()
         conn.upgrade()
-
-    def tearDown(self):
-        super(ZkPersistenceTest, self).tearDown()
-        conn = self._get_connection()
-        conn.clear_all()
 
     def test_zk_persistence_entry_point(self):
         conf = {'connection': 'zookeeper:'}
