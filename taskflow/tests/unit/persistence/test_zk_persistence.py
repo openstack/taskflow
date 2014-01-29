@@ -16,29 +16,63 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+
 import testtools
 
+from taskflow.openstack.common import uuidutils
 from taskflow.persistence.backends import impl_zookeeper
 from taskflow import test
 from taskflow.tests.unit.persistence import base
+from taskflow.utils import kazoo_utils
+
+TEST_CONFIG = {
+    'timeout': 1.0,
+    'hosts': ["localhost:2181"],
+}
+TEST_PATH_TPL = '/taskflow/persistence-test/%s'
 
 
-@testtools.skipIf(True, 'ZooKeeper is not available in Jenkins')
+def _zookeeper_available():
+    client = kazoo_utils.make_client(TEST_CONFIG)
+    try:
+        client.start()
+        zk_ver = client.server_version()
+        if zk_ver >= impl_zookeeper.MIN_ZK_VERSION:
+            return True
+        else:
+            return False
+    except Exception:
+        return False
+    finally:
+        try:
+            client.stop()
+            client.close()
+        except Exception:
+            pass
+
+
+@testtools.skipIf(not _zookeeper_available(), 'zookeeper is not available')
 class ZkPersistenceTest(test.TestCase, base.PersistenceTestMixin):
     def _get_connection(self):
-        return self._backend.get_connection()
+        return self.backend.get_connection()
+
+    def _clear_all(self):
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.clear_all()
 
     def setUp(self):
         super(ZkPersistenceTest, self).setUp()
-        conf = {
-            'hosts': "192.168.0.1:2181,192.168.0.2:2181,192.168.0.3:2181",
-            'path': "/taskflow",
-        }
-        self._backend = impl_zookeeper.ZkBackend(conf)
-        conn = self._get_connection()
-        conn.upgrade()
-
-    def tearDown(self):
-        super(ZkPersistenceTest, self).tearDown()
-        conn = self._get_connection()
-        conn.clear_all()
+        conf = TEST_CONFIG.copy()
+        # Create a unique path just for this test (so that we don't overwrite
+        # what other tests are doing).
+        conf['path'] = TEST_PATH_TPL % (uuidutils.generate_uuid())
+        try:
+            self.backend = impl_zookeeper.ZkBackend(conf)
+            self.addCleanup(self.backend.close)
+        except Exception as e:
+            self.skipTest("Failed creating backend created from configuration"
+                          " %s due to %s" % (conf, e))
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.upgrade()
+            self.addCleanup(self._clear_all)
