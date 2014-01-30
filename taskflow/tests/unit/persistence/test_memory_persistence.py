@@ -16,6 +16,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+
+from taskflow.persistence import backends
 from taskflow.persistence.backends import impl_memory
 from taskflow import test
 from taskflow.tests.unit.persistence import base
@@ -34,3 +37,8 @@ class MemoryPersistenceTest(test.TestCase, base.PersistenceTestMixin):
         conn.clear_all()
         self._backend = None
         super(MemoryPersistenceTest, self).tearDown()
+
+    def test_memory_persistence_entry_point(self):
+        conf = {'connection': 'memory:'}
+        with contextlib.closing(backends.fetch(conf)) as be:
+            self.assertIsInstance(be, impl_memory.MemoryBackend)

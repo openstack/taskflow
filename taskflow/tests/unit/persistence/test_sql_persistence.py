@@ -50,6 +50,7 @@ except ImportError:
 # Testing will try to run against these two mysql library variants.
 MYSQL_VARIANTS = ('mysqldb', 'pymysql')
 
+from taskflow.persistence import backends
 from taskflow import test
 from taskflow.tests.unit.persistence import base
 from taskflow.utils import lock_utils
@@ -261,3 +262,26 @@ class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
             if engine is not None:
                 engine.dispose()
         return _get_connect_string('postgres', USER, PASSWD, database=DATABASE)
+
+
+@testtools.skipIf(not SQLALCHEMY_AVAILABLE, 'sqlalchemy is not available')
+class SQLBackendFetchingTest(test.TestCase):
+
+    def test_sqlite_persistence_entry_point(self):
+        conf = {'connection': 'sqlite:///'}
+        with contextlib.closing(backends.fetch(conf)) as be:
+            self.assertIsInstance(be, impl_sqlalchemy.SQLAlchemyBackend)
+
+    @testtools.skipIf(not _postgres_exists(), 'postgres is not available')
+    def test_mysql_persistence_entry_point(self):
+        uri = "mysql://%s:%s@localhost/%s" % (USER, PASSWD, DATABASE)
+        conf = {'connection': uri}
+        with contextlib.closing(backends.fetch(conf)) as be:
+            self.assertIsInstance(be, impl_sqlalchemy.SQLAlchemyBackend)
+
+    @testtools.skipIf(not _mysql_exists(), 'mysql is not available')
+    def test_postgres_persistence_entry_point(self):
+        uri = "postgresql://%s:%s@localhost/%s" % (USER, PASSWD, DATABASE)
+        conf = {'connection': uri}
+        with contextlib.closing(backends.fetch(conf)) as be:
+            self.assertIsInstance(be, impl_sqlalchemy.SQLAlchemyBackend)

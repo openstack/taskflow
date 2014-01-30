@@ -16,6 +16,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+
+from taskflow.persistence import backends
 from taskflow.persistence.backends import impl_zookeeper
 from taskflow import test
 from taskflow.tests.unit.persistence import base
@@ -38,3 +41,8 @@ class ZkPersistenceTest(test.TestCase, base.PersistenceTestMixin):
         super(ZkPersistenceTest, self).tearDown()
         conn = self._get_connection()
         conn.clear_all()
+
+    def test_zk_persistence_entry_point(self):
+        conf = {'connection': 'zookeeper:'}
+        with contextlib.closing(backends.fetch(conf)) as be:
+            self.assertIsInstance(be, impl_zookeeper.ZkBackend)

@@ -16,10 +16,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import os
 import shutil
 import tempfile
 
+from taskflow.persistence import backends
 from taskflow.persistence.backends import impl_dir
 from taskflow import test
 from taskflow.tests.unit.persistence import base
@@ -45,3 +47,20 @@ class DirPersistenceTest(test.TestCase, base.PersistenceTestMixin):
         if self.path and os.path.isdir(self.path):
             shutil.rmtree(self.path)
         self.path = None
+
+    def test_dir_persistence_entry_point(self):
+        conf = {
+            'connection': 'dir:',
+            'path': self.path
+        }
+        backend = backends.fetch(conf)
+        self.assertIsInstance(backend, impl_dir.DirBackend)
+        backend.close()
+
+    def test_file_persistence_entry_point(self):
+        conf = {
+            'connection': 'file:',
+            'path': self.path
+        }
+        with contextlib.closing(backends.fetch(conf)) as be:
+            self.assertIsInstance(be, impl_dir.DirBackend)
