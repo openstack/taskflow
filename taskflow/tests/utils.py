@@ -78,13 +78,10 @@ class ProvidesRequiresTask(task.Task):
 
 class SaveOrderTask(task.Task):
 
-    def __init__(self, values=None, name=None, sleep=None,
+    def __init__(self, name=None, sleep=None,
                  *args, **kwargs):
         super(SaveOrderTask, self).__init__(name=name, *args, **kwargs)
-        if values is None:
-            self.values = []
-        else:
-            self.values = values
+        self.values = EngineTestBase.values
         self._sleep = sleep
 
     def execute(self, **kwargs):
@@ -105,7 +102,6 @@ class SaveOrderTask(task.Task):
 
 
 class FailingTask(SaveOrderTask):
-
     def execute(self, **kwargs):
         self.update_progress(0)
         if self._sleep:
@@ -212,16 +208,19 @@ class NeverRunningTask(task.Task):
 
 
 class EngineTestBase(object):
+    values = None
+
     def setUp(self):
         super(EngineTestBase, self).setUp()
-        self.values = []
+        EngineTestBase.values = []
         self.backend = impl_memory.MemoryBackend(conf={})
 
     def tearDown(self):
-        super(EngineTestBase, self).tearDown()
+        EngineTestBase.values = None
         with contextlib.closing(self.backend) as be:
             with contextlib.closing(be.get_connection()) as conn:
                 conn.clear_all()
+        super(EngineTestBase, self).tearDown()
 
     def _make_engine(self, flow, flow_detail=None):
         raise NotImplementedError()
