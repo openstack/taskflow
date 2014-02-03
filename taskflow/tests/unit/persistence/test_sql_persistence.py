@@ -42,9 +42,8 @@ try:
     from taskflow.persistence.backends import impl_sqlalchemy
 
     import sqlalchemy as sa
-    from sqlalchemy import exc as sa_exc
     SQLALCHEMY_AVAILABLE = True
-except ImportError:
+except Exception:
     SQLALCHEMY_AVAILABLE = False
 
 # Testing will try to run against these two mysql library variants.
@@ -80,16 +79,20 @@ def _mysql_exists():
         return False
     for variant in MYSQL_VARIANTS:
         engine = None
-        db_uri = _get_connect_string('mysql', USER, PASSWD, variant=variant)
         try:
+            db_uri = _get_connect_string('mysql', USER, PASSWD,
+                                         variant=variant)
             engine = sa.create_engine(db_uri)
             with contextlib.closing(engine.connect()):
                 return True
-        except (sa_exc.DatabaseError, ImportError):
+        except Exception:
             pass
         finally:
             if engine is not None:
-                engine.dispose()
+                try:
+                    engine.dispose()
+                except Exception:
+                    pass
     return False
 
 
@@ -97,16 +100,19 @@ def _postgres_exists():
     if not SQLALCHEMY_AVAILABLE:
         return False
     engine = None
-    connection_uri = _get_connect_string('postgres', USER, PASSWD, 'template1')
     try:
-        engine = sa.create_engine(connection_uri)
+        db_uri = _get_connect_string('postgres', USER, PASSWD, 'template1')
+        engine = sa.create_engine(db_uri)
         with contextlib.closing(engine.connect()):
             return True
-    except (sa_exc.DatabaseError, ImportError):
+    except Exception:
         return False
     finally:
         if engine is not None:
-            engine.dispose()
+            try:
+                engine.dispose()
+            except Exception:
+                pass
 
 
 @testtools.skipIf(not SQLALCHEMY_AVAILABLE, 'sqlalchemy is not available')
@@ -152,14 +158,21 @@ class BackendPersistenceTestMixin(base.PersistenceTestMixin):
         self.backend = None
         self.big_lock.acquire()
         self.addCleanup(self.big_lock.release)
-        conf = {
-            'connection': self._reset_database(),
-        }
-        # Ensure upgraded to the right schema
-        self.backend = impl_sqlalchemy.SQLAlchemyBackend(conf)
-        self.addCleanup(self.backend.close)
-        with contextlib.closing(self._get_connection()) as conn:
-            conn.upgrade()
+        try:
+            conf = {
+                'connection': self._reset_database(),
+            }
+        except Exception as e:
+            self.skipTest("Failed to reset your database;"
+                          " testing being skipped due to: %s" % (e))
+        try:
+            self.backend = impl_sqlalchemy.SQLAlchemyBackend(conf)
+            self.addCleanup(self.backend.close)
+            with contextlib.closing(self._get_connection()) as conn:
+                conn.upgrade()
+        except Exception as e:
+            self.skipTest("Failed to setup your database;"
+                          " testing being skipped due to: %s" % (e))
 
 
 @testtools.skipIf(not SQLALCHEMY_AVAILABLE, 'sqlalchemy is not available')
@@ -195,18 +208,21 @@ class MysqlPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
                     conn.execute("DROP DATABASE IF EXISTS %s" % DATABASE)
                     conn.execute("CREATE DATABASE %s" % DATABASE)
                     working_variant = variant
-            except (sa_exc.DatabaseError, ImportError):
+            except Exception:
                 pass
             finally:
                 if engine is not None:
-                    engine.dispose()
+                    try:
+                        engine.dispose()
+                    except Exception:
+                        pass
             if working_variant:
                 break
         if not working_variant:
             variants = ", ".join(MYSQL_VARIANTS)
-            raise self.skipException("Failed to find a mysql variant"
-                                     " (tried %s) that works; mysql testing"
-                                     " being skipped" % (variants))
+            self.skipTest("Failed to find a mysql variant"
+                          " (tried %s) that works; mysql testing"
+                          " being skipped" % (variants))
         else:
             return _get_connect_string('mysql', USER, PASSWD,
                                        database=DATABASE,
@@ -240,9 +256,9 @@ class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
             # Postgres can't operate on the database its connected to, thats
             # why we connect to the default template database 'template1' and
             # then drop and create the desired database.
-            tmp_uri = _get_connect_string('postgres', USER, PASSWD,
-                                          database='template1')
-            engine = sa.create_engine(tmp_uri)
+            db_uri = _get_connect_string('postgres', USER, PASSWD,
+                                         database='template1')
+            engine = sa.create_engine(db_uri)
             with contextlib.closing(engine.connect()) as conn:
                 conn.connection.set_isolation_level(0)
                 conn.execute("DROP DATABASE IF EXISTS %s" % DATABASE)
@@ -253,7 +269,10 @@ class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
                 conn.connection.set_isolation_level(1)
         finally:
             if engine is not None:
-                engine.dispose()
+                try:
+                    engine.dispose()
+                except Exception:
+                    pass
         return _get_connect_string('postgres', USER, PASSWD, database=DATABASE)
 
 
