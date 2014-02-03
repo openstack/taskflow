@@ -444,7 +444,7 @@ def are_equal_exc_info_tuples(ei1, ei2):
     if ei1[0] is not ei2[0]:
         return False
     if not all((type(ei1[1]) == type(ei2[1]),
-                str(ei1[1]) == str(ei2[1]),
+                six.text_type(ei1[1]) == six.text_type(ei2[1]),
                 repr(ei1[1]) == repr(ei2[1]))):
         return False
     if ei1[2] == ei2[2]:
@@ -470,7 +470,7 @@ class Failure(object):
                 reflection.get_all_class_names(exc_info[0], up_to=Exception))
             if not self._exc_type_names:
                 raise TypeError('Invalid exception type: %r' % exc_info[0])
-            self._exception_str = str(self._exc_info[1])
+            self._exception_str = six.text_type(self._exc_info[1])
             self._traceback_str = ''.join(
                 traceback.format_tb(self._exc_info[2]))
         else:
