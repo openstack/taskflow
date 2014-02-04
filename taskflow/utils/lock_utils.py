@@ -30,7 +30,6 @@ import time
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
-WAIT_TIME = 0.01
 
 
 def locked(*args, **kwargs):
@@ -127,23 +126,18 @@ class _InterProcessLock(object):
     """
 
     def __init__(self, name):
-        self._lockfile = None
-        self._fname = name
-
-    @property
-    def path(self):
-        return self._fname
-
-    def release(self):
-        try:
-            self.unlock()
-            self._lockfile.close()
-        except IOError:
-            LOG.exception("Could not release the acquired lock `%s`",
-                          self.path)
+        self.lockfile = None
+        self.fname = name
 
     def acquire(self):
-        self._lockfile = open(self.path, 'w')
+        basedir = os.path.dirname(self.fname)
+
+        if not os.path.exists(basedir):
+            misc.ensure_tree(basedir)
+            LOG.info('Created lock path: %s', basedir)
+
+        self.lockfile = open(self.fname, 'w')
+
         while True:
             try:
                 # Using non-blocking locks since green threads are not
@@ -151,16 +145,35 @@ class _InterProcessLock(object):
                 # Also upon reading the MSDN docs for locking(), it seems
                 # to have a laughable 10 attempts "blocking" mechanism.
                 self.trylock()
+                LOG.debug('Got file lock "%s"', self.fname)
                 return True
             except IOError as e:
                 if e.errno in (errno.EACCES, errno.EAGAIN):
-                    time.sleep(WAIT_TIME)
+                    # external locks synchronise things like iptables
+                    # updates - give it some time to prevent busy spinning
+                    time.sleep(0.01)
                 else:
-                    raise
+                    raise threading.ThreadError("Unable to acquire lock on"
+                                                " `%(filename)s` due to"
+                                                " %(exception)s" %
+                                                {
+                                                    'filename': self.fname,
+                                                    'exception': e,
+                                                })
 
     def __enter__(self):
         self.acquire()
         return self
+
+    def release(self):
+        try:
+            self.unlock()
+            self.lockfile.close()
+            # This is fixed in: https://review.openstack.org/70506
+            LOG.debug('Released file lock "%s"', self.fname)
+        except IOError:
+            LOG.exception("Could not release the acquired lock `%s`",
+                          self.fname)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.release()
@@ -174,18 +187,18 @@ class _InterProcessLock(object):
 
 class _WindowsLock(_InterProcessLock):
     def trylock(self):
-        msvcrt.locking(self._lockfile.fileno(), msvcrt.LK_NBLCK, 1)
+        msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_NBLCK, 1)
 
     def unlock(self):
-        msvcrt.locking(self._lockfile.fileno(), msvcrt.LK_UNLCK, 1)
+        msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 class _PosixLock(_InterProcessLock):
     def trylock(self):
-        fcntl.lockf(self._lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        fcntl.lockf(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
     def unlock(self):
-        fcntl.lockf(self._lockfile, fcntl.LOCK_UN)
+        fcntl.lockf(self.lockfile, fcntl.LOCK_UN)
 
 
 if os.name == 'nt':
