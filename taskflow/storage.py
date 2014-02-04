@@ -202,6 +202,16 @@ class Storage(object):
             td = self._taskdetail_by_name(task_name)
             return td.state
 
+    def set_atom_intention(self, atom_name, intention):
+        """Set intention for atom with given name."""
+        td = self._taskdetail_by_name(atom_name)
+        td.intention = intention
+        self._with_connection(self._save_task_detail, task_detail=td)
+
+    def get_atom_intention(self, atom_name):
+        """Get intention of atom with given name."""
+        return self._taskdetail_by_name(atom_name).intention
+
     def get_tasks_states(self, task_names):
         """Gets all task states."""
         with self._lock.read_lock():

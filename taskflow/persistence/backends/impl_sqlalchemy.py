@@ -456,6 +456,7 @@ def _convert_td_to_internal(td, parent_uuid):
         results = persistence_utils.encode_retry_results(results)
     return models.TaskDetail(name=td.name, uuid=td.uuid,
                              atom_type=td.atom_type,
+                             intention=td.intention,
                              state=td.state, results=results,
                              failure=td.failure, meta=td.meta,
                              version=td.version, parent_uuid=parent_uuid)
@@ -471,6 +472,7 @@ def _convert_td_to_external(td):
     atom_cls = logbook.get_atom_detail_class(td.atom_type)
     td_c = atom_cls(td.name, uuid=td.uuid)
     td_c.state = td.state
+    td_c.intention = td.intention
     td_c.results = results
     td_c.failure = td.failure
     td_c.meta = td.meta

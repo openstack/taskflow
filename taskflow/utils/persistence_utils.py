@@ -111,9 +111,9 @@ def task_details_merge(td_e, td_new, deep_copy=False):
         return td_e
 
     copy_fn = _copy_function(deep_copy)
-    if td_e.state != td_new.state:
-        # NOTE(imelnikov): states are just strings, no need to copy.
-        td_e.state = td_new.state
+    # NOTE(imelnikov): states and intentions are just strings, no need to copy.
+    td_e.state = td_new.state
+    td_e.intention = td_new.intention
     if td_e.results != td_new.results:
         td_e.results = copy_fn(td_new.results)
     if td_e.failure != td_new.failure:
@@ -313,6 +313,7 @@ def format_task_detail(td):
         'state': td.state,
         'version': td.version,
         'atom_type': td.atom_type,
+        'intention': td.intention,
     }
 
 
@@ -324,8 +325,9 @@ def unformat_task_detail(uuid, td_data):
     atom_cls = logbook.get_atom_detail_class(td_data['atom_type'])
     td = atom_cls(name=td_data['name'], uuid=uuid)
     td.state = td_data.get('state')
-    td.results = results
     td.failure = failure_from_dict(td_data.get('failure'))
+    td.intention = td_data.get('intention')
+    td.results = results
     td.meta = td_data.get('meta')
     td.version = td_data.get('version')
     return td

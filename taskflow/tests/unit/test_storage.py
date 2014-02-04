@@ -550,3 +550,17 @@ class StorageTest(test.TestCase):
         self.assertRaisesRegexp(TypeError,
                                 'Unknown atom type',
                                 logbook.get_atom_detail_class, 'some_detail')
+
+    def test_save_task_intention(self):
+        s = self._get_storage()
+        s.ensure_task('my task')
+        s.set_atom_intention('my task', states.REVERT)
+        intention = s.get_atom_intention('my task')
+        self.assertEqual(intention, states.REVERT)
+
+    def test_save_retry_intention(self):
+        s = self._get_storage()
+        s.ensure_retry('my retry')
+        s.set_atom_intention('my retry', states.RETRY)
+        intention = s.get_atom_intention('my retry')
+        self.assertEqual(intention, states.RETRY)

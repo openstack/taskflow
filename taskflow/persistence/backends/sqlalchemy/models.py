@@ -27,6 +27,7 @@ from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 
 from taskflow.persistence import logbook
+from taskflow import states
 from taskflow.utils import persistence_utils
 
 BASE = declarative_base()
@@ -110,6 +111,7 @@ class TaskDetail(BASE, ModelBase):
     atom_type = Column(Enum(*logbook.ATOM_TYPES, name='atom_types'))
     # Member variables
     state = Column(String)
+    intention = Column(Enum(*states.INTENTIONS, name='intentions'))
     results = Column(Json)
     failure = Column(Failure)
     version = Column(String)

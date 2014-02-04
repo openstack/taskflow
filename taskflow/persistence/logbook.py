@@ -21,6 +21,7 @@ import abc
 import six
 
 from taskflow.openstack.common import uuidutils
+from taskflow import states
 
 LOG = logging.getLogger(__name__)
 
@@ -155,6 +156,8 @@ class AtomDetail(object):
         #
         # The state the atom was last in.
         self.state = None
+        # The intention of action that would be applied to the atom.
+        self.intention = states.EXECUTE
         # The results it may have produced (useful for reverting).
         self.results = None
         # An Failure object that holds exception the atom may have thrown
@@ -174,6 +177,7 @@ class AtomDetail(object):
         if td is self:
             return
         self.state = td.state
+        self.intention = td.intention
         self.meta = td.meta
         self.failure = td.failure
         self.results = td.results

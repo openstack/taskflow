@@ -19,6 +19,7 @@ import contextlib
 from taskflow import exceptions as exc
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
+from taskflow import states
 from taskflow.utils import misc
 
 
@@ -222,6 +223,7 @@ class PersistenceTestMixin(object):
             self.assertIsNot(td2, None)
             self.assertEqual(td2.name, 'detail-1')
             self.assertEqual(td2.version, '4.2')
+            self.assertEqual(td2.intention, states.EXECUTE)
 
     def test_logbook_delete(self):
         lb_id = uuidutils.generate_uuid()
@@ -245,6 +247,7 @@ class PersistenceTestMixin(object):
         fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
         td = logbook.RetryDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td.intention = states.REVERT
         fd.add(td)
 
         with contextlib.closing(self._get_connection()) as conn:
@@ -257,6 +260,7 @@ class PersistenceTestMixin(object):
         fd2 = lb2.find(fd.uuid)
         td2 = fd2.find(td.uuid)
         self.assertEqual(td2.atom_type, logbook.RETRY_DETAIL)
+        self.assertEqual(td2.intention, states.REVERT)
 
     def test_retry_detail_save_with_task_failure(self):
         lb_id = uuidutils.generate_uuid()
@@ -283,3 +287,30 @@ class PersistenceTestMixin(object):
         fail2 = td2.results[0][1].get('some-task')
         self.assertIsInstance(fail2, misc.Failure)
         self.assertTrue(fail.matches(fail2))
+
+    def test_retry_detail_save_intention(self):
+        lb_id = uuidutils.generate_uuid()
+        lb_name = 'lb-%s' % (lb_id)
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb.add(fd)
+        td = logbook.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
+        fd.add(td)
+
+        # save it
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+            conn.update_flow_details(fd)
+            conn.update_task_details(td)
+
+        # change intention and save
+        td.intention = states.REVERT
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.update_task_details(td)
+
+        # now read it back
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb_id)
+        fd2 = lb2.find(fd.uuid)
+        td2 = fd2.find(td.uuid)
+        self.assertEqual(td2.intention, states.REVERT)
