@@ -78,6 +78,9 @@ class Connection(base.Connection):
     def upgrade(self):
         pass
 
+    def validate(self):
+        pass
+
     @property
     def backend(self):
         return self._backend

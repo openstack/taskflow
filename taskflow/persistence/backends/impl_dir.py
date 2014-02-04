@@ -95,6 +95,19 @@ class Connection(base.Connection):
         # to restrict the multi-process access does not work inside a process.
         self._lock = backend._lock
 
+    def validate(self):
+        # Verify key paths exist.
+        paths = [
+            self._backend.base_path,
+            self._backend.lock_path,
+            self._flow_path,
+            self._task_path,
+            self._book_path,
+        ]
+        for p in paths:
+            if not os.path.isdir(p):
+                raise RuntimeError("Missing required directory: %s" % (p))
+
     def _read_from(self, filename):
         # This is very similar to the oslo-incubator fileutils module, but
         # tweaked to not depend on a global cache, as well as tweaked to not
