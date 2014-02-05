@@ -61,6 +61,12 @@ def _make_conf(backend_uri):
             'path': parsed_url.path,
             'connection': backend_uri,
         }
+    elif backend_type in ('zookeeper',):
+        conf = {
+            'path': parsed_url.path,
+            'hosts': parsed_url.netloc,
+            'connection': backend_uri,
+        }
     else:
         conf = {
             'connection': backend_uri,
