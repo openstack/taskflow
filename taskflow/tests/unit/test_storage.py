@@ -17,6 +17,7 @@
 #    under the License.
 
 import contextlib
+import threading
 
 import mock
 
@@ -35,10 +36,22 @@ class StorageTest(test.TestCase):
     def setUp(self):
         super(StorageTest, self).setUp()
         self.backend = impl_memory.MemoryBackend(conf={})
+        self.thread_count = 50
 
-    def _get_storage(self):
+    def _run_many_threads(self, threads):
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+    def _get_storage(self, threaded=False):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
-        return storage.Storage(backend=self.backend, flow_detail=flow_detail)
+        if threaded:
+            return storage.MultiThreadedStorage(backend=self.backend,
+                                                flow_detail=flow_detail)
+        else:
+            return storage.SingleThreadedStorage(backend=self.backend,
+                                                 flow_detail=flow_detail)
 
     def tearDown(self):
         super(StorageTest, self).tearDown()
@@ -48,14 +61,14 @@ class StorageTest(test.TestCase):
 
     def test_non_saving_storage(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
-        s = storage.Storage(flow_detail=flow_detail)  # no backend
+        s = storage.SingleThreadedStorage(flow_detail=flow_detail)
         s.ensure_task('my_task')
         self.assertTrue(
             uuidutils.is_uuid_like(s.get_task_uuid('my_task')))
 
     def test_flow_name_and_uuid(self):
         fd = logbook.FlowDetail(name='test-fd', uuid='aaaa')
-        s = storage.Storage(flow_detail=fd)
+        s = storage.SingleThreadedStorage(flow_detail=fd)
         self.assertEqual(s.flow_name, 'test-fd')
         self.assertEqual(s.flow_uuid, 'aaaa')
 
@@ -79,7 +92,8 @@ class StorageTest(test.TestCase):
 
     def test_ensure_task_fd(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
-        s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
+        s = storage.SingleThreadedStorage(backend=self.backend,
+                                          flow_detail=flow_detail)
         s.ensure_task('my task', '3.11')
         td = flow_detail.find(s.get_task_uuid('my task'))
         self.assertIsNotNone(td)
@@ -92,7 +106,8 @@ class StorageTest(test.TestCase):
         td = logbook.TaskDetail(name='my_task', uuid='42')
         flow_detail.add(td)
 
-        s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
+        s = storage.SingleThreadedStorage(backend=self.backend,
+                                          flow_detail=flow_detail)
         self.assertEqual('42', s.get_task_uuid('my_task'))
 
     def test_ensure_existing_task(self):
@@ -100,7 +115,8 @@ class StorageTest(test.TestCase):
         td = logbook.TaskDetail(name='my_task', uuid='42')
         flow_detail.add(td)
 
-        s = storage.Storage(backend=self.backend, flow_detail=flow_detail)
+        s = storage.SingleThreadedStorage(backend=self.backend,
+                                          flow_detail=flow_detail)
         s.ensure_task('my_task')
         self.assertEqual('42', s.get_task_uuid('my_task'))
 
@@ -147,7 +163,8 @@ class StorageTest(test.TestCase):
         s.ensure_task('my task')
         s.save('my task', fail, states.FAILURE)
 
-        s2 = storage.Storage(backend=self.backend, flow_detail=s._flowdetail)
+        s2 = storage.SingleThreadedStorage(backend=self.backend,
+                                           flow_detail=s._flowdetail)
         self.assertIs(s2.has_failures(), True)
         self.assertEqual(s2.get_failures(), {'my task': fail})
         self.assertEqual(s2.get('my task'), fail)
@@ -305,12 +322,70 @@ class StorageTest(test.TestCase):
         })
         # imagine we are resuming, so we need to make new
         # storage from same flow details
-        s2 = storage.Storage(s._flowdetail, backend=self.backend)
+        s2 = storage.SingleThreadedStorage(s._flowdetail, backend=self.backend)
         # injected data should still be there:
         self.assertEqual(s2.fetch_all(), {
             'foo': 'bar',
             'spam': 'eggs',
         })
+
+    def test_many_thread_ensure_same_task(self):
+        s = self._get_storage(threaded=True)
+
+        def ensure_my_task():
+            s.ensure_task('my_task', result_mapping={})
+
+        threads = []
+        for i in range(0, self.thread_count):
+            threads.append(threading.Thread(target=ensure_my_task))
+        self._run_many_threads(threads)
+
+        # Only one task should have been made, no more.
+        self.assertEqual(1, len(s._flowdetail))
+
+    def test_many_thread_one_reset(self):
+        s = self._get_storage(threaded=True)
+        s.ensure_task('a')
+        s.set_task_state('a', states.SUSPENDED)
+        s.ensure_task('b')
+        s.set_task_state('b', states.SUSPENDED)
+
+        results = []
+        result_lock = threading.Lock()
+
+        def reset_all():
+            r = s.reset_tasks()
+            with result_lock:
+                results.append(r)
+
+        threads = []
+        for i in range(0, self.thread_count):
+            threads.append(threading.Thread(target=reset_all))
+
+        self._run_many_threads(threads)
+
+        # Only one thread should have actually reset (not anymore)
+        results = [r for r in results if len(r)]
+        self.assertEqual(1, len(results))
+        self.assertEqual(['a', 'b'], sorted([a[0] for a in results[0]]))
+
+    def test_many_thread_inject(self):
+        s = self._get_storage(threaded=True)
+
+        def inject_values(values):
+            s.inject(values)
+
+        threads = []
+        for i in range(0, self.thread_count):
+            values = {
+                str(i): str(i),
+            }
+            threads.append(threading.Thread(target=inject_values,
+                                            args=[values]))
+
+        self._run_many_threads(threads)
+        self.assertEqual(self.thread_count, len(s.fetch_all()))
+        self.assertEqual(1, len(s._flowdetail))
 
     def test_fetch_meapped_args(self):
         s = self._get_storage()
@@ -357,7 +432,7 @@ class StorageTest(test.TestCase):
         fd.state = states.FAILURE
         with contextlib.closing(self.backend.get_connection()) as conn:
             fd.update(conn.update_flow_details(fd))
-        s = storage.Storage(flow_detail=fd, backend=self.backend)
+        s = storage.SingleThreadedStorage(flow_detail=fd, backend=self.backend)
         self.assertEqual(s.get_flow_state(), states.FAILURE)
 
     def test_set_and_get_flow_state(self):

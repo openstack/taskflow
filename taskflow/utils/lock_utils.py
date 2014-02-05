@@ -21,6 +21,8 @@
 # pulls in oslo.cfg) and is reduced to only what taskflow currently wants to
 # use from that code.
 
+import collections
+import contextlib
 import errno
 import logging
 import os
@@ -28,6 +30,7 @@ import threading
 import time
 
 from taskflow.utils import misc
+from taskflow.utils import threading_utils as tu
 
 LOG = logging.getLogger(__name__)
 
@@ -60,6 +63,163 @@ def locked(*args, **kwargs):
             return decorator(args[0])
         else:
             return decorator
+
+
+class ReaderWriterLock(object):
+    """A reader/writer lock.
+
+    This lock allows for simultaneous readers to exist but only one writer
+    to exist for use-cases where it is useful to have such types of locks.
+
+    Currently a reader can not escalate its read lock to a write lock and
+    a writer can not acquire a read lock while it owns or is waiting on
+    the write lock.
+
+    In the future these restrictions may be relaxed.
+    """
+    WRITER = 'w'
+    READER = 'r'
+
+    def __init__(self):
+        self._writer = None
+        self._pending_writers = collections.deque()
+        self._readers = collections.deque()
+        self._cond = threading.Condition()
+
+    def is_writer(self, check_pending=True):
+        """Returns if the caller is the active writer or a pending writer."""
+        self._cond.acquire()
+        try:
+            me = tu.get_ident()
+            if self._writer is not None and self._writer == me:
+                return True
+            if check_pending:
+                return me in self._pending_writers
+            else:
+                return False
+        finally:
+            self._cond.release()
+
+    @property
+    def owner(self):
+        """Returns whether the lock is locked by a writer or reader."""
+        self._cond.acquire()
+        try:
+            if self._writer is not None:
+                return self.WRITER
+            if self._readers:
+                return self.READER
+            return None
+        finally:
+            self._cond.release()
+
+    def is_reader(self):
+        """Returns if the caller is one of the readers."""
+        self._cond.acquire()
+        try:
+            return tu.get_ident() in self._readers
+        finally:
+            self._cond.release()
+
+    @contextlib.contextmanager
+    def read_lock(self):
+        """Grants a read lock.
+
+        Will wait until no active or pending writers.
+
+        Raises a RuntimeError if an active or pending writer tries to acquire
+        a read lock.
+        """
+        me = tu.get_ident()
+        if self.is_writer():
+            raise RuntimeError("Writer %s can not acquire a read lock"
+                               " while holding/waiting for the write lock"
+                               % me)
+        self._cond.acquire()
+        try:
+            while True:
+                # No active or pending writers; we are good to become a reader.
+                if self._writer is None and len(self._pending_writers) == 0:
+                    self._readers.append(me)
+                    break
+                # Some writers; guess we have to wait.
+                self._cond.wait()
+        finally:
+            self._cond.release()
+        try:
+            yield self
+        finally:
+            # I am no longer a reader, remove *one* occurrence of myself.
+            # If the current thread acquired two read locks, then it will
+            # still have to remove that other read lock; this allows for
+            # basic reentrancy to be possible.
+            self._cond.acquire()
+            try:
+                self._readers.remove(me)
+                self._cond.notify_all()
+            finally:
+                self._cond.release()
+
+    @contextlib.contextmanager
+    def write_lock(self):
+        """Grants a write lock.
+
+        Will wait until no active readers. Blocks readers after acquiring.
+
+        Raises a RuntimeError if an active reader attempts to acquire a lock.
+        """
+        me = tu.get_ident()
+        if self.is_reader():
+            raise RuntimeError("Reader %s to writer privilege"
+                               " escalation not allowed" % me)
+        if self.is_writer(check_pending=False):
+            # Already the writer; this allows for basic reentrancy.
+            yield self
+        else:
+            self._cond.acquire()
+            try:
+                self._pending_writers.append(me)
+                while True:
+                    # No readers, and no active writer, am I next??
+                    if len(self._readers) == 0 and self._writer is None:
+                        if self._pending_writers[0] == me:
+                            self._writer = self._pending_writers.popleft()
+                            break
+                    self._cond.wait()
+            finally:
+                self._cond.release()
+            try:
+                yield self
+            finally:
+                self._cond.acquire()
+                try:
+                    self._writer = None
+                    self._cond.notify_all()
+                finally:
+                    self._cond.release()
+
+
+class DummyReaderWriterLock(object):
+    """A dummy reader/writer lock that doesn't lock anything but provides same
+    functions as a normal reader/writer lock class.
+    """
+    @contextlib.contextmanager
+    def write_lock(self):
+        yield self
+
+    @contextlib.contextmanager
+    def read_lock(self):
+        yield self
+
+    @property
+    def owner(self):
+        return None
+
+    def is_reader(self):
+        return False
+
+    def is_writer(self):
+        return False
 
 
 class MultiLock(object):

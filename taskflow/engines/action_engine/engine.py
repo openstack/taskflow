@@ -191,13 +191,12 @@ class ActionEngine(base.EngineBase):
 
 class SingleThreadedActionEngine(ActionEngine):
     """Engine that runs tasks in serial manner."""
-    _storage_cls = t_storage.Storage
+    _storage_cls = t_storage.SingleThreadedStorage
 
 
 class MultiThreadedActionEngine(ActionEngine):
     """Engine that runs tasks in parallel manner."""
-
-    _storage_cls = t_storage.ThreadSafeStorage
+    _storage_cls = t_storage.MultiThreadedStorage
 
     def _task_executor_cls(self):
         return executor.ParallelTaskExecutor(self._executor)
