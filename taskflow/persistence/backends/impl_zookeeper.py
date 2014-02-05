@@ -78,16 +78,9 @@ class ZkBackend(base.Backend):
         if not self._owned:
             return
         try:
-            self._client.stop()
+            k_utils.finalize_client(self._client)
         except (k_exc.KazooException, k_exc.ZookeeperError) as e:
-            raise exc.StorageError("Unable to stop client: %s" % e)
-        try:
-            self._client.close()
-        except TypeError:
-            # NOTE(harlowja): https://github.com/python-zk/kazoo/issues/167
-            pass
-        except (k_exc.KazooException, k_exc.ZookeeperError) as e:
-            raise exc.StorageError("Unable to close client: %s" % e)
+            raise exc.StorageError("Unable to finalize client", e)
 
 
 class ZkConnection(base.Connection):
@@ -103,13 +96,7 @@ class ZkConnection(base.Connection):
 
     def validate(self):
         with self._exc_wrapper():
-            zk_ver = self._client.server_version()
-            if tuple(zk_ver) < MIN_ZK_VERSION:
-                given_zk_ver = ".".join([str(a) for a in zk_ver])
-                desired_zk_ver = ".".join([str(a) for a in MIN_ZK_VERSION])
-                raise exc.StorageError("Incompatible zookeeper version"
-                                       " %s detected, zookeeper >= %s required"
-                                       % (given_zk_ver, desired_zk_ver))
+            k_utils.check_compatible(self._client, MIN_ZK_VERSION)
 
     @property
     def backend(self):
