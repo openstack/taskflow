@@ -16,6 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import six
+
 
 class TaskFlowException(Exception):
     """Base class for exceptions emitted from this library."""
@@ -136,4 +138,16 @@ class WrappedFailure(TaskFlowException):
         return None
 
     def __str__(self):
-        return 'WrappedFailure: %s' % [str(cause) for cause in self._causes]
+        causes = [exception_message(cause) for cause in self._causes]
+        return 'WrappedFailure: %s' % causes
+
+
+def exception_message(exc):
+    """Return the string representation of exception."""
+    # NOTE(imelnikov): Dealing with non-ascii data in python is difficult:
+    # https://bugs.launchpad.net/taskflow/+bug/1275895
+    # https://bugs.launchpad.net/taskflow/+bug/1276053
+    try:
+        return six.text_type(exc)
+    except UnicodeError:
+        return str(exc)

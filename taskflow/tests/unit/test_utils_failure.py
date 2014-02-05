@@ -16,6 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import six
 
 from taskflow import exceptions
 from taskflow import test
@@ -225,3 +226,49 @@ class WrappedFailureTestCase(test.TestCase):
 
         wf = exceptions.WrappedFailure([fail_obj, f3])
         self.assertEqual(list(wf), [f1, f2, f3])
+
+
+class NonAsciiExceptionsTestCase(test.TestCase):
+
+    def test_exception_with_non_ascii_str(self):
+        bad_string = chr(200)
+        fail = misc.Failure.from_exception(ValueError(bad_string))
+        self.assertEqual(fail.exception_str, bad_string)
+        self.assertEqual(str(fail), 'Failure: ValueError: %s' % bad_string)
+
+    def test_exception_non_ascii_unicode(self):
+        hi_ru = u'привет'
+        fail = misc.Failure.from_exception(ValueError(hi_ru))
+        self.assertEqual(fail.exception_str, hi_ru)
+        self.assertIsInstance(fail.exception_str, six.text_type)
+        self.assertEqual(six.text_type(fail),
+                         u'Failure: ValueError: %s' % hi_ru)
+
+    def test_wrapped_failure_non_ascii_unicode(self):
+        hi_cn = u'嗨'
+        fail = ValueError(hi_cn)
+        self.assertEqual(hi_cn, exceptions.exception_message(fail))
+        fail = misc.Failure.from_exception(fail)
+        wrapped_fail = exceptions.WrappedFailure([fail])
+        if six.PY2:
+            # Python 2.x will unicode escape it, while python 3.3+ will not,
+            # so we sadly have to differentiate between these two...
+            expected_result = (u"WrappedFailure: "
+                               "[u'Failure: ValueError: %s']"
+                               % (hi_cn.encode("unicode-escape")))
+        else:
+            expected_result = (u"WrappedFailure: "
+                               "['Failure: ValueError: %s']" % (hi_cn))
+        self.assertEqual(expected_result, six.text_type(wrapped_fail))
+
+    def test_failure_equality_with_non_ascii_str(self):
+        bad_string = chr(200)
+        fail = misc.Failure.from_exception(ValueError(bad_string))
+        copied = fail.copy()
+        self.assertEqual(fail, copied)
+
+    def test_failure_equality_non_ascii_unicode(self):
+        hi_ru = u'привет'
+        fail = misc.Failure.from_exception(ValueError(hi_ru))
+        copied = fail.copy()
+        self.assertEqual(fail, copied)

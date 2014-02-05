@@ -31,7 +31,7 @@ import traceback
 
 import six
 
-from taskflow import exceptions
+from taskflow import exceptions as exc
 from taskflow.openstack.common import jsonutils
 from taskflow.utils import reflection
 
@@ -136,8 +136,8 @@ def item_from(container, index, name=None):
         # unsubscriptable type is being requested (type error).
         if name is None:
             name = index
-        raise exceptions.NotFound("Unable to find %r in container %s"
-                                  % (name, container))
+        raise exc.NotFound("Unable to find %r in container %s"
+                           % (name, container))
 
 
 def get_duplicate_keys(iterable, key=None):
@@ -444,7 +444,7 @@ def are_equal_exc_info_tuples(ei1, ei2):
     if ei1[0] is not ei2[0]:
         return False
     if not all((type(ei1[1]) == type(ei2[1]),
-                six.text_type(ei1[1]) == six.text_type(ei2[1]),
+                exc.exception_message(ei1[1]) == exc.exception_message(ei2[1]),
                 repr(ei1[1]) == repr(ei2[1]))):
         return False
     if ei1[2] == ei2[2]:
@@ -470,7 +470,7 @@ class Failure(object):
                 reflection.get_all_class_names(exc_info[0], up_to=Exception))
             if not self._exc_type_names:
                 raise TypeError('Invalid exception type: %r' % exc_info[0])
-            self._exception_str = six.text_type(self._exc_info[1])
+            self._exception_str = exc.exception_message(self._exc_info[1])
             self._traceback_str = ''.join(
                 traceback.format_tb(self._exc_info[2]))
         else:
@@ -557,14 +557,14 @@ class Failure(object):
         if len(failures) == 1:
             failures[0].reraise()
         elif len(failures) > 1:
-            raise exceptions.WrappedFailure(failures)
+            raise exc.WrappedFailure(failures)
 
     def reraise(self):
         """Re-raise captured exception."""
         if self._exc_info:
             six.reraise(*self._exc_info)
         else:
-            raise exceptions.WrappedFailure([self])
+            raise exc.WrappedFailure([self])
 
     def check(self, *exc_classes):
         """Check if any of exc_classes caused the failure.
