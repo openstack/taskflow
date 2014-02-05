@@ -16,84 +16,40 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import time
-
 import testtools
 
 import taskflow.engines
 from taskflow import exceptions as exc
 from taskflow.patterns import linear_flow as lf
 from taskflow import states
-from taskflow import task
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.utils import eventlet_utils as eu
 
 
-class TestTask(task.Task):
-
-    def __init__(self, values=None, name=None, sleep=None,
-                 provides=None, rebind=None, requires=None):
-        super(TestTask, self).__init__(name=name, provides=provides,
-                                       rebind=rebind, requires=requires)
-        if values is None:
-            self.values = []
-        else:
-            self.values = values
-        self._sleep = sleep
-
-    def execute(self, **kwargs):
-        self.update_progress(0.0)
-        if self._sleep:
-            time.sleep(self._sleep)
-        self.values.append(self.name)
-        self.update_progress(1.0)
-        return 5
-
-    def revert(self, **kwargs):
-        self.update_progress(0)
-        if self._sleep:
-            time.sleep(self._sleep)
-        self.values.append(self.name + ' reverted(%s)'
-                           % kwargs.get('result'))
-        self.update_progress(1.0)
-
-
-class FailingTask(TestTask):
-
-    def execute(self, **kwargs):
-        self.update_progress(0)
-        if self._sleep:
-            time.sleep(self._sleep)
-        self.update_progress(0.99)
-        raise RuntimeError('Woot!')
-
-
-class AutoSuspendingTask(TestTask):
+class AutoSuspendingTask(utils.SaveOrderTask):
 
     def execute(self, engine):
         result = super(AutoSuspendingTask, self).execute()
         engine.suspend()
         return result
 
-    def revert(self, engine, result, flow_failures):
-        super(AutoSuspendingTask, self).revert(**{'result': result})
 
-
-class AutoSuspendingTaskOnRevert(TestTask):
+class AutoSuspendingTaskOnRevert(utils.SaveOrderTask):
 
     def execute(self, engine):
         return super(AutoSuspendingTaskOnRevert, self).execute()
 
     def revert(self, engine, result, flow_failures):
-        super(AutoSuspendingTaskOnRevert, self).revert(**{'result': result})
+        super(AutoSuspendingTaskOnRevert, self).revert(
+            result=result, flow_failures=flow_failures)
         engine.suspend()
 
 
 class SuspendFlowTest(utils.EngineTestBase):
 
     def test_suspend_one_task(self):
-        flow = AutoSuspendingTask(self.values, 'a')
+        flow = AutoSuspendingTask('a')
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
         engine.run()
@@ -105,9 +61,9 @@ class SuspendFlowTest(utils.EngineTestBase):
 
     def test_suspend_linear_flow(self):
         flow = lf.Flow('linear').add(
-            TestTask(self.values, 'a'),
-            AutoSuspendingTask(self.values, 'b'),
-            TestTask(self.values, 'c')
+            utils.SaveOrderTask('a'),
+            AutoSuspendingTask('b'),
+            utils.SaveOrderTask('c')
         )
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
@@ -120,9 +76,9 @@ class SuspendFlowTest(utils.EngineTestBase):
 
     def test_suspend_linear_flow_on_revert(self):
         flow = lf.Flow('linear').add(
-            TestTask(self.values, 'a'),
-            AutoSuspendingTaskOnRevert(self.values, 'b'),
-            FailingTask(self.values, 'c')
+            utils.SaveOrderTask('a'),
+            AutoSuspendingTaskOnRevert('b'),
+            utils.FailingTask('c')
         )
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
@@ -145,9 +101,9 @@ class SuspendFlowTest(utils.EngineTestBase):
 
     def test_suspend_and_resume_linear_flow_on_revert(self):
         flow = lf.Flow('linear').add(
-            TestTask(self.values, 'a'),
-            AutoSuspendingTaskOnRevert(self.values, 'b'),
-            FailingTask(self.values, 'c')
+            utils.SaveOrderTask('a'),
+            AutoSuspendingTaskOnRevert('b'),
+            utils.FailingTask('c')
         )
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
@@ -167,9 +123,9 @@ class SuspendFlowTest(utils.EngineTestBase):
 
     def test_suspend_and_revert_even_if_task_is_gone(self):
         flow = lf.Flow('linear').add(
-            TestTask(self.values, 'a'),
-            AutoSuspendingTaskOnRevert(self.values, 'b'),
-            FailingTask(self.values, 'c')
+            utils.SaveOrderTask('a'),
+            AutoSuspendingTaskOnRevert('b'),
+            utils.FailingTask('c')
         )
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine})
@@ -177,8 +133,8 @@ class SuspendFlowTest(utils.EngineTestBase):
 
         # pretend we are resuming, but task 'c' gone when flow got updated
         flow2 = lf.Flow('linear').add(
-            TestTask(self.values, 'a'),
-            AutoSuspendingTaskOnRevert(self.values, 'b')
+            utils.SaveOrderTask('a'),
+            AutoSuspendingTaskOnRevert('b')
         )
         engine2 = self._make_engine(flow2, engine.storage._flowdetail)
         self.assertRaisesRegexp(RuntimeError, '^Woot', engine2.run)
@@ -193,8 +149,8 @@ class SuspendFlowTest(utils.EngineTestBase):
 
     def test_storage_is_rechecked(self):
         flow = lf.Flow('linear').add(
-            AutoSuspendingTask(self.values, 'b'),
-            TestTask(self.values, name='c')
+            AutoSuspendingTask('b'),
+            utils.SaveOrderTask(name='c')
         )
         engine = self._make_engine(flow)
         engine.storage.inject({'engine': engine, 'boo': True})
