@@ -21,8 +21,6 @@ import errno
 import logging
 import os
 import shutil
-import threading
-import weakref
 
 import six
 
@@ -35,38 +33,18 @@ from taskflow.utils import persistence_utils as p_utils
 
 LOG = logging.getLogger(__name__)
 
-# The lock storage is not thread safe to set items in, so this lock is used to
-# protect that access.
-_LOCK_STORAGE_MUTATE = threading.RLock()
-
-# Currently in use paths -> in-process locks are maintained here.
-#
-# NOTE(harlowja): Values in this dictionary will be automatically released once
-# the objects referencing those objects have been garbage collected.
-_LOCK_STORAGE = weakref.WeakValueDictionary()
-
 
 class DirBackend(base.Backend):
     """A backend that writes logbooks, flow details, and task details to a
     provided directory. This backend does *not* provide transactional semantics
     although it does guarantee that there will be no race conditions when
-    writing/reading by using file level locking and in-process locking.
-
-    NOTE(harlowja): this is more of an example/testing backend and likely
-    should *not* be used in production, since this backend lacks transactional
-    semantics.
+    writing/reading by using file level locking.
     """
     def __init__(self, conf):
         super(DirBackend, self).__init__(conf)
         self._path = os.path.abspath(conf['path'])
         self._lock_path = os.path.join(self._path, 'locks')
         self._file_cache = {}
-        # Ensure that multiple threads are not accessing the same storage at
-        # the same time, the file lock mechanism doesn't protect against this
-        # so we must do in-process locking as well.
-        with _LOCK_STORAGE_MUTATE:
-            self._lock = _LOCK_STORAGE.setdefault(self._path,
-                                                  threading.RLock())
 
     @property
     def lock_path(self):
@@ -90,10 +68,6 @@ class Connection(base.Connection):
         self._flow_path = os.path.join(self._backend.base_path, 'flows')
         self._task_path = os.path.join(self._backend.base_path, 'tasks')
         self._book_path = os.path.join(self._backend.base_path, 'books')
-        # Share the backends lock so that all threads using the given backend
-        # are restricted in writing, since the per-process lock we are using
-        # to restrict the multi-process access does not work inside a process.
-        self._lock = backend._lock
 
     def validate(self):
         # Verify key paths exist.
@@ -155,10 +129,7 @@ class Connection(base.Connection):
                 pass
 
     def get_logbooks(self):
-        # NOTE(harlowja): don't hold the lock while iterating.
-        with self._lock:
-            books = list(self._get_logbooks())
-        for b in books:
+        for b in list(self._get_logbooks()):
             yield b
 
     @property
@@ -184,7 +155,6 @@ class Connection(base.Connection):
         self._write_to(td_path, jsonutils.dumps(td_data))
         return task_detail
 
-    @lock_utils.locked
     def update_task_details(self, task_detail):
         return self._run_with_process_lock("task",
                                            self._save_task_details,
@@ -266,7 +236,6 @@ class Connection(base.Connection):
                                         list(flow_detail), task_path)
         return flow_detail
 
-    @lock_utils.locked
     def update_flow_details(self, flow_detail):
         return self._run_with_process_lock("flow",
                                            self._save_flow_details,
@@ -312,12 +281,10 @@ class Connection(base.Connection):
                                         list(book), flow_path)
         return book
 
-    @lock_utils.locked
     def save_logbook(self, book):
         return self._run_with_process_lock("book",
                                            self._save_logbook, book)
 
-    @lock_utils.locked
     def upgrade(self):
 
         def _step_create():
@@ -328,7 +295,6 @@ class Connection(base.Connection):
         misc.ensure_tree(self._backend.lock_path)
         self._run_with_process_lock("init", _step_create)
 
-    @lock_utils.locked
     def clear_all(self):
 
         def _step_clear():
@@ -348,7 +314,6 @@ class Connection(base.Connection):
         # Acquire all locks by going through this little hierarchy.
         self._run_with_process_lock("init", _step_book)
 
-    @lock_utils.locked
     def destroy_logbook(self, book_uuid):
 
         def _destroy_tasks(task_details):
@@ -406,7 +371,6 @@ class Connection(base.Connection):
             lb.add(self._get_flow_details(fd_uuid))
         return lb
 
-    @lock_utils.locked
     def get_logbook(self, book_uuid):
         return self._run_with_process_lock("book",
                                            self._get_logbook, book_uuid)
