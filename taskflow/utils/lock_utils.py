@@ -86,6 +86,14 @@ class ReaderWriterLock(object):
         self._readers = collections.deque()
         self._cond = threading.Condition()
 
+    @property
+    def pending_writers(self):
+        self._cond.acquire()
+        try:
+            return len(self._pending_writers)
+        finally:
+            self._cond.release()
+
     def is_writer(self, check_pending=True):
         """Returns if the caller is the active writer or a pending writer."""
         self._cond.acquire()
@@ -138,11 +146,11 @@ class ReaderWriterLock(object):
         self._cond.acquire()
         try:
             while True:
-                # No active or pending writers; we are good to become a reader.
-                if self._writer is None and len(self._pending_writers) == 0:
+                # No active writer; we are good to become a reader.
+                if self._writer is None:
                     self._readers.append(me)
                     break
-                # Some writers; guess we have to wait.
+                # An active writer; guess we have to wait.
                 self._cond.wait()
         finally:
             self._cond.release()
