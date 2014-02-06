@@ -16,6 +16,7 @@
 
 import six
 
+from taskflow import retry as r
 from taskflow import states as st
 
 
@@ -32,6 +33,11 @@ class GraphAnalyzer(object):
     @property
     def execution_graph(self):
         return self._graph
+
+    def get_next_nodes(self, node=None):
+        execute = self.browse_nodes_for_execute(node)
+        revert = self.browse_nodes_for_revert(node)
+        return execute + revert
 
     def browse_nodes_for_execute(self, node=None):
         """Browse next nodes to execute for given node if specified and
@@ -66,8 +72,10 @@ class GraphAnalyzer(object):
     def _is_ready_for_execute(self, task):
         """Checks if task is ready to be executed."""
 
-        state = self._storage.get_task_state(task.name)
-        if not st.check_task_transition(state, st.RUNNING):
+        state = self.get_state(task)
+        intention = self._storage.get_atom_intention(task.name)
+        transition = st.check_task_transition(state, st.RUNNING)
+        if not transition or intention != st.EXECUTE:
             return False
 
         task_names = []
@@ -75,14 +83,16 @@ class GraphAnalyzer(object):
             task_names.append(prev_task.name)
 
         task_states = self._storage.get_tasks_states(task_names)
-        return all(state == st.SUCCESS
-                   for state in six.itervalues(task_states))
+        return all(state == st.SUCCESS and intention == st.EXECUTE
+                   for state, intention in six.itervalues(task_states))
 
     def _is_ready_for_revert(self, task):
         """Checks if task is ready to be reverted."""
 
-        state = self._storage.get_task_state(task.name)
-        if not st.check_task_transition(state, st.REVERTING):
+        state = self.get_state(task)
+        intention = self._storage.get_atom_intention(task.name)
+        transition = st.check_task_transition(state, st.REVERTING)
+        if not transition or intention not in (st.REVERT, st.RETRY):
             return False
 
         task_names = []
@@ -91,4 +101,50 @@ class GraphAnalyzer(object):
 
         task_states = self._storage.get_tasks_states(task_names)
         return all(state in (st.PENDING, st.REVERTED)
-                   for state in six.itervalues(task_states))
+                   for state, intention in six.itervalues(task_states))
+
+    def iterate_subgraph(self, retry):
+        """Iterates a subgraph connected to current retry controller, including
+        nested retry controllers and its nodes.
+        """
+        visited_nodes = set()
+        retries_scope = set()
+        retries_scope.add(retry)
+
+        nodes = self._graph.successors(retry)
+        while nodes:
+            next_nodes = []
+            for node in nodes:
+                if node not in visited_nodes:
+                    visited_nodes.add(node)
+                    if self.find_atom_retry(node) in retries_scope:
+                        yield node
+                        if isinstance(node, r.Retry):
+                            retries_scope.add(node)
+                        next_nodes += self._graph.successors(node)
+            nodes = next_nodes
+
+    def iterate_retries(self, state=None):
+        """Iterates retry controllers of a graph with given state or all
+        retries if state is None.
+        """
+        for node in self._graph.nodes_iter():
+            if isinstance(node, r.Retry):
+                if not state or self.get_state(node) == state:
+                    yield node
+
+    def iterate_all_nodes(self):
+        for node in self._graph.nodes_iter():
+            yield node
+
+    def find_atom_retry(self, atom):
+        return self._graph.node[atom].get('retry')
+
+    def is_success(self):
+        for node in self._graph.nodes_iter():
+            if self.get_state(node) != st.SUCCESS:
+                return False
+        return True
+
+    def get_state(self, node):
+        return self._storage.get_task_state(node.name)

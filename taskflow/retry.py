@@ -23,6 +23,7 @@ import logging
 import six
 
 from taskflow import atom
+from taskflow import exceptions as exc
 
 LOG = logging.getLogger(__name__)
 
@@ -99,3 +100,86 @@ class AlwaysRevert(Retry):
 
     def execute(self, *args, **kwargs):
         pass
+
+
+class AlwaysRevertAll(Retry):
+    """Retry that always reverts a whole flow."""
+
+    def on_failure(self, **kwargs):
+        return REVERT_ALL
+
+    def execute(self, **kwargs):
+        pass
+
+
+class Times(Retry):
+    """Retries subflow given number of times. Returns attempt number."""
+
+    def __init__(self, attempts=1, name=None, provides=None, requires=None,
+                 auto_extract=True, rebind=None):
+        super(Times, self).__init__(name, provides, requires,
+                                    auto_extract, rebind)
+        self._attempts = attempts
+
+    def on_failure(self, history, *args, **kwargs):
+        if len(history) < self._attempts:
+            return RETRY
+        return REVERT
+
+    def execute(self, history, *args, **kwargs):
+        return len(history)+1
+
+
+class ForEachBase(Retry):
+    """Base class for retries that iterate given collection."""
+
+    def _get_next_value(self, values, history):
+        values = list(values)  # copy it
+        for (item, failures) in history:
+            try:
+                values.remove(item)  # remove exactly one element from item
+            except ValueError:
+                # one of the results is not in our list now -- who cares?
+                pass
+        if not values:
+            raise exc.NotFound("No elements left in collection of iterable "
+                               "retry controller %s" % self.name)
+        return values[0]
+
+    def _on_failure(self, values, history):
+        try:
+            self._get_next_value(values, history)
+        except exc.NotFound:
+            return REVERT
+        else:
+            return RETRY
+
+
+class ForEach(ForEachBase):
+    """Accepts a collection of values to the constructor. Returns the next
+    element of the collection on each try.
+    """
+
+    def __init__(self, values, name=None, provides=None, requires=None,
+                 auto_extract=True, rebind=None):
+        super(ForEach, self).__init__(name, provides, requires,
+                                      auto_extract, rebind)
+        self._values = values
+
+    def on_failure(self, history, *args, **kwargs):
+        return self._on_failure(self._values, history)
+
+    def execute(self, history, *args, **kwargs):
+        return self._get_next_value(self._values, history)
+
+
+class ParameterizedForEach(ForEachBase):
+    """Accepts a collection of values from storage as a parameter of execute
+     method. Returns the next element of the collection on each try.
+    """
+
+    def on_failure(self, values, history, *args, **kwargs):
+        return self._on_failure(values, history)
+
+    def execute(self, values, history, *args, **kwargs):
+        return self._get_next_value(values, history)

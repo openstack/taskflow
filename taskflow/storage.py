@@ -215,7 +215,8 @@ class Storage(object):
     def get_tasks_states(self, task_names):
         """Gets all task states."""
         with self._lock.read_lock():
-            return dict((name, self.get_task_state(name))
+            return dict((name, (self.get_task_state(name),
+                                self.get_atom_intention(name)))
                         for name in task_names)
 
     def update_task_metadata(self, task_name, update_with):
@@ -314,6 +315,18 @@ class Storage(object):
                 self._check_all_results_provided(td.name, data)
             self._with_connection(self._save_task_detail, task_detail=td)
 
+    def save_retry_failure(self, retry_name, failed_atom_name, failure):
+        """Save subflow failure to retry controller history."""
+        with self._lock.write_lock():
+            td = self._taskdetail_by_name(retry_name)
+            if td.atom_type != logbook.RETRY_DETAIL:
+                raise TypeError(
+                    "Atom %s is not a retry controller." % retry_name)
+            failures = td.results[-1][1]
+            if failed_atom_name not in failures:
+                failures[failed_atom_name] = failure
+                self._with_connection(self._save_task_detail, task_detail=td)
+
     def cleanup_retry_history(self, retry_name, state):
         """Cleanup history of retry with given name."""
         with self._lock.write_lock():
@@ -354,9 +367,7 @@ class Storage(object):
             return False
         if td.state == state:
             return False
-        td.results = None
-        td.failure = None
-        td.state = state
+        td.reset(state)
         self._failures.pop(td.name, None)
         return True
 
@@ -501,6 +512,14 @@ class Storage(object):
         """Fetch retry results history."""
         with self._lock.read_lock():
             td = self._taskdetail_by_name(name)
+            if td.failure is not None:
+                cached = self._failures.get(name)
+                history = list(td.results)
+                if td.failure.matches(cached):
+                    history.append((cached, {}))
+                else:
+                    history.append((td.failure, {}))
+                return history
             return td.results
 
 

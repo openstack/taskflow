@@ -31,10 +31,10 @@ class TaskAction(object):
         self._task_executor = task_executor
         self._notifier = notifier
 
-    def _change_state(self, task, state, result=None, progress=None):
+    def change_state(self, task, state, result=None, progress=None):
         old_state = self._storage.get_task_state(task.name)
-        if not states.check_task_transition(old_state, state):
-            return False
+        if old_state == state:
+            return state != states.PENDING
         if state in SAVE_RESULT_STATES:
             self._storage.save(task.name, result, state)
         else:
@@ -62,7 +62,7 @@ class TaskAction(object):
                           task, progress)
 
     def schedule_execution(self, task):
-        if not self._change_state(task, states.RUNNING, progress=0.0):
+        if not self.change_state(task, states.RUNNING, progress=0.0):
             return
         kwargs = self._storage.fetch_mapped_args(task.rebind)
         task_uuid = self._storage.get_task_uuid(task.name)
@@ -71,13 +71,13 @@ class TaskAction(object):
 
     def complete_execution(self, task, result):
         if isinstance(result, misc.Failure):
-            self._change_state(task, states.FAILURE, result=result)
+            self.change_state(task, states.FAILURE, result=result)
         else:
-            self._change_state(task, states.SUCCESS,
-                               result=result, progress=1.0)
+            self.change_state(task, states.SUCCESS,
+                              result=result, progress=1.0)
 
     def schedule_reversion(self, task):
-        if not self._change_state(task, states.REVERTING, progress=0.0):
+        if not self.change_state(task, states.REVERTING, progress=0.0):
             return
         kwargs = self._storage.fetch_mapped_args(task.rebind)
         task_uuid = self._storage.get_task_uuid(task.name)
@@ -90,9 +90,9 @@ class TaskAction(object):
 
     def complete_reversion(self, task, rev_result):
         if isinstance(rev_result, misc.Failure):
-            self._change_state(task, states.FAILURE)
+            self.change_state(task, states.FAILURE)
         else:
-            self._change_state(task, states.REVERTED, progress=1.0)
+            self.change_state(task, states.REVERTED, progress=1.0)
 
     def wait_for_any(self, fs, timeout):
         return self._task_executor.wait_for_any(fs, timeout)

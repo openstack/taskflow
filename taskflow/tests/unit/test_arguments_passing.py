@@ -47,9 +47,9 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         })
 
     def test_save_dict(self):
-        flow = utils.TaskMultiDictk(provides=set(['badger',
-                                                  'mushroom',
-                                                  'snake']))
+        flow = utils.TaskMultiDict(provides=set(['badger',
+                                                 'mushroom',
+                                                 'snake']))
         engine = self._make_engine(flow)
         engine.run()
         self.assertEqual(engine.storage.fetch_all(), {

@@ -195,6 +195,10 @@ class AtomDetail(object):
     def atom_type(self):
         """Identifies atom type represented by this detail."""
 
+    @abc.abstractmethod
+    def reset(self, state):
+        """Resets detail results ans failures."""
+
 
 class TaskDetail(AtomDetail):
     """This class represents a task detail for flow task object."""
@@ -204,6 +208,12 @@ class TaskDetail(AtomDetail):
     @property
     def atom_type(self):
         return TASK_DETAIL
+
+    def reset(self, state):
+        self.results = None
+        self.failure = None
+        self.state = state
+        self.intention = states.EXECUTE
 
 
 class RetryDetail(AtomDetail):
@@ -215,6 +225,12 @@ class RetryDetail(AtomDetail):
     @property
     def atom_type(self):
         return RETRY_DETAIL
+
+    def reset(self, state):
+        self.results = []
+        self.failure = None
+        self.state = state
+        self.intention = states.EXECUTE
 
 
 def get_atom_detail_class(atom_type):

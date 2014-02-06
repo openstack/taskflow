@@ -18,7 +18,9 @@
 
 import logging
 
+from taskflow.engines.action_engine import executor as ex
 from taskflow import states
+from taskflow.utils import async_utils
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -36,14 +38,14 @@ class RetryAction(object):
         kwargs['history'] = self._storage.get_retry_history(retry.name)
         return kwargs
 
-    def _change_state(self, retry, state, result=None):
+    def change_state(self, retry, state, result=None):
         old_state = self._storage.get_task_state(retry.name)
-        if not states.check_task_transition(old_state, state):
-            return False
+        if old_state == state:
+            return state != states.PENDING
         if state in SAVE_RESULT_STATES:
             self._storage.save(retry.name, result, state)
         elif state == states.REVERTED:
-            self.storage.cleanup_retry_history(retry.name, state)
+            self._storage.cleanup_retry_history(retry.name, state)
         else:
             self._storage.set_task_state(retry.name, state)
 
@@ -55,25 +57,33 @@ class RetryAction(object):
         return True
 
     def execute(self, retry):
-        if not self._change_state(retry, states.RUNNING):
+        if not self.change_state(retry, states.RUNNING):
             return
         kwargs = self._get_retry_args(retry)
         try:
             result = retry.execute(**kwargs)
         except Exception:
             result = misc.Failure()
-            self._change_state(retry, states.FAILURE, result=result)
+            self.change_state(retry, states.FAILURE, result=result)
         else:
-            self._change_state(retry, states.SUCCESS, result=result)
+            self.change_state(retry, states.SUCCESS, result=result)
+        return async_utils.make_completed_future((retry, ex.EXECUTED, result))
 
     def revert(self, retry):
-        if not self._change_state(retry, states.REVERTING):
+        if not self.change_state(retry, states.REVERTING):
             return
         kwargs = self._get_retry_args(retry)
         kwargs['flow_failures'] = self._storage.get_failures()
         try:
-            retry.revert(**kwargs)
+            result = retry.revert(**kwargs)
         except Exception:
-            self._change_state(retry, states.FAILURE)
+            result = misc.Failure()
+            self.change_state(retry, states.FAILURE)
         else:
-            self._change_state(retry, states.REVERTED)
+            self.change_state(retry, states.REVERTED)
+        return async_utils.make_completed_future((retry, ex.REVERTED, result))
+
+    def on_failure(self, retry, atom, last_failure):
+        self._storage.save_retry_failure(retry.name, atom.name, last_failure)
+        kwargs = self._get_retry_args(retry)
+        return retry.on_failure(**kwargs)

@@ -24,6 +24,7 @@ from taskflow import flow
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
+from taskflow import retry
 from taskflow import task
 from taskflow.utils import graph_utils as gu
 from taskflow.utils import lock_utils as lu
@@ -85,6 +86,9 @@ class Flattener(object):
             return self._flatten_graph
         elif isinstance(item, task.BaseTask):
             return self._flatten_task
+        elif isinstance(item, retry.Retry):
+            raise TypeError("Retry controller %s (%s) is used not as a flow "
+                            "parameter" % (item, type(item)))
         else:
             return None
 

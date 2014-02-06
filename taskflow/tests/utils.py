@@ -16,7 +16,9 @@
 
 import contextlib
 
+import collections
 import six
+import threading
 
 from taskflow import exceptions
 from taskflow.persistence.backends import impl_memory
@@ -97,6 +99,23 @@ class ProvidesRequiresTask(task.Task):
             return dict((k, k) for k in self.provides)
 
 
+def task_callback(state, values, details):
+    name = details.get('task_name', None)
+    if not name:
+        name = details.get('retry_name', '<unknown>')
+    values.append('%s %s' % (name, state))
+
+
+def flow_callback(state, values, details):
+    values.append('flow %s' % state)
+
+
+def register_notifiers(engine, values):
+    engine.notifier.register('*', flow_callback, kwargs={'values': values})
+    engine.task_notifier.register('*', task_callback,
+                                  kwargs={'values': values})
+
+
 class SaveOrderTask(task.Task):
 
     def __init__(self, name=None, *args, **kwargs):
@@ -135,6 +154,11 @@ class ProgressingTask(task.Task):
         self.update_progress(0.0)
         self.update_progress(1.0)
         return 5
+
+
+class FailingTaskWithOneArg(SaveOrderTask):
+    def execute(self, x, **kwargs):
+        raise RuntimeError('Woot with %s' % x)
 
 
 class NastyTask(task.Task):
@@ -223,7 +247,7 @@ class TaskMultiArgMultiReturn(task.Task):
         pass
 
 
-class TaskMultiDictk(task.Task):
+class TaskMultiDict(task.Task):
 
     def execute(self):
         output = {}
@@ -279,3 +303,36 @@ class OneReturnRetry(retry.AlwaysRevert):
 
     def revert(self, **kwargs):
         pass
+
+
+class ConditionalTask(SaveOrderTask):
+
+    def execute(self, x, y):
+        super(ConditionalTask, self).execute()
+        if x != y:
+            raise RuntimeError('Woot!')
+
+
+class WaitForOneFromTask(SaveOrderTask):
+
+    def __init__(self, name, wait_for, wait_states, **kwargs):
+        super(WaitForOneFromTask, self).__init__(name, **kwargs)
+        if not isinstance(wait_for, collections.Iterable):
+            self.wait_for = [wait_for]
+        else:
+            self.wait_for = wait_for
+        if not isinstance(wait_states, collections.Iterable):
+            self.wait_states = [wait_states]
+        else:
+            self.wait_states = wait_states
+        self.event = threading.Event()
+
+    def execute(self):
+        self.event.wait()
+        return super(WaitForOneFromTask, self).execute()
+
+    def callback(self, state, details):
+        name = details.get('task_name', None)
+        if name not in self.wait_for or state not in self.wait_states:
+            return
+        self.event.set()

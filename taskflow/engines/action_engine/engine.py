@@ -65,22 +65,6 @@ class ActionEngine(base.EngineBase):
         self._task_action = None
         self._retry_action = None
 
-    def _revert(self, current_failure=None):
-        self._change_state(states.REVERTING)
-        try:
-            state = self._root.revert()
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                self._change_state(states.FAILURE)
-
-        self._change_state(state)
-        if state == states.SUSPENDED:
-            return
-        failures = self.storage.get_failures()
-        misc.Failure.reraise_if_any(failures.values())
-        if current_failure:
-            current_failure.reraise()
-
     def __str__(self):
         return "%s: %s" % (reflection.get_class_name(self), id(self))
 
@@ -107,10 +91,7 @@ class ActionEngine(base.EngineBase):
             raise exc.MissingDependencies(self._flow, sorted(missing))
         self._task_executor.start()
         try:
-            if self.storage.has_failures():
-                self._revert()
-            else:
-                self._run()
+            self._run()
         finally:
             self._task_executor.stop()
 
@@ -119,10 +100,13 @@ class ActionEngine(base.EngineBase):
         try:
             state = self._root.execute()
         except Exception:
-            self._change_state(states.FAILURE)
-            self._revert(misc.Failure())
+            with excutils.save_and_reraise_exception():
+                self._change_state(states.FAILURE)
         else:
             self._change_state(state)
+        if state != states.SUSPENDED and state != states.SUCCESS:
+            failures = self.storage.get_failures()
+            misc.Failure.reraise_if_any(failures.values())
 
     @lock_utils.locked(lock='_state_lock')
     def _change_state(self, state):

@@ -151,6 +151,13 @@ class TestCase(testcase.TestCase):
         except exceptions.WrappedFailure as e:
             self.assertThat(e, FailureRegexpMatcher(exc_class, pattern))
 
+    def assertIsContainsSameElements(self, seq1, seq2, msg=None):
+        if sorted(seq1) != sorted(seq2):
+            if msg is None:
+                msg = ("%r doesn't contain same elements as %r."
+                       % (seq1, seq2))
+            self.fail(msg)
+
 
 class MockTestCase(TestCase):
 

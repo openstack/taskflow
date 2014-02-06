@@ -441,3 +441,15 @@ class FlowDependenciesTest(test.TestCase):
                           flow.add,
                           lf.Flow('lf2', retry.AlwaysRevert('rt2',
                                                             provides=['x'])))
+
+    def test_builtin_retry_args(self):
+
+        class FullArgsRetry(retry.AlwaysRevert):
+            def execute(self, history, **kwargs):
+                pass
+
+            def revert(self, history, **kwargs):
+                pass
+
+        flow = lf.Flow('lf', retry=FullArgsRetry(requires='a'))
+        self.assertEqual(flow.requires, set(['a']))

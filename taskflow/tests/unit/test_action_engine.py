@@ -62,10 +62,7 @@ class EngineTaskTest(utils.EngineTestBase):
     def test_run_task_with_notifications(self):
         flow = utils.SaveOrderTask(name='task1')
         engine = self._make_engine(flow)
-        engine.notifier.register('*', self._flow_callback,
-                                 kwargs={'values': self.values})
-        engine.task_notifier.register('*', self._callback,
-                                      kwargs={'values': self.values})
+        utils.register_notifiers(engine, self.values)
         engine.run()
         self.assertEqual(self.values,
                          ['flow RUNNING',
@@ -77,15 +74,10 @@ class EngineTaskTest(utils.EngineTestBase):
     def test_failing_task_with_notifications(self):
         flow = utils.FailingTask('fail')
         engine = self._make_engine(flow)
-        engine.notifier.register('*', self._flow_callback,
-                                 kwargs={'values': self.values})
-        engine.task_notifier.register('*', self._callback,
-                                      kwargs={'values': self.values})
+        utils.register_notifiers(engine, self.values)
         expected = ['flow RUNNING',
                     'fail RUNNING',
                     'fail FAILURE',
-                    'flow FAILURE',
-                    'flow REVERTING',
                     'fail REVERTING',
                     'fail reverted(Failure: RuntimeError: Woot!)',
                     'fail REVERTED',

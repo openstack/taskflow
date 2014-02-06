@@ -81,8 +81,8 @@ class StorageTest(test.TestCase):
         s.ensure_task('my task2')
         s.save('my task', 'foo')
         expected = {
-            'my task': states.SUCCESS,
-            'my task2': states.PENDING,
+            'my task': (states.SUCCESS, states.EXECUTE),
+            'my task2': (states.PENDING, states.EXECUTE),
         }
         self.assertEqual(s.get_tasks_states(['my task', 'my task2']), expected)
 
@@ -542,7 +542,7 @@ class StorageTest(test.TestCase):
         s.save('my retry', 'a')
         s.save('my retry', fail, states.FAILURE)
         history = s.get_retry_history('my retry')
-        self.assertEqual(history, [('a', {})])
+        self.assertEqual(history, [('a', {}), (fail, {})])
         self.assertIs(s.has_failures(), True)
         self.assertEqual(s.get_failures(), {'my retry': fail})
 

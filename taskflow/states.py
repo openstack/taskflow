@@ -36,8 +36,10 @@ RESUMING = 'RESUMING'
 FAILURE = FAILURE
 PENDING = PENDING
 REVERTED = REVERTED
-REVERTING = REVERTING
+REVERTING = 'REVERTING'
 SUCCESS = SUCCESS
+RUNNING = RUNNING
+RETRYING = 'RETRYING'
 
 # Atom intentions.
 EXECUTE = 'EXECUTE'
@@ -58,18 +60,13 @@ _ALLOWED_FLOW_TRANSITIONS = frozenset((
 
     (RUNNING, SUCCESS),       # all tasks finished successfully
     (RUNNING, FAILURE),       # some of task failed
+    (RUNNING, REVERTED),      # some of task failed and flow has been reverted
     (RUNNING, SUSPENDING),    # engine.suspend was called
     (RUNNING, RESUMING),      # resuming from a previous running
 
     (SUCCESS, RUNNING),       # see note below
 
     (FAILURE, RUNNING),       # see note below
-    (FAILURE, REVERTING),     # flow failed, do cleanup now
-
-    (REVERTING, REVERTED),    # revert done
-    (REVERTING, FAILURE),     # revert failed
-    (REVERTING, SUSPENDING),  # engine.suspend was called
-    (REVERTING, RESUMING),    # resuming from a previous reverting
 
     (REVERTED, PENDING),      # try again
 
@@ -80,7 +77,6 @@ _ALLOWED_FLOW_TRANSITIONS = frozenset((
     (SUSPENDING, RESUMING),   # resuming from a previous suspending
 
     (SUSPENDED, RUNNING),     # restart from suspended
-    (SUSPENDED, REVERTING),   # revert from suspended
 
     (RESUMING, SUSPENDED),    # after flow resumed, it is suspended
 ))
@@ -144,52 +140,17 @@ _ALLOWED_TASK_TRANSITIONS = frozenset((
 
     (REVERTED, PENDING),      # try again
 
-    # NOTE(harlowja): allow the tasks to restart if in the same state
-    # as a they were in before as a task may be 'killed' while in one of the
-    # below states and it is permissible to let the task to re-enter that
-    # same state to try to finish.
-    (REVERTING, REVERTING),
-    (RUNNING, RUNNING),
-
-    # NOTE(harlowja): the task was 'killed' while in one of the starting/ending
-    # states and it is permissible to let the task to start running or
-    # reverting again (if it really wants too).
-    (REVERTING, RUNNING),
-    (RUNNING, REVERTING),
+    (SUCCESS, RETRYING),      # retrying retry controller
+    (RETRYING, RUNNING),      # run retry controller that has been retrying
 ))
-
-_IGNORED_TASK_TRANSITIONS = [
-    (SUCCESS, RUNNING),       # already finished
-    (PENDING, REVERTING),     # never ran in the first place
-    (REVERTED, REVERTING),    # the task already reverted
-]
-
-# NOTE(harlowja): ignore transitions to the same state (in these cases).
-#
-# NOTE(harlowja): the above ALLOWED_TASK_TRANSITIONS does allow
-# transitions to certain equivalent states (but only for a few special
-# cases).
-_IGNORED_TASK_TRANSITIONS.extend(
-    (a, a) for a in (PENDING, FAILURE, SUCCESS, REVERTED)
-)
-
-_IGNORED_TASK_TRANSITIONS = frozenset(_IGNORED_TASK_TRANSITIONS)
 
 
 def check_task_transition(old_state, new_state):
     """Check that task can transition from old_state to new_state.
 
-    If transition can be performed, it returns True. If transition
-    should be ignored, it returns False. If transition is not
-    valid, it raises InvalidState exception.
+    If transition can be performed, it returns True, False otherwise.
     """
     pair = (old_state, new_state)
     if pair in _ALLOWED_TASK_TRANSITIONS:
         return True
-    if pair in _IGNORED_TASK_TRANSITIONS:
-        return False
-    # TODO(harlowja): Should we check/allow for 3rd party states to be
-    # triggered during RUNNING by having a concept of a sub-state that we also
-    # verify against??
-    raise exc.InvalidState("Task transition from %s to %s is not allowed"
-                           % pair)
+    return False
