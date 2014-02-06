@@ -69,6 +69,14 @@ class Connection(object):
         pass
 
     @abc.abstractmethod
+    def validate(self):
+        """Validates that a backend is still ok to be used (the semantics
+        of this vary depending on the backend). On failure a backend specific
+        exception is raised that will indicate why the failure occurred.
+        """
+        pass
+
+    @abc.abstractmethod
     def update_task_details(self, task_detail):
         """Updates a given task details and returns the updated version.
 
