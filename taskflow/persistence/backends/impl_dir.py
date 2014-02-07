@@ -109,8 +109,7 @@ class Connection(base.Connection):
             except Exception as e:
                 LOG.exception("Failed running locking file based session")
                 # NOTE(harlowja): trap all other errors as storage errors.
-                raise exc.StorageError("Failed running locking file based "
-                                       "session: %s" % e, e)
+                raise exc.StorageError("Storage backend internal error", e)
 
     def _get_logbooks(self):
         lb_uuids = []
@@ -127,8 +126,13 @@ class Connection(base.Connection):
                 pass
 
     def get_logbooks(self):
-        for b in list(self._get_logbooks()):
-            yield b
+        try:
+            books = list(self._get_logbooks())
+        except EnvironmentError as e:
+            raise exc.StorageError("Unable to fetch logbooks", e)
+        else:
+            for b in books:
+                yield b
 
     @property
     def backend(self):
@@ -286,11 +290,20 @@ class Connection(base.Connection):
     def upgrade(self):
 
         def _step_create():
-            for d in (self._book_path, self._flow_path, self._task_path):
-                misc.ensure_tree(d)
+            for path in (self._book_path, self._flow_path, self._task_path):
+                try:
+                    misc.ensure_tree(path)
+                except EnvironmentError as e:
+                    raise exc.StorageError("Unable to create logbooks"
+                                           " required child path %s" % path, e)
 
-        misc.ensure_tree(self._backend.base_path)
-        misc.ensure_tree(self._backend.lock_path)
+        for path in (self._backend.base_path, self._backend.lock_path):
+            try:
+                misc.ensure_tree(path)
+            except EnvironmentError as e:
+                raise exc.StorageError("Unable to create logbooks required"
+                                       " path %s" % path, e)
+
         self._run_with_process_lock("init", _step_create)
 
     def clear_all(self):
@@ -316,32 +329,36 @@ class Connection(base.Connection):
 
         def _destroy_tasks(task_details):
             for task_detail in task_details:
+                task_path = os.path.join(self._task_path, task_detail.uuid)
                 try:
-                    shutil.rmtree(os.path.join(self._task_path,
-                                               task_detail.uuid))
+                    shutil.rmtree(task_path)
                 except EnvironmentError as e:
                     if e.errno != errno.ENOENT:
-                        raise
+                        raise exc.StorageError("Unable to remove task"
+                                               " directory %s" % task_path, e)
 
         def _destroy_flows(flow_details):
             for flow_detail in flow_details:
+                flow_path = os.path.join(self._flow_path, flow_detail.uuid)
                 self._run_with_process_lock("task", _destroy_tasks,
                                             list(flow_detail))
                 try:
-                    shutil.rmtree(os.path.join(self._flow_path,
-                                               flow_detail.uuid))
+                    shutil.rmtree(flow_path)
                 except EnvironmentError as e:
                     if e.errno != errno.ENOENT:
-                        raise
+                        raise exc.StorageError("Unable to remove flow"
+                                               " directory %s" % flow_path, e)
 
         def _destroy_book():
             book = self._get_logbook(book_uuid)
+            book_path = os.path.join(self._book_path, book.uuid)
             self._run_with_process_lock("flow", _destroy_flows, list(book))
             try:
-                shutil.rmtree(os.path.join(self._book_path, book.uuid))
+                shutil.rmtree(book_path)
             except EnvironmentError as e:
                 if e.errno != errno.ENOENT:
-                    raise
+                    raise exc.StorageError("Unable to remove book"
+                                           " directory %s" % book_path, e)
 
         # Acquire all locks by going through this little hierarchy.
         self._run_with_process_lock("book", _destroy_book)
