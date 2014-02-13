@@ -6,3 +6,6 @@ python-subunit>=0.0.18
 testrepository>=0.0.17
 testtools>=0.9.34
 zake>=0.0.13
+# docs build jobs
+sphinx
+oslosphinx
