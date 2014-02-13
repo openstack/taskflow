@@ -79,7 +79,6 @@ class FutureGraphAction(object):
             done, not_done = self._task_action.wait_for_any(
                 not_done, _WAITING_TIMEOUT)
 
-            not_done = list(not_done)
             next_nodes = []
             for future in done:
                 # NOTE(harlowja): event will be used in the future for smart
