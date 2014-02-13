@@ -20,27 +20,25 @@
 """Implementation of in-memory backend."""
 
 import logging
-import threading
 
 from taskflow import exceptions as exc
 from taskflow.openstack.common import timeutils
 from taskflow.persistence.backends import base
 from taskflow.persistence import logbook
-from taskflow.utils import lock_utils
 from taskflow.utils import persistence_utils as p_utils
 
 LOG = logging.getLogger(__name__)
 
 
 class MemoryBackend(base.Backend):
+    """A backend that writes logbooks, flow details, and task details to in
+    memory dictionaries.
+    """
     def __init__(self, conf):
         super(MemoryBackend, self).__init__(conf)
         self._log_books = {}
         self._flow_details = {}
         self._task_details = {}
-        self._save_lock = threading.RLock()
-        self._read_lock = threading.RLock()
-        self._read_save_order = (self._read_lock, self._save_lock)
 
     @property
     def log_books(self):
@@ -54,14 +52,6 @@ class MemoryBackend(base.Backend):
     def task_details(self):
         return self._task_details
 
-    @property
-    def read_locks(self):
-        return (self._read_lock,)
-
-    @property
-    def save_locks(self):
-        return self._read_save_order
-
     def get_connection(self):
         return Connection(self)
 
@@ -71,8 +61,6 @@ class MemoryBackend(base.Backend):
 
 class Connection(base.Connection):
     def __init__(self, backend):
-        self._read_locks = backend.read_locks
-        self._save_locks = backend.save_locks
         self._backend = backend
 
     def upgrade(self):
@@ -88,7 +76,6 @@ class Connection(base.Connection):
     def close(self):
         pass
 
-    @lock_utils.locked(lock="_save_locks")
     def clear_all(self):
         count = 0
         for uuid in list(self.backend.log_books.keys()):
@@ -96,7 +83,6 @@ class Connection(base.Connection):
             count += 1
         return count
 
-    @lock_utils.locked(lock="_save_locks")
     def destroy_logbook(self, book_uuid):
         try:
             # Do the same cascading delete that the sql layer does.
@@ -108,7 +94,6 @@ class Connection(base.Connection):
         except KeyError:
             raise exc.NotFound("No logbook found with id: %s" % book_uuid)
 
-    @lock_utils.locked(lock="_save_locks")
     def update_task_details(self, task_detail):
         try:
             e_td = self.backend.task_details[task_detail.uuid]
@@ -128,7 +113,6 @@ class Connection(base.Connection):
                 self.backend.task_details[task_detail.uuid] = e_td
             p_utils.task_details_merge(e_td, task_detail, deep_copy=True)
 
-    @lock_utils.locked(lock="_save_locks")
     def update_flow_details(self, flow_detail):
         try:
             e_fd = self.backend.flow_details[flow_detail.uuid]
@@ -139,7 +123,6 @@ class Connection(base.Connection):
         self._save_flowdetail_tasks(e_fd, flow_detail)
         return e_fd
 
-    @lock_utils.locked(lock="_save_locks")
     def save_logbook(self, book):
         # Get a existing logbook model (or create it if it isn't there).
         try:
@@ -169,18 +152,15 @@ class Connection(base.Connection):
             self._save_flowdetail_tasks(e_fd, flow_detail)
         return e_lb
 
-    @lock_utils.locked(lock='_read_locks')
     def get_logbook(self, book_uuid):
         try:
             return self.backend.log_books[book_uuid]
         except KeyError:
             raise exc.NotFound("No logbook found with id: %s" % book_uuid)
 
-    @lock_utils.locked(lock='_read_locks')
     def _get_logbooks(self):
         return list(self.backend.log_books.values())
 
     def get_logbooks(self):
-        # NOTE(harlowja): don't hold the lock while iterating.
         for lb in self._get_logbooks():
             yield lb
