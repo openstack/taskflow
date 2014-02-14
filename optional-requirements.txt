@@ -9,8 +9,11 @@ SQLAlchemy<=0.7.99,<=0.9.99
 alembic>=0.4.1
 
 # Database (sqlalchemy) persistence with MySQL:
-pyMySQL
 MySQL-python
+
+# NOTE(imelnikov): pyMySQL should be here, but for now it's commented out
+# because of https://bugs.launchpad.net/openstack-ci/+bug/1280008
+# pyMySQL
 
 # Database (sqlalchemy) persistence with PostgreSQL:
 psycopg2
