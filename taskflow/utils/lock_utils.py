@@ -21,6 +21,7 @@
 # pulls in oslo.cfg) and is reduced to only what taskflow currently wants to
 # use from that code.
 
+import abc
 import collections
 import contextlib
 import errno
@@ -28,6 +29,8 @@ import logging
 import os
 import threading
 import time
+
+import six
 
 from taskflow.utils import misc
 from taskflow.utils import threading_utils as tu
@@ -65,7 +68,47 @@ def locked(*args, **kwargs):
             return decorator
 
 
-class ReaderWriterLock(object):
+@six.add_metaclass(abc.ABCMeta)
+class _ReaderWriterLockBase(object):
+    """Base class for reader/writer lock implementations."""
+
+    @abc.abstractproperty
+    def has_pending_writers(self):
+        """Returns if there are writers waiting to become the *one* writer."""
+
+    @abc.abstractmethod
+    def is_writer(self, check_pending=True):
+        """Returns if the caller is the active writer or a pending writer."""
+
+    @abc.abstractproperty
+    def owner(self):
+        """Returns whether the lock is locked by a writer or reader."""
+
+    @abc.abstractmethod
+    def is_reader(self):
+        """Returns if the caller is one of the readers."""
+
+    @abc.abstractmethod
+    def read_lock(self):
+        """Context manager that grants a read lock.
+
+        Will wait until no active or pending writers.
+
+        Raises a RuntimeError if an active or pending writer tries to acquire
+        a read lock.
+        """
+
+    @abc.abstractmethod
+    def write_lock(self):
+        """Context manager that grants a write lock.
+
+        Will wait until no active readers. Blocks readers after acquiring.
+
+        Raises a RuntimeError if an active reader attempts to acquire a lock.
+        """
+
+
+class ReaderWriterLock(_ReaderWriterLockBase):
     """A reader/writer lock.
 
     This lock allows for simultaneous readers to exist but only one writer
@@ -87,15 +130,14 @@ class ReaderWriterLock(object):
         self._cond = threading.Condition()
 
     @property
-    def pending_writers(self):
+    def has_pending_writers(self):
         self._cond.acquire()
         try:
-            return len(self._pending_writers)
+            return bool(self._pending_writers)
         finally:
             self._cond.release()
 
     def is_writer(self, check_pending=True):
-        """Returns if the caller is the active writer or a pending writer."""
         self._cond.acquire()
         try:
             me = tu.get_ident()
@@ -110,7 +152,6 @@ class ReaderWriterLock(object):
 
     @property
     def owner(self):
-        """Returns whether the lock is locked by a writer or reader."""
         self._cond.acquire()
         try:
             if self._writer is not None:
@@ -122,7 +163,6 @@ class ReaderWriterLock(object):
             self._cond.release()
 
     def is_reader(self):
-        """Returns if the caller is one of the readers."""
         self._cond.acquire()
         try:
             return tu.get_ident() in self._readers
@@ -131,13 +171,6 @@ class ReaderWriterLock(object):
 
     @contextlib.contextmanager
     def read_lock(self):
-        """Grants a read lock.
-
-        Will wait until no active or pending writers.
-
-        Raises a RuntimeError if an active or pending writer tries to acquire
-        a read lock.
-        """
         me = tu.get_ident()
         if self.is_writer():
             raise RuntimeError("Writer %s can not acquire a read lock"
@@ -170,12 +203,6 @@ class ReaderWriterLock(object):
 
     @contextlib.contextmanager
     def write_lock(self):
-        """Grants a write lock.
-
-        Will wait until no active readers. Blocks readers after acquiring.
-
-        Raises a RuntimeError if an active reader attempts to acquire a lock.
-        """
         me = tu.get_ident()
         if self.is_reader():
             raise RuntimeError("Reader %s to writer privilege"
@@ -207,7 +234,7 @@ class ReaderWriterLock(object):
                     self._cond.release()
 
 
-class DummyReaderWriterLock(object):
+class DummyReaderWriterLock(_ReaderWriterLockBase):
     """A dummy reader/writer lock that doesn't lock anything but provides same
     functions as a normal reader/writer lock class.
     """
@@ -227,6 +254,10 @@ class DummyReaderWriterLock(object):
         return False
 
     def is_writer(self):
+        return False
+
+    @property
+    def has_pending_writers(self):
         return False
 
 
