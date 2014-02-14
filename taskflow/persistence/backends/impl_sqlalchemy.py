@@ -26,6 +26,7 @@ import copy
 import logging
 import time
 
+import six
 import sqlalchemy as sa
 from sqlalchemy import exc as sa_exc
 from sqlalchemy import orm as sa_orm
@@ -101,7 +102,7 @@ SQLITE_IN_MEMORY = ('sqlite://', 'sqlite:///', 'sqlite:///:memory:')
 def _in_any(reason, err_haystack):
     """Checks if any elements of the haystack are in the given reason."""
     for err in err_haystack:
-        if reason.find(str(err)) != -1:
+        if reason.find(six.text_type(err)) != -1:
             return True
     return False
 
@@ -142,10 +143,10 @@ def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
     try:
         dbapi_conn.cursor().execute('select 1')
     except dbapi_conn.OperationalError as ex:
-        if _in_any(str(ex.args[0]), MY_SQL_GONE_WAY_AWAY_ERRORS):
+        if _in_any(six.text_type(ex.args[0]), MY_SQL_GONE_WAY_AWAY_ERRORS):
             LOG.warn('Got mysql server has gone away: %s', ex)
             raise sa_exc.DisconnectionError("Database server went away")
-        elif _in_any(str(ex.args[0]), POSTGRES_GONE_WAY_AWAY_ERRORS):
+        elif _in_any(six.text_type(ex.args[0]), POSTGRES_GONE_WAY_AWAY_ERRORS):
             LOG.warn('Got postgres server has gone away: %s', ex)
             raise sa_exc.DisconnectionError("Database server went away")
         else:
@@ -268,7 +269,7 @@ class Connection(base.Connection):
                 with contextlib.closing(self._engine.connect()):
                     pass
             except sa_exc.OperationalError as ex:
-                if _is_db_connection_error(str(ex.args[0])):
+                if _is_db_connection_error(six.text_type(ex.args[0])):
                     failures.append(misc.Failure())
                     return False
             return True
