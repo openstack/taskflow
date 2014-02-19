@@ -41,3 +41,14 @@ as input the `tox-tmpl.ini` file to generate the final `tox.ini` file.
 *For example:*
 
     $ toxgen.py -i tox-tmpl.ini -o tox.ini
+
+
+Documentation
+-------------
+
+http://wiki.openstack.org/wiki/TaskFlow
+
+We also have sphinx documentation in `docs/source`. To build it,
+run:
+
+    $ python ./setup.py build_sphinx
