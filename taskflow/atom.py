@@ -19,6 +19,7 @@ import logging
 
 import six
 
+from taskflow import exceptions
 from taskflow.utils import misc
 from taskflow.utils import reflection
 
@@ -129,6 +130,12 @@ class Atom(object):
                            auto_extract=True):
         self.rebind = _build_arg_mapping(self.name, requires, rebind,
                                          executor, auto_extract)
+        out_of_order = self.provides.intersection(self.requires)
+        if out_of_order:
+            raise exceptions.InvariantViolation(
+                "Atom %(item)s provides %(oo)s that are required "
+                "by this atom"
+                % dict(item=self.name, oo=sorted(out_of_order)))
 
     @property
     def name(self):

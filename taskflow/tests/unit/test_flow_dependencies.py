@@ -107,13 +107,6 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.requires, set(['a', 'b', 'c', 'z']))
         self.assertEqual(flow.provides, set(['x', 'y', 'q', 'i', 'j', 'k']))
 
-    def test_linear_flow_self_requires(self):
-        flow = lf.Flow('lf')
-        self.assertRaises(exceptions.InvariantViolation,
-                          flow.add,
-                          utils.TaskNoRequiresNoReturns(rebind=['x'],
-                                                        provides='x'))
-
     def test_linear_flow_provides_same_values(self):
         flow = lf.Flow('lf').add(utils.TaskOneReturn(provides='x'))
         self.assertRaises(exceptions.DependencyFailure,
@@ -133,13 +126,6 @@ class FlowDependenciesTest(test.TestCase):
             utils.TaskNoRequiresNoReturns('task2'))
         self.assertEqual(flow.requires, set())
         self.assertEqual(flow.provides, set())
-
-    def test_unordered_flow_self_requires(self):
-        flow = uf.Flow('uf')
-        self.assertRaises(exceptions.InvariantViolation,
-                          flow.add,
-                          utils.TaskNoRequiresNoReturns(rebind=['x'],
-                                                        provides='x'))
 
     def test_unordered_flow_requires_values(self):
         flow = uf.Flow('uf').add(
@@ -234,13 +220,6 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.requires, set())
         self.assertEqual(flow.provides, set())
 
-    def test_graph_flow_self_requires(self):
-        flow = gf.Flow('g-1-req-error')
-        self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path',
-                                flow.add,
-                                utils.TaskOneArgOneReturn(requires=['a'],
-                                                          provides='a'))
-
     def test_graph_flow_requires_values(self):
         flow = gf.Flow('gf').add(
             utils.TaskOneArg('task1'),
@@ -296,3 +275,9 @@ class FlowDependenciesTest(test.TestCase):
                                                           requires=['c']),
                                 utils.TaskOneArgOneReturn(provides='c',
                                                           requires=['a']))
+
+    def test_task_requires_and_provides_same_values(self):
+        self.assertRaises(exceptions.InvariantViolation,
+                          utils.TaskOneArgOneReturn,
+                          requires='a',
+                          provides='a')
