@@ -20,6 +20,9 @@ from testtools import compat
 from testtools import matchers
 from testtools import testcase
 
+from taskflow import exceptions
+from taskflow.tests import utils
+
 
 class GreaterThanEqual(object):
     """Matches if the item is geq than the matchers reference object."""
@@ -31,6 +34,24 @@ class GreaterThanEqual(object):
         if other >= self.source:
             return None
         return matchers.Mismatch("%s was not >= %s" % (other, self.source))
+
+
+class FailureRegexpMatcher(object):
+    """Matches if the failure was caused by the given exception and its string
+    matches to the given pattern.
+    """
+
+    def __init__(self, exc_class, pattern):
+        self.exc_class = exc_class
+        self.pattern = pattern
+
+    def match(self, failure):
+        for cause in failure:
+            if cause.check(self.exc_class) is not None:
+                return matchers.MatchesRegex(
+                    self.pattern).match(cause.exception_str)
+        return matchers.Mismatch("The `%s` wasn't caused by the `%s`" %
+                                 (failure, self.exc_class))
 
 
 class TestCase(testcase.TestCase):
@@ -88,6 +109,17 @@ class TestCase(testcase.TestCase):
                 self.fail(msg)
             else:
                 current_tail = current_tail[super_index + 1:]
+
+    def assertFailuresRegexp(self, exc_class, pattern, callable_obj, *args,
+                             **kwargs):
+        """Assert that the callable failed with the given exception and its
+        string matches to the given pattern.
+        """
+        try:
+            with utils.wrap_all_failures():
+                callable_obj(*args, **kwargs)
+        except exceptions.WrappedFailure as e:
+            self.assertThat(e, FailureRegexpMatcher(exc_class, pattern))
 
 
 class MockTestCase(TestCase):
