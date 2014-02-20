@@ -230,7 +230,7 @@ class ExponentialBackoff(object):
 
 
 def as_bool(val):
-    """Converts an arbitary value into a boolean."""
+    """Converts an arbitrary value into a boolean."""
     if isinstance(val, bool):
         return val
     if isinstance(val, six.string_types):
