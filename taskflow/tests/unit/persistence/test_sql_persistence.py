@@ -251,7 +251,7 @@ class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
     def _reset_database(self):
         engine = None
         try:
-            # Postgres can't operate on the database its connected to, thats
+            # Postgres can't operate on the database it's connected to, that's
             # why we connect to the default template database 'template1' and
             # then drop and create the desired database.
             db_uri = _get_connect_string('postgres', USER, PASSWD,

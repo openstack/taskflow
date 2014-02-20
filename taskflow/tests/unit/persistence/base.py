@@ -56,7 +56,7 @@ class PersistenceTestMixin(object):
         lb.add(fd)
 
         # Ensure we can't save it since its owning logbook hasn't been
-        # saved (flow details can not exist on there own without a connection
+        # saved (flow details can not exist on their own without a connection
         # to a logbook).
         with contextlib.closing(self._get_connection()) as conn:
             self.assertRaises(exc.NotFound, conn.get_logbook, lb_id)
@@ -97,8 +97,8 @@ class PersistenceTestMixin(object):
         fd.add(td)
 
         # Ensure we can't save it since its owning logbook hasn't been
-        # saved (flow details/task details can not exist on there own without
-        # there parent existing).
+        # saved (flow details/task details can not exist on their own without
+        # their parent existing).
         with contextlib.closing(self._get_connection()) as conn:
             self.assertRaises(exc.NotFound, conn.update_flow_details, fd)
             self.assertRaises(exc.NotFound, conn.update_task_details, td)

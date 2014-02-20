@@ -32,7 +32,7 @@ def _save_as_to_mapping(save_as):
     Result should follow storage convention for mappings.
     """
     # TODO(harlowja): we should probably document this behavior & convention
-    # outside of code so that its more easily understandable, since what an
+    # outside of code so that it's more easily understandable, since what an
     # atom returns is pretty crucial for other later operations.
     if save_as is None:
         return {}

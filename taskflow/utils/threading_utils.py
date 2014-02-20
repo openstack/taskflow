@@ -31,6 +31,6 @@ def get_optimal_thread_count():
         return multiprocessing.cpu_count() + 1
     except NotImplementedError:
         # NOTE(harlowja): apparently may raise so in this case we will
-        # just setup two threads since its hard to know what else we
+        # just setup two threads since it's hard to know what else we
         # should do in this situation.
         return 2
