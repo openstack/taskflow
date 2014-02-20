@@ -1,0 +1,6 @@
+Run worker.
+Run flow.
+{"result1": 1, "result2": 666, "x": 111, "y": 222, "z": 333}
+
+Flow finished.
+Stop worker.

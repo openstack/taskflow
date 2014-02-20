@@ -149,3 +149,7 @@ def exception_message(exc):
         return six.text_type(exc)
     except UnicodeError:
         return str(exc)
+
+
+class Timeout(TaskFlowException):
+    """Raised when something was not finished within the given timeout."""

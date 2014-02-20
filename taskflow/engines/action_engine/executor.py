@@ -63,11 +63,11 @@ class TaskExecutorBase(object):
     """
 
     @abc.abstractmethod
-    def execute_task(self, task, arguments, progress_callback=None):
+    def execute_task(self, task, task_uuid, arguments, progress_callback=None):
         """Schedules task execution."""
 
     @abc.abstractmethod
-    def revert_task(self, task, arguments, result, failures,
+    def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
         """Schedules task reversion."""
 
@@ -87,11 +87,11 @@ class TaskExecutorBase(object):
 class SerialTaskExecutor(TaskExecutorBase):
     """Execute task one after another."""
 
-    def execute_task(self, task, arguments, progress_callback=None):
+    def execute_task(self, task, task_uuid, arguments, progress_callback=None):
         return async_utils.make_completed_future(
             _execute_task(task, arguments, progress_callback))
 
-    def revert_task(self, task, arguments, result, failures,
+    def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
         return async_utils.make_completed_future(
             _revert_task(task, arguments, result,
@@ -113,11 +113,11 @@ class ParallelTaskExecutor(TaskExecutorBase):
         self._executor = executor
         self._own_executor = executor is None
 
-    def execute_task(self, task, arguments, progress_callback=None):
+    def execute_task(self, task, task_uuid, arguments, progress_callback=None):
         return self._executor.submit(
             _execute_task, task, arguments, progress_callback)
 
-    def revert_task(self, task, arguments, result, failures,
+    def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
         return self._executor.submit(
             _revert_task, task,

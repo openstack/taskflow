@@ -47,7 +47,14 @@ def make_reverting_task(token, blowup=False):
 
 
 class DummyTask(task.Task):
+
     def execute(self, context, *args, **kwargs):
+        pass
+
+
+class FakeTask(object):
+
+    def execute(self, **kwargs):
         pass
 
 
@@ -99,7 +106,22 @@ class FailingTask(SaveOrderTask):
         raise RuntimeError('Woot!')
 
 
+class TaskWithFailure(task.Task):
+
+    def execute(self, **kwargs):
+        raise RuntimeError('Woot!')
+
+
+class ProgressingTask(task.Task):
+
+    def execute(self, *args, **kwargs):
+        self.update_progress(0.0)
+        self.update_progress(1.0)
+        return 5
+
+
 class NastyTask(task.Task):
+
     def execute(self, **kwargs):
         pass
 
@@ -218,3 +240,16 @@ class EngineTestBase(object):
 
     def _make_engine(self, flow, flow_detail=None):
         raise NotImplementedError()
+
+
+class FailureMatcher(object):
+    """Needed for failure objects comparison."""
+
+    def __init__(self, failure):
+        self._failure = failure
+
+    def __repr__(self):
+        return str(self._failure)
+
+    def __eq__(self, other):
+        return self._failure.matches(other)
