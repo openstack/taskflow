@@ -16,17 +16,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import inspect
 import logging
-import types
 
 from concurrent import futures
 
-import six
-
 from taskflow.engines.worker_based import endpoint
 from taskflow.engines.worker_based import server
-from taskflow.openstack.common import importutils
 from taskflow import task as t_task
 from taskflow.utils import reflection
 from taskflow.utils import threading_utils as tu
@@ -84,34 +79,7 @@ class Worker(object):
     @staticmethod
     def _derive_endpoints(tasks):
         """Derive endpoints from list of strings, classes or packages."""
-        derived_tasks = set()
-        for item in tasks:
-            module = None
-            if isinstance(item, six.string_types):
-                try:
-                    pkg, cls = item.split(':')
-                except ValueError:
-                    module = importutils.import_module(item)
-                else:
-                    obj = importutils.import_class('%s.%s' % (pkg, cls))
-                    if not reflection.is_subclass(obj, t_task.BaseTask):
-                        raise TypeError("Item %s is not a BaseTask subclass" %
-                                        item)
-                    derived_tasks.add(obj)
-            elif isinstance(item, types.ModuleType):
-                module = item
-            elif reflection.is_subclass(item, t_task.BaseTask):
-                derived_tasks.add(item)
-            else:
-                raise TypeError("Item %s unexpected type: %s" %
-                                (item, type(item)))
-
-            # derive tasks
-            if module is not None:
-                for name, obj in inspect.getmembers(module):
-                    if reflection.is_subclass(obj, t_task.BaseTask):
-                        derived_tasks.add(obj)
-
+        derived_tasks = reflection.find_subclasses(tasks, t_task.BaseTask)
         return [endpoint.Endpoint(task) for task in derived_tasks]
 
     def run(self):
