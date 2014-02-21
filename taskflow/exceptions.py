@@ -22,6 +22,11 @@ class TaskFlowException(Exception):
     pass
 
 
+class IncompatibleVersion(TaskFlowException):
+    """Raised when some type of version incompatibility occurs."""
+    pass
+
+
 class ConnectionFailure(TaskFlowException):
     """Raised when some type of connection can not be opened or is lost."""
     pass

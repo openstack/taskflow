@@ -17,6 +17,8 @@
 from kazoo import client
 import six
 
+from taskflow import exceptions as exc
+
 
 def _parse_hosts(hosts):
     if isinstance(hosts, six.string_types):
@@ -29,6 +31,46 @@ def _parse_hosts(hosts):
     if isinstance(hosts, (list, set, tuple)):
         return ",".join([str(h) for h in hosts])
     return hosts
+
+
+def finalize_client(client):
+    """Stops and closes a client, even if it wasn't started."""
+    client.stop()
+    try:
+        client.close()
+    except TypeError:
+        # NOTE(harlowja): https://github.com/python-zk/kazoo/issues/167
+        #
+        # This can be removed after that one is fixed/merged.
+        pass
+
+
+def check_compatible(client, min_version=None, max_version=None):
+    """Checks if a kazook client is backed by a zookeeper server version
+    that satisfies a given min (inclusive) and max (inclusive) version range.
+    """
+    server_version = None
+    if min_version:
+        server_version = tuple((int(a) for a in client.server_version()))
+        min_version = tuple((int(a) for a in min_version))
+        if server_version < min_version:
+            pretty_server_version = ".".join([str(a) for a in server_version])
+            min_version = ".".join([str(a) for a in min_version])
+            raise exc.IncompatibleVersion("Incompatible zookeeper version"
+                                          " %s detected, zookeeper >= %s"
+                                          " required" % (pretty_server_version,
+                                                         min_version))
+    if max_version:
+        if server_version is None:
+            server_version = tuple((int(a) for a in client.server_version()))
+        max_version = tuple((int(a) for a in max_version))
+        if server_version > max_version:
+            pretty_server_version = ".".join([str(a) for a in server_version])
+            max_version = ".".join([str(a) for a in max_version])
+            raise exc.IncompatibleVersion("Incompatible zookeeper version"
+                                          " %s detected, zookeeper <= %s"
+                                          " required" % (pretty_server_version,
+                                                         max_version))
 
 
 def make_client(conf):
