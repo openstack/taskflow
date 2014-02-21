@@ -345,7 +345,7 @@ class ZkConnection(base.Connection):
                 yield self._get_logbook(lb_uuid)
 
     def destroy_logbook(self, lb_uuid):
-        """Detroy (delete) a log_book transactionally."""
+        """Destroy (delete) a log_book transactionally."""
 
         def _destroy_task_details(td_uuid, txn):
             td_path = paths.join(self.task_path, td_uuid)
