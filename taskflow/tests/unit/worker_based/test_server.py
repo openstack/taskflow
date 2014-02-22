@@ -210,8 +210,8 @@ class TestServer(test.MockTestCase):
                   failures=dict((str(i), utils.FailureMatcher(f))
                                 for i, f in enumerate(failures)))))
 
-    @mock.patch("taskflow.engines.worker_based.server.LOG.error")
-    def test_reply_publish_failure(self, mocked_error):
+    @mock.patch("taskflow.engines.worker_based.server.LOG.exception")
+    def test_reply_publish_failure(self, mocked_exception):
         self.proxy_inst_mock.publish.side_effect = RuntimeError('Woot!')
 
         # create server and process request
@@ -222,9 +222,7 @@ class TestServer(test.MockTestCase):
             mock.call.proxy.publish({'state': 'FAILURE'}, self.task_uuid,
                                     self.reply_to)
         ])
-        self.assertEqual(mocked_error.mock_calls, [
-            mock.call("Failed to send reply: Woot!")
-        ])
+        self.assertTrue(mocked_exception.called)
 
     def test_on_update_progress(self):
         request = self.request(task='taskflow.tests.utils.ProgressingTask',
@@ -261,15 +259,15 @@ class TestServer(test.MockTestCase):
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
-    @mock.patch("taskflow.engines.worker_based.server.LOG.error")
-    def test_process_request_parse_message_failure(self, mocked_error):
+    @mock.patch("taskflow.engines.worker_based.server.LOG.exception")
+    def test_process_request_parse_message_failure(self, mocked_exception):
         self.message_mock.properties = {}
         request = self.request()
         s = self.server(reset_master_mock=True)
         s._process_request(request, self.message_mock)
 
         self.assertEqual(self.master_mock.mock_calls, [])
-        self.assertTrue(mocked_error.called)
+        self.assertTrue(mocked_exception.called)
 
     @mock.patch('taskflow.engines.worker_based.server.pu')
     def test_process_request_parse_failure(self, pu_mock):

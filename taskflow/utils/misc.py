@@ -16,6 +16,7 @@
 #    under the License.
 
 import collections
+import contextlib
 import copy
 import errno
 import functools
@@ -450,6 +451,35 @@ def are_equal_exc_info_tuples(ei1, ei2):
     tb1 = traceback.format_tb(ei1[2])
     tb2 = traceback.format_tb(ei2[2])
     return tb1 == tb2
+
+
+@contextlib.contextmanager
+def capture_failure():
+    """Save current exception, and yield back the failure (or raises a
+    runtime error if no active exception is being handled).
+
+    In some cases the exception context can be cleared, resulting in None
+    being attempted to be saved after an exception handler is run. This
+    can happen when eventlet switches greenthreads or when running an
+    exception handler, code raises and catches an exception. In both
+    cases the exception context will be cleared.
+
+    To work around this, we save the exception state, yield a failure and
+    then run other code.
+
+    For example::
+
+      except Exception:
+        with capture_failure() as fail:
+            LOG.warn("Activating cleanup")
+            cleanup()
+            save_failure(fail)
+    """
+    exc_info = sys.exc_info()
+    if not any(exc_info):
+        raise RuntimeError("No active exception is being handled")
+    else:
+        yield Failure(exc_info=exc_info)
 
 
 class Failure(object):

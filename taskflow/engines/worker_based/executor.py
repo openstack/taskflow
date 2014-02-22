@@ -45,7 +45,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         # TODO(skudriashev): This data should be collected from workers
         # using broadcast messages directly.
         self._workers_info = {}
-        for topic, tasks in workers_info.items():
+        for topic, tasks in six.iteritems(workers_info):
             for task in tasks:
                 self._workers_info[task] = topic
 
@@ -59,12 +59,12 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
 
     def _on_message(self, response, message):
         """This method is called on incoming response."""
-        LOG.debug("Got response: %s" % response)
+        LOG.debug("Got response: %s", response)
         try:
-            # acknowledge message
+            # acknowledge message before processing.
             message.ack()
-        except kombu_exc.MessageStateError as e:
-            LOG.warning("Failed to acknowledge AMQP message: %s" % e)
+        except kombu_exc.MessageStateError:
+            LOG.exception("Failed to acknowledge AMQP message")
         else:
             LOG.debug("AMQP message acknowledged.")
             # get task uuid from message correlation id parameter
@@ -73,7 +73,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
             except KeyError:
                 LOG.warning("Got message with no 'correlation_id' property.")
             else:
-                LOG.debug("Task uuid: '%s'" % task_uuid)
+                LOG.debug("Task uuid: '%s'", task_uuid)
                 self._process_response(task_uuid, response)
 
     def _process_response(self, task_uuid, response):
@@ -81,7 +81,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         try:
             task = self._remote_tasks[task_uuid]
         except KeyError:
-            LOG.debug("Task with id='%s' not found." % task_uuid)
+            LOG.debug("Task with id='%s' not found.", task_uuid)
         else:
             state = response.pop('state')
             if state == pr.RUNNING:
@@ -89,15 +89,14 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
             elif state == pr.PROGRESS:
                 task.on_progress(**response)
             elif state == pr.FAILURE:
-                response['result'] = pu.failure_from_dict(
-                    response['result'])
+                response['result'] = pu.failure_from_dict(response['result'])
                 task.set_result(**response)
                 self._remove_remote_task(task)
             elif state == pr.SUCCESS:
                 task.set_result(**response)
                 self._remove_remote_task(task)
             else:
-                LOG.warning("Unexpected response status: '%s'" % state)
+                LOG.warning("Unexpected response status: '%s'", state)
 
     def _on_wait(self):
         """This function is called cyclically between draining events
@@ -106,9 +105,9 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         expired_tasks = [task for task in six.itervalues(self._remote_tasks)
                          if task.expired]
         for task in expired_tasks:
-            LOG.debug("Task request '%s' is expired." % task)
+            LOG.debug("Task request '%s' has expired.", task)
             task.set_result(misc.Failure.from_exception(
-                exc.Timeout("Task request '%s' is expired" % task)))
+                exc.Timeout("Task request '%s' has expired" % task)))
             del self._remote_tasks[task.uuid]
 
     def _store_remote_task(self, task):
@@ -134,17 +133,18 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                 topic = self._workers_info[remote_task.name]
             except KeyError:
                 raise exc.NotFound("Workers topic not found for the '%s'"
-                                   "task." % remote_task.name)
+                                   " task" % remote_task.name)
             else:
                 # publish request
                 request = remote_task.request
-                LOG.debug("Sending request: %s" % request)
+                LOG.debug("Sending request: %s", request)
                 self._proxy.publish(request, remote_task.uuid,
                                     routing_key=topic, reply_to=self._uuid)
-        except Exception as e:
-            LOG.error("Failed to submit the '%s' task: %s" % (remote_task, e))
-            self._remove_remote_task(remote_task)
-            remote_task.set_result(misc.Failure())
+        except Exception:
+            with misc.capture_failure() as failure:
+                LOG.exception("Failed to submit the '%s' task", remote_task)
+                self._remove_remote_task(remote_task)
+                remote_task.set_result(failure)
         return remote_task.result
 
     def execute_task(self, task, task_uuid, arguments,

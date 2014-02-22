@@ -84,7 +84,7 @@ class Proxy(object):
 
     def start(self):
         """Start proxy."""
-        LOG.info("Starting to consume from the '%s' exchange." %
+        LOG.info("Starting to consume from the '%s' exchange.",
                  self._exchange_name)
         with kombu.connections[self._conn].acquire(block=True) as conn:
             queue = self._make_queue(self._topic, self._exchange, channel=conn)
@@ -104,16 +104,16 @@ class Proxy(object):
                     queue.delete(if_unused=True)
                 except (amqp_exc.PreconditionFailed, amqp_exc.NotFound):
                     pass
-                except Exception as e:
-                    LOG.error("Failed to delete the '%s' queue: %s" %
-                              (queue.name, e))
+                except Exception:
+                    LOG.exception("Failed to delete the '%s' queue",
+                                  queue.name)
                 try:
                     self._exchange.delete(if_unused=True)
                 except (amqp_exc.PreconditionFailed, amqp_exc.NotFound):
                     pass
-                except Exception as e:
-                    LOG.error("Failed to delete the '%s' exchange: %s" %
-                              (self._exchange.name, e))
+                except Exception:
+                    LOG.exception("Failed to delete the '%s' exchange",
+                                  self._exchange.name)
 
     def wait(self):
         """Wait until proxy is started."""

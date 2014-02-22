@@ -38,7 +38,7 @@ class Server(object):
 
     def _on_message(self, request, message):
         """This method is called on incoming request."""
-        LOG.debug("Got request: %s" % request)
+        LOG.debug("Got request: %s", request)
         # NOTE(skudriashev): Process all incoming requests only if proxy is
         # running, otherwise reject and requeue them.
         if self._proxy.is_running:
@@ -47,20 +47,20 @@ class Server(object):
             try:
                 # acknowledge message
                 message.ack()
-            except kombu_exc.MessageStateError as e:
-                LOG.warning("Failed to acknowledge AMQP message: %s" % e)
+            except kombu_exc.MessageStateError:
+                LOG.exception("Failed to acknowledge AMQP message")
             else:
-                LOG.debug("AMQP message acknowledged.")
+                LOG.debug("AMQP message acknowledged")
                 # spawn new thread to process request
                 self._executor.submit(self._process_request, request, message)
         else:
             try:
                 # reject and requeue message
                 message.reject(requeue=True)
-            except kombu_exc.MessageStateError as e:
-                LOG.warning("Failed to reject/requeue AMQP message: %s" % e)
+            except kombu_exc.MessageStateError:
+                LOG.exception("Failed to reject/requeue AMQP message")
             else:
-                LOG.debug("AMQP message rejected and requeued.")
+                LOG.debug("AMQP message rejected and requeued")
 
     @staticmethod
     def _parse_request(task, task_name, action, arguments, result=None,
@@ -93,7 +93,7 @@ class Server(object):
             try:
                 properties.append(message.properties[prop])
             except KeyError:
-                raise ValueError("The '%s' message property is missing." %
+                raise ValueError("The '%s' message property is missing" %
                                  prop)
 
         return properties
@@ -101,11 +101,11 @@ class Server(object):
     def _reply(self, reply_to, task_uuid, state=pr.FAILURE, **kwargs):
         """Send reply to the `reply_to` queue."""
         response = dict(state=state, **kwargs)
-        LOG.debug("Send reply: %s" % response)
+        LOG.debug("Sending reply: %s", response)
         try:
             self._proxy.publish(response, task_uuid, reply_to)
-        except Exception as e:
-            LOG.error("Failed to send reply: %s" % e)
+        except Exception:
+            LOG.exception("Failed to send reply")
 
     def _on_update_progress(self, reply_to, task_uuid, task, event_data,
                             progress):
@@ -115,12 +115,12 @@ class Server(object):
 
     def _process_request(self, request, message):
         """Process request in separate thread and reply back."""
-        # parse broker message first to get the `reply_to` and the `task_uuid`
-        # parameters to have possibility to reply back
+        # NOTE(skudriashev): parse broker message first to get the `reply_to`
+        # and the `task_uuid` parameters to have possibility to reply back.
         try:
             reply_to, task_uuid = self._parse_message(message)
-        except ValueError as e:
-            LOG.error("Failed to parse broker message: %s" % e)
+        except ValueError:
+            LOG.exception("Failed to parse broker message")
             return
         else:
             # prepare task progress callback
@@ -135,27 +135,30 @@ class Server(object):
             task, action, action_args = self._parse_request(**request)
             action_args.update(task_uuid=task_uuid,
                                progress_callback=progress_callback)
-        except ValueError as e:
-            LOG.error("Failed to parse request: %s" % e)
-            reply_callback(result=pu.failure_to_dict(misc.Failure()))
-            return
+        except ValueError:
+            with misc.capture_failure() as failure:
+                LOG.exception("Failed to parse request")
+                reply_callback(result=pu.failure_to_dict(failure))
+                return
 
         # get task endpoint
         try:
             endpoint = self._endpoints[task]
         except KeyError:
-            LOG.error("The '%s' task endpoint does not exist." % task)
-            reply_callback(result=pu.failure_to_dict(misc.Failure()))
-            return
+            with misc.capture_failure() as failure:
+                LOG.exception("The '%s' task endpoint does not exist", task)
+                reply_callback(result=pu.failure_to_dict(failure))
+                return
         else:
             reply_callback(state=pr.RUNNING)
 
         # perform task action
         try:
             result = getattr(endpoint, action)(**action_args)
-        except Exception as e:
-            LOG.error("The %s task execution failed: %s" % (endpoint, e))
-            reply_callback(result=pu.failure_to_dict(misc.Failure()))
+        except Exception:
+            with misc.capture_failure() as failure:
+                LOG.exception("The %s task execution failed", endpoint)
+                reply_callback(result=pu.failure_to_dict(failure))
         else:
             if isinstance(result, misc.Failure):
                 reply_callback(result=pu.failure_to_dict(result))

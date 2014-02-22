@@ -177,11 +177,11 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(self.remote_task_mock.mock_calls, [])
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
-    @mock.patch('taskflow.engines.worker_based.executor.LOG.warning')
-    def test_on_message_acknowledge_raises(self, mocked_warning):
+    @mock.patch('taskflow.engines.worker_based.executor.LOG.exception')
+    def test_on_message_acknowledge_raises(self, mocked_exception):
         self.message_mock.ack.side_effect = kombu_exc.MessageStateError()
         self.executor()._on_message({}, self.message_mock)
-        self.assertTrue(mocked_warning.called)
+        self.assertTrue(mocked_exception.called)
 
     @mock.patch('taskflow.engines.worker_based.remote_task.misc.wallclock')
     def test_on_wait_task_not_expired(self, mock_time):
