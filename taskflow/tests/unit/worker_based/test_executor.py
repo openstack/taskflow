@@ -183,7 +183,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.executor()._on_message({}, self.message_mock)
         self.assertTrue(mocked_warning.called)
 
-    @mock.patch('taskflow.engines.worker_based.remote_task.time.time')
+    @mock.patch('taskflow.engines.worker_based.remote_task.misc.wallclock')
     def test_on_wait_task_not_expired(self, mock_time):
         mock_time.side_effect = [1, self.timeout]
         ex = self.executor()
@@ -193,7 +193,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         ex._on_wait()
         self.assertEqual(len(ex._remote_tasks), 1)
 
-    @mock.patch('taskflow.engines.worker_based.remote_task.time.time')
+    @mock.patch('taskflow.engines.worker_based.remote_task.misc.wallclock')
     def test_on_wait_task_expired(self, mock_time):
         mock_time.side_effect = [1, self.timeout + 2, self.timeout * 2]
         ex = self.executor()

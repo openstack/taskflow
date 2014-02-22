@@ -14,8 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import time
-
 from concurrent import futures
 
 from taskflow.engines.worker_based import protocol as pr
@@ -39,9 +37,8 @@ class RemoteTask(object):
         self._event = pr.ACTION_TO_EVENT[action]
         self._arguments = arguments
         self._progress_callback = progress_callback
-        self._timeout = timeout
         self._kwargs = kwargs
-        self._time = time.time()
+        self._watch = misc.StopWatch(duration=timeout).start()
         self._state = pr.PENDING
         self.result = futures.Future()
 
@@ -90,7 +87,7 @@ class RemoteTask(object):
         exception is raised and task is removed from the remote tasks map.
         """
         if self._state == pr.PENDING:
-            return time.time() - self._time > self._timeout
+            return self._watch.expired()
         return False
 
     def set_result(self, result):
@@ -98,6 +95,7 @@ class RemoteTask(object):
 
     def set_running(self):
         self._state = pr.RUNNING
+        self._watch.stop()
 
     def on_progress(self, event_data, progress):
         self._progress_callback(self._task, event_data, progress)
