@@ -118,7 +118,7 @@ class ReadWriteLockTest(test.TestCase):
         def double_reader():
             with lock.read_lock():
                 active.set()
-                while lock.pending_writers == 0:
+                while not lock.has_pending_writers:
                     time.sleep(0.001)
                 with lock.read_lock():
                     activated.append(lock.owner)
