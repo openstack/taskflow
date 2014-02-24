@@ -163,7 +163,7 @@ class Connection(base.Connection):
 
         def _get():
             td_path = os.path.join(self._task_path, uuid)
-            td_data = jsonutils.loads(self._read_from(td_path))
+            td_data = misc.decode_json(self._read_from(td_path))
             return p_utils.unformat_task_detail(uuid, td_data)
 
         if lock:
@@ -176,7 +176,7 @@ class Connection(base.Connection):
         def _get():
             fd_path = os.path.join(self._flow_path, uuid)
             meta_path = os.path.join(fd_path, 'metadata')
-            meta = jsonutils.loads(self._read_from(meta_path))
+            meta = misc.decode_json(self._read_from(meta_path))
             fd = p_utils.unformat_flow_detail(uuid, meta)
             td_to_load = []
             td_path = os.path.join(fd_path, 'tasks')
@@ -350,7 +350,7 @@ class Connection(base.Connection):
         book_path = os.path.join(self._book_path, book_uuid)
         meta_path = os.path.join(book_path, 'metadata')
         try:
-            meta = jsonutils.loads(self._read_from(meta_path))
+            meta = misc.decode_json(self._read_from(meta_path))
         except EnvironmentError as e:
             if e.errno == errno.ENOENT:
                 raise exc.NotFound("No logbook found with id: %s" % book_uuid)
