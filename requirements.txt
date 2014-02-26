@@ -3,7 +3,7 @@ pbr>=0.6,<1.0
 anyjson>=0.3.3
 iso8601>=0.1.8
 # Python 2->3 compatibility library.
-six>=1.4.1
+six>=1.5.2
 # Very nice graph library
 networkx>=1.8
 Babel>=1.3
