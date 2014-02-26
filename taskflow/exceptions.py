@@ -23,7 +23,7 @@ class TaskFlowException(Exception):
 
 
 class IncompatibleVersion(TaskFlowException):
-    """Raised when some type of version incompatibility occurs."""
+    """Raised when some type of version incompatibility is found."""
     pass
 
 
@@ -65,7 +65,12 @@ class InvalidState(TaskFlowException):
 
 
 class InvariantViolation(TaskFlowException):
-    """Raised when flow invariant violation is attempted."""
+    """Raised when some type of invariant violation occurs."""
+    pass
+
+
+class InvalidJobOperation(TaskFlowException):
+    """Raised when job operations on a job are not allowed."""
     pass
 
 
@@ -76,6 +81,11 @@ class UnclaimableJob(TaskFlowException):
 
 class JobNotFound(TaskFlowException):
     """Raised when a job entry can not be found."""
+    pass
+
+
+class JobAlreadyExists(TaskFlowException):
+    """Raised when a job entry already exists."""
     pass
 
 

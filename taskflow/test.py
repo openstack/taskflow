@@ -20,6 +20,9 @@ from testtools import compat
 from testtools import matchers
 from testtools import testcase
 
+import fixtures
+import six
+
 from taskflow import exceptions
 from taskflow.tests import utils
 
@@ -56,6 +59,33 @@ class FailureRegexpMatcher(object):
 
 class TestCase(testcase.TestCase):
     """Test case base class for all taskflow unit tests."""
+
+    def makeTmpDir(self):
+        t_dir = self.useFixture(fixtures.TempDir())
+        return t_dir.path
+
+    def assertDictEqual(self, expected, check):
+        self.assertIsInstance(expected, dict,
+                              'First argument is not a dictionary')
+        self.assertIsInstance(check, dict,
+                              'Second argument is not a dictionary')
+
+        # Testtools seems to want equals objects instead of just keys?
+        compare_dict = {}
+        for k in list(six.iterkeys(expected)):
+            if not isinstance(expected[k], matchers.Equals):
+                compare_dict[k] = matchers.Equals(expected[k])
+            else:
+                compare_dict[k] = expected[k]
+        self.assertThat(matchee=check,
+                        matcher=matchers.MatchesDict(compare_dict))
+
+    def assertRaisesAttrAccess(self, exc_class, obj, attr_name):
+
+        def access_func():
+            getattr(obj, attr_name)
+
+        self.assertRaises(exc_class, access_func)
 
     def assertRaisesRegexp(self, exc_class, pattern, callable_obj,
                            *args, **kwargs):
