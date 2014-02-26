@@ -41,6 +41,8 @@ class StorageError(TaskFlowException):
     """Raised when logbook can not be read/saved/deleted."""
 
     def __init__(self, message, cause=None):
+        if cause is not None:
+            message += ": %s" % (cause)
         super(StorageError, self).__init__(message)
         self.cause = cause
 

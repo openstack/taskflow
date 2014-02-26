@@ -308,16 +308,14 @@ class Connection(base.Connection):
                 return functor(session, *args, **kwargs)
         except sa_exc.SQLAlchemyError as e:
             LOG.exception('Failed running database session')
-            raise exc.StorageError("Failed running database session: %s" % e,
-                                   e)
+            raise exc.StorageError("Storage backend internal error", e)
 
     def _make_session(self):
         try:
             return self._session_maker()
         except sa_exc.SQLAlchemyError as e:
             LOG.exception('Failed creating database session')
-            raise exc.StorageError("Failed creating database session: %s"
-                                   % e, e)
+            raise exc.StorageError("Failed creating database session", e)
 
     def upgrade(self):
         try:
@@ -334,8 +332,7 @@ class Connection(base.Connection):
                     migration.db_sync(conn)
         except sa_exc.SQLAlchemyError as e:
             LOG.exception('Failed upgrading database version')
-            raise exc.StorageError("Failed upgrading database version: %s" % e,
-                                   e)
+            raise exc.StorageError("Failed upgrading database version", e)
 
     def _clear_all(self, session):
         # NOTE(harlowja): due to how we have our relationship setup and
@@ -345,7 +342,7 @@ class Connection(base.Connection):
             return session.query(models.LogBook).delete()
         except sa_exc.DBAPIError as e:
             LOG.exception('Failed clearing all entries')
-            raise exc.StorageError("Failed clearing all entries: %s" % e, e)
+            raise exc.StorageError("Failed clearing all entries", e)
 
     def clear_all(self):
         return self._run_in_session(self._clear_all)
@@ -380,8 +377,7 @@ class Connection(base.Connection):
             session.delete(lb)
         except sa_exc.DBAPIError as e:
             LOG.exception('Failed destroying logbook')
-            raise exc.StorageError("Failed destroying"
-                                   " logbook %s: %s" % (lb_id, e), e)
+            raise exc.StorageError("Failed destroying logbook %s" % lb_id, e)
 
     def destroy_logbook(self, book_uuid):
         return self._run_in_session(self._destroy_logbook, lb_id=book_uuid)
@@ -402,8 +398,7 @@ class Connection(base.Connection):
             return _convert_lb_to_external(lb_m)
         except sa_exc.DBAPIError as e:
             LOG.exception('Failed saving logbook')
-            raise exc.StorageError("Failed saving logbook %s: %s" %
-                                   (lb.uuid, e), e)
+            raise exc.StorageError("Failed saving logbook %s" % lb.uuid, e)
 
     def save_logbook(self, book):
         return self._run_in_session(self._save_logbook, lb=book)
@@ -415,8 +410,7 @@ class Connection(base.Connection):
             return _convert_lb_to_external(lb)
         except sa_exc.DBAPIError as e:
             LOG.exception('Failed getting logbook')
-            raise exc.StorageError("Failed getting logbook %s: %s"
-                                   % (book_uuid, e), e)
+            raise exc.StorageError("Failed getting logbook %s" % book_uuid, e)
 
     def get_logbooks(self):
         session = self._make_session()
@@ -425,7 +419,7 @@ class Connection(base.Connection):
             books = [_convert_lb_to_external(lb) for lb in raw_books]
         except sa_exc.DBAPIError as e:
             LOG.exception('Failed getting logbooks')
-            raise exc.StorageError("Failed getting logbooks: %s" % e, e)
+            raise exc.StorageError("Failed getting logbooks", e)
         for lb in books:
             yield lb
 

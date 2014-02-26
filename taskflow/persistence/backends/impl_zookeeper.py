@@ -138,7 +138,7 @@ class ZkConnection(base.Connection):
         except k_exc.NodeExistsError as e:
             raise exc.AlreadyExists("Storage backend duplicate node: %s" % e)
         except (k_exc.KazooException, k_exc.ZookeeperError) as e:
-            raise exc.StorageError("Storage backend internal error: %s" % e)
+            raise exc.StorageError("Storage backend internal error", e)
 
     def update_task_details(self, td):
         """Update a task_detail transactionally."""
