@@ -71,6 +71,7 @@ class Worker(object):
     def __init__(self, exchange, topic, tasks, executor=None, **kwargs):
         self._topic = topic
         self._executor = executor
+        self._owns_executor = False
         self._threads_count = -1
         if self._executor is None:
             if 'threads_count' in kwargs:
@@ -80,6 +81,7 @@ class Worker(object):
             else:
                 self._threads_count = tu.get_optimal_thread_count()
             self._executor = futures.ThreadPoolExecutor(self._threads_count)
+            self._owns_executor = True
         self._endpoints = self._derive_endpoints(tasks)
         self._server = server.Server(topic, exchange, self._executor,
                                      self._endpoints, **kwargs)
@@ -137,3 +139,5 @@ class Worker(object):
     def stop(self):
         """Stop worker."""
         self._server.stop()
+        if self._owns_executor:
+            self._executor.shutdown()

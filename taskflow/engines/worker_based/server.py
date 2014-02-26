@@ -173,4 +173,3 @@ class Server(object):
     def stop(self):
         """Stop processing incoming requests."""
         self._proxy.stop()
-        self._executor.shutdown()
