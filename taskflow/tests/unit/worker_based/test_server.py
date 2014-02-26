@@ -31,7 +31,7 @@ class TestServer(test.MockTestCase):
 
     def setUp(self):
         super(TestServer, self).setUp()
-        self.server_uuid = 'server-uuid'
+        self.server_topic = 'server-topic'
         self.server_exchange = 'server-exchange'
         self.broker_url = 'test-url'
         self.task_uuid = 'task-uuid'
@@ -59,7 +59,7 @@ class TestServer(test.MockTestCase):
         self.master_mock.attach_mock(self.message_mock, 'message')
 
     def server(self, reset_master_mock=False, **kwargs):
-        server_kwargs = dict(uuid=self.server_uuid,
+        server_kwargs = dict(topic=self.server_topic,
                              exchange=self.server_exchange,
                              executor=self.executor_mock,
                              endpoints=self.endpoints,
@@ -98,7 +98,7 @@ class TestServer(test.MockTestCase):
 
         # check calls
         master_mock_calls = [
-            mock.call.Proxy(self.server_uuid, self.server_exchange,
+            mock.call.Proxy(self.server_topic, self.server_exchange,
                             s._on_message, url=self.broker_url)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
@@ -109,7 +109,7 @@ class TestServer(test.MockTestCase):
 
         # check calls
         master_mock_calls = [
-            mock.call.Proxy(self.server_uuid, self.server_exchange,
+            mock.call.Proxy(self.server_topic, self.server_exchange,
                             s._on_message, url=self.broker_url)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)

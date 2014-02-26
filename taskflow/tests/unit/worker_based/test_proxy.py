@@ -28,7 +28,7 @@ class TestProxy(test.MockTestCase):
 
     def setUp(self):
         super(TestProxy, self).setUp()
-        self.uuid = 'test-uuid'
+        self.topic = 'test-topic'
         self.broker_url = 'test-url'
         self.exchange_name = 'test-exchange'
         self.timeout = 5
@@ -77,14 +77,14 @@ class TestProxy(test.MockTestCase):
         # reset master mock
         self._reset_master_mock()
 
-    def _queue_name(self, uuid):
-        return "%s_%s" % (self.exchange_name, uuid)
+    def _queue_name(self, topic):
+        return "%s_%s" % (self.exchange_name, topic)
 
     def proxy_start_calls(self, calls, exc_type=mock.ANY):
         return [
-            mock.call.Queue(name=self._queue_name(self.uuid),
+            mock.call.Queue(name=self._queue_name(self.topic),
                             exchange=self.exchange_inst_mock,
-                            routing_key=self.uuid,
+                            routing_key=self.topic,
                             durable=False,
                             queue_arguments=self.queue_arguments,
                             channel=self.conn_inst_mock),
@@ -99,7 +99,7 @@ class TestProxy(test.MockTestCase):
         ]
 
     def proxy(self, reset_master_mock=False, **kwargs):
-        proxy_kwargs = dict(uuid=self.uuid,
+        proxy_kwargs = dict(topic=self.topic,
                             exchange_name=self.exchange_name,
                             on_message=self.on_message_mock,
                             url=self.broker_url)
