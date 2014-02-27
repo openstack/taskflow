@@ -17,6 +17,7 @@
 #    under the License.
 
 import contextlib
+import mock
 
 import six
 
@@ -209,6 +210,17 @@ class TestZookeeperJobs(test.TestCase):
                 if path.endswith("lock"):
                     self.client.storage.pop(path)
             self.assertEqual(states.UNCLAIMED, j.state)
+
+    def test_posting_no_post(self):
+
+        def bad_format(job):
+            raise UnicodeError("Could not format")
+
+        with connect_close(self.board):
+            with mock.patch.object(self.board, '_format_job', bad_format):
+                self.assertRaises(UnicodeError, self.board.post,
+                                  'test', p_utils.temporary_log_book())
+            self.assertEqual(0, self.board.job_count)
 
     def test_posting_owner_lost(self):
 
