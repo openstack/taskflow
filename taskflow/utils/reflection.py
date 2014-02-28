@@ -101,8 +101,8 @@ def is_same_callback(callback1, callback2, strict=True):
     if callback1 == callback2:
         if not strict:
             return True
-        # If two bound method are equal if functions themselves are equal
-        # and objects they are applied to are equal. This means that a bound
+        # Two bound methods are equal if functions themselves are equal and
+        # objects they are applied to are equal. This means that a bound
         # method could be the same bound method on another object if the
         # objects have __eq__ methods that return true (when in fact it is a
         # different bound method). Python u so crazy!
@@ -116,7 +116,7 @@ def is_same_callback(callback1, callback2, strict=True):
 
 
 def is_bound_method(method):
-    """Returns if the method given is a bound to a object or not."""
+    """Returns if the given method is bound to an object."""
     return bool(get_method_self(method))
 
 
