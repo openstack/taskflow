@@ -16,10 +16,10 @@
 
 import logging
 
+from six.moves import urllib_parse
 from stevedore import driver
 
 from taskflow import exceptions as exc
-from taskflow.openstack.common.py3kcompat import urlutils
 
 
 # NOTE(harlowja): this is the entrypoint namespace, not the module namespace.
@@ -29,7 +29,7 @@ LOG = logging.getLogger(__name__)
 
 
 def fetch(conf, namespace=BACKEND_NAMESPACE):
-    backend_name = urlutils.urlparse(conf['connection']).scheme
+    backend_name = urllib_parse.urlparse(conf['connection']).scheme
     LOG.debug('Looking for %r backend driver in %r', backend_name, namespace)
     try:
         mgr = driver.DriverManager(namespace, backend_name,

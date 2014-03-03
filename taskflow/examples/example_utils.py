@@ -21,8 +21,9 @@ import shutil
 import sys
 import tempfile
 
+from six.moves import urllib_parse
+
 from taskflow import exceptions
-from taskflow.openstack.common.py3kcompat import urlutils
 from taskflow.persistence import backends
 
 LOG = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ def rm_path(persist_path):
 
 
 def _make_conf(backend_uri):
-    parsed_url = urlutils.urlparse(backend_uri)
+    parsed_url = urllib_parse.urlparse(backend_uri)
     backend_type = parsed_url.scheme.lower()
     if not backend_type:
         raise ValueError("Unknown backend type for uri: %s" % (backend_type))
