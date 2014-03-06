@@ -308,12 +308,12 @@ class ZookeeperJobBoard(jobboard.JobBoard):
                     self._known_jobs[job_path] = (job, _READY)
                 return job
             except k_exceptions.NodeExistsException:
-                try_clean()
+                try_clean(job_path)
                 raise excp.JobAlreadyExists("Duplicate job %s already posted"
                                             % job.uuid)
             except Exception:
                 with excutils.save_and_reraise_exception():
-                    try_clean()
+                    try_clean(job_path)
 
     def claim(self, job, who):
         _check_who(who)
