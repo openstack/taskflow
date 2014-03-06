@@ -23,6 +23,11 @@ from concurrent import futures
 from taskflow import test
 from taskflow.utils import lock_utils
 
+# NOTE(harlowja): Sleep a little so time.time() can not be the same (which will
+# cause false positives when our overlap detection code runs). If there are
+# real overlaps then they will still exist.
+NAPPY_TIME = 0.05
+
 
 def _find_overlaps(times, start, end):
     overlaps = 0
@@ -39,10 +44,12 @@ def _spawn_variation(readers, writers, max_workers=None):
     def read_func():
         with lock.read_lock():
             start_stops.append(('r', time.time(), time.time()))
+            time.sleep(NAPPY_TIME)
 
     def write_func():
         with lock.write_lock():
             start_stops.append(('w', time.time(), time.time()))
+            time.sleep(NAPPY_TIME)
 
     if max_workers is None:
         max_workers = max(0, readers) + max(0, writers)
