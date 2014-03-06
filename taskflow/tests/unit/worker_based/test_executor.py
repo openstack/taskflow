@@ -105,7 +105,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
     def test_on_message_state_running(self):
         response = dict(state=pr.RUNNING)
         ex = self.executor()
-        ex._store_remote_task(self.remote_task_mock)
+        ex._remote_tasks_cache.set(self.task_uuid, self.remote_task_mock)
         ex._on_message(response, self.message_mock)
 
         self.assertEqual(self.remote_task_mock.mock_calls,
@@ -115,7 +115,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
     def test_on_message_state_progress(self):
         response = dict(state=pr.PROGRESS, progress=1.0)
         ex = self.executor()
-        ex._store_remote_task(self.remote_task_mock)
+        ex._remote_tasks_cache.set(self.task_uuid, self.remote_task_mock)
         ex._on_message(response, self.message_mock)
 
         self.assertEqual(self.remote_task_mock.mock_calls,
@@ -127,10 +127,10 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         failure_dict = pu.failure_to_dict(failure)
         response = dict(state=pr.FAILURE, result=failure_dict)
         ex = self.executor()
-        ex._store_remote_task(self.remote_task_mock)
+        ex._remote_tasks_cache.set(self.task_uuid, self.remote_task_mock)
         ex._on_message(response, self.message_mock)
 
-        self.assertEqual(len(ex._remote_tasks), 0)
+        self.assertEqual(len(ex._remote_tasks_cache._data), 0)
         self.assertEqual(self.remote_task_mock.mock_calls, [
             mock.call.set_result(result=utils.FailureMatcher(failure))
         ])
@@ -140,7 +140,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         response = dict(state=pr.SUCCESS, result=self.task_result,
                         event='executed')
         ex = self.executor()
-        ex._store_remote_task(self.remote_task_mock)
+        ex._remote_tasks_cache.set(self.task_uuid, self.remote_task_mock)
         ex._on_message(response, self.message_mock)
 
         self.assertEqual(self.remote_task_mock.mock_calls,
@@ -151,7 +151,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
     def test_on_message_unknown_state(self):
         response = dict(state='unknown')
         ex = self.executor()
-        ex._store_remote_task(self.remote_task_mock)
+        ex._remote_tasks_cache.set(self.task_uuid, self.remote_task_mock)
         ex._on_message(response, self.message_mock)
 
         self.assertEqual(self.remote_task_mock.mock_calls, [])
@@ -161,7 +161,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.message_mock.properties = {'correlation_id': 'non-existent'}
         response = dict(state=pr.RUNNING)
         ex = self.executor()
-        ex._store_remote_task(self.remote_task_mock)
+        ex._remote_tasks_cache.set(self.task_uuid, self.remote_task_mock)
         ex._on_message(response, self.message_mock)
 
         self.assertEqual(self.remote_task_mock.mock_calls, [])
@@ -171,7 +171,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.message_mock.properties = {}
         response = dict(state=pr.RUNNING)
         ex = self.executor()
-        ex._store_remote_task(self.remote_task_mock)
+        ex._remote_tasks_cache.set(self.task_uuid, self.remote_task_mock)
         ex._on_message(response, self.message_mock)
 
         self.assertEqual(self.remote_task_mock.mock_calls, [])
@@ -184,37 +184,37 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertTrue(mocked_exception.called)
 
     @mock.patch('taskflow.engines.worker_based.remote_task.misc.wallclock')
-    def test_on_wait_task_not_expired(self, mock_time):
-        mock_time.side_effect = [1, self.timeout]
+    def test_on_wait_task_not_expired(self, mocked_time):
+        mocked_time.side_effect = [1, self.timeout]
         ex = self.executor()
-        ex._store_remote_task(self.remote_task())
+        ex._remote_tasks_cache.set(self.task_uuid, self.remote_task())
 
-        self.assertEqual(len(ex._remote_tasks), 1)
+        self.assertEqual(len(ex._remote_tasks_cache._data), 1)
         ex._on_wait()
-        self.assertEqual(len(ex._remote_tasks), 1)
+        self.assertEqual(len(ex._remote_tasks_cache._data), 1)
 
     @mock.patch('taskflow.engines.worker_based.remote_task.misc.wallclock')
-    def test_on_wait_task_expired(self, mock_time):
-        mock_time.side_effect = [1, self.timeout + 2, self.timeout * 2]
+    def test_on_wait_task_expired(self, mocked_time):
+        mocked_time.side_effect = [1, self.timeout + 2, self.timeout * 2]
         ex = self.executor()
-        ex._store_remote_task(self.remote_task())
+        ex._remote_tasks_cache.set(self.task_uuid, self.remote_task())
 
-        self.assertEqual(len(ex._remote_tasks), 1)
+        self.assertEqual(len(ex._remote_tasks_cache._data), 1)
         ex._on_wait()
-        self.assertEqual(len(ex._remote_tasks), 0)
+        self.assertEqual(len(ex._remote_tasks_cache._data), 0)
 
     def test_remove_task_non_existent(self):
         task = self.remote_task()
         ex = self.executor()
-        ex._store_remote_task(task)
+        ex._remote_tasks_cache.set(self.task_uuid, task)
 
-        self.assertEqual(len(ex._remote_tasks), 1)
-        ex._remove_remote_task(task)
-        self.assertEqual(len(ex._remote_tasks), 0)
+        self.assertEqual(len(ex._remote_tasks_cache._data), 1)
+        ex._remote_tasks_cache.delete(self.task_uuid)
+        self.assertEqual(len(ex._remote_tasks_cache._data), 0)
 
         # remove non-existent
-        ex._remove_remote_task(task)
-        self.assertEqual(len(ex._remote_tasks), 0)
+        ex._remote_tasks_cache.delete(self.task_uuid)
+        self.assertEqual(len(ex._remote_tasks_cache._data), 0)
 
     def test_execute_task(self):
         request = self.request(action='execute')

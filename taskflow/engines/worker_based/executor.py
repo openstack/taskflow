@@ -15,12 +15,14 @@
 #    under the License.
 
 import logging
-import six
 import threading
+
+import six
 
 from kombu import exceptions as kombu_exc
 
 from taskflow.engines.action_engine import executor
+from taskflow.engines.worker_based import cache
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow.engines.worker_based import remote_task as rt
@@ -40,7 +42,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         self._proxy = proxy.Proxy(uuid, exchange, self._on_message,
                                   self._on_wait, **kwargs)
         self._proxy_thread = None
-        self._remote_tasks = {}
+        self._remote_tasks_cache = cache.Cache()
 
         # TODO(skudriashev): This data should be collected from workers
         # using broadcast messages directly.
@@ -78,55 +80,41 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
 
     def _process_response(self, task_uuid, response):
         """Process response from remote side."""
-        try:
-            task = self._remote_tasks[task_uuid]
-        except KeyError:
-            LOG.debug("Task with id='%s' not found.", task_uuid)
-        else:
+        remote_task = self._remote_tasks_cache.get(task_uuid)
+        if remote_task is not None:
             state = response.pop('state')
             if state == pr.RUNNING:
-                task.set_running()
+                remote_task.set_running()
             elif state == pr.PROGRESS:
-                task.on_progress(**response)
+                remote_task.on_progress(**response)
             elif state == pr.FAILURE:
                 response['result'] = pu.failure_from_dict(response['result'])
-                task.set_result(**response)
-                self._remove_remote_task(task)
+                remote_task.set_result(**response)
+                self._remote_tasks_cache.delete(remote_task.uuid)
             elif state == pr.SUCCESS:
-                task.set_result(**response)
-                self._remove_remote_task(task)
+                remote_task.set_result(**response)
+                self._remote_tasks_cache.delete(remote_task.uuid)
             else:
                 LOG.warning("Unexpected response status: '%s'", state)
+        else:
+            LOG.debug("Remote task with id='%s' not found.", task_uuid)
+
+    @staticmethod
+    def _handle_expired_remote_task(task):
+        LOG.debug("Remote task '%r' has expired.", task)
+        task.set_result(misc.Failure.from_exception(
+            exc.Timeout("Remote task '%r' has expired" % task)))
 
     def _on_wait(self):
-        """This function is called cyclically between draining events
-        iterations to clean-up expired task requests.
-        """
-        expired_tasks = [task for task in six.itervalues(self._remote_tasks)
-                         if task.expired]
-        for task in expired_tasks:
-            LOG.debug("Task request '%s' has expired.", task)
-            task.set_result(misc.Failure.from_exception(
-                exc.Timeout("Task request '%s' has expired" % task)))
-            del self._remote_tasks[task.uuid]
-
-    def _store_remote_task(self, task):
-        """Store task in the remote tasks map."""
-        self._remote_tasks[task.uuid] = task
-        return task
-
-    def _remove_remote_task(self, task):
-        """Remove remote task from the tasks map."""
-        if task.uuid in self._remote_tasks:
-            del self._remote_tasks[task.uuid]
+        """This function is called cyclically between draining events."""
+        self._remote_tasks_cache.cleanup(self._handle_expired_remote_task)
 
     def _submit_task(self, task, task_uuid, action, arguments,
                      progress_callback, timeout=pr.REQUEST_TIMEOUT, **kwargs):
         """Submit task request to workers."""
-        remote_task = self._store_remote_task(
-            rt.RemoteTask(task, task_uuid, action, arguments,
-                          progress_callback, timeout, **kwargs)
-        )
+        remote_task = rt.RemoteTask(task, task_uuid, action, arguments,
+                                    progress_callback, timeout, **kwargs)
+        self._remote_tasks_cache.set(remote_task.uuid, remote_task)
         try:
             # get task's workers topic to send request to
             try:
@@ -143,7 +131,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         except Exception:
             with misc.capture_failure() as failure:
                 LOG.exception("Failed to submit the '%s' task", remote_task)
-                self._remove_remote_task(remote_task)
+                self._remote_tasks_cache.delete(remote_task.uuid)
                 remote_task.set_result(failure)
         return remote_task.result
 
