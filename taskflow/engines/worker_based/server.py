@@ -30,8 +30,8 @@ LOG = logging.getLogger(__name__)
 class Server(object):
     """Server implementation that waits for incoming tasks requests."""
 
-    def __init__(self, uuid, exchange, executor, endpoints, **kwargs):
-        self._proxy = proxy.Proxy(uuid, exchange, self._on_message, **kwargs)
+    def __init__(self, topic, exchange, executor, endpoints, **kwargs):
+        self._proxy = proxy.Proxy(topic, exchange, self._on_message, **kwargs)
         self._executor = executor
         self._endpoints = dict([(endpoint.name, endpoint)
                                 for endpoint in endpoints])

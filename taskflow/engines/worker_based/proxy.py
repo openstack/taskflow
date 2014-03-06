@@ -35,9 +35,9 @@ class Proxy(object):
     callback when new message received and is used to publish messages.
     """
 
-    def __init__(self, uuid, exchange_name, on_message, on_wait=None,
+    def __init__(self, topic, exchange_name, on_message, on_wait=None,
                  **kwargs):
-        self._uuid = uuid
+        self._topic = topic
         self._exchange_name = exchange_name
         self._on_message = on_message
         self._on_wait = on_wait
@@ -87,7 +87,7 @@ class Proxy(object):
         LOG.info("Starting to consume from the '%s' exchange." %
                  self._exchange_name)
         with kombu.connections[self._conn].acquire(block=True) as conn:
-            queue = self._make_queue(self._uuid, self._exchange, channel=conn)
+            queue = self._make_queue(self._topic, self._exchange, channel=conn)
             try:
                 with conn.Consumer(queues=queue,
                                    callbacks=[self._on_message]):
