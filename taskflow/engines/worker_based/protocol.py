@@ -23,11 +23,11 @@ SUCCESS = 'SUCCESS'
 FAILURE = 'FAILURE'
 PROGRESS = 'PROGRESS'
 
-# Remote task actions
+# Remote task actions.
 EXECUTE = 'execute'
 REVERT = 'revert'
 
-# Remote task action to event map
+# Remote task action to event map.
 ACTION_TO_EVENT = {
     EXECUTE: executor.EXECUTED,
     REVERT: executor.REVERTED

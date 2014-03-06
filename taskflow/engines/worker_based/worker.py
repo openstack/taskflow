@@ -64,8 +64,8 @@ class Worker(object):
     :param executor: custom executor object that is used for processing
         requests in separate threads
     :keyword threads_count: threads count to be passed to the default executor
-    :keyword transport: broker transport to be used (e.g. amqp, memory, etc.)
-    :keyword transport_options: broker transport options
+    :keyword transport: transport to be used (e.g. amqp, memory, etc.)
+    :keyword transport_options: transport specific options
     """
 
     def __init__(self, exchange, topic, tasks, executor=None, **kwargs):

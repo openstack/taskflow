@@ -19,10 +19,6 @@ import logging
 import socket
 import threading
 
-from amqp import exceptions as amqp_exc
-
-from taskflow.engines.worker_based import protocol as pr
-
 LOG = logging.getLogger(__name__)
 
 # NOTE(skudriashev): A timeout of 1 is often used in environments where
@@ -63,12 +59,11 @@ class Proxy(object):
 
     def _make_queue(self, name, exchange, **kwargs):
         """Make named queue for the given exchange."""
-        queue_arguments = {'x-expires': pr.QUEUE_EXPIRE_TIMEOUT * 1000}
         return kombu.Queue(name="%s_%s" % (self._exchange_name, name),
                            exchange=exchange,
                            routing_key=name,
                            durable=False,
-                           queue_arguments=queue_arguments,
+                           auto_delete=True,
                            **kwargs)
 
     def publish(self, msg, task_uuid, routing_key, **kwargs):
@@ -88,32 +83,16 @@ class Proxy(object):
                  self._exchange_name)
         with kombu.connections[self._conn].acquire(block=True) as conn:
             queue = self._make_queue(self._topic, self._exchange, channel=conn)
-            try:
-                with conn.Consumer(queues=queue,
-                                   callbacks=[self._on_message]):
-                    self._running.set()
-                    while self.is_running:
-                        try:
-                            conn.drain_events(timeout=DRAIN_EVENTS_PERIOD)
-                        except socket.timeout:
-                            pass
-                        if self._on_wait is not None:
-                            self._on_wait()
-            finally:
-                try:
-                    queue.delete(if_unused=True)
-                except (amqp_exc.PreconditionFailed, amqp_exc.NotFound):
-                    pass
-                except Exception:
-                    LOG.exception("Failed to delete the '%s' queue",
-                                  queue.name)
-                try:
-                    self._exchange.delete(if_unused=True)
-                except (amqp_exc.PreconditionFailed, amqp_exc.NotFound):
-                    pass
-                except Exception:
-                    LOG.exception("Failed to delete the '%s' exchange",
-                                  self._exchange.name)
+            with conn.Consumer(queues=queue,
+                               callbacks=[self._on_message]):
+                self._running.set()
+                while self.is_running:
+                    try:
+                        conn.drain_events(timeout=DRAIN_EVENTS_PERIOD)
+                    except socket.timeout:
+                        pass
+                    if self._on_wait is not None:
+                        self._on_wait()
 
     def wait(self):
         """Wait until proxy is started."""

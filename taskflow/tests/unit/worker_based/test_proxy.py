@@ -18,8 +18,6 @@ import mock
 import socket
 import threading
 
-from amqp import exceptions as amqp_exc
-
 from taskflow.engines.worker_based import proxy
 from taskflow import test
 
@@ -32,9 +30,6 @@ class TestProxy(test.MockTestCase):
         self.broker_url = 'test-url'
         self.exchange_name = 'test-exchange'
         self.timeout = 5
-        self.queue_arguments = {
-            'x-expires': proxy.pr.QUEUE_EXPIRE_TIMEOUT * 1000
-        }
         self.de_period = proxy.DRAIN_EVENTS_PERIOD
 
         # patch classes
@@ -86,16 +81,14 @@ class TestProxy(test.MockTestCase):
                             exchange=self.exchange_inst_mock,
                             routing_key=self.topic,
                             durable=False,
-                            queue_arguments=self.queue_arguments,
+                            auto_delete=True,
                             channel=self.conn_inst_mock),
             mock.call.connection.Consumer(queues=self.queue_inst_mock,
                                           callbacks=[self.on_message_mock]),
             mock.call.connection.Consumer().__enter__(),
         ] + calls + [
             mock.call.connection.Consumer().__exit__(exc_type, mock.ANY,
-                                                     mock.ANY),
-            mock.ANY,
-            mock.call.queue.delete(if_unused=True)
+                                                     mock.ANY)
         ]
 
     def proxy(self, reset_master_mock=False, **kwargs):
@@ -150,7 +143,7 @@ class TestProxy(test.MockTestCase):
                             exchange=self.exchange_inst_mock,
                             routing_key=routing_key,
                             durable=False,
-                            queue_arguments=self.queue_arguments),
+                            auto_delete=True),
             mock.call.producer.publish(body=task_data,
                                        routing_key=routing_key,
                                        exchange=self.exchange_inst_mock,
@@ -205,70 +198,6 @@ class TestProxy(test.MockTestCase):
             mock.call.on_wait(),
         ], exc_type=RuntimeError)
         self.master_mock.assert_has_calls(master_calls)
-
-    def test_start_queue_delete_not_found(self):
-        self.queue_inst_mock.delete.side_effect = amqp_exc.NotFound('Woot!')
-        try:
-            # KeyboardInterrupt will be raised after two iterations
-            self.proxy(reset_master_mock=True).start()
-        except KeyboardInterrupt:
-            pass
-
-        master_calls = self.proxy_start_calls([
-            mock.call.connection.drain_events(timeout=self.de_period),
-            mock.call.connection.drain_events(timeout=self.de_period),
-            mock.call.connection.drain_events(timeout=self.de_period),
-        ], exc_type=KeyboardInterrupt)
-        self.master_mock.assert_has_calls(master_calls)
-
-    @mock.patch("taskflow.engines.worker_based.proxy.LOG.error")
-    def test_start_queue_delete_raises(self, mocked_error):
-        self.queue_inst_mock.delete.side_effect = RuntimeError('Woot!')
-        try:
-            # KeyboardInterrupt will be raised after two iterations
-            self.proxy(reset_master_mock=True).start()
-        except KeyboardInterrupt:
-            pass
-
-        master_calls = self.proxy_start_calls([
-            mock.call.connection.drain_events(timeout=self.de_period),
-            mock.call.connection.drain_events(timeout=self.de_period),
-            mock.call.connection.drain_events(timeout=self.de_period),
-        ], exc_type=KeyboardInterrupt)
-        self.master_mock.assert_has_calls(master_calls)
-        self.assertTrue(mocked_error.called)
-
-    def test_start_exchange_delete_not_found(self):
-        self.exchange_inst_mock.delete.side_effect = amqp_exc.NotFound('Woot!')
-        try:
-            # KeyboardInterrupt will be raised after two iterations
-            self.proxy(reset_master_mock=True).start()
-        except KeyboardInterrupt:
-            pass
-
-        master_calls = self.proxy_start_calls([
-            mock.call.connection.drain_events(timeout=self.de_period),
-            mock.call.connection.drain_events(timeout=self.de_period),
-            mock.call.connection.drain_events(timeout=self.de_period),
-        ], exc_type=KeyboardInterrupt)
-        self.master_mock.assert_has_calls(master_calls)
-
-    @mock.patch("taskflow.engines.worker_based.proxy.LOG.error")
-    def test_start_exchange_delete_raises(self, mocked_error):
-        self.exchange_inst_mock.delete.side_effect = RuntimeError('Woot!')
-        try:
-            # KeyboardInterrupt will be raised after two iterations
-            self.proxy(reset_master_mock=True).start()
-        except KeyboardInterrupt:
-            pass
-
-        master_calls = self.proxy_start_calls([
-            mock.call.connection.drain_events(timeout=self.de_period),
-            mock.call.connection.drain_events(timeout=self.de_period),
-            mock.call.connection.drain_events(timeout=self.de_period),
-        ], exc_type=KeyboardInterrupt)
-        self.master_mock.assert_has_calls(master_calls)
-        self.assertTrue(mocked_error.called)
 
     def test_stop(self):
         self.conn_inst_mock.drain_events.side_effect = socket.timeout

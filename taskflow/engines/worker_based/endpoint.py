@@ -34,9 +34,9 @@ class Endpoint(object):
         return self._task_cls_name
 
     def _get_task(self, name=None):
-        # NOTE(skudriashev): Note that task is created here with the 'name'
-        # argument passed to its constructor. This will be a problem
-        # when task's constructor requires some other arguments.
+        # NOTE(skudriashev): Note that task is created here with the `name`
+        # argument passed to its constructor. This will be a problem when
+        # task's constructor requires any other arguments.
         return self._task_cls(name=name)
 
     def execute(self, task_name, **kwargs):
