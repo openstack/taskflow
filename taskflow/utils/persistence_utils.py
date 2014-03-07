@@ -67,7 +67,7 @@ def create_flow_detail(flow, book=None, backend=None, meta=None):
     flow_id = uuidutils.generate_uuid()
     flow_name = getattr(flow, 'name', None)
     if flow_name is None:
-        LOG.warn("No name provided for flow %s (id %s)" % (flow, flow_id))
+        LOG.warn("No name provided for flow %s (id %s)", flow, flow_id)
         flow_name = flow_id
 
     flow_detail = logbook.FlowDetail(name=flow_name, uuid=flow_id)
