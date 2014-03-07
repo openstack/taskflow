@@ -15,8 +15,8 @@
 #    under the License.
 
 import logging
+import re
 
-from six.moves import urllib_parse
 from stevedore import driver
 
 from taskflow import exceptions as exc
@@ -25,11 +25,22 @@ from taskflow import exceptions as exc
 # NOTE(harlowja): this is the entrypoint namespace, not the module namespace.
 BACKEND_NAMESPACE = 'taskflow.persistence'
 
+# NOTE(imelnikov): regular expression to get scheme from URI,
+# see RFC 3986 section 3.1
+SCHEME_REGEX = re.compile(r"^([A-Za-z]{1}[A-Za-z0-9+.-]*):")
+
 LOG = logging.getLogger(__name__)
 
 
 def fetch(conf, namespace=BACKEND_NAMESPACE):
-    backend_name = urllib_parse.urlparse(conf['connection']).scheme
+    connection = conf['connection']
+
+    match = SCHEME_REGEX.match(connection)
+    if match:
+        backend_name = match.group(1)
+    else:
+        backend_name = connection
+
     LOG.debug('Looking for %r backend driver in %r', backend_name, namespace)
     try:
         mgr = driver.DriverManager(namespace, backend_name,

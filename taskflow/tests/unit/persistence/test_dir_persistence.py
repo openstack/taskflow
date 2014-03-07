@@ -46,19 +46,16 @@ class DirPersistenceTest(test.TestCase, base.PersistenceTestMixin):
             shutil.rmtree(self.path)
         self.path = None
 
-    def test_dir_persistence_entry_point(self):
-        conf = {
-            'connection': 'dir:',
-            'path': self.path
-        }
-        backend = backends.fetch(conf)
-        self.assertIsInstance(backend, impl_dir.DirBackend)
-        backend.close()
-
-    def test_file_persistence_entry_point(self):
-        conf = {
-            'connection': 'file:',
-            'path': self.path
-        }
+    def _check_backend(self, conf):
         with contextlib.closing(backends.fetch(conf)) as be:
             self.assertIsInstance(be, impl_dir.DirBackend)
+
+    def test_dir_backend_entry_point(self):
+        self._check_backend(dict(connection='dir:', path=self.path))
+
+    def test_dir_backend_name(self):
+        self._check_backend(dict(connection='dir',  # no colon
+                                 path=self.path))
+
+    def test_file_backend_entry_point(self):
+        self._check_backend(dict(connection='file:', path=self.path))
