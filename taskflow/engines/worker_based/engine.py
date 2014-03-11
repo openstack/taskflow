@@ -30,7 +30,7 @@ class WorkerBasedActionEngine(engine.ActionEngine):
             'uuid': flow_detail.uuid,
             'url': conf.get('url'),
             'exchange': conf.get('exchange', 'default'),
-            'workers_info': conf.get('workers_info', {}),
+            'topics': conf.get('topics', []),
             'transport': conf.get('transport'),
             'transport_options': conf.get('transport_options')
         }

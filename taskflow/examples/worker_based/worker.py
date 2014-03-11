@@ -27,7 +27,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.ERROR)
     worker_conf = {
         'exchange': 'taskflow',
-        'topic': 'topic',
+        'topic': 'test-topic',
         'tasks': [
             'taskflow.tests.utils:TaskOneArgOneReturn',
             'taskflow.tests.utils:TaskMultiArgOneReturn'

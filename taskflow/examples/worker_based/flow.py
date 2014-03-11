@@ -30,12 +30,7 @@ if __name__ == "__main__":
     engine_conf = {
         'engine': 'worker-based',
         'exchange': 'taskflow',
-        'workers_info': {
-            'topic': [
-                'taskflow.tests.utils.TaskOneArgOneReturn',
-                'taskflow.tests.utils.TaskMultiArgOneReturn'
-            ]
-        }
+        'topics': ['test-topic'],
     }
 
     # parse command line

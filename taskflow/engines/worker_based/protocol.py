@@ -26,6 +26,7 @@ from taskflow.utils import persistence_utils as pu
 from taskflow.utils import reflection
 
 # NOTE(skudriashev): This is protocol events, not related to the task states.
+WAITING = 'WAITING'
 PENDING = 'PENDING'
 RUNNING = 'RUNNING'
 SUCCESS = 'SUCCESS'
@@ -53,7 +54,11 @@ REQUEST_TIMEOUT = 60
 # no longer needed.
 QUEUE_EXPIRE_TIMEOUT = REQUEST_TIMEOUT
 
+# Workers notify period.
+NOTIFY_PERIOD = 5
+
 # Message types.
+NOTIFY = 'NOTIFY'
 REQUEST = 'REQUEST'
 RESPONSE = 'RESPONSE'
 
@@ -70,9 +75,20 @@ class Message(object):
         """Return json-serializable message representation."""
 
 
+class Notify(Message):
+    """Represents notify message type."""
+    TYPE = NOTIFY
+
+    def __init__(self, **data):
+        self._data = data
+
+    def to_dict(self):
+        return self._data
+
+
 class Request(Message):
     """Represents request with execution results. Every request is created in
-    the PENDING state and is expired within the given timeout.
+    the WAITING state and is expired within the given timeout.
     """
     TYPE = REQUEST
 
@@ -87,7 +103,7 @@ class Request(Message):
         self._progress_callback = progress_callback
         self._kwargs = kwargs
         self._watch = misc.StopWatch(duration=timeout).start()
-        self._state = PENDING
+        self._state = WAITING
         self.result = futures.Future()
 
     def __repr__(self):
@@ -102,17 +118,21 @@ class Request(Message):
         return self._task_cls
 
     @property
+    def state(self):
+        return self._state
+
+    @property
     def expired(self):
         """Check if request has expired.
 
-        When new request is created its state is set to the PENDING, creation
+        When new request is created its state is set to the WAITING, creation
         time is stored and timeout is given via constructor arguments.
 
-        Request is considered to be expired when it is in the PENDING state
-        for more then the given timeout (it is not considered to be expired
-        in any other state).
+        Request is considered to be expired when it is in the WAITING/PENDING
+        state for more then the given timeout (it is not considered to be
+        expired in any other state).
         """
-        if self._state == PENDING:
+        if self._state in (WAITING, PENDING):
             return self._watch.expired()
         return False
 
@@ -138,6 +158,9 @@ class Request(Message):
 
     def set_result(self, result):
         self.result.set_result((self._task, self._event, result))
+
+    def set_pending(self):
+        self._state = PENDING
 
     def set_running(self):
         self._state = RUNNING
