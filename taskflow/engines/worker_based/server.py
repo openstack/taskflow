@@ -63,7 +63,7 @@ class Server(object):
                 LOG.debug("AMQP message requeued.")
 
     @staticmethod
-    def _parse_request(task, task_name, action, arguments, result=None,
+    def _parse_request(task_cls, task_name, action, arguments, result=None,
                        failures=None, **kwargs):
         """Parse request before it can be processed. All `misc.Failure` objects
         that have been converted to dict on the remote side to be serializable
@@ -80,7 +80,7 @@ class Server(object):
             action_args['failures'] = {}
             for k, v in failures.items():
                 action_args['failures'][k] = pu.failure_from_dict(v)
-        return task, action, action_args
+        return task_cls, action, action_args
 
     @staticmethod
     def _parse_message(message):
@@ -132,7 +132,7 @@ class Server(object):
 
         # parse request to get task name, action and action arguments
         try:
-            task, action, action_args = self._parse_request(**request)
+            task_cls, action, action_args = self._parse_request(**request)
             action_args.update(task_uuid=task_uuid,
                                progress_callback=progress_callback)
         except ValueError:
@@ -143,10 +143,11 @@ class Server(object):
 
         # get task endpoint
         try:
-            endpoint = self._endpoints[task]
+            endpoint = self._endpoints[task_cls]
         except KeyError:
             with misc.capture_failure() as failure:
-                LOG.exception("The '%s' task endpoint does not exist", task)
+                LOG.exception("The '%s' task endpoint does not exist",
+                              task_cls)
                 reply_callback(result=pu.failure_to_dict(failure))
                 return
         else:

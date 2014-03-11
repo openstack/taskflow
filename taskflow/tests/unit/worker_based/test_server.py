@@ -71,7 +71,7 @@ class TestServer(test.MockTestCase):
         return s
 
     def request(self, **kwargs):
-        request = dict(task=self.task_name,
+        request = dict(task_cls=self.task_name,
                        task_name=self.task_name,
                        action=self.task_action,
                        task_version=self.task_version,
@@ -164,18 +164,18 @@ class TestServer(test.MockTestCase):
 
     def test_parse_request(self):
         request = self.request()
-        task, action, task_args = server.Server._parse_request(**request)
+        task_cls, action, task_args = server.Server._parse_request(**request)
 
-        self.assertEqual((task, action, task_args),
+        self.assertEqual((task_cls, action, task_args),
                          (self.task_name, self.task_action,
                           dict(task_name=self.task_name,
                                arguments=self.task_args)))
 
     def test_parse_request_with_success_result(self):
         request = self.request(action='revert', result=('success', 1))
-        task, action, task_args = server.Server._parse_request(**request)
+        task_cls, action, task_args = server.Server._parse_request(**request)
 
-        self.assertEqual((task, action, task_args),
+        self.assertEqual((task_cls, action, task_args),
                          (self.task_name, 'revert',
                           dict(task_name=self.task_name,
                                arguments=self.task_args,
@@ -186,9 +186,9 @@ class TestServer(test.MockTestCase):
         failure_dict = pu.failure_to_dict(failure)
         request = self.request(action='revert',
                                result=('failure', failure_dict))
-        task, action, task_args = server.Server._parse_request(**request)
+        task_cls, action, task_args = server.Server._parse_request(**request)
 
-        self.assertEqual((task, action, task_args),
+        self.assertEqual((task_cls, action, task_args),
                          (self.task_name, 'revert',
                           dict(task_name=self.task_name,
                                arguments=self.task_args,
@@ -200,10 +200,10 @@ class TestServer(test.MockTestCase):
         failures_dict = dict((str(i), pu.failure_to_dict(f))
                              for i, f in enumerate(failures))
         request = self.request(action='revert', failures=failures_dict)
-        task, action, task_args = server.Server._parse_request(**request)
+        task_cls, action, task_args = server.Server._parse_request(**request)
 
         self.assertEqual(
-            (task, action, task_args),
+            (task_cls, action, task_args),
             (self.task_name, 'revert',
              dict(task_name=self.task_name,
                   arguments=self.task_args,
@@ -225,7 +225,7 @@ class TestServer(test.MockTestCase):
         self.assertTrue(mocked_exception.called)
 
     def test_on_update_progress(self):
-        request = self.request(task='taskflow.tests.utils.ProgressingTask',
+        request = self.request(task_cls='taskflow.tests.utils.ProgressingTask',
                                arguments={})
 
         # create server and process request
@@ -292,7 +292,7 @@ class TestServer(test.MockTestCase):
     def test_process_request_endpoint_not_found(self, pu_mock):
         failure_dict = 'failure_dict'
         pu_mock.failure_to_dict.return_value = failure_dict
-        request = self.request(task='<unknown>')
+        request = self.request(task_cls='<unknown>')
 
         # create server and process request
         s = self.server(reset_master_mock=True, endpoints=self.endpoints)

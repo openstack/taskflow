@@ -25,7 +25,6 @@ from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import cache
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
-from taskflow.engines.worker_based import remote_task as rt
 from taskflow import exceptions as exc
 from taskflow.utils import async_utils
 from taskflow.utils import misc
@@ -42,7 +41,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         self._proxy = proxy.Proxy(uuid, exchange, self._on_message,
                                   self._on_wait, **kwargs)
         self._proxy_thread = None
-        self._remote_tasks_cache = cache.Cache()
+        self._requests_cache = cache.Cache()
 
         # TODO(skudriashev): This data should be collected from workers
         # using broadcast messages directly.
@@ -80,61 +79,61 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
 
     def _process_response(self, task_uuid, response):
         """Process response from remote side."""
-        remote_task = self._remote_tasks_cache.get(task_uuid)
-        if remote_task is not None:
+        request = self._requests_cache.get(task_uuid)
+        if request is not None:
             state = response.pop('state')
             if state == pr.RUNNING:
-                remote_task.set_running()
+                request.set_running()
             elif state == pr.PROGRESS:
-                remote_task.on_progress(**response)
+                request.on_progress(**response)
             elif state == pr.FAILURE:
                 response['result'] = pu.failure_from_dict(response['result'])
-                remote_task.set_result(**response)
-                self._remote_tasks_cache.delete(remote_task.uuid)
+                request.set_result(**response)
+                self._requests_cache.delete(request.uuid)
             elif state == pr.SUCCESS:
-                remote_task.set_result(**response)
-                self._remote_tasks_cache.delete(remote_task.uuid)
+                request.set_result(**response)
+                self._requests_cache.delete(request.uuid)
             else:
                 LOG.warning("Unexpected response status: '%s'", state)
         else:
-            LOG.debug("Remote task with id='%s' not found.", task_uuid)
+            LOG.debug("Request with id='%s' not found.", task_uuid)
 
     @staticmethod
-    def _handle_expired_remote_task(task):
-        LOG.debug("Remote task '%r' has expired.", task)
-        task.set_result(misc.Failure.from_exception(
-            exc.Timeout("Remote task '%r' has expired" % task)))
+    def _handle_expired_request(request):
+        LOG.debug("Request '%r' has expired.", request)
+        request.set_result(misc.Failure.from_exception(
+            exc.Timeout("Request '%r' has expired" % request)))
 
     def _on_wait(self):
         """This function is called cyclically between draining events."""
-        self._remote_tasks_cache.cleanup(self._handle_expired_remote_task)
+        self._requests_cache.cleanup(self._handle_expired_request)
 
     def _submit_task(self, task, task_uuid, action, arguments,
                      progress_callback, timeout=pr.REQUEST_TIMEOUT, **kwargs):
         """Submit task request to workers."""
-        remote_task = rt.RemoteTask(task, task_uuid, action, arguments,
-                                    progress_callback, timeout, **kwargs)
-        self._remote_tasks_cache.set(remote_task.uuid, remote_task)
+        request = pr.Request(task, task_uuid, action, arguments,
+                             progress_callback, timeout, **kwargs)
+        self._requests_cache.set(request.uuid, request)
         try:
             # get task's workers topic to send request to
             try:
-                topic = self._workers_info[remote_task.name]
+                topic = self._workers_info[request.task_cls]
             except KeyError:
                 raise exc.NotFound("Workers topic not found for the '%s'"
-                                   " task" % remote_task.name)
+                                   " task" % request.task_cls)
             else:
                 # publish request
-                request = remote_task.request
                 LOG.debug("Sending request: %s", request)
-                self._proxy.publish(request, routing_key=topic,
+                self._proxy.publish(request.to_dict(),
+                                    routing_key=topic,
                                     reply_to=self._uuid,
-                                    correlation_id=remote_task.uuid)
+                                    correlation_id=request.uuid)
         except Exception:
             with misc.capture_failure() as failure:
-                LOG.exception("Failed to submit the '%s' task", remote_task)
-                self._remote_tasks_cache.delete(remote_task.uuid)
-                remote_task.set_result(failure)
-        return remote_task.result
+                LOG.exception("Failed to submit the '%s' task", request)
+                self._requests_cache.delete(request.uuid)
+                request.set_result(failure)
+        return request.result
 
     def execute_task(self, task, task_uuid, arguments,
                      progress_callback=None):
