@@ -139,26 +139,26 @@ class TestServer(test.MockTestCase):
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
-    def test_on_message_proxy_not_running_reject_success(self):
+    def test_on_message_proxy_not_running_requeue_success(self):
         self.proxy_inst_mock.is_running = False
         s = self.server(reset_master_mock=True)
         s._on_message({}, self.message_mock)
 
         # check calls
         master_mock_calls = [
-            mock.call.message.reject(requeue=True)
+            mock.call.message.requeue()
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
-    def test_on_message_proxy_not_running_reject_failure(self):
-        self.message_mock.reject.side_effect = exc.MessageStateError('Woot!')
+    def test_on_message_proxy_not_running_requeue_failure(self):
+        self.message_mock.requeue.side_effect = exc.MessageStateError('Woot!')
         self.proxy_inst_mock.is_running = False
         s = self.server(reset_master_mock=True)
         s._on_message({}, self.message_mock)
 
         # check calls
         master_mock_calls = [
-            mock.call.message.reject(requeue=True)
+            mock.call.message.requeue()
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 

@@ -40,7 +40,7 @@ class Server(object):
         """This method is called on incoming request."""
         LOG.debug("Got request: %s", request)
         # NOTE(skudriashev): Process all incoming requests only if proxy is
-        # running, otherwise reject and requeue them.
+        # running, otherwise requeue them.
         if self._proxy.is_running:
             # NOTE(skudriashev): Process request only if message has been
             # acknowledged successfully.
@@ -48,19 +48,19 @@ class Server(object):
                 # acknowledge message
                 message.ack()
             except kombu_exc.MessageStateError:
-                LOG.exception("Failed to acknowledge AMQP message")
+                LOG.exception("Failed to acknowledge AMQP message.")
             else:
-                LOG.debug("AMQP message acknowledged")
+                LOG.debug("AMQP message acknowledged.")
                 # spawn new thread to process request
                 self._executor.submit(self._process_request, request, message)
         else:
             try:
-                # reject and requeue message
-                message.reject(requeue=True)
+                # requeue message
+                message.requeue()
             except kombu_exc.MessageStateError:
-                LOG.exception("Failed to reject/requeue AMQP message")
+                LOG.exception("Failed to requeue AMQP message.")
             else:
-                LOG.debug("AMQP message rejected and requeued")
+                LOG.debug("AMQP message requeued.")
 
     @staticmethod
     def _parse_request(task, task_name, action, arguments, result=None,

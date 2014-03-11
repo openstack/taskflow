@@ -66,7 +66,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
             # acknowledge message before processing.
             message.ack()
         except kombu_exc.MessageStateError:
-            LOG.exception("Failed to acknowledge AMQP message")
+            LOG.exception("Failed to acknowledge AMQP message.")
         else:
             LOG.debug("AMQP message acknowledged.")
             # get task uuid from message correlation id parameter
