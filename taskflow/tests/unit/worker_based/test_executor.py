@@ -222,9 +222,10 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         result = ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
-            mock.call.proxy.publish(request, self.task_uuid,
+            mock.call.proxy.publish(request,
                                     routing_key=self.executor_topic,
-                                    reply_to=self.executor_uuid)
+                                    reply_to=self.executor_uuid,
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
         self.assertIsInstance(result, futures.Future)
@@ -238,9 +239,10 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                                 self.task_result, self.task_failures)
 
         expected_calls = [
-            mock.call.proxy.publish(request, self.task_uuid,
+            mock.call.proxy.publish(request,
                                     routing_key=self.executor_topic,
-                                    reply_to=self.executor_uuid)
+                                    reply_to=self.executor_uuid,
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
         self.assertIsInstance(result, futures.Future)
@@ -265,9 +267,10 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         result = ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
-            mock.call.proxy.publish(request, self.task_uuid,
+            mock.call.proxy.publish(request,
                                     routing_key=self.executor_topic,
-                                    reply_to=self.executor_uuid)
+                                    reply_to=self.executor_uuid,
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
 

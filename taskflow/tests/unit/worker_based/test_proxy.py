@@ -109,7 +109,6 @@ class TestProxy(test.MockTestCase):
             mock.call.Connection(self.broker_url, transport=None,
                                  transport_options=None),
             mock.call.Exchange(name=self.exchange_name,
-                               channel=self.conn_inst_mock,
                                durable=False,
                                auto_delete=True)
         ]
@@ -123,7 +122,6 @@ class TestProxy(test.MockTestCase):
             mock.call.Connection(self.broker_url, transport='memory',
                                  transport_options=transport_opts),
             mock.call.Exchange(name=self.exchange_name,
-                               channel=self.conn_inst_mock,
                                durable=False,
                                auto_delete=True)
         ]
@@ -136,7 +134,7 @@ class TestProxy(test.MockTestCase):
         kwargs = dict(a='a', b='b')
 
         self.proxy(reset_master_mock=True).publish(
-            task_data, task_uuid, routing_key, **kwargs)
+            task_data, routing_key, correlation_id=task_uuid, **kwargs)
 
         master_mock_calls = [
             mock.call.Queue(name=self._queue_name(routing_key),

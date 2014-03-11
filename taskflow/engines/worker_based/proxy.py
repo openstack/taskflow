@@ -48,7 +48,6 @@ class Proxy(object):
 
         # create exchange
         self._exchange = kombu.Exchange(name=self._exchange_name,
-                                        channel=self._conn,
                                         durable=False,
                                         auto_delete=True)
 
@@ -66,14 +65,13 @@ class Proxy(object):
                            auto_delete=True,
                            **kwargs)
 
-    def publish(self, msg, task_uuid, routing_key, **kwargs):
+    def publish(self, msg, routing_key, **kwargs):
         """Publish message to the named exchange with routing key."""
         with kombu.producers[self._conn].acquire(block=True) as producer:
             queue = self._make_queue(routing_key, self._exchange)
             producer.publish(body=msg,
                              routing_key=routing_key,
                              exchange=self._exchange,
-                             correlation_id=task_uuid,
                              declare=[queue],
                              **kwargs)
 

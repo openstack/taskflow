@@ -103,7 +103,7 @@ class Server(object):
         response = dict(state=state, **kwargs)
         LOG.debug("Sending reply: %s", response)
         try:
-            self._proxy.publish(response, task_uuid, reply_to)
+            self._proxy.publish(response, reply_to, correlation_id=task_uuid)
         except Exception:
             LOG.exception("Failed to send reply")
 

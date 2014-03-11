@@ -126,8 +126,9 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                 # publish request
                 request = remote_task.request
                 LOG.debug("Sending request: %s", request)
-                self._proxy.publish(request, remote_task.uuid,
-                                    routing_key=topic, reply_to=self._uuid)
+                self._proxy.publish(request, routing_key=topic,
+                                    reply_to=self._uuid,
+                                    correlation_id=remote_task.uuid)
         except Exception:
             with misc.capture_failure() as failure:
                 LOG.exception("Failed to submit the '%s' task", remote_task)

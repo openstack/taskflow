@@ -219,8 +219,8 @@ class TestServer(test.MockTestCase):
         s._reply(self.reply_to, self.task_uuid)
 
         self.assertEqual(self.master_mock.mock_calls, [
-            mock.call.proxy.publish({'state': 'FAILURE'}, self.task_uuid,
-                                    self.reply_to)
+            mock.call.proxy.publish({'state': 'FAILURE'}, self.reply_to,
+                                    correlation_id=self.task_uuid)
         ])
         self.assertTrue(mocked_exception.called)
 
@@ -234,14 +234,14 @@ class TestServer(test.MockTestCase):
 
         # check calls
         master_mock_calls = [
-            mock.call.proxy.publish(self.resp_running, self.task_uuid,
-                                    self.reply_to),
-            mock.call.proxy.publish(self.resp_progress(0.0), self.task_uuid,
-                                    self.reply_to),
-            mock.call.proxy.publish(self.resp_progress(1.0), self.task_uuid,
-                                    self.reply_to),
-            mock.call.proxy.publish(self.resp_success(5), self.task_uuid,
-                                    self.reply_to)
+            mock.call.proxy.publish(self.resp_running, self.reply_to,
+                                    correlation_id=self.task_uuid),
+            mock.call.proxy.publish(self.resp_progress(0.0), self.reply_to,
+                                    correlation_id=self.task_uuid),
+            mock.call.proxy.publish(self.resp_progress(1.0), self.reply_to,
+                                    correlation_id=self.task_uuid),
+            mock.call.proxy.publish(self.resp_success(5), self.reply_to,
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
@@ -252,10 +252,10 @@ class TestServer(test.MockTestCase):
 
         # check calls
         master_mock_calls = [
-            mock.call.proxy.publish(self.resp_running, self.task_uuid,
-                                    self.reply_to),
-            mock.call.proxy.publish(self.resp_success(1), self.task_uuid,
-                                    self.reply_to)
+            mock.call.proxy.publish(self.resp_running, self.reply_to,
+                                    correlation_id=self.task_uuid),
+            mock.call.proxy.publish(self.resp_success(1), self.reply_to,
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
@@ -283,7 +283,8 @@ class TestServer(test.MockTestCase):
         # check calls
         master_mock_calls = [
             mock.call.proxy.publish(self.resp_failure(failure_dict),
-                                    self.task_uuid, self.reply_to)
+                                    self.reply_to,
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
@@ -300,7 +301,8 @@ class TestServer(test.MockTestCase):
         # check calls
         master_mock_calls = [
             mock.call.proxy.publish(self.resp_failure(failure_dict),
-                                    self.task_uuid, self.reply_to)
+                                    self.reply_to,
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
@@ -316,10 +318,11 @@ class TestServer(test.MockTestCase):
 
         # check calls
         master_mock_calls = [
-            mock.call.proxy.publish(self.resp_running, self.task_uuid,
-                                    self.reply_to),
+            mock.call.proxy.publish(self.resp_running, self.reply_to,
+                                    correlation_id=self.task_uuid),
             mock.call.proxy.publish(self.resp_failure(failure_dict),
-                                    self.task_uuid, self.reply_to)
+                                    self.reply_to,
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
@@ -336,10 +339,11 @@ class TestServer(test.MockTestCase):
 
         # check calls
         master_mock_calls = [
-            mock.call.proxy.publish(self.resp_running, self.task_uuid,
-                                    self.reply_to),
+            mock.call.proxy.publish(self.resp_running, self.reply_to,
+                                    correlation_id=self.task_uuid),
             mock.call.proxy.publish(self.resp_failure(failure_dict),
-                                    self.task_uuid, self.reply_to)
+                                    self.reply_to,
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
