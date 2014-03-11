@@ -61,9 +61,13 @@ class TestProtocol(test.TestCase):
         self.assertIsInstance(request.result, futures.Future)
         self.assertFalse(request.result.done())
 
+    def test_str(self):
+        request = self.request()
+        self.assertEqual(str(request), str(request.to_dict()))
+
     def test_repr(self):
-        expected_name = '%s:%s' % (self.task.name, self.task_action)
-        self.assertEqual(repr(self.request()), expected_name)
+        expected = '%s:%s' % (self.task.name, self.task_action)
+        self.assertEqual(repr(self.request()), expected)
 
     def test_to_dict_default(self):
         self.assertEqual(self.request().to_dict(), self.request_to_dict())

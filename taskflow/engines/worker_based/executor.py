@@ -28,7 +28,6 @@ from taskflow.engines.worker_based import proxy
 from taskflow import exceptions as exc
 from taskflow.utils import async_utils
 from taskflow.utils import misc
-from taskflow.utils import persistence_utils as pu
 
 LOG = logging.getLogger(__name__)
 
@@ -58,45 +57,50 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         proxy_thread.daemon = True
         return proxy_thread
 
-    def _on_message(self, response, message):
-        """This method is called on incoming response."""
-        LOG.debug("Got response: %s", response)
+    def _on_message(self, data, message):
+        """This method is called on incoming message."""
+        LOG.debug("Got message: %s", data)
         try:
-            # acknowledge message before processing.
+            # acknowledge message before processing
             message.ack()
         except kombu_exc.MessageStateError:
             LOG.exception("Failed to acknowledge AMQP message.")
         else:
             LOG.debug("AMQP message acknowledged.")
-            # get task uuid from message correlation id parameter
             try:
-                task_uuid = message.properties['correlation_id']
+                msg_type = message.properties['type']
             except KeyError:
-                LOG.warning("Got message with no 'correlation_id' property.")
+                LOG.warning("The 'type' message property is missing.")
             else:
-                LOG.debug("Task uuid: '%s'", task_uuid)
-                self._process_response(task_uuid, response)
+                if msg_type == pr.RESPONSE:
+                    self._process_response(data, message)
+                else:
+                    LOG.warning("Unexpected message type: %s", msg_type)
 
-    def _process_response(self, task_uuid, response):
+    def _process_response(self, response, message):
         """Process response from remote side."""
-        request = self._requests_cache.get(task_uuid)
-        if request is not None:
-            state = response.pop('state')
-            if state == pr.RUNNING:
-                request.set_running()
-            elif state == pr.PROGRESS:
-                request.on_progress(**response)
-            elif state == pr.FAILURE:
-                response['result'] = pu.failure_from_dict(response['result'])
-                request.set_result(**response)
-                self._requests_cache.delete(request.uuid)
-            elif state == pr.SUCCESS:
-                request.set_result(**response)
-                self._requests_cache.delete(request.uuid)
-            else:
-                LOG.warning("Unexpected response status: '%s'", state)
+        LOG.debug("Start processing response message.")
+        try:
+            task_uuid = message.properties['correlation_id']
+        except KeyError:
+            LOG.warning("The 'correlation_id' message property is missing.")
         else:
-            LOG.debug("Request with id='%s' not found.", task_uuid)
+            LOG.debug("Task uuid: '%s'", task_uuid)
+            request = self._requests_cache.get(task_uuid)
+            if request is not None:
+                response = pr.Response.from_dict(response)
+                if response.state == pr.RUNNING:
+                    request.set_running()
+                elif response.state == pr.PROGRESS:
+                    request.on_progress(**response.data)
+                elif response.state in (pr.FAILURE, pr.SUCCESS):
+                    request.set_result(**response.data)
+                    self._requests_cache.delete(request.uuid)
+                else:
+                    LOG.warning("Unexpected response status: '%s'",
+                                response.state)
+            else:
+                LOG.debug("Request with id='%s' not found.", task_uuid)
 
     @staticmethod
     def _handle_expired_request(request):
@@ -124,7 +128,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
             else:
                 # publish request
                 LOG.debug("Sending request: %s", request)
-                self._proxy.publish(request.to_dict(),
+                self._proxy.publish(request,
                                     routing_key=topic,
                                     reply_to=self._uuid,
                                     correlation_id=request.uuid)

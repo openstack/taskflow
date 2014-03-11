@@ -49,15 +49,20 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         # patch classes
         self.proxy_mock, self.proxy_inst_mock = self._patch_class(
             executor.proxy, 'Proxy')
+        self.request_mock, self.request_inst_mock = self._patch_class(
+            executor.pr, 'Request', autospec=False)
 
         # other mocking
         self.proxy_inst_mock.start.side_effect = self._fake_proxy_start
         self.proxy_inst_mock.stop.side_effect = self._fake_proxy_stop
+        self.request_inst_mock.uuid = self.task_uuid
+        self.request_inst_mock.expired = False
+        self.request_inst_mock.task_cls = self.task.name
         self.wait_for_any_mock = self._patch(
             'taskflow.engines.worker_based.executor.async_utils.wait_for_any')
         self.message_mock = mock.MagicMock(name='message')
-        self.message_mock.properties = {'correlation_id': self.task_uuid}
-        self.request_mock = mock.MagicMock(uuid=self.task_uuid)
+        self.message_mock.properties = {'correlation_id': self.task_uuid,
+                                        'type': pr.RESPONSE}
 
     def _fake_proxy_start(self):
         self.proxy_started_event.set()
@@ -78,20 +83,6 @@ class TestWorkerTaskExecutor(test.MockTestCase):
             self._reset_master_mock()
         return ex
 
-    def request(self, **kwargs):
-        request_kwargs = dict(task=self.task, uuid=self.task_uuid,
-                              action='execute', arguments=self.task_args,
-                              progress_callback=None, timeout=self.timeout)
-        request_kwargs.update(kwargs)
-        return pr.Request(**request_kwargs)
-
-    def request_dict(self, **kwargs):
-        request = dict(task_cls=self.task.name, task_name=self.task.name,
-                       task_version=self.task.version,
-                       arguments=self.task_args)
-        request.update(kwargs)
-        return request
-
     def test_creation(self):
         ex = self.executor(reset_master_mock=False)
 
@@ -101,80 +92,95 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
-    def test_on_message_state_running(self):
-        response = dict(state=pr.RUNNING)
+    def test_on_message_response_state_running(self):
+        response = pr.Response(pr.RUNNING)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_mock)
-        ex._on_message(response, self.message_mock)
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._on_message(response.to_dict(), self.message_mock)
 
-        self.assertEqual(self.request_mock.mock_calls,
+        self.assertEqual(self.request_inst_mock.mock_calls,
                          [mock.call.set_running()])
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
-    def test_on_message_state_progress(self):
-        response = dict(state=pr.PROGRESS, progress=1.0)
+    def test_on_message_response_state_progress(self):
+        response = pr.Response(pr.PROGRESS, progress=1.0)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_mock)
-        ex._on_message(response, self.message_mock)
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._on_message(response.to_dict(), self.message_mock)
 
-        self.assertEqual(self.request_mock.mock_calls,
+        self.assertEqual(self.request_inst_mock.mock_calls,
                          [mock.call.on_progress(progress=1.0)])
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
-    def test_on_message_state_failure(self):
+    def test_on_message_response_state_failure(self):
         failure = misc.Failure.from_exception(Exception('test'))
         failure_dict = pu.failure_to_dict(failure)
-        response = dict(state=pr.FAILURE, result=failure_dict)
+        response = pr.Response(pr.FAILURE, result=failure_dict)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_mock)
-        ex._on_message(response, self.message_mock)
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._on_message(response.to_dict(), self.message_mock)
 
         self.assertEqual(len(ex._requests_cache._data), 0)
-        self.assertEqual(self.request_mock.mock_calls, [
+        self.assertEqual(self.request_inst_mock.mock_calls, [
             mock.call.set_result(result=utils.FailureMatcher(failure))
         ])
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
-    def test_on_message_state_success(self):
-        response = dict(state=pr.SUCCESS, result=self.task_result,
-                        event='executed')
+    def test_on_message_response_state_success(self):
+        response = pr.Response(pr.SUCCESS, result=self.task_result,
+                               event='executed')
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_mock)
-        ex._on_message(response, self.message_mock)
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._on_message(response.to_dict(), self.message_mock)
 
-        self.assertEqual(self.request_mock.mock_calls,
+        self.assertEqual(self.request_inst_mock.mock_calls,
                          [mock.call.set_result(result=self.task_result,
                                                event='executed')])
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
-    def test_on_message_unknown_state(self):
-        response = dict(state='unknown')
+    def test_on_message_response_unknown_state(self):
+        response = pr.Response(state='<unknown>')
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_mock)
-        ex._on_message(response, self.message_mock)
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._on_message(response.to_dict(), self.message_mock)
 
-        self.assertEqual(self.request_mock.mock_calls, [])
+        self.assertEqual(self.request_inst_mock.mock_calls, [])
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
-    def test_on_message_non_existent_task(self):
-        self.message_mock.properties = {'correlation_id': 'non-existent'}
-        response = dict(state=pr.RUNNING)
+    def test_on_message_response_unknown_task(self):
+        self.message_mock.properties['correlation_id'] = '<unknown>'
+        response = pr.Response(pr.RUNNING)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_mock)
-        ex._on_message(response, self.message_mock)
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._on_message(response.to_dict(), self.message_mock)
 
-        self.assertEqual(self.request_mock.mock_calls, [])
+        self.assertEqual(self.request_inst_mock.mock_calls, [])
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
-    def test_on_message_no_correlation_id(self):
-        self.message_mock.properties = {}
-        response = dict(state=pr.RUNNING)
+    def test_on_message_response_no_correlation_id(self):
+        self.message_mock.properties = {'type': pr.RESPONSE}
+        response = pr.Response(pr.RUNNING)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_mock)
-        ex._on_message(response, self.message_mock)
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._on_message(response.to_dict(), self.message_mock)
 
-        self.assertEqual(self.request_mock.mock_calls, [])
+        self.assertEqual(self.request_inst_mock.mock_calls, [])
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
+
+    @mock.patch('taskflow.engines.worker_based.executor.LOG.warning')
+    def test_on_message_unknown_type(self, mocked_warning):
+        self.message_mock.properties = {'correlation_id': self.task_uuid,
+                                        'type': '<unknown>'}
+        ex = self.executor()
+        ex._on_message({}, self.message_mock)
+        self.assertTrue(mocked_warning.called)
+
+    @mock.patch('taskflow.engines.worker_based.executor.LOG.warning')
+    def test_on_message_no_type(self, mocked_warning):
+        self.message_mock.properties = {'correlation_id': self.task_uuid}
+        ex = self.executor()
+        ex._on_message({}, self.message_mock)
+        self.assertTrue(mocked_warning.called)
 
     @mock.patch('taskflow.engines.worker_based.executor.LOG.exception')
     def test_on_message_acknowledge_raises(self, mocked_exception):
@@ -182,102 +188,93 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.executor()._on_message({}, self.message_mock)
         self.assertTrue(mocked_exception.called)
 
-    @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')
-    def test_on_wait_task_not_expired(self, mocked_wallclock):
-        mocked_wallclock.side_effect = [1, self.timeout]
+    def test_on_wait_task_not_expired(self):
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request())
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
 
         self.assertEqual(len(ex._requests_cache._data), 1)
         ex._on_wait()
         self.assertEqual(len(ex._requests_cache._data), 1)
 
-    @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')
-    def test_on_wait_task_expired(self, mocked_time):
-        mocked_time.side_effect = [1, self.timeout + 2, self.timeout * 2]
+    def test_on_wait_task_expired(self):
+        self.request_inst_mock.expired = True
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request())
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
 
         self.assertEqual(len(ex._requests_cache._data), 1)
         ex._on_wait()
         self.assertEqual(len(ex._requests_cache._data), 0)
 
     def test_remove_task_non_existent(self):
-        task = self.request()
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, task)
+        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
 
         self.assertEqual(len(ex._requests_cache._data), 1)
         ex._requests_cache.delete(self.task_uuid)
         self.assertEqual(len(ex._requests_cache._data), 0)
 
-        # remove non-existent
+        # delete non-existent
         ex._requests_cache.delete(self.task_uuid)
         self.assertEqual(len(ex._requests_cache._data), 0)
 
     def test_execute_task(self):
-        request_dict = self.request_dict(action='execute')
         ex = self.executor()
-        result = ex.execute_task(self.task, self.task_uuid, self.task_args)
+        ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
-            mock.call.proxy.publish(request_dict,
+            mock.call.Request(self.task, self.task_uuid, 'execute',
+                              self.task_args, None, self.timeout),
+            mock.call.proxy.publish(self.request_inst_mock,
                                     routing_key=self.executor_topic,
                                     reply_to=self.executor_uuid,
                                     correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
-        self.assertIsInstance(result, futures.Future)
 
     def test_revert_task(self):
-        request_dict = self.request_dict(action='revert',
-                                         result=('success', self.task_result),
-                                         failures=self.task_failures)
         ex = self.executor()
-        result = ex.revert_task(self.task, self.task_uuid, self.task_args,
-                                self.task_result, self.task_failures)
+        ex.revert_task(self.task, self.task_uuid, self.task_args,
+                       self.task_result, self.task_failures)
 
         expected_calls = [
-            mock.call.proxy.publish(request_dict,
+            mock.call.Request(self.task, self.task_uuid, 'revert',
+                              self.task_args, None, self.timeout,
+                              failures=self.task_failures,
+                              result=self.task_result),
+            mock.call.proxy.publish(self.request_inst_mock,
                                     routing_key=self.executor_topic,
                                     reply_to=self.executor_uuid,
                                     correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
-        self.assertIsInstance(result, futures.Future)
 
     def test_execute_task_topic_not_found(self):
-        workers_info = {self.executor_topic: ['non-existent-task']}
+        workers_info = {self.executor_topic: ['<unknown>']}
         ex = self.executor(workers_info=workers_info)
-        result = ex.execute_task(self.task, self.task_uuid, self.task_args)
+        ex.execute_task(self.task, self.task_uuid, self.task_args)
 
-        self.assertFalse(self.proxy_inst_mock.publish.called)
-
-        # check execute result
-        task, event, res = result.result()
-        self.assertEqual(task, self.task)
-        self.assertEqual(event, 'executed')
-        self.assertIsInstance(res, misc.Failure)
+        expected_calls = [
+            mock.call.Request(self.task, self.task_uuid, 'execute',
+                              self.task_args, None, self.timeout),
+            mock.call.request.set_result(mock.ANY)
+        ]
+        self.assertEqual(self.master_mock.mock_calls, expected_calls)
 
     def test_execute_task_publish_error(self):
         self.proxy_inst_mock.publish.side_effect = Exception('Woot!')
-        request_dict = self.request_dict(action='execute')
         ex = self.executor()
-        result = ex.execute_task(self.task, self.task_uuid, self.task_args)
+        ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
-            mock.call.proxy.publish(request_dict,
+            mock.call.Request(self.task, self.task_uuid, 'execute',
+                              self.task_args, None, self.timeout),
+            mock.call.proxy.publish(self.request_inst_mock,
                                     routing_key=self.executor_topic,
                                     reply_to=self.executor_uuid,
-                                    correlation_id=self.task_uuid)
+                                    correlation_id=self.task_uuid),
+            mock.call.request.set_result(mock.ANY)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
-
-        # check execute result
-        task, event, res = result.result()
-        self.assertEqual(task, self.task)
-        self.assertEqual(event, 'executed')
-        self.assertIsInstance(res, misc.Failure)
 
     def test_wait_for_any(self):
         fs = [futures.Future(), futures.Future()]

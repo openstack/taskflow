@@ -77,6 +77,9 @@ class TestWorker(test.MockTestCase):
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
+    def test_creation_with_negative_threads_count(self):
+        self.assertRaises(ValueError, self.worker, threads_count=-10)
+
     def test_creation_with_custom_executor(self):
         executor_mock = mock.MagicMock(name='executor')
         self.worker(executor=executor_mock)
@@ -98,6 +101,16 @@ class TestWorker(test.MockTestCase):
     def test_run_with_tasks(self):
         self.worker(reset_master_mock=True,
                     tasks=['taskflow.tests.utils:DummyTask']).run()
+
+        master_mock_calls = [
+            mock.call.server.start()
+        ]
+        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+
+    def test_run_with_custom_executor(self):
+        executor_mock = mock.MagicMock(name='executor')
+        self.worker(reset_master_mock=True,
+                    executor=executor_mock).run()
 
         master_mock_calls = [
             mock.call.server.start()
