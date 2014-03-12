@@ -1,7 +1,7 @@
 # Packages needed for using this library.
 pbr>=0.6,<1.0
 anyjson>=0.3.3
-iso8601>=0.1.8
+iso8601>=0.1.9
 # Python 2->3 compatibility library.
 six>=1.5.2
 # Very nice graph library
