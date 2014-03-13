@@ -48,7 +48,7 @@ class Flow(object):
     """
 
     def __init__(self, name):
-        self._name = str(name)
+        self._name = six.text_type(name)
 
     @property
     def name(self):
