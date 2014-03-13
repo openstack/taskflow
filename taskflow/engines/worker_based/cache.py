@@ -51,7 +51,8 @@ class Cache(object):
         with self._lock.write_lock():
             expired_values = [(k, v) for k, v in six.iteritems(self._data)
                               if v.expired]
-            for k, v in expired_values:
-                if on_expired_callback:
-                    on_expired_callback(v)
+            for (k, _v) in expired_values:
                 self._data.pop(k, None)
+        if on_expired_callback:
+            for (_k, v) in expired_values:
+                on_expired_callback(v)
