@@ -139,6 +139,7 @@ class Atom(object):
 
     @property
     def name(self):
+        """A non-unique name for this atom (human readable)."""
         return self._name
 
     def __str__(self):
