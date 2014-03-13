@@ -82,15 +82,14 @@ class Request(object):
 
     @property
     def expired(self):
-        """Check if request is expired.
+        """Check if request has expired.
 
         When new request is created its state is set to the PENDING, creation
         time is stored and timeout is given via constructor arguments.
 
         Request is considered to be expired when it is in the PENDING state
         for more then the given timeout (it is not considered to be expired
-        in any other state). After request is expired - the `Timeout`
-        exception is raised and task is removed from the requests map.
+        in any other state).
         """
         if self._state == PENDING:
             return self._watch.expired()

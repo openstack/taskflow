@@ -100,6 +100,11 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
 
     @staticmethod
     def _handle_expired_request(request):
+        """Handle expired request.
+
+        When request has expired it is removed from the requests cache and
+        the `Timeout` exception is set as a request result.
+        """
         LOG.debug("Request '%r' has expired.", request)
         request.set_result(misc.Failure.from_exception(
             exc.Timeout("Request '%r' has expired" % request)))
