@@ -19,7 +19,7 @@ from taskflow import flow
 
 
 class Flow(flow.Flow):
-    """"Unordered Flow pattern.
+    """Unordered Flow pattern.
 
     A unordered (potentially nested) flow of *tasks/flows* that can be
     executed in any order as one unit and rolled back as one unit.

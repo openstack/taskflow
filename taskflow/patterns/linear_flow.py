@@ -19,7 +19,7 @@ from taskflow import flow
 
 
 class Flow(flow.Flow):
-    """"Linear Flow pattern.
+    """Linear Flow pattern.
 
     A linear (potentially nested) flow of *tasks/flows* that can be
     applied in order as one unit and rolled back as one unit using
