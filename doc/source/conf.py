@@ -20,7 +20,7 @@ extensions = [
 # execute "export SPHINX_DEBUG=1" in your terminal to disable
 
 # Add any paths that contain templates here, relative to this directory.
-# templates_path = []
+templates_path = ['templates']
 
 # The suffix of source filenames.
 source_suffix = '.rst'
