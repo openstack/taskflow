@@ -1,0 +1,15 @@
+{% extends "!layout.html" %}
+{% block sidebarrel %}
+  <h3>{{ _('Navigation')}}</h3>
+  <ul>
+{% if pagename != "index" %}
+    <li><a href="{{ pathto(master_doc) }}">{{ _('Table Of Contents') }}</a></li>
+{% endif %}
+{% if next %}
+    <li><a href="{{ next.link|e }}" title="{{ _('next chapter') }}">{{ _('Next topic') }}: {{ next.title }}</a></li>
+{% endif %}
+{% if prev %}
+    <li><a href="{{ prev.link|e }}" title="{{ _('previous chapter') }}">{{ _('Previous topic') }}: {{ prev.title }}</a></li>
+{% endif %}
+  </ul>
+{% endblock %}
