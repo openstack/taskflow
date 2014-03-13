@@ -17,6 +17,7 @@ Contents
    persistence
    exceptions
    utils
+   states
 
 
 Indices and tables
