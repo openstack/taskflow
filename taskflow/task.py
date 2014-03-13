@@ -33,6 +33,7 @@ class BaseTask(atom.Atom):
     """An abstraction that defines a potential piece of work that can be
     applied and can be reverted to undo the work as a single task.
     """
+
     TASK_EVENTS = ('update_progress', )
 
     def __init__(self, name, provides=None):
@@ -47,10 +48,10 @@ class BaseTask(atom.Atom):
         """Activate a given task which will perform some operation and return.
 
         This method can be used to perform an action on a given set of input
-        requirements (passed in via *args and **kwargs) to accomplish some type
-        of operation. This operation may provide some named outputs/results as
-        a result of it executing for later reverting (or for other tasks to
-        depend on).
+        requirements (passed in via ``*args`` and ``**kwargs``) to accomplish
+        some type of operation. This operation may provide some named
+        outputs/results as a result of it executing for later reverting (or for
+        other tasks to depend on).
 
         NOTE(harlowja): the result (if any) that is returned should be
         persistable so that it can be passed back into this task if
@@ -61,14 +62,17 @@ class BaseTask(atom.Atom):
         """
 
     def revert(self, *args, **kwargs):
-        """Revert this task using the result that the execute function
-        provided as well as any failure information which caused the
-        reversion to be triggered in the first place.
+        """Revert this task.
 
-        NOTE(harlowja): The **kwargs which are passed into the execute()
-        method will also be passed into this method. The **kwargs key 'result'
-        will contain the execute() functions result (if any) and the **kwargs
-        key 'flow_failures' will contain the failure information.
+        This method should undo any side-effects caused by previous execution
+        of the task using the result of the :py:meth:`execute` method and
+        information on failure which triggered reversion of the flow.
+
+        NOTE(harlowja): The ``**kwargs`` which are passed into the
+        :py:meth:`execute` method will also be passed into this method. The
+        ``**kwargs`` key ``'result'`` will contain the :py:meth:`execute`
+        result (if any) and the ``**kwargs`` key ``'flow_failures'`` will
+        contain the failure information.
         """
 
     def update_progress(self, progress, **kwargs):
