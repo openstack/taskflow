@@ -21,7 +21,7 @@ import mock
 
 from taskflow import exceptions
 from taskflow.openstack.common import uuidutils
-from taskflow.persistence.backends import impl_memory
+from taskflow.persistence import backends
 from taskflow.persistence import logbook
 from taskflow import states
 from taskflow import storage
@@ -30,17 +30,17 @@ from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 
 
-class StorageTest(test.TestCase):
+class StorageTestMixin(object):
     def setUp(self):
-        super(StorageTest, self).setUp()
-        self.backend = impl_memory.MemoryBackend(conf={})
+        super(StorageTestMixin, self).setUp()
+        self.backend = None
         self.thread_count = 50
 
     def tearDown(self):
         with contextlib.closing(self.backend) as be:
             with contextlib.closing(be.get_connection()) as conn:
                 conn.clear_all()
-        super(StorageTest, self).tearDown()
+        super(StorageTestMixin, self).tearDown()
 
     @staticmethod
     def _run_many_threads(threads):
@@ -564,3 +564,17 @@ class StorageTest(test.TestCase):
         s.set_atom_intention('my retry', states.RETRY)
         intention = s.get_atom_intention('my retry')
         self.assertEqual(intention, states.RETRY)
+
+
+class StorageMemoryTest(StorageTestMixin, test.TestCase):
+    def setUp(self):
+        super(StorageMemoryTest, self).setUp()
+        self.backend = backends.fetch({'connection': 'memory://'})
+
+
+class StorageSQLTest(StorageTestMixin, test.TestCase):
+    def setUp(self):
+        super(StorageSQLTest, self).setUp()
+        self.backend = backends.fetch({'connection': 'sqlite://'})
+        with contextlib.closing(self.backend.get_connection()) as conn:
+            conn.upgrade()
