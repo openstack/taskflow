@@ -142,10 +142,10 @@ def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
         dbapi_conn.cursor().execute('select 1')
     except dbapi_conn.OperationalError as ex:
         if _in_any(six.text_type(ex.args[0]), MY_SQL_GONE_WAY_AWAY_ERRORS):
-            LOG.warn('Got mysql server has gone away: %s', ex)
+            LOG.warn('Got mysql server has gone away', exc_info=True)
             raise sa_exc.DisconnectionError("Database server went away")
         elif _in_any(six.text_type(ex.args[0]), POSTGRES_GONE_WAY_AWAY_ERRORS):
-            LOG.warn('Got postgres server has gone away: %s', ex)
+            LOG.warn('Got postgres server has gone away', exc_info=True)
             raise sa_exc.DisconnectionError("Database server went away")
         else:
             raise

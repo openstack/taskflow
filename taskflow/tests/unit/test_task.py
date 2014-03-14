@@ -225,27 +225,27 @@ class TaskTest(test.TestCase):
         self.assertEqual(result, [1.0, 1.0, 1.0])
         self.assertEqual(mocked_warn.call_count, 2)
 
-    @mock.patch.object(task.LOG, 'exception')
-    def test_update_progress_handler_failure(self, mocked_exception):
+    @mock.patch.object(task.LOG, 'warn')
+    def test_update_progress_handler_failure(self, mocked_warn):
         def progress_callback(*args, **kwargs):
             raise Exception('Woot!')
 
         task = ProgressTask()
         with task.autobind('update_progress', progress_callback):
             task.execute([0.5])
-        mocked_exception.assert_called_once_with(
+        mocked_warn.assert_called_once_with(
             mock.ANY, reflection.get_callable_name(progress_callback),
-            'update_progress')
+            'update_progress', exc_info=mock.ANY)
 
-    @mock.patch.object(task.LOG, 'exception')
-    def test_autobind_non_existent_event(self, mocked_exception):
+    @mock.patch.object(task.LOG, 'warn')
+    def test_autobind_non_existent_event(self, mocked_warn):
         event = 'test-event'
         handler = lambda: None
         task = MyTask()
         with task.autobind(event, handler):
             self.assertEqual(len(task._events_listeners), 0)
-            mocked_exception.assert_called_once_with(
-                mock.ANY, handler, event, task)
+            mocked_warn.assert_called_once_with(
+                mock.ANY, handler, event, task, exc_info=mock.ANY)
 
     def test_autobind_handler_is_none(self):
         task = MyTask()

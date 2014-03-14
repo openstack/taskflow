@@ -224,19 +224,20 @@ class ZookeeperJobBoard(jobboard.JobBoard):
                                        details=job_data.get("details", {}))
                     self._known_jobs[path] = (job, _READY)
         except (ValueError, TypeError, KeyError):
-            LOG.exception("Incorrectly formatted job data found"
-                          " at path: %s", path)
+            LOG.warn("Incorrectly formatted job data found at path: %s",
+                     path, exc_info=True)
         except self._client.handler.timeout_exception:
-            LOG.warn("Connection timed out fetching job data"
-                     " from path: %s", path)
+            LOG.warn("Connection timed out fetching job data from path: %s",
+                     path, exc_info=True)
         except k_exceptions.SessionExpiredError:
-            LOG.warn("Session expired fetching job data from path: %s", path)
+            LOG.warn("Session expired fetching job data from path: %s", path,
+                     exc_info=True)
         except k_exceptions.NoNodeError:
-            LOG.warn("No job node found at path: %s, it must have"
-                     " disappeared or was removed", path)
+            LOG.debug("No job node found at path: %s, it must have"
+                      " disappeared or was removed", path)
         except k_exceptions.KazooException:
-            LOG.exception("Internal error fetching job data from"
-                          " path: %s", path)
+            LOG.warn("Internal error fetching job data from path: %s",
+                     path, exc_info=True)
 
     def _on_job_posting(self, children):
         LOG.debug("Got children %s under path %s", children, self.path)
