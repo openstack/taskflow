@@ -102,3 +102,8 @@ class Flow(flow.Flow):
     def __iter__(self):
         for child in self._children:
             yield child
+
+    def iter_links(self):
+        # NOTE(imelnikov): children in unordered flow have no dependencies
+        # betwean each other by construction.
+        return iter(())

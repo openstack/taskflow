@@ -153,12 +153,24 @@ class Flow(flow.Flow):
         self._swap(tmp_graph)
         return self
 
+    def _get_subgraph(self):
+        """Get the active subgraph of _graph.
+
+        Descendants may override this to make only part of self._graph
+        visible.
+        """
+        return self._graph
+
     def __len__(self):
-        return self.graph.number_of_nodes()
+        return self._get_subgraph().number_of_nodes()
 
     def __iter__(self):
-        for n in self.graph.nodes_iter():
+        for n in self._get_subgraph().nodes_iter():
             yield n
+
+    def iter_links(self):
+        for (u, v, e_data) in self._get_subgraph().edges_iter(data=True):
+            yield (u, v, e_data)
 
     @property
     def provides(self):
@@ -175,10 +187,6 @@ class Flow(flow.Flow):
         for subflow in self:
             requires.update(subflow.requires)
         return requires - self.provides
-
-    @property
-    def graph(self):
-        return self._graph
 
 
 class TargetedFlow(Flow):
@@ -227,8 +235,7 @@ class TargetedFlow(Flow):
         self._subgraph = None
         return self
 
-    @property
-    def graph(self):
+    def _get_subgraph(self):
         if self._subgraph is not None:
             return self._subgraph
         if self._target is None:

@@ -54,11 +54,12 @@ class GraphFlowTest(test.TestCase):
                                             provides=[],
                                             requires=['c'])
         wf.add(test_1, test_2, test_3)
-        self.assertTrue(wf.graph.has_edge(test_1, test_2))
-        self.assertTrue(wf.graph.has_edge(test_2, test_3))
-        self.assertEqual(3, len(wf.graph))
-        self.assertEqual([test_1], list(gu.get_no_predecessors(wf.graph)))
-        self.assertEqual([test_3], list(gu.get_no_successors(wf.graph)))
+        self.assertEqual(3, len(wf))
+
+        edges = [(src, dst) for src, dst, _meta in wf.iter_links()]
+        self.assertIn((test_1, test_2), edges)
+        self.assertIn((test_2, test_3), edges)
+        self.assertEqual(2, len(edges))
 
     def test_basic_edge_reasons(self):
         wf = gw.Flow("the-test-action")
@@ -69,16 +70,16 @@ class GraphFlowTest(test.TestCase):
                                             provides=['c'],
                                             requires=['a', 'b'])
         wf.add(test_1, test_2)
-        self.assertTrue(wf.graph.has_edge(test_1, test_2))
+        edges = list(wf.iter_links())
+        self.assertEqual(len(edges), 1)
 
-        edge_attrs = gu.get_edge_attrs(wf.graph, test_1, test_2)
+        from_task, to_task, edge_attrs = edges[0]
+        self.assertIs(from_task, test_1)
+        self.assertIs(to_task, test_2)
+
         self.assertTrue(len(edge_attrs) > 0)
         self.assertIn('reasons', edge_attrs)
         self.assertEqual(set(['a', 'b']), edge_attrs['reasons'])
-
-        # 2 -> 1 should not be linked, and therefore have no attrs
-        no_edge_attrs = gu.get_edge_attrs(wf.graph, test_2, test_1)
-        self.assertFalse(no_edge_attrs)
 
     def test_linked_edge_reasons(self):
         wf = gw.Flow("the-test-action")
@@ -89,11 +90,16 @@ class GraphFlowTest(test.TestCase):
                                             provides=[],
                                             requires=[])
         wf.add(test_1, test_2)
-        self.assertFalse(wf.graph.has_edge(test_1, test_2))
-        wf.link(test_1, test_2)
-        self.assertTrue(wf.graph.has_edge(test_1, test_2))
+        self.assertEqual(len(list(wf.iter_links())), 0)
 
-        edge_attrs = gu.get_edge_attrs(wf.graph, test_1, test_2)
+        wf.link(test_1, test_2)
+        edges = list(wf.iter_links())
+        self.assertEqual(len(edges), 1)
+
+        from_task, to_task, edge_attrs = edges[0]
+        self.assertIs(from_task, test_1)
+        self.assertIs(to_task, test_2)
+
         self.assertTrue(len(edge_attrs) > 0)
         self.assertTrue(edge_attrs.get('manual'))
 
@@ -176,11 +182,11 @@ class TargetedGraphFlowTest(test.TestCase):
                                             provides=[], requires=['a'])
         wf.add(test_1)
         wf.set_target(test_1)
-        self.assertEqual(1, len(wf.graph))
+        self.assertEqual(1, len(wf))
         test_2 = utils.ProvidesRequiresTask('test-2',
                                             provides=['a'], requires=[])
         wf.add(test_2)
-        self.assertEqual(2, len(wf.graph))
+        self.assertEqual(2, len(wf))
 
     def test_recache_on_add_no_deps(self):
         wf = gw.TargetedFlow("test")
@@ -188,11 +194,11 @@ class TargetedGraphFlowTest(test.TestCase):
                                             provides=[], requires=[])
         wf.add(test_1)
         wf.set_target(test_1)
-        self.assertEqual(1, len(wf.graph))
+        self.assertEqual(1, len(wf))
         test_2 = utils.ProvidesRequiresTask('test-2',
                                             provides=[], requires=[])
         wf.add(test_2)
-        self.assertEqual(1, len(wf.graph))
+        self.assertEqual(1, len(wf))
 
     def test_recache_on_link(self):
         wf = gw.TargetedFlow("test")
@@ -202,7 +208,8 @@ class TargetedGraphFlowTest(test.TestCase):
                                             provides=[], requires=[])
         wf.add(test_1, test_2)
         wf.set_target(test_1)
-        self.assertEqual(1, len(wf.graph))
+        self.assertEqual(1, len(wf))
         wf.link(test_2, test_1)
-        self.assertEqual(2, len(wf.graph))
-        self.assertEqual([(test_2, test_1)], list(wf.graph.edges()))
+        self.assertEqual(2, len(wf))
+        edges = [(src, dst) for src, dst, _meta in wf.iter_links()]
+        self.assertEqual([(test_2, test_1)], edges)

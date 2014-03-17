@@ -21,14 +21,12 @@ import networkx as nx
 
 from taskflow import exceptions
 from taskflow import flow
-from taskflow.patterns import graph_flow as gf
-from taskflow.patterns import linear_flow as lf
-from taskflow.patterns import unordered_flow as uf
 from taskflow import retry
 from taskflow import task
 from taskflow.utils import graph_utils as gu
 from taskflow.utils import lock_utils as lu
 from taskflow.utils import misc
+
 
 LOG = logging.getLogger(__name__)
 
@@ -78,12 +76,8 @@ class Flattener(object):
 
     def _find_flattener(self, item):
         """Locates the flattening function to use to flatten the given item."""
-        if isinstance(item, lf.Flow):
-            return self._flatten_linear
-        elif isinstance(item, uf.Flow):
-            return self._flatten_unordered
-        elif isinstance(item, gf.Flow):
-            return self._flatten_graph
+        if isinstance(item, flow.Flow):
+            return self._flatten_flow
         elif isinstance(item, task.BaseTask):
             return self._flatten_task
         elif isinstance(item, retry.Retry):
@@ -107,43 +101,13 @@ class Flattener(object):
             if n != retry and 'retry' not in graph.node[n]:
                 graph.add_node(n, {'retry': retry})
 
-    def _flatten_linear(self, flow):
-        """Flattens a linear flow."""
-        graph = nx.DiGraph(name=flow.name)
-        previous_nodes = []
-        for item in flow:
-            subgraph = self._flatten(item)
-            graph = gu.merge_graphs([graph, subgraph])
-            # Find nodes that have no predecessor, make them have a predecessor
-            # of the previous nodes so that the linearity ordering is
-            # maintained. Find the ones with no successors and use this list
-            # to connect the next subgraph (if any).
-            self._add_new_edges(graph,
-                                previous_nodes,
-                                list(gu.get_no_predecessors(subgraph)))
-            # There should always be someone without successors, otherwise we
-            # have a cycle A -> B -> A situation, which should not be possible.
-            previous_nodes = list(gu.get_no_successors(subgraph))
-        return graph
-
-    def _flatten_unordered(self, flow):
-        """Flattens a unordered flow."""
-        graph = nx.DiGraph(name=flow.name)
-        for item in flow:
-            # NOTE(harlowja): we do *not* connect the graphs together, this
-            # retains that each item (translated to subgraph) is disconnected
-            # from each other which will result in unordered execution while
-            # running.
-            graph = gu.merge_graphs([graph, self._flatten(item)])
-        return graph
-
     def _flatten_task(self, task):
         """Flattens a individual task."""
         graph = nx.DiGraph(name=task.name)
         graph.add_node(task)
         return graph
 
-    def _flatten_graph(self, flow):
+    def _flatten_flow(self, flow):
         """Flattens a graph flow."""
         graph = nx.DiGraph(name=flow.name)
         # Flatten all nodes into a single subgraph per node.
@@ -153,15 +117,15 @@ class Flattener(object):
             subgraph_map[item] = subgraph
             graph = gu.merge_graphs([graph, subgraph])
         # Reconnect all node edges to there corresponding subgraphs.
-        for (u, v) in flow.graph.edges_iter():
-            # Retain and update the original edge attributes.
-            u_v_attrs = gu.get_edge_attrs(flow.graph, u, v)
+        for (u, v, u_v_attrs) in flow.iter_links():
             # Connect the ones with no predecessors in v to the ones with no
             # successors in u (thus maintaining the edge dependency).
             self._add_new_edges(graph,
                                 list(gu.get_no_successors(subgraph_map[u])),
                                 list(gu.get_no_predecessors(subgraph_map[v])),
                                 edge_attrs=u_v_attrs)
+        if flow.retry is not None:
+            self._connect_retry(flow.retry, graph)
         return graph
 
     def _pre_item_flatten(self, item):
@@ -174,8 +138,6 @@ class Flattener(object):
 
     def _post_item_flatten(self, item, graph):
         """Called before a item is flattened; any post-flattening actions."""
-        if isinstance(item, flow.Flow) and item.retry:
-            self._connect_retry(item.retry, graph)
         LOG.debug("Finished flattening '%s'", item)
         # NOTE(harlowja): this one can be expensive to calculate (especially
         # the cycle detection), so only do it if we know debugging is enabled

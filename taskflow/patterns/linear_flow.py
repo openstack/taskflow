@@ -18,6 +18,10 @@ from taskflow import exceptions
 from taskflow import flow
 
 
+# TODO(imelnikov): add metadata describing link here
+_LINK_METADATA = dict()
+
+
 class Flow(flow.Flow):
     """Linear Flow pattern.
 
@@ -70,6 +74,11 @@ class Flow(flow.Flow):
     def __iter__(self):
         for child in self._children:
             yield child
+
+    def iter_links(self):
+        for src, dst in zip(self._children[:-1],
+                            self._children[1:]):
+            yield (src, dst, _LINK_METADATA.copy())
 
     def __getitem__(self, index):
         return self._children[index]
