@@ -14,6 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
+
+import six
+
 from concurrent import futures
 
 from taskflow.engines.action_engine import executor
@@ -49,11 +53,28 @@ REQUEST_TIMEOUT = 60
 # no longer needed.
 QUEUE_EXPIRE_TIMEOUT = REQUEST_TIMEOUT
 
+# Message types.
+REQUEST = 'REQUEST'
+RESPONSE = 'RESPONSE'
 
-class Request(object):
+
+@six.add_metaclass(abc.ABCMeta)
+class Message(object):
+    """Base class for all message types."""
+
+    def __str__(self):
+        return str(self.to_dict())
+
+    @abc.abstractmethod
+    def to_dict(self):
+        """Return json-serializable message representation."""
+
+
+class Request(Message):
     """Represents request with execution results. Every request is created in
     the PENDING state and is expired within the given timeout.
     """
+    TYPE = REQUEST
 
     def __init__(self, task, uuid, action, arguments, progress_callback,
                  timeout, **kwargs):
@@ -111,7 +132,7 @@ class Request(object):
         if 'failures' in self._kwargs:
             failures = self._kwargs['failures']
             request['failures'] = {}
-            for task, failure in failures.items():
+            for task, failure in six.iteritems(failures):
                 request['failures'][task] = pu.failure_to_dict(failure)
         return request
 
@@ -124,3 +145,31 @@ class Request(object):
 
     def on_progress(self, event_data, progress):
         self._progress_callback(self._task, event_data, progress)
+
+
+class Response(Message):
+    """Represents response message type."""
+    TYPE = RESPONSE
+
+    def __init__(self, state, **data):
+        self._state = state
+        self._data = data
+
+    @classmethod
+    def from_dict(cls, data):
+        state = data['state']
+        data = data['data']
+        if state == FAILURE and 'result' in data:
+            data['result'] = pu.failure_from_dict(data['result'])
+        return cls(state, **data)
+
+    @property
+    def state(self):
+        return self._state
+
+    @property
+    def data(self):
+        return self._data
+
+    def to_dict(self):
+        return dict(state=self._state, data=self._data)

@@ -128,13 +128,15 @@ class TestProxy(test.MockTestCase):
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
     def test_publish(self):
-        task_data = 'task-data'
-        task_uuid = 'task-uuid'
+        msg_mock = mock.MagicMock()
+        msg_data = 'msg-data'
+        msg_mock.to_dict.return_value = msg_data
         routing_key = 'routing-key'
+        task_uuid = 'task-uuid'
         kwargs = dict(a='a', b='b')
 
         self.proxy(reset_master_mock=True).publish(
-            task_data, routing_key, correlation_id=task_uuid, **kwargs)
+            msg_mock, routing_key, correlation_id=task_uuid, **kwargs)
 
         master_mock_calls = [
             mock.call.Queue(name=self._queue_name(routing_key),
@@ -142,11 +144,12 @@ class TestProxy(test.MockTestCase):
                             routing_key=routing_key,
                             durable=False,
                             auto_delete=True),
-            mock.call.producer.publish(body=task_data,
+            mock.call.producer.publish(body=msg_data,
                                        routing_key=routing_key,
                                        exchange=self.exchange_inst_mock,
                                        correlation_id=task_uuid,
                                        declare=[self.queue_inst_mock],
+                                       type=msg_mock.TYPE,
                                        **kwargs)
         ]
         self.master_mock.assert_has_calls(master_mock_calls)

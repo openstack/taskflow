@@ -69,10 +69,11 @@ class Proxy(object):
         """Publish message to the named exchange with routing key."""
         with kombu.producers[self._conn].acquire(block=True) as producer:
             queue = self._make_queue(routing_key, self._exchange)
-            producer.publish(body=msg,
+            producer.publish(body=msg.to_dict(),
                              routing_key=routing_key,
                              exchange=self._exchange,
                              declare=[queue],
+                             type=msg.TYPE,
                              **kwargs)
 
     def start(self):
