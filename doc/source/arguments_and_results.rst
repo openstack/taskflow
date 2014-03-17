@@ -363,3 +363,47 @@ task failed, exception:"`` and exception message on revert. If this task
 finished successfully, it will print ``"do_something returned"`` and
 representation of result.
 
+Retry Arguments
+===============
+
+A Retry controller works with arguments in the same way as a Task. But it has an additional parameter 'history' that is
+a list of tuples. Each tuple contains a result of the previous Retry run and a table where a key is a failed task and a value
+is a :py:class:`taskflow.utils.misc.Failure`.
+
+Consider the following Retry:
+
+::
+
+  class MyRetry(retry.Retry):
+
+      default_provides = 'value'
+
+      def on_failure(self, history, *args, **kwargs):
+          print history
+          return RETRY
+
+      def execute(self, history, *args, **kwargs):
+          print history
+          return 5
+
+      def revert(self, history, *args, **kwargs):
+          print history
+
+Imagine the following Retry had returned a value '5' and then some task 'A' failed with some exception.
+In this case ``on_failure`` method will receive the following history:
+
+::
+
+    [('5', {'A': misc.Failure()})]
+
+Then the ``execute`` method will be called again and it'll receive the same history.
+
+If the ``execute`` method raises an exception, the ``revert`` method of Retry will be called and :py:class:`taskflow.utils.misc.Failure` object will be present
+in the history instead of Retry result.
+
+::
+
+    [('5', {'A': misc.Failure()}), (misc.Failure(), {})]
+
+After the Retry has been reverted, the Retry history will be cleaned.
+
