@@ -76,13 +76,18 @@ def _build_rebind_dict(args, rebind_args):
         raise TypeError('Invalid rebind value: %s' % rebind_args)
 
 
-def _build_arg_mapping(task_name, reqs, rebind_args, function, do_infer):
+def _build_arg_mapping(task_name, reqs, rebind_args, function, do_infer,
+                       ignore_list=None):
     """Given a function, its requirements and a rebind mapping this helper
     function will build the correct argument mapping for the given function as
     well as verify that the final argument mapping does not have missing or
     extra arguments (where applicable).
     """
     task_args = reflection.get_callable_args(function, required_only=True)
+    if ignore_list:
+        for arg in ignore_list:
+            if arg in task_args:
+                task_args.remove(arg)
     result = {}
     if reqs:
         result.update((a, a) for a in reqs)
@@ -127,9 +132,9 @@ class Atom(object):
         self.version = (1, 0)
 
     def _build_arg_mapping(self, executor, requires=None, rebind=None,
-                           auto_extract=True):
+                           auto_extract=True, ignore_list=None):
         self.rebind = _build_arg_mapping(self.name, requires, rebind,
-                                         executor, auto_extract)
+                                         executor, auto_extract, ignore_list)
         out_of_order = self.provides.intersection(self.requires)
         if out_of_order:
             raise exceptions.InvariantViolation(
