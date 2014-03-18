@@ -85,6 +85,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
 
         # publish waiting requests
         for request in self._requests_cache.get_waiting_requests(tasks):
+            request.set_pending()
             self._publish_request(request, topic)
 
     def _process_response(self, response, message):
@@ -133,12 +134,19 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         """Submit task request to workers."""
         request = pr.Request(task, task_uuid, action, arguments,
                              progress_callback, timeout, **kwargs)
-        self._requests_cache.set(request.uuid, request)
 
         # Get task's topic and publish request if topic was found.
         topic = self._workers_cache.get_topic_by_task(request.task_cls)
         if topic is not None:
+            # NOTE(skudriashev): Make sure request is set to the PENDING state
+            # before putting it into the requests cache to prevent the notify
+            # processing thread get list of waiting requests and publish it
+            # before it is published here, so it wouldn't be published twice.
+            request.set_pending()
+            self._requests_cache.set(request.uuid, request)
             self._publish_request(request, topic)
+        else:
+            self._requests_cache.set(request.uuid, request)
 
         return request.result
 
@@ -156,8 +164,6 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                               request)
                 self._requests_cache.delete(request.uuid)
                 request.set_result(failure)
-        else:
-            request.set_pending()
 
     def _notify_topics(self):
         """Cyclically publish notify message to each topic."""

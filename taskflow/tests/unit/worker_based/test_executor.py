@@ -226,11 +226,11 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         expected_calls = [
             mock.call.Request(self.task, self.task_uuid, 'execute',
                               self.task_args, None, self.timeout),
+            mock.call.request.set_pending(),
             mock.call.proxy.publish(msg=self.request_inst_mock,
                                     routing_key=self.executor_topic,
                                     reply_to=self.executor_uuid,
-                                    correlation_id=self.task_uuid),
-            mock.call.request.set_pending()
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
 
@@ -247,11 +247,11 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                               self.task_args, None, self.timeout,
                               failures=self.task_failures,
                               result=self.task_result),
+            mock.call.request.set_pending(),
             mock.call.proxy.publish(msg=self.request_inst_mock,
                                     routing_key=self.executor_topic,
                                     reply_to=self.executor_uuid,
-                                    correlation_id=self.task_uuid),
-            mock.call.request.set_pending()
+                                    correlation_id=self.task_uuid)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
 
@@ -277,6 +277,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         expected_calls = [
             mock.call.Request(self.task, self.task_uuid, 'execute',
                               self.task_args, None, self.timeout),
+            mock.call.request.set_pending(),
             mock.call.proxy.publish(msg=self.request_inst_mock,
                                     routing_key=self.executor_topic,
                                     reply_to=self.executor_uuid,
