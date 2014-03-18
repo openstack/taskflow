@@ -46,7 +46,7 @@ def finalize_client(client):
 
 
 def check_compatible(client, min_version=None, max_version=None):
-    """Checks if a kazook client is backed by a zookeeper server version
+    """Checks if a kazoo client is backed by a zookeeper server version
     that satisfies a given min (inclusive) and max (inclusive) version range.
     """
     server_version = None

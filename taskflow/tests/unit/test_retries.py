@@ -548,7 +548,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.inject({'values': values, 'y': 1})
         self.assertRaisesRegexp(exc.NotFound, '^No elements left', engine.run)
 
-    def test_retry_after_failure_before_processig_failure(self):
+    def test_retry_after_failure_before_processing_failure(self):
         flow = uf.Flow('flow-1', retry.Times(3, provides='x')).add(
             utils.SaveOrderTask('task1'))
         engine = self._make_engine(flow)

@@ -45,7 +45,7 @@ import example_utils  # noqa
 #
 # Usage:
 #
-#   With a filesytem directory as backend
+#   With a filesystem directory as backend
 #
 #     python taskflow/examples/resume_from_backend.py
 #
