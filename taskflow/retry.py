@@ -83,7 +83,7 @@ class Retry(atom.Atom):
         """On subflow failure makes a decision about the future flow
            execution using information about all previous failures.
            Returns retry action constant:
-           'RERTY' when subflow must be reverted and restarted again (maybe
+           'RETRY' when subflow must be reverted and restarted again (maybe
            with new parameters).
            'REVERT' when this subflow must be completely reverted and parent
            subflow should make a decision about the flow execution.

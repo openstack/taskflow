@@ -32,7 +32,7 @@ SUSPENDING = 'SUSPENDING'
 SUSPENDED = 'SUSPENDED'
 RESUMING = 'RESUMING'
 
-# Task states (mainaly a subset of the flow states).
+# Task states (mainly a subset of the flow states).
 FAILURE = FAILURE
 PENDING = PENDING
 REVERTED = REVERTED

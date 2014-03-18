@@ -365,7 +365,7 @@ class ZkConnection(base.Connection):
                 _destroy_logbook(lb_uuid, txn)
 
     def clear_all(self, delete_dirs=True):
-        """Delete all data transactioanlly."""
+        """Delete all data transactionally."""
         with self._exc_wrapper():
             with self._client.transaction() as txn:
 
