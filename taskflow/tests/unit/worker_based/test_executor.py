@@ -26,7 +26,6 @@ from taskflow.engines.worker_based import protocol as pr
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.utils import misc
-from taskflow.utils import persistence_utils as pu
 
 
 class TestWorkerTaskExecutor(test.MockTestCase):
@@ -113,7 +112,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
     def test_on_message_response_state_failure(self):
         failure = misc.Failure.from_exception(Exception('test'))
-        failure_dict = pu.failure_to_dict(failure)
+        failure_dict = failure.to_dict()
         response = pr.Response(pr.FAILURE, result=failure_dict)
         ex = self.executor()
         ex._requests_cache.set(self.task_uuid, self.request_inst_mock)

@@ -395,10 +395,10 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.compile()
         utils.register_notifiers(engine, self.values)
-        engine.storage.set_task_state('r1', st.RETRYING)
-        engine.storage.set_task_state('t1', st.PENDING)
-        engine.storage.set_task_state('t2', st.REVERTED)
-        engine.storage.set_task_state('t3', st.REVERTED)
+        engine.storage.set_atom_state('r1', st.RETRYING)
+        engine.storage.set_atom_state('t1', st.PENDING)
+        engine.storage.set_atom_state('t2', st.REVERTED)
+        engine.storage.set_atom_state('t3', st.REVERTED)
 
         engine.run()
         expected = ['flow RUNNING',
@@ -427,9 +427,9 @@ class RetryTest(utils.EngineTestBase):
         engine.compile()
         utils.register_notifiers(engine, self.values)
         engine.storage.set_atom_intention('r1', st.RETRY)
-        engine.storage.set_task_state('r1', st.SUCCESS)
-        engine.storage.set_task_state('t1', st.REVERTED)
-        engine.storage.set_task_state('t2', st.REVERTED)
+        engine.storage.set_atom_state('r1', st.SUCCESS)
+        engine.storage.set_atom_state('t1', st.REVERTED)
+        engine.storage.set_atom_state('t2', st.REVERTED)
 
         engine.run()
         expected = ['flow RUNNING',
@@ -575,7 +575,7 @@ class RetryTest(utils.EngineTestBase):
         if when == 'task updated':
             return engine
         # we schedule task1 for reversion
-        engine.storage.set_task_state('task1', st.REVERTING)
+        engine.storage.set_atom_state('task1', st.REVERTING)
         if when == 'revert scheduled':
             return engine
         raise ValueError('Invalid crash point: %s' % when)

@@ -100,7 +100,7 @@ class TestProgress(test.TestCase):
             e.run()
             end_progress = e.storage.get_task_progress("test")
             self.assertEqual(1.0, end_progress)
-            task_uuid = e.storage.get_task_uuid("test")
+            task_uuid = e.storage.get_atom_uuid("test")
             td = fd.find(task_uuid)
             self.assertEqual(1.0, td.meta['progress'])
             self.assertFalse(td.meta['progress_details'])
@@ -135,7 +135,7 @@ class TestProgress(test.TestCase):
 
             end_progress = e.storage.get_task_progress("test")
             self.assertEqual(1.0, end_progress)
-            task_uuid = e.storage.get_task_uuid("test")
+            task_uuid = e.storage.get_atom_uuid("test")
             td = fd.find(task_uuid)
             self.assertEqual(1.0, td.meta['progress'])
             self.assertFalse(td.meta['progress_details'])

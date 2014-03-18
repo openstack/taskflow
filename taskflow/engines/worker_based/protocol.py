@@ -22,7 +22,6 @@ from concurrent import futures
 
 from taskflow.engines.action_engine import executor
 from taskflow.utils import misc
-from taskflow.utils import persistence_utils as pu
 from taskflow.utils import reflection
 
 # NOTE(skudriashev): This is protocol events, not related to the task states.
@@ -146,14 +145,14 @@ class Request(Message):
         if 'result' in self._kwargs:
             result = self._kwargs['result']
             if isinstance(result, misc.Failure):
-                request['result'] = ('failure', pu.failure_to_dict(result))
+                request['result'] = ('failure', result.to_dict())
             else:
                 request['result'] = ('success', result)
         if 'failures' in self._kwargs:
             failures = self._kwargs['failures']
             request['failures'] = {}
             for task, failure in six.iteritems(failures):
-                request['failures'][task] = pu.failure_to_dict(failure)
+                request['failures'][task] = failure.to_dict()
         return request
 
     def set_result(self, result):
@@ -183,7 +182,7 @@ class Response(Message):
         state = data['state']
         data = data['data']
         if state == FAILURE and 'result' in data:
-            data['result'] = pu.failure_from_dict(data['result'])
+            data['result'] = misc.Failure.from_dict(data['result'])
         return cls(state, **data)
 
     @property

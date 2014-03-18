@@ -274,12 +274,15 @@ class TestServer(test.MockTestCase):
         self.assertEqual(self.master_mock.mock_calls, [])
         self.assertTrue(mocked_exception.called)
 
-    @mock.patch('taskflow.engines.worker_based.server.pu')
-    def test_process_request_parse_request_failure(self, pu_mock):
-        failure_dict = 'failure_dict'
+    @mock.patch.object(misc.Failure, 'from_dict')
+    @mock.patch.object(misc.Failure, 'to_dict')
+    def test_process_request_parse_request_failure(self, to_mock, from_mock):
+        failure_dict = {
+            'failure': 'failure',
+        }
         failure = misc.Failure.from_exception(RuntimeError('Woot!'))
-        pu_mock.failure_to_dict.return_value = failure_dict
-        pu_mock.failure_from_dict.side_effect = ValueError('Woot!')
+        to_mock.return_value = failure_dict
+        from_mock.side_effect = ValueError('Woot!')
         request = self.make_request(result=failure)
 
         # create server and process request
@@ -293,12 +296,14 @@ class TestServer(test.MockTestCase):
                                     self.reply_to,
                                     correlation_id=self.task_uuid)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
-    @mock.patch('taskflow.engines.worker_based.server.pu')
-    def test_process_request_endpoint_not_found(self, pu_mock):
-        failure_dict = 'failure_dict'
-        pu_mock.failure_to_dict.return_value = failure_dict
+    @mock.patch.object(misc.Failure, 'to_dict')
+    def test_process_request_endpoint_not_found(self, to_mock):
+        failure_dict = {
+            'failure': 'failure',
+        }
+        to_mock.return_value = failure_dict
         request = self.make_request(task=mock.MagicMock(name='<unknown>'))
 
         # create server and process request
@@ -314,10 +319,12 @@ class TestServer(test.MockTestCase):
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
-    @mock.patch('taskflow.engines.worker_based.server.pu')
-    def test_process_request_execution_failure(self, pu_mock):
-        failure_dict = 'failure_dict'
-        pu_mock.failure_to_dict.return_value = failure_dict
+    @mock.patch.object(misc.Failure, 'to_dict')
+    def test_process_request_execution_failure(self, to_mock):
+        failure_dict = {
+            'failure': 'failure',
+        }
+        to_mock.return_value = failure_dict
         request = self.make_request()
         request['action'] = '<unknown>'
 
@@ -337,10 +344,12 @@ class TestServer(test.MockTestCase):
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
-    @mock.patch('taskflow.engines.worker_based.server.pu')
-    def test_process_request_task_failure(self, pu_mock):
-        failure_dict = 'failure_dict'
-        pu_mock.failure_to_dict.return_value = failure_dict
+    @mock.patch.object(misc.Failure, 'to_dict')
+    def test_process_request_task_failure(self, to_mock):
+        failure_dict = {
+            'failure': 'failure',
+        }
+        to_mock.return_value = failure_dict
         request = self.make_request(task=utils.TaskWithFailure(), arguments={})
 
         # create server and process request

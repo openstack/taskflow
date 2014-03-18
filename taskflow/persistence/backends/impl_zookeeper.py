@@ -26,7 +26,6 @@ from taskflow.persistence.backends import base
 from taskflow.persistence import logbook
 from taskflow.utils import kazoo_utils as k_utils
 from taskflow.utils import misc
-from taskflow.utils import persistence_utils as p_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -87,7 +86,7 @@ class ZkConnection(base.Connection):
         self._client = client
         self._book_path = paths.join(self._backend.path, "books")
         self._flow_path = paths.join(self._backend.path, "flow_details")
-        self._task_path = paths.join(self._backend.path, "task_details")
+        self._atom_path = paths.join(self._backend.path, "atom_details")
         with self._exc_wrapper():
             # NOOP if already started.
             self._client.start()
@@ -113,8 +112,8 @@ class ZkConnection(base.Connection):
         return self._flow_path
 
     @property
-    def task_path(self):
-        return self._task_path
+    def atom_path(self):
+        return self._atom_path
 
     def close(self):
         pass
@@ -122,7 +121,7 @@ class ZkConnection(base.Connection):
     def upgrade(self):
         """Creates the initial paths (if they already don't exist)."""
         with self._exc_wrapper():
-            for path in (self.book_path, self.flow_path, self.task_path):
+            for path in (self.book_path, self.flow_path, self.atom_path):
                 self._client.ensure_path(path)
 
     @contextlib.contextmanager
@@ -144,56 +143,61 @@ class ZkConnection(base.Connection):
         except (k_exc.KazooException, k_exc.ZookeeperError) as e:
             raise exc.StorageFailure("Storage backend internal error", e)
 
-    def update_task_details(self, td):
-        """Update a task_detail transactionally."""
+    def update_atom_details(self, ad):
+        """Update a atom detail transactionally."""
         with self._exc_wrapper():
             with self._client.transaction() as txn:
-                return self._update_task_details(td, txn)
+                return self._update_atom_details(ad, txn)
 
-    def _update_task_details(self, td, txn, create_missing=False):
+    def _update_atom_details(self, ad, txn, create_missing=False):
         # Determine whether the desired data exists or not.
-        td_path = paths.join(self.task_path, td.uuid)
+        ad_path = paths.join(self.atom_path, ad.uuid)
+        e_ad = None
         try:
-            td_data, _zstat = self._client.get(td_path)
+            ad_data, _zstat = self._client.get(ad_path)
         except k_exc.NoNodeError:
             # Not-existent: create or raise exception.
-            if create_missing:
-                txn.create(td_path)
-                e_td = logbook.TaskDetail(name=td.name, uuid=td.uuid)
-            else:
-                raise exc.NotFound("No task details found with id: %s"
-                                   % td.uuid)
+            raise exc.NotFound("No atom details found with id: %s" % ad.uuid)
         else:
             # Existent: read it out.
-            e_td = p_utils.unformat_task_detail(td.uuid,
-                                                misc.decode_json(td_data))
+            try:
+                ad_data = misc.decode_json(ad_data)
+                ad_cls = logbook.atom_detail_class(ad_data['type'])
+                e_ad = ad_cls.from_dict(ad_data['atom'])
+            except KeyError:
+                pass
 
         # Update and write it back
-        e_td = p_utils.task_details_merge(e_td, td)
-        td_data = p_utils.format_task_detail(e_td)
-        txn.set_data(td_path, misc.binary_encode(jsonutils.dumps(td_data)))
-        return e_td
+        if e_ad:
+            e_ad = e_ad.merge(ad)
+        else:
+            e_ad = ad
+        ad_data = base._format_atom(e_ad)
+        txn.set_data(ad_path,
+                     misc.binary_encode(jsonutils.dumps(ad_data)))
+        return e_ad
 
-    def get_task_details(self, td_uuid):
-        """Read a taskdetail.
+    def get_atom_details(self, ad_uuid):
+        """Read a atom detail.
 
         *Read-only*, so no need of zk transaction.
         """
         with self._exc_wrapper():
-            return self._get_task_details(td_uuid)
+            return self._get_atom_details(ad_uuid)
 
-    def _get_task_details(self, td_uuid):
-        td_path = paths.join(self.task_path, td_uuid)
+    def _get_atom_details(self, ad_uuid):
+        ad_path = paths.join(self.atom_path, ad_uuid)
         try:
-            td_data, _zstat = self._client.get(td_path)
+            ad_data, _zstat = self._client.get(ad_path)
         except k_exc.NoNodeError:
-            raise exc.NotFound("No task details found with id: %s" % td_uuid)
+            raise exc.NotFound("No atom details found with id: %s" % ad_uuid)
         else:
-            return p_utils.unformat_task_detail(td_uuid,
-                                                misc.decode_json(td_data))
+            ad_data = misc.decode_json(ad_data)
+            ad_cls = logbook.atom_detail_class(ad_data['type'])
+            return ad_cls.from_dict(ad_data['atom'])
 
     def update_flow_details(self, fd):
-        """Update a flowdetail transactionally."""
+        """Update a flow detail transactionally."""
         with self._exc_wrapper():
             with self._client.transaction() as txn:
                 return self._update_flow_details(fd, txn)
@@ -213,25 +217,24 @@ class ZkConnection(base.Connection):
                                    % fd.uuid)
         else:
             # Existent: read it out
-            e_fd = p_utils.unformat_flow_detail(fd.uuid,
-                                                misc.decode_json(fd_data))
+            e_fd = logbook.FlowDetail.from_dict(misc.decode_json(fd_data))
 
         # Update and write it back
-        e_fd = p_utils.flow_details_merge(e_fd, fd)
-        fd_data = p_utils.format_flow_detail(e_fd)
+        e_fd = e_fd.merge(fd)
+        fd_data = e_fd.to_dict()
         txn.set_data(fd_path, misc.binary_encode(jsonutils.dumps(fd_data)))
-        for td in fd:
-            td_path = paths.join(fd_path, td.uuid)
+        for ad in fd:
+            ad_path = paths.join(fd_path, ad.uuid)
             # NOTE(harlowja): create an entry in the flow detail path
-            # for the provided task detail so that a reference exists
-            # from the flow detail to its task details.
-            if not self._client.exists(td_path):
-                txn.create(td_path)
-            e_fd.add(self._update_task_details(td, txn, create_missing=True))
+            # for the provided atom detail so that a reference exists
+            # from the flow detail to its atom details.
+            if not self._client.exists(ad_path):
+                txn.create(ad_path)
+            e_fd.add(self._update_atom_details(ad, txn, create_missing=True))
         return e_fd
 
     def get_flow_details(self, fd_uuid):
-        """Read a flowdetail.
+        """Read a flow detail.
 
         *Read-only*, so no need of zk transaction.
         """
@@ -245,16 +248,16 @@ class ZkConnection(base.Connection):
         except k_exc.NoNodeError:
             raise exc.NotFound("No flow details found with id: %s" % fd_uuid)
 
-        fd = p_utils.unformat_flow_detail(fd_uuid, misc.decode_json(fd_data))
-        for td_uuid in self._client.get_children(fd_path):
-            fd.add(self._get_task_details(td_uuid))
+        fd = logbook.FlowDetail.from_dict(misc.decode_json(fd_data))
+        for ad_uuid in self._client.get_children(fd_path):
+            fd.add(self._get_atom_details(ad_uuid))
         return fd
 
     def save_logbook(self, lb):
         """Save (update) a log_book transactionally."""
 
         def _create_logbook(lb_path, txn):
-            lb_data = p_utils.format_logbook(lb, created_at=None)
+            lb_data = lb.to_dict(marshal_time=True)
             txn.create(lb_path, misc.binary_encode(jsonutils.dumps(lb_data)))
             for fd in lb:
                 # NOTE(harlowja): create an entry in the logbook path
@@ -262,22 +265,24 @@ class ZkConnection(base.Connection):
                 # from the logbook to its flow details.
                 txn.create(paths.join(lb_path, fd.uuid))
                 fd_path = paths.join(self.flow_path, fd.uuid)
-                fd_data = jsonutils.dumps(p_utils.format_flow_detail(fd))
+                fd_data = jsonutils.dumps(fd.to_dict())
                 txn.create(fd_path, misc.binary_encode(fd_data))
-                for td in fd:
+                for ad in fd:
                     # NOTE(harlowja): create an entry in the flow detail path
-                    # for the provided task detail so that a reference exists
-                    # from the flow detail to its task details.
-                    txn.create(paths.join(fd_path, td.uuid))
-                    td_path = paths.join(self.task_path, td.uuid)
-                    td_data = jsonutils.dumps(p_utils.format_task_detail(td))
-                    txn.create(td_path, misc.binary_encode(td_data))
+                    # for the provided atom detail so that a reference exists
+                    # from the flow detail to its atom details.
+                    txn.create(paths.join(fd_path, ad.uuid))
+                    ad_path = paths.join(self.atom_path, ad.uuid)
+                    ad_data = base._format_atom(ad)
+                    txn.create(ad_path,
+                               misc.binary_encode(jsonutils.dumps(ad_data)))
             return lb
 
         def _update_logbook(lb_path, lb_data, txn):
-            e_lb = p_utils.unformat_logbook(lb.uuid, misc.decode_json(lb_data))
-            e_lb = p_utils.logbook_merge(e_lb, lb)
-            lb_data = p_utils.format_logbook(e_lb, created_at=lb.created_at)
+            e_lb = logbook.LogBook.from_dict(misc.decode_json(lb_data),
+                                             unmarshal_time=True)
+            e_lb = e_lb.merge(lb)
+            lb_data = e_lb.to_dict(marshal_time=True)
             txn.set_data(lb_path, misc.binary_encode(jsonutils.dumps(lb_data)))
             for fd in lb:
                 fd_path = paths.join(lb_path, fd.uuid)
@@ -312,8 +317,8 @@ class ZkConnection(base.Connection):
         except k_exc.NoNodeError:
             raise exc.NotFound("No logbook found with id: %s" % lb_uuid)
         else:
-            lb = p_utils.unformat_logbook(lb_uuid,
-                                          misc.decode_json(lb_data))
+            lb = logbook.LogBook.from_dict(misc.decode_json(lb_data),
+                                           unmarshal_time=True)
             for fd_uuid in self._client.get_children(lb_path):
                 lb.add(self._get_flow_details(fd_uuid))
             return lb
@@ -338,21 +343,21 @@ class ZkConnection(base.Connection):
     def destroy_logbook(self, lb_uuid):
         """Destroy (delete) a log_book transactionally."""
 
-        def _destroy_task_details(td_uuid, txn):
-            td_path = paths.join(self.task_path, td_uuid)
-            if not self._client.exists(td_path):
-                raise exc.NotFound("No task details found with id: %s"
-                                   % td_uuid)
-            txn.delete(td_path)
+        def _destroy_atom_details(ad_uuid, txn):
+            ad_path = paths.join(self.atom_path, ad_uuid)
+            if not self._client.exists(ad_path):
+                raise exc.NotFound("No atom details found with id: %s"
+                                   % ad_uuid)
+            txn.delete(ad_path)
 
         def _destroy_flow_details(fd_uuid, txn):
             fd_path = paths.join(self.flow_path, fd_uuid)
             if not self._client.exists(fd_path):
                 raise exc.NotFound("No flow details found with id: %s"
                                    % fd_uuid)
-            for td_uuid in self._client.get_children(fd_path):
-                _destroy_task_details(td_uuid, txn)
-                txn.delete(paths.join(fd_path, td_uuid))
+            for ad_uuid in self._client.get_children(fd_path):
+                _destroy_atom_details(ad_uuid, txn)
+                txn.delete(paths.join(fd_path, ad_uuid))
             txn.delete(fd_path)
 
         def _destroy_logbook(lb_uuid, txn):
@@ -380,20 +385,20 @@ class ZkConnection(base.Connection):
                         txn.delete(paths.join(lb_path, fd_uuid))
                     txn.delete(lb_path)
 
-                # Delete all data under flowdetail path.
+                # Delete all data under flow detail path.
                 for fd_uuid in self._client.get_children(self.flow_path):
                     fd_path = paths.join(self.flow_path, fd_uuid)
-                    for td_uuid in self._client.get_children(fd_path):
-                        txn.delete(paths.join(fd_path, td_uuid))
+                    for ad_uuid in self._client.get_children(fd_path):
+                        txn.delete(paths.join(fd_path, ad_uuid))
                     txn.delete(fd_path)
 
-                # Delete all data under taskdetail path.
-                for td_uuid in self._client.get_children(self.task_path):
-                    td_path = paths.join(self.task_path, td_uuid)
-                    txn.delete(td_path)
+                # Delete all data under atom detail path.
+                for ad_uuid in self._client.get_children(self.atom_path):
+                    ad_path = paths.join(self.atom_path, ad_uuid)
+                    txn.delete(ad_path)
 
                 # Delete containing directories.
                 if delete_dirs:
                     txn.delete(self.book_path)
-                    txn.delete(self.task_path)
+                    txn.delete(self.atom_path)
                     txn.delete(self.flow_path)
