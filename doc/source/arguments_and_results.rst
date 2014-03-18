@@ -3,6 +3,11 @@
 Atom Arguments and Results
 ==========================
 
+.. |task.execute| replace:: :py:meth:`~taskflow.task.BaseTask.execute`
+.. |task.revert| replace:: :py:meth:`~taskflow.task.BaseTask.revert`
+.. |retry.execute| replace:: :py:meth:`~taskflow.retry.Retry.execute`
+.. |retry.revert| replace:: :py:meth:`~taskflow.retry.Retry.revert`
+
 In taskflow, all flow and task state goes to (potentially persistent) storage.
 That includes all the information that atoms (e.g. tasks) in the flow need when
 they are executed, and all the information task produces (via serializable task
@@ -17,13 +22,14 @@ your desired TaskFlow usage pattern.
         Set of names of task arguments available as the ``requires``
         property of the task instance. When a task is about to be executed
         values with these names are retrieved from storage and passed to
-        ``execute`` method of the task.
+        |task.execute| method of the task.
 
     Task results
         Set of names of task results (what task provides) available as
         ``provides`` property of task instance. After a task finishes
-        successfully, its result(s) (what the task ``execute`` method returns)
-        are available by these names from storage (see examples below).
+        successfully, its result(s) (what the task |task.execute| method
+        returns) are available by these names from storage (see examples
+        below).
 
 
 .. testsetup::
@@ -39,8 +45,8 @@ There are different ways to specify the task argument ``requires`` set.
 Arguments Inference
 -------------------
 
-Task arguments can be inferred from arguments of the ``execute`` method of the
-task.
+Task arguments can be inferred from arguments of the |task.execute| method of
+the task.
 
 .. doctest::
 
@@ -82,8 +88,8 @@ Rebinding
 with a name other then the corresponding task arguments name. That's when the
 ``rebind`` task constructor parameter comes in handy. Using it the flow author
 can instruct the engine to fetch a value from storage by one name, but pass it
-to a tasks ``execute`` method with another name. There are two possible ways of
-accomplishing this.
+to a tasks |task.execute| method with another name. There are two possible ways
+of accomplishing this.
 
 The first is to pass a dictionary that maps the task argument name to the name
 of a saved value.
@@ -120,7 +126,7 @@ construct, you can specify extra arguments.
 
 When such task is about to be executed, ``name``, ``vm_image_id`` and
 ``admin_key_name`` values are fetched from storage and value from ``name`` is
-passed to ``execute`` method as ``vm_name``, value from ``vm_image_id`` is
+passed to |task.execute| method as ``vm_name``, value from ``vm_image_id`` is
 passed as ``vm_image_id``, and value from ``admin_key_name`` is passed as
 ``admin_key_name`` parameter in ``kwargs``.
 
@@ -133,7 +139,7 @@ override the task requirements).
 
 To accomplish this when creating your task use the constructor to specify
 manual requirements.  Those manual requirements (if they are not functional
-arguments) will appear in the ``kwargs`` of the ``execute()`` method.
+arguments) will appear in the ``kwargs`` of the |task.execute| method.
 
 .. doctest::
 
@@ -153,7 +159,7 @@ arguments) will appear in the ``kwargs`` of the ``execute()`` method.
 
 When constructing a task instance the flow author can also add more
 requirements if desired.  Those manual requirements (if they are not functional
-arguments) will appear in the ``**kwargs`` the ``execute()`` method.
+arguments) will appear in the ``**kwargs`` the |task.execute| method.
 
 .. doctest::
 
@@ -185,7 +191,7 @@ Results Specification
 =====================
 
 In python, function results are not named, so we can not infer what a task
-returns. This is important since the complete task result (what the ``execute``
+returns. This is important since the complete task result (what the |task.execute|
 method returns) is saved in (potentially persistent) storage, and it is
 typically (but not always) desirable to make those results accessible to other
 tasks. To accomplish this the task specifies names of those values via its
@@ -237,7 +243,7 @@ tasks) will be able to get those elements from storage by name:
 
 Provides argument can be shorter then the actual tuple returned by a task --
 then extra values are ignored (but, as expected, **all** those values are saved
-and passed to the ``revert`` method).
+and passed to the |task.revert| method).
 
 .. note::
 
@@ -281,7 +287,7 @@ will be able to get elements from storage by name:
 
     If some items from the dict returned by the task are not present in the
     provides arguments -- then extra values are ignored (but, of course, saved
-    and passed to the ``revert`` method). If the provides argument has some
+    and passed to the |task.revert| method). If the provides argument has some
     items not present in the actual dict returned by the task -- then extra
     parameters are left undefined: a warning is printed to logs and if use of
     such parameter is attempted a ``NotFound`` exception is raised.
@@ -325,22 +331,22 @@ task from other tasks in the flow (e.g. to avoid naming conflicts):
 Revert Arguments
 ================
 
-To revert a task engine calls its ``revert`` method. This method
-should accept same arguments as ``execute`` method of the task and one
+To revert a task engine calls its |task.revert| method. This method
+should accept same arguments as |task.execute| method of the task and one
 more special keyword argument, named ``result``.
 
 For ``result`` value, two cases are possible:
 
 * if task is being reverted because it failed (an exception was raised from its
-  ``execute`` method), ``result`` value is instance of
+  |task.execute| method), ``result`` value is instance of
   :py:class:`taskflow.utils.misc.Failure` object that holds exception information;
 
 * if task is being reverted because some other task failed, and this task
   finished successfully, ``result`` value is task result fetched from storage:
-  basically, that's what ``execute`` method returned.
+  basically, that's what |task.execute| method returned.
 
 All other arguments are fetched from storage in the same way it is done for
-``execute`` method.
+|task.execute| method.
 
 To determine if task failed you can check whether ``result`` is instance of
 :py:class:`taskflow.utils.misc.Failure`::
@@ -370,9 +376,7 @@ A Retry controller works with arguments in the same way as a Task. But it has an
 a list of tuples. Each tuple contains a result of the previous Retry run and a table where a key is a failed task and a value
 is a :py:class:`taskflow.utils.misc.Failure`.
 
-Consider the following Retry:
-
-::
+Consider the following Retry::
 
   class MyRetry(retry.Retry):
 
@@ -390,20 +394,15 @@ Consider the following Retry:
           print history
 
 Imagine the following Retry had returned a value '5' and then some task 'A' failed with some exception.
-In this case ``on_failure`` method will receive the following history:
-
-::
+In this case ``on_failure`` method will receive the following history::
 
     [('5', {'A': misc.Failure()})]
 
-Then the ``execute`` method will be called again and it'll receive the same history.
+Then the |retry.execute| method will be called again and it'll receive the same history.
 
-If the ``execute`` method raises an exception, the ``revert`` method of Retry will be called and :py:class:`taskflow.utils.misc.Failure` object will be present
-in the history instead of Retry result.
-
-::
+If the |retry.execute| method raises an exception, the |retry.revert| method of Retry will be called and :py:class:`taskflow.utils.misc.Failure` object will be present
+in the history instead of Retry result::
 
     [('5', {'A': misc.Failure()}), (misc.Failure(), {})]
 
 After the Retry has been reverted, the Retry history will be cleaned.
-
