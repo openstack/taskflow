@@ -196,6 +196,26 @@ def failure_from_dict(data):
     return misc.Failure(**data)
 
 
+def encode_retry_results(results):
+    new_results = []
+    for (data, failures) in results:
+        new_failures = {}
+        for key, value in six.iteritems(failures):
+            new_failures[key] = failure_to_dict(value)
+        new_results.append((data, new_failures))
+    return new_results
+
+
+def decode_retry_results(results):
+    new_results = []
+    for (data, failures) in results:
+        new_failures = {}
+        for key, value in six.iteritems(failures):
+            new_failures[key] = failure_from_dict(value)
+        new_results.append((data, new_failures))
+    return new_results
+
+
 def _format_meta(metadata, indent):
     """Format the common metadata dictionary in the same manner."""
     if not metadata:
@@ -227,7 +247,8 @@ def _format_shared(obj, indent):
 
 def pformat_task_detail(task_detail, indent=0):
     """Pretty formats a task detail."""
-    lines = ["%sTask: '%s'" % (" " * (indent), task_detail.name)]
+    detail_type = task_detail.atom_type
+    lines = ["%s%s: '%s'" % (" " * (indent), detail_type, task_detail.name)]
     lines.extend(_format_shared(task_detail, indent=indent + 1))
     lines.append("%s- version = %s"
                  % (" " * (indent + 1), misc.get_version_string(task_detail)))
@@ -280,20 +301,30 @@ def _str_2_datetime(text):
 
 
 def format_task_detail(td):
+    results = td.results
+    if td.atom_type == logbook.RETRY_DETAIL:
+        results = encode_retry_results(results)
+
     return {
         'failure': failure_to_dict(td.failure),
         'meta': td.meta,
         'name': td.name,
-        'results': td.results,
+        'results': results,
         'state': td.state,
         'version': td.version,
+        'atom_type': td.atom_type,
     }
 
 
 def unformat_task_detail(uuid, td_data):
-    td = logbook.TaskDetail(name=td_data['name'], uuid=uuid)
+    results = td_data.get('results')
+    if td_data['atom_type'] == logbook.RETRY_DETAIL:
+        results = decode_retry_results(results)
+
+    atom_cls = logbook.get_atom_detail_class(td_data['atom_type'])
+    td = atom_cls(name=td_data['name'], uuid=uuid)
     td.state = td_data.get('state')
-    td.results = td_data.get('results')
+    td.results = results
     td.failure = failure_from_dict(td_data.get('failure'))
     td.meta = td_data.get('meta')
     td.version = td_data.get('version')

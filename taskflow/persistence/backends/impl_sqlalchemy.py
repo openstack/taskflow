@@ -451,8 +451,12 @@ def _convert_fd_to_internal(fd, parent_uuid):
 
 
 def _convert_td_to_internal(td, parent_uuid):
+    results = td.results
+    if td.atom_type == logbook.RETRY_DETAIL:
+        results = persistence_utils.encode_retry_results(results)
     return models.TaskDetail(name=td.name, uuid=td.uuid,
-                             state=td.state, results=td.results,
+                             atom_type=td.atom_type,
+                             state=td.state, results=results,
                              failure=td.failure, meta=td.meta,
                              version=td.version, parent_uuid=parent_uuid)
 
@@ -461,9 +465,13 @@ def _convert_td_to_external(td):
     # Convert from sqlalchemy model -> external model, this allows us
     # to change the internal sqlalchemy model easily by forcing a defined
     # interface (that isn't the sqlalchemy model itself).
-    td_c = logbook.TaskDetail(td.name, uuid=td.uuid)
+    results = td.results
+    if td.atom_type == logbook.RETRY_DETAIL:
+        results = persistence_utils.decode_retry_results(results)
+    atom_cls = logbook.get_atom_detail_class(td.atom_type)
+    td_c = atom_cls(td.name, uuid=td.uuid)
     td_c.state = td.state
-    td_c.results = td.results
+    td_c.results = results
     td_c.failure = td.failure
     td_c.meta = td.meta
     td_c.version = td.version
@@ -540,4 +548,5 @@ def _flowdetails_merge(fd_m, fd):
 
 
 def _taskdetails_merge(td_m, td):
-    return persistence_utils.task_details_merge(td_m, td)
+    td_i = _convert_td_to_internal(td, td_m.parent_uuid)
+    return persistence_utils.task_details_merge(td_m, td_i)

@@ -104,8 +104,12 @@ class Connection(base.Connection):
         for task_detail in flow_detail:
             e_td = e_fd.find(task_detail.uuid)
             if e_td is None:
-                e_td = logbook.TaskDetail(name=task_detail.name,
-                                          uuid=task_detail.uuid)
+                if task_detail.atom_type == logbook.TASK_DETAIL:
+                    e_td = logbook.TaskDetail(name=task_detail.name,
+                                              uuid=task_detail.uuid)
+                else:
+                    e_td = logbook.RetryDetail(name=task_detail.name,
+                                               uuid=task_detail.uuid)
                 e_fd.add(e_td)
             if task_detail.uuid not in self.backend.task_details:
                 self.backend.task_details[task_detail.uuid] = e_td

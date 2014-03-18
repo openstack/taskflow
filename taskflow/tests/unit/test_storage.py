@@ -494,3 +494,59 @@ class StorageTest(test.TestCase):
         self.assertEqual(mocked_warning.mock_calls, [])
         s.ensure_task('my other task', result_mapping={'result': 'key'})
         mocked_warning.assert_called_once_with(mock.ANY, 'result')
+
+    def test_ensure_retry(self):
+        s = self._get_storage()
+        s.ensure_retry('my retry')
+        history = s.get_retry_history('my retry')
+        self.assertEqual(history, [])
+
+    def test_ensure_retry_and_task_with_same_name(self):
+        s = self._get_storage()
+        s.ensure_task('my retry')
+        self.assertRaisesRegexp(exceptions.AlreadyExists,
+                                '^Task detail', s.ensure_retry, 'my retry')
+
+    def test_save_retry_results(self):
+        s = self._get_storage()
+        s.ensure_retry('my retry')
+        s.save('my retry', 'a')
+        s.save('my retry', 'b')
+        history = s.get_retry_history('my retry')
+        self.assertEqual(history, [('a', {}), ('b', {})])
+
+    def test_save_retry_results_with_mapping(self):
+        s = self._get_storage()
+        s.ensure_retry('my retry', result_mapping={'x': 0})
+        s.save('my retry', 'a')
+        s.save('my retry', 'b')
+        history = s.get_retry_history('my retry')
+        self.assertEqual(history, [('a', {}), ('b', {})])
+        self.assertEqual(s.fetch_all(), {'x': 'b'})
+        self.assertEqual(s.fetch('x'), 'b')
+
+    def test_cleanup_retry_history(self):
+        s = self._get_storage()
+        s.ensure_retry('my retry', result_mapping={'x': 0})
+        s.save('my retry', 'a')
+        s.save('my retry', 'b')
+        s.cleanup_retry_history('my retry', states.REVERTED)
+        history = s.get_retry_history('my retry')
+        self.assertEqual(history, [])
+        self.assertEqual(s.fetch_all(), {})
+
+    def test_retry_failure(self):
+        fail = misc.Failure(exc_info=(RuntimeError, RuntimeError(), None))
+        s = self._get_storage()
+        s.ensure_retry('my retry', result_mapping={'x': 0})
+        s.save('my retry', 'a')
+        s.save('my retry', fail, states.FAILURE)
+        history = s.get_retry_history('my retry')
+        self.assertEqual(history, [('a', {})])
+        self.assertIs(s.has_failures(), True)
+        self.assertEqual(s.get_failures(), {'my retry': fail})
+
+    def test_logbook_get_unknown_atom_type(self):
+        self.assertRaisesRegexp(TypeError,
+                                'Unknown atom type',
+                                logbook.get_atom_detail_class, 'some_detail')

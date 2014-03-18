@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import backref
@@ -26,6 +26,7 @@ from taskflow.openstack.common import jsonutils
 from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 
+from taskflow.persistence import logbook
 from taskflow.utils import persistence_utils
 
 BASE = declarative_base()
@@ -106,6 +107,7 @@ class FlowDetail(BASE, ModelBase):
 class TaskDetail(BASE, ModelBase):
     __tablename__ = 'taskdetails'
 
+    atom_type = Column(Enum(*logbook.ATOM_TYPES, name='atom_types'))
     # Member variables
     state = Column(String)
     results = Column(Json)
