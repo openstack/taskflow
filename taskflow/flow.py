@@ -47,13 +47,31 @@ class Flow(object):
     - provides
     """
 
-    def __init__(self, name):
+    def __init__(self, name, retry=None):
         self._name = six.text_type(name)
+        self._retry = retry
+        # If retry doesn't have a name,
+        # the name of its owner will be assigned
+        if self._retry:
+            self._retry_provides = self.retry.provides
+            self._retry_requires = self.retry.requires
+            if not self._retry.name:
+                self._retry.set_name(self.name + "_retry")
+        else:
+            self._retry_provides = set()
+            self._retry_requires = set()
 
     @property
     def name(self):
         """A non-unique name for this flow (human readable)."""
         return self._name
+
+    @property
+    def retry(self):
+        """A retry object that will affect control how (and if) this flow
+        retries while execution is underway.
+        """
+        return self._retry
 
     @abc.abstractmethod
     def __len__(self):

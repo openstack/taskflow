@@ -37,8 +37,8 @@ class Flow(flow.Flow):
     Note: Cyclic dependencies are not allowed.
     """
 
-    def __init__(self, name):
-        super(Flow, self).__init__(name)
+    def __init__(self, name, retry=None):
+        super(Flow, self).__init__(name, retry)
         self._graph = nx.freeze(nx.DiGraph())
 
     def _validate(self, graph=None):
@@ -107,6 +107,11 @@ class Flow(flow.Flow):
             for value in node.provides:
                 provided[value] = node
 
+        if self.retry:
+            update_requirements(self.retry)
+            provided.update(dict((k,
+                                  self.retry) for k in self._retry_provides))
+
         # NOTE(harlowja): Add items and edges to a temporary copy of the
         # underlying graph and only if that is successful added to do we then
         # swap with the underlying graph.
@@ -122,6 +127,15 @@ class Flow(flow.Flow):
                         " are disallowed"
                         % dict(item=item.name,
                                flow=provided[value].name,
+                               value=value))
+                if value in self._retry_requires:
+                    raise exc.InvariantViolation(
+                        "Flows retry controller %(retry)s requires %(value)s "
+                        "but item %(item)s being added to the flow produces "
+                        "that item, this creates a cyclic dependency and is "
+                        "disallowed"
+                        % dict(item=item.name,
+                               retry=self.retry.name,
                                value=value))
                 provided[value] = item
 
@@ -149,6 +163,7 @@ class Flow(flow.Flow):
     @property
     def provides(self):
         provides = set()
+        provides.update(self._retry_provides)
         for subflow in self:
             provides.update(subflow.provides)
         return provides
@@ -156,6 +171,7 @@ class Flow(flow.Flow):
     @property
     def requires(self):
         requires = set()
+        requires.update(self._retry_requires)
         for subflow in self:
             requires.update(subflow.requires)
         return requires - self.provides
