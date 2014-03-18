@@ -29,7 +29,7 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
         super(TestWorkerBasedActionEngine, self).setUp()
         self.broker_url = 'test-url'
         self.exchange = 'test-exchange'
-        self.workers_info = {'test-topic': ['task1', 'task2']}
+        self.topics = ['test-topic1', 'test-topic2']
 
         # patch classes
         self.executor_mock, self.executor_inst_mock = self._patch_class(
@@ -44,7 +44,7 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
             mock.call.executor_class(uuid=flow_detail.uuid,
                                      url=None,
                                      exchange='default',
-                                     workers_info={},
+                                     topics=[],
                                      transport=None,
                                      transport_options=None)
         ]
@@ -54,7 +54,7 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
         flow = lf.Flow('test-flow').add(utils.DummyTask())
         _, flow_detail = pu.temporary_flow_detail()
         config = {'url': self.broker_url, 'exchange': self.exchange,
-                  'workers_info': self.workers_info, 'transport': 'memory',
+                  'topics': self.topics, 'transport': 'memory',
                   'transport_options': {}}
         engine.WorkerBasedActionEngine(
             flow, flow_detail, None, config).compile()
@@ -63,7 +63,7 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
             mock.call.executor_class(uuid=flow_detail.uuid,
                                      url=self.broker_url,
                                      exchange=self.exchange,
-                                     workers_info=self.workers_info,
+                                     topics=self.topics,
                                      transport='memory',
                                      transport_options={})
         ]

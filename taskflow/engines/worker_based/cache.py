@@ -15,9 +15,11 @@
 #    under the License.
 
 import logging
+import random
 
 import six
 
+from taskflow.engines.worker_based import protocol as pr
 from taskflow.utils import lock_utils as lu
 
 LOG = logging.getLogger(__name__)
@@ -56,3 +58,29 @@ class Cache(object):
         if on_expired_callback:
             for (_k, v) in expired_values:
                 on_expired_callback(v)
+
+
+class RequestsCache(Cache):
+    """Represents thread-safe requests cache."""
+
+    def get_waiting_requests(self, tasks):
+        """Get list of waiting requests by tasks."""
+        waiting_requests = []
+        with self._lock.read_lock():
+            for request in six.itervalues(self._data):
+                if request.state == pr.WAITING and request.task_cls in tasks:
+                    waiting_requests.append(request)
+        return waiting_requests
+
+
+class WorkersCache(Cache):
+    """Represents thread-safe workers cache."""
+
+    def get_topic_by_task(self, task):
+        """Get topic for a given task."""
+        available_topics = []
+        with self._lock.read_lock():
+            for topic, tasks in six.iteritems(self._data):
+                if task in tasks:
+                    available_topics.append(topic)
+        return random.choice(available_topics) if available_topics else None

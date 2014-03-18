@@ -42,8 +42,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.broker_url = 'broker-url'
         self.executor_uuid = 'executor-uuid'
         self.executor_exchange = 'executor-exchange'
-        self.executor_topic = 'executor-topic'
-        self.executor_workers_info = {self.executor_topic: [self.task.name]}
+        self.executor_topic = 'test-topic1'
         self.proxy_started_event = threading.Event()
 
         # patch classes
@@ -75,7 +74,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
     def executor(self, reset_master_mock=True, **kwargs):
         executor_kwargs = dict(uuid=self.executor_uuid,
                                exchange=self.executor_exchange,
-                               workers_info=self.executor_workers_info,
+                               topics=[self.executor_topic],
                                url=self.broker_url)
         executor_kwargs.update(kwargs)
         ex = executor.WorkerTaskExecutor(**executor_kwargs)
@@ -218,21 +217,28 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(len(ex._requests_cache._data), 0)
 
     def test_execute_task(self):
+        self.message_mock.properties['type'] = pr.NOTIFY
+        notify = pr.Notify(topic=self.executor_topic, tasks=[self.task.name])
         ex = self.executor()
+        ex._on_message(notify.to_dict(), self.message_mock)
         ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
             mock.call.Request(self.task, self.task_uuid, 'execute',
                               self.task_args, None, self.timeout),
-            mock.call.proxy.publish(self.request_inst_mock,
+            mock.call.proxy.publish(msg=self.request_inst_mock,
                                     routing_key=self.executor_topic,
                                     reply_to=self.executor_uuid,
-                                    correlation_id=self.task_uuid)
+                                    correlation_id=self.task_uuid),
+            mock.call.request.set_pending()
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
 
     def test_revert_task(self):
+        self.message_mock.properties['type'] = pr.NOTIFY
+        notify = pr.Notify(topic=self.executor_topic, tasks=[self.task.name])
         ex = self.executor()
+        ex._on_message(notify.to_dict(), self.message_mock)
         ex.revert_task(self.task, self.task_uuid, self.task_args,
                        self.task_result, self.task_failures)
 
@@ -241,10 +247,11 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                               self.task_args, None, self.timeout,
                               failures=self.task_failures,
                               result=self.task_result),
-            mock.call.proxy.publish(self.request_inst_mock,
+            mock.call.proxy.publish(msg=self.request_inst_mock,
                                     routing_key=self.executor_topic,
                                     reply_to=self.executor_uuid,
-                                    correlation_id=self.task_uuid)
+                                    correlation_id=self.task_uuid),
+            mock.call.request.set_pending()
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
 
@@ -255,20 +262,22 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
         expected_calls = [
             mock.call.Request(self.task, self.task_uuid, 'execute',
-                              self.task_args, None, self.timeout),
-            mock.call.request.set_result(mock.ANY)
+                              self.task_args, None, self.timeout)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
 
     def test_execute_task_publish_error(self):
+        self.message_mock.properties['type'] = pr.NOTIFY
         self.proxy_inst_mock.publish.side_effect = Exception('Woot!')
+        notify = pr.Notify(topic=self.executor_topic, tasks=[self.task.name])
         ex = self.executor()
+        ex._on_message(notify.to_dict(), self.message_mock)
         ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
             mock.call.Request(self.task, self.task_uuid, 'execute',
                               self.task_args, None, self.timeout),
-            mock.call.proxy.publish(self.request_inst_mock,
+            mock.call.proxy.publish(msg=self.request_inst_mock,
                                     routing_key=self.executor_topic,
                                     reply_to=self.executor_uuid,
                                     correlation_id=self.task_uuid),

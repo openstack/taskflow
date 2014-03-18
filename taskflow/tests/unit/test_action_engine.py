@@ -591,9 +591,9 @@ class WorkerBasedEngineTest(EngineTaskTest,
             'exchange': self.exchange,
             'topic': self.topic,
             'tasks': [
-                'taskflow.tests.utils'
+                'taskflow.tests.utils',
             ],
-            'transport': self.transport
+            'transport': self.transport,
         }
         self.worker = wkr.Worker(**worker_conf)
         self.worker_thread = threading.Thread(target=self.worker.run)
@@ -611,20 +611,8 @@ class WorkerBasedEngineTest(EngineTaskTest,
         engine_conf = {
             'engine': 'worker-based',
             'exchange': self.exchange,
-            'workers_info': {
-                self.topic: [
-                    'taskflow.tests.utils.SaveOrderTask',
-                    'taskflow.tests.utils.FailingTask',
-                    'taskflow.tests.utils.TaskOneReturn',
-                    'taskflow.tests.utils.TaskMultiReturn',
-                    'taskflow.tests.utils.TaskMultiArgOneReturn',
-                    'taskflow.tests.utils.NastyTask',
-                    'taskflow.tests.utils.NastyFailingTask',
-                    'taskflow.tests.utils.NeverRunningTask',
-                    'taskflow.tests.utils.TaskNoRequiresNoReturns'
-                ]
-            },
-            'transport': self.transport
+            'topics': [self.topic],
+            'transport': self.transport,
         }
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      engine_conf=engine_conf,

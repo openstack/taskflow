@@ -32,6 +32,7 @@ class Server(object):
 
     def __init__(self, topic, exchange, executor, endpoints, **kwargs):
         self._proxy = proxy.Proxy(topic, exchange, self._on_message, **kwargs)
+        self._topic = topic
         self._executor = executor
         self._endpoints = dict([(endpoint.name, endpoint)
                                 for endpoint in endpoints])
@@ -56,12 +57,15 @@ class Server(object):
                 except KeyError:
                     LOG.warning("The 'type' message property is missing.")
                 else:
-                    if msg_type == pr.REQUEST:
-                        # spawn new thread to process request
-                        self._executor.submit(self._process_request, data,
-                                              message)
+                    if msg_type == pr.NOTIFY:
+                        handler = self._process_notify
+                    elif msg_type == pr.REQUEST:
+                        handler = self._process_request
                     else:
                         LOG.warning("Unexpected message type: %s", msg_type)
+                        return
+                    # spawn new thread to process request
+                    self._executor.submit(handler, data, message)
         else:
             try:
                 # requeue message
@@ -122,10 +126,24 @@ class Server(object):
         self._reply(reply_to, task_uuid, pr.PROGRESS, event_data=event_data,
                     progress=progress)
 
+    def _process_notify(self, notify, message):
+        """Process notify message and reply back."""
+        LOG.debug("Start processing notify message.")
+        try:
+            reply_to = message.properties['reply_to']
+        except Exception:
+            LOG.exception("The 'reply_to' message property is missing.")
+        else:
+            self._proxy.publish(
+                msg=pr.Notify(topic=self._topic, tasks=self._endpoints.keys()),
+                routing_key=reply_to
+            )
+
     def _process_request(self, request, message):
-        """Process request in separate thread and reply back."""
-        # NOTE(skudriashev): Parse broker message first to get the `reply_to`
+        """Process request message and reply back."""
+        # NOTE(skudriashev): parse broker message first to get the `reply_to`
         # and the `task_uuid` parameters to have possibility to reply back.
+        LOG.debug("Start processing request message.")
         try:
             reply_to, task_uuid = self._parse_message(message)
         except ValueError:
