@@ -69,6 +69,7 @@ class Proxy(object):
 
     def publish(self, msg, routing_key, **kwargs):
         """Publish message to the named exchange with routing key."""
+        LOG.debug("Sending %s", msg)
         if isinstance(routing_key, six.string_types):
             routing_keys = [routing_key]
         else:

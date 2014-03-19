@@ -68,7 +68,7 @@ class Message(object):
     """Base class for all message types."""
 
     def __str__(self):
-        return str(self.to_dict())
+        return "<%s> %s" % (self.TYPE, self.to_dict())
 
     @abc.abstractmethod
     def to_dict(self):

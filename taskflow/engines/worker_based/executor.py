@@ -152,7 +152,6 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
 
     def _publish_request(self, request, topic):
         """Publish request to a given topic."""
-        LOG.debug("Sending request: %s" % request)
         try:
             self._proxy.publish(msg=request,
                                 routing_key=topic,

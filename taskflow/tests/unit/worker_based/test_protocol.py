@@ -63,7 +63,8 @@ class TestProtocol(test.TestCase):
 
     def test_str(self):
         request = self.request()
-        self.assertEqual(str(request), str(request.to_dict()))
+        self.assertEqual(str(request),
+                         "<REQUEST> %s" % self.request_to_dict())
 
     def test_repr(self):
         expected = '%s:%s' % (self.task.name, self.task_action)

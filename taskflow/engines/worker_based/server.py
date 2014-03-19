@@ -114,7 +114,6 @@ class Server(object):
     def _reply(self, reply_to, task_uuid, state=pr.FAILURE, **kwargs):
         """Send reply to the `reply_to` queue."""
         response = pr.Response(state, **kwargs)
-        LOG.debug("Sending reply: %s", response)
         try:
             self._proxy.publish(response, reply_to, correlation_id=task_uuid)
         except Exception:
