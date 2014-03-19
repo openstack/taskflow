@@ -42,15 +42,6 @@ class FutureGraphAction(object):
         return self._storage.get_flow_state() == st.RUNNING
 
     def execute(self):
-        was_suspended = self._run()
-        if was_suspended:
-            return st.SUSPENDED
-        if self._analyzer.is_success():
-            return st.SUCCESS
-        else:
-            return st.REVERTED
-
-    def _run(self):
 
         def schedule(nodes, not_done):
             for node in nodes:
@@ -72,7 +63,7 @@ class FutureGraphAction(object):
         next_nodes = self._prepare_flow_for_resume()
         next_nodes.update(self._analyzer.get_next_nodes())
         schedule(next_nodes, not_done)
-        was_suspended = False
+
         failures = []
         while not_done:
             # NOTE(imelnikov): if timeout occurs before any of futures
@@ -86,31 +77,25 @@ class FutureGraphAction(object):
                 node, event, result = future.result()
                 if isinstance(node, task.BaseTask):
                     self._complete_task(node, event, result)
-                intention = self._storage.get_atom_intention(node.name)
-                if event == ex.EXECUTED and intention == st.REVERT:
-                    next_nodes.add(node)
                 if isinstance(result, misc.Failure):
                     if event == ex.EXECUTED:
                         self._process_atom_failure(node, result)
-                        next_nodes.update(
-                            self._analyzer.browse_nodes_for_revert())
                     else:
                         failures.append(result)
-                else:
-                    next_nodes.update(self._analyzer.get_next_nodes(node))
+                next_nodes.update(self._analyzer.get_next_nodes(node))
 
-            if next_nodes:
-                if self.is_running() and not failures:
-                    schedule(next_nodes, not_done)
-                else:
-                    # NOTE(imelnikov): engine stopped while there were
-                    # still some tasks to do, so we either failed
-                    # or were suspended.
-                    was_suspended = True
+            if next_nodes and not failures and self.is_running():
+                schedule(next_nodes, not_done)
 
         if failures:
             misc.Failure.reraise_if_any(failures)
-        return was_suspended
+
+        if self._analyzer.get_next_nodes():
+            return st.SUSPENDED
+        elif self._analyzer.is_success():
+            return st.SUCCESS
+        else:
+            return st.REVERTED
 
     def _schedule_task(self, task):
         """Schedules the given task for revert or execute depending

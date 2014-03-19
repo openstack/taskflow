@@ -35,9 +35,26 @@ class GraphAnalyzer(object):
         return self._graph
 
     def get_next_nodes(self, node=None):
-        execute = self.browse_nodes_for_execute(node)
-        revert = self.browse_nodes_for_revert(node)
-        return execute + revert
+        if node is None:
+            execute = self.browse_nodes_for_execute()
+            revert = self.browse_nodes_for_revert()
+            return execute + revert
+
+        state = self.get_state(node)
+        intention = self._storage.get_atom_intention(node.name)
+        if state == st.SUCCESS:
+            if intention == st.REVERT:
+                return [node]
+            elif intention == st.EXECUTE:
+                return self.browse_nodes_for_execute(node)
+            else:
+                return []
+        elif state == st.REVERTED:
+            return self.browse_nodes_for_revert(node)
+        elif state == st.FAILURE:
+            return self.browse_nodes_for_revert()
+        else:
+            return []
 
     def browse_nodes_for_execute(self, node=None):
         """Browse next nodes to execute for given node if specified and
