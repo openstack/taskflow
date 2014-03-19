@@ -169,8 +169,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         """Cyclically publish notify message to each topic."""
         LOG.debug("Notify thread started.")
         while not self._notify_event.is_set():
-            for topic in self._topics:
-                self._proxy.publish(pr.Notify(), topic, reply_to=self._uuid)
+            self._proxy.publish(pr.Notify(), self._topics, reply_to=self._uuid)
             self._notify_event.wait(pr.NOTIFY_PERIOD)
 
     def execute_task(self, task, task_uuid, arguments,

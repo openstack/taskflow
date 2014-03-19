@@ -19,6 +19,8 @@ import logging
 import socket
 import threading
 
+import six
+
 LOG = logging.getLogger(__name__)
 
 # NOTE(skudriashev): A timeout of 1 is often used in environments where
@@ -67,14 +69,19 @@ class Proxy(object):
 
     def publish(self, msg, routing_key, **kwargs):
         """Publish message to the named exchange with routing key."""
+        if isinstance(routing_key, six.string_types):
+            routing_keys = [routing_key]
+        else:
+            routing_keys = routing_key
         with kombu.producers[self._conn].acquire(block=True) as producer:
-            queue = self._make_queue(routing_key, self._exchange)
-            producer.publish(body=msg.to_dict(),
-                             routing_key=routing_key,
-                             exchange=self._exchange,
-                             declare=[queue],
-                             type=msg.TYPE,
-                             **kwargs)
+            for routing_key in routing_keys:
+                queue = self._make_queue(routing_key, self._exchange)
+                producer.publish(body=msg.to_dict(),
+                                 routing_key=routing_key,
+                                 exchange=self._exchange,
+                                 declare=[queue],
+                                 type=msg.TYPE,
+                                 **kwargs)
 
     def start(self):
         """Start proxy."""
