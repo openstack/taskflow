@@ -205,10 +205,12 @@ class EngineParallelFlowTest(utils.EngineTestBase):
 
     def test_parallel_flow_one_task(self):
         flow = uf.Flow('p-1').add(
-            utils.SaveOrderTask(name='task1')
+            utils.SaveOrderTask(name='task1', provides='a')
         )
-        self._make_engine(flow).run()
+        engine = self._make_engine(flow)
+        engine.run()
         self.assertEqual(self.values, ['task1'])
+        self.assertEqual(engine.storage.fetch_all(), {'a': 5})
 
     def test_parallel_flow_two_tasks(self):
         flow = uf.Flow('p-2').add(
@@ -219,7 +221,6 @@ class EngineParallelFlowTest(utils.EngineTestBase):
 
         result = set(self.values)
         self.assertEqual(result, set(['task1', 'task2']))
-        self.assertEqual(len(flow), 2)
 
     def test_parallel_revert(self):
         flow = uf.Flow('p-r-3').add(
