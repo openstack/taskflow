@@ -15,7 +15,6 @@
 #    under the License.
 
 import logging
-import threading
 
 import networkx as nx
 
@@ -24,17 +23,14 @@ from taskflow import flow
 from taskflow import retry
 from taskflow import task
 from taskflow.utils import graph_utils as gu
-from taskflow.utils import lock_utils as lu
 from taskflow.utils import misc
 
 
 LOG = logging.getLogger(__name__)
 
-# Use the 'flatten' attribute as the need to add an edge here, which is useful
-# for doing later analysis of the edges (to determine why the edges were
-# created).
-FLATTEN_EDGE_DATA = {
-    'flatten': True,
+
+RETRY_EDGE_DATA = {
+    'retry': True,
 }
 
 
@@ -44,19 +40,12 @@ class Flattener(object):
         self._graph = None
         self._history = set()
         self._freeze = bool(freeze)
-        self._lock = threading.Lock()
-        self._edge_data = FLATTEN_EDGE_DATA.copy()
 
-    def _add_new_edges(self, graph, nodes_from, nodes_to, edge_attrs=None):
+    def _add_new_edges(self, graph, nodes_from, nodes_to, edge_attrs):
         """Adds new edges from nodes to other nodes in the specified graph,
         with the following edge attributes (defaulting to the class provided
         edge_data if None), if the edge does not already exist.
         """
-        if edge_attrs is None:
-            edge_attrs = self._edge_data
-        else:
-            edge_attrs = edge_attrs.copy()
-            edge_attrs.update(self._edge_data)
         for u in nodes_from:
             for v in nodes_to:
                 if not graph.has_edge(u, v):
@@ -88,18 +77,16 @@ class Flattener(object):
 
     def _connect_retry(self, retry, graph):
         graph.add_node(retry)
-        # All graph nodes that has not predecessors should be depended on its
-        # retry
-        for n in gu.get_no_predecessors(graph):
-            if n != retry:
-                # modified that the same copy isn't modified.
-                graph.add_edge(retry, n, FLATTEN_EDGE_DATA.copy())
+
+        # All graph nodes that have no predecessors should depend on its retry
+        nodes_to = [n for n in gu.get_no_predecessors(graph) if n != retry]
+        self._add_new_edges(graph, [retry], nodes_to, RETRY_EDGE_DATA)
 
         # Add link to retry for each node of subgraph that hasn't
         # a parent retry
         for n in graph.nodes_iter():
             if n != retry and 'retry' not in graph.node[n]:
-                graph.add_node(n, {'retry': retry})
+                graph.node[n]['retry'] = retry
 
     def _flatten_task(self, task):
         """Flattens a individual task."""
@@ -116,7 +103,7 @@ class Flattener(object):
             subgraph = self._flatten(item)
             subgraph_map[item] = subgraph
             graph = gu.merge_graphs([graph, subgraph])
-        # Reconnect all node edges to there corresponding subgraphs.
+        # Reconnect all node edges to their corresponding subgraphs.
         for (u, v, u_v_attrs) in flow.iter_links():
             # Connect the ones with no predecessors in v to the ones with no
             # successors in u (thus maintaining the edge dependency).
@@ -162,7 +149,6 @@ class Flattener(object):
                                                 "found: %s" % (dup_names))
         self._history.clear()
 
-    @lu.locked
     def flatten(self):
         """Flattens a item (a task or flow) into a single execution graph."""
         if self._graph is not None:
