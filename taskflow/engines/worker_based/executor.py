@@ -42,7 +42,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                                   self._on_wait, **kwargs)
         self._proxy_thread = None
         self._notify_thread = None
-        self._notify_event = threading.Event()
+        self._notify_timeout = misc.Timeout(pr.NOTIFY_PERIOD)
 
     def _make_thread(self, target):
         thread = threading.Thread(target=target)
@@ -167,9 +167,9 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
     def _notify_topics(self):
         """Cyclically publish notify message to each topic."""
         LOG.debug("Notify thread started.")
-        while not self._notify_event.is_set():
+        while not self._notify_timeout.is_stopped():
             self._proxy.publish(pr.Notify(), self._topics, reply_to=self._uuid)
-            self._notify_event.wait(pr.NOTIFY_PERIOD)
+            self._notify_timeout.wait()
 
     def execute_task(self, task, task_uuid, arguments,
                      progress_callback=None):
@@ -199,7 +199,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         """Stop proxy, so its thread would be gracefully terminated."""
         if self._proxy_thread is not None:
             if self._proxy_thread.is_alive():
-                self._notify_event.set()
+                self._notify_timeout.interrupt()
                 self._notify_thread.join()
                 self._proxy.stop()
                 self._proxy_thread.join()
