@@ -25,6 +25,7 @@ import six
 
 from taskflow import exceptions
 from taskflow.tests import utils
+from taskflow.utils import misc
 
 
 class GreaterThanEqual(object):
@@ -55,6 +56,30 @@ class FailureRegexpMatcher(object):
                     self.pattern).match(cause.exception_str)
         return matchers.Mismatch("The `%s` wasn't caused by the `%s`" %
                                  (failure, self.exc_class))
+
+
+class ItemsEqual(object):
+    """Matches the sequence that has same elements as reference
+    object, regardless of the order.
+    """
+
+    def __init__(self, seq):
+        self._seq = seq
+        self._list = list(seq)
+
+    def match(self, other):
+        other_list = list(other)
+        extra = misc.sequence_minus(other_list, self._list)
+        missing = misc.sequence_minus(self._list, other_list)
+        if extra or missing:
+            msg = ("Sequences %s and %s do not have same items."
+                   % (self._seq, other))
+            if missing:
+                msg += " Extra items in first sequence: %s." % missing
+            if extra:
+                msg += " Extra items in second sequence: %s." % extra
+            return matchers.Mismatch(msg)
+        return None
 
 
 class TestCase(testcase.TestCase):
@@ -151,12 +176,9 @@ class TestCase(testcase.TestCase):
         except exceptions.WrappedFailure as e:
             self.assertThat(e, FailureRegexpMatcher(exc_class, pattern))
 
-    def assertIsContainsSameElements(self, seq1, seq2, msg=None):
-        if sorted(seq1) != sorted(seq2):
-            if msg is None:
-                msg = ("%r doesn't contain same elements as %r."
-                       % (seq1, seq2))
-            self.fail(msg)
+    def assertItemsEqual(self, seq1, seq2, msg=None):
+        matcher = ItemsEqual(seq1)
+        self.assertThat(seq2, matcher)
 
 
 class MockTestCase(TestCase):

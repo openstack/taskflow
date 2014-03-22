@@ -121,6 +121,22 @@ def get_version_string(obj):
     return obj_version
 
 
+def sequence_minus(seq1, seq2):
+    """Calculate difference of two sequences.
+
+    Result contains the elements from first sequence that are not
+    present in second sequence, in original order. Works even
+    if sequence elements are not hashable.
+    """
+    result = list(seq1)
+    for item in seq2:
+        try:
+            result.remove(item)
+        except ValueError:
+            pass
+    return result
+
+
 def item_from(container, index, name=None):
     """Attempts to fetch a index/key from a given container."""
     if index is None:

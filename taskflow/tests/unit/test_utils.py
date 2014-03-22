@@ -495,3 +495,22 @@ class ExcInfoUtilsTest(test.TestCase):
         exc_info = self._make_ex_info()
         copied = misc.copy_exc_info(exc_info)
         self.assertTrue(misc.are_equal_exc_info_tuples(exc_info, copied))
+
+
+class TestSequenceMinus(test.TestCase):
+
+    def test_simple_case(self):
+        result = misc.sequence_minus([1, 2, 3, 4], [2, 3])
+        self.assertEqual(result, [1, 4])
+
+    def test_subtrahend_has_extra_elements(self):
+        result = misc.sequence_minus([1, 2, 3, 4], [2, 3, 5, 7, 13])
+        self.assertEqual(result, [1, 4])
+
+    def test_some_items_are_equal(self):
+        result = misc.sequence_minus([1, 1, 1, 1], [1, 1, 3])
+        self.assertEqual(result, [1, 1])
+
+    def test_equal_items_not_continious(self):
+        result = misc.sequence_minus([1, 2, 3, 1], [1, 3])
+        self.assertEqual(result, [2, 1])

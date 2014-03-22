@@ -22,6 +22,7 @@ import six
 
 from taskflow import atom
 from taskflow import exceptions as exc
+from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -132,17 +133,12 @@ class ForEachBase(Retry):
     """Base class for retries that iterate given collection."""
 
     def _get_next_value(self, values, history):
-        values = list(values)  # copy it
-        for (item, failures) in history:
-            try:
-                values.remove(item)  # remove exactly one element from item
-            except ValueError:
-                # one of the results is not in our list now -- who cares?
-                pass
-        if not values:
+        items = (item for item, _failures in history)
+        remaining = misc.sequence_minus(values, items)
+        if not remaining:
             raise exc.NotFound("No elements left in collection of iterable "
                                "retry controller %s" % self.name)
-        return values[0]
+        return remaining[0]
 
     def _on_failure(self, values, history):
         try:

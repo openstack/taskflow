@@ -283,7 +283,7 @@ class RetryTest(utils.EngineTestBase):
                     'task1 reverted(5)',
                     'task2',
                     'task1']
-        self.assertIsContainsSameElements(self.values, expected)
+        self.assertItemsEqual(self.values, expected)
 
     def test_nested_flow_reverts_parent_retries(self):
         retry1 = retry.Times(3, 'r1', provides='x')
@@ -502,7 +502,7 @@ class RetryTest(utils.EngineTestBase):
         expected = [u't1 reverted(Failure: RuntimeError: Woot with 3)',
                     u't1 reverted(Failure: RuntimeError: Woot with 2)',
                     u't1 reverted(Failure: RuntimeError: Woot with 5)']
-        self.assertIsContainsSameElements(self.values, expected)
+        self.assertItemsEqual(self.values, expected)
 
     def test_for_each_empty_collection(self):
         values = []
@@ -536,7 +536,7 @@ class RetryTest(utils.EngineTestBase):
         expected = [u't1 reverted(Failure: RuntimeError: Woot with 3)',
                     u't1 reverted(Failure: RuntimeError: Woot with 2)',
                     u't1 reverted(Failure: RuntimeError: Woot with 5)']
-        self.assertIsContainsSameElements(self.values, expected)
+        self.assertItemsEqual(self.values, expected)
 
     def test_parameterized_for_each_empty_collection(self):
         values = []
@@ -606,7 +606,7 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
                     'task1 reverted(5)',
                     'task2',
                     'task1']
-        self.assertIsContainsSameElements(self.values, expected)
+        self.assertItemsEqual(self.values, expected)
 
     def test_when_subflow_fails_revert_success_tasks(self):
         waiting_task = utils.WaitForOneFromTask('task2', 'task1',
@@ -631,7 +631,7 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
                     'task1',
                     'task2',
                     'task3']
-        self.assertIsContainsSameElements(self.values, expected)
+        self.assertItemsEqual(self.values, expected)
 
 
 class SingleThreadedEngineTest(RetryTest,
