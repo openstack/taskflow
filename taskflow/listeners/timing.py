@@ -50,8 +50,8 @@ class TimingListener(base.ListenerBase):
             # Don't let storage failures throw exceptions in a listener method.
             self._engine.storage.update_task_metadata(task_name, meta_update)
         except excp.StorageError:
-            LOG.exception("Failure to store duration update %s for task %s",
-                          meta_update, task_name)
+            LOG.warn("Failure to store duration update %s for task %s",
+                     meta_update, task_name, exc_info=True)
 
     def _task_receiver(self, state, details):
         task_name = details['task_name']

@@ -95,8 +95,9 @@ class BaseTask(atom.Atom):
             try:
                 handler(self, event_data, *args, **kwargs)
             except Exception:
-                LOG.exception("Failed calling `%s` on event '%s'",
-                              reflection.get_callable_name(handler), event)
+                LOG.warn("Failed calling `%s` on event '%s'",
+                         reflection.get_callable_name(handler), event,
+                         exc_info=True)
 
     @contextlib.contextmanager
     def autobind(self, event_name, handler_func, **kwargs):
@@ -109,9 +110,9 @@ class BaseTask(atom.Atom):
                 self.bind(event_name, handler_func, **kwargs)
                 bound = True
             except ValueError:
-                LOG.exception("Failed binding functor `%s` as a receiver of"
-                              " event '%s' notifications emitted from task %s",
-                              handler_func, event_name, self)
+                LOG.warn("Failed binding functor `%s` as a receiver of"
+                         " event '%s' notifications emitted from task %s",
+                         handler_func, event_name, self, exc_info=True)
         try:
             yield self
         finally:

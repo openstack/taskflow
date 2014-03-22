@@ -331,7 +331,7 @@ class _InterProcessLock(object):
 
         if not os.path.exists(basedir):
             misc.ensure_tree(basedir)
-            LOG.info('Created lock path: %s', basedir)
+            LOG.debug('Created lock path: %s', basedir)
 
         self.lockfile = open(self.fname, 'w')
 

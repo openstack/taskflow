@@ -106,8 +106,8 @@ class ListenerBase(object):
             self.deregister()
         except Exception:
             # Don't let deregistering throw exceptions
-            LOG.exception("Failed deregistering listeners from engine %s",
-                          self._engine)
+            LOG.warn("Failed deregistering listeners from engine %s",
+                     self._engine, exc_info=True)
 
 
 @six.add_metaclass(abc.ABCMeta)
