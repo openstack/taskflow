@@ -3,13 +3,13 @@ Atoms and Tasks
 ---------------
 
 An atom is the smallest unit in taskflow which acts as the base for other
-classes. Atoms have a name and a version (if applicable).  Atom are expected 
+classes. Atoms have a name and a version (if applicable). Atom is expected
 to name desired input values (requirements) and name outputs (provided
 values), see :doc:`arguments_and_results` page for complete reference
 about it.
 
 A task (derived from an atom) is the smallest possible unit of work that can
-have a execute & rollback sequence associated with it.
+have an execute & rollback sequence associated with it.
 
 .. automodule:: taskflow.atom
 
