@@ -80,9 +80,6 @@ class Flow(flow.Flow):
                             self._children[1:]):
             yield (src, dst, _LINK_METADATA.copy())
 
-    def __getitem__(self, index):
-        return self._children[index]
-
     @property
     def provides(self):
         provides = set()
