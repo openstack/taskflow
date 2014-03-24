@@ -60,6 +60,14 @@ class TaskTest(test.TestCase):
         self.assertEqual(my_task.name,
                          '%s.%s' % (__name__, 'MyTask'))
 
+    def test_task_str(self):
+        my_task = MyTask(name='my')
+        self.assertEqual(str(my_task), 'my==1.0')
+
+    def test_task_repr(self):
+        my_task = MyTask(name='my')
+        self.assertEqual(repr(my_task), '<%s.MyTask my==1.0>' % __name__)
+
     def test_no_provides(self):
         my_task = MyTask()
         self.assertEqual(my_task.save_as, {})
