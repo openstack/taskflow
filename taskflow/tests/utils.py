@@ -44,26 +44,6 @@ def wrap_all_failures():
         raise exceptions.WrappedFailure([misc.Failure()])
 
 
-def make_reverting_task(token, blowup=False):
-
-    def do_revert(context, *args, **kwargs):
-        context[token] = 'reverted'
-
-    if blowup:
-
-        def blow_up(context, *args, **kwargs):
-            raise RuntimeError("I blew up")
-
-        return task.FunctorTask(blow_up, name='blowup_%s' % token)
-    else:
-
-        def do_apply(context, *args, **kwargs):
-            context[token] = 'passed'
-
-        return task.FunctorTask(do_apply, revert=do_revert,
-                                name='do_apply_%s' % token)
-
-
 class DummyTask(task.Task):
 
     def execute(self, context, *args, **kwargs):
