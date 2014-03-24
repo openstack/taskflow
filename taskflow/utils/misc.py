@@ -25,6 +25,7 @@ import logging
 import os
 import string
 import sys
+import threading
 import time
 import traceback
 
@@ -208,6 +209,31 @@ class AttrDict(dict):
         if not self._is_valid_attribute_name(name):
             raise AttributeError("Invalid attribute name: '%s'" % (name))
         self[name] = value
+
+
+class Timeout(object):
+    """An object which represents a timeout.
+
+    This object has the ability to be interrupted before the actual timeout
+    is reached.
+    """
+    def __init__(self, timeout):
+        if timeout < 0:
+            raise ValueError("Timeout must be >= 0 and not %s" % (timeout))
+        self._timeout = timeout
+        self._event = threading.Event()
+
+    def interrupt(self):
+        self._event.set()
+
+    def is_stopped(self):
+        return self._event.is_set()
+
+    def wait(self):
+        self._event.wait(self._timeout)
+
+    def reset(self):
+        self._event.clear()
 
 
 class ExponentialBackoff(object):
