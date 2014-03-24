@@ -132,7 +132,8 @@ class TestWorker(test.MockTestCase):
         self.worker(reset_master_mock=True).stop()
 
         master_mock_calls = [
-            mock.call.server.stop()
+            mock.call.server.stop(),
+            mock.call.executor.shutdown()
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 

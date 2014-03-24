@@ -385,7 +385,6 @@ class TestServer(test.MockTestCase):
 
         # check calls
         master_mock_calls = [
-            mock.call.proxy.stop(),
-            mock.call.executor.shutdown()
+            mock.call.proxy.stop()
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
