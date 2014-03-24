@@ -18,8 +18,7 @@ from taskflow import exceptions
 from taskflow import flow
 
 
-# TODO(imelnikov): add metadata describing link here
-_LINK_METADATA = dict()
+_LINK_METADATA = {'invariant': True}
 
 
 class Flow(flow.Flow):

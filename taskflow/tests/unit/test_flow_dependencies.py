@@ -84,13 +84,6 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.requires, set())
         self.assertEqual(flow.provides, set(['x', 'a', 'b', 'c']))
 
-    def test_linear_flow_provides_out_of_order(self):
-        flow = lf.Flow('lf')
-        self.assertRaises(exceptions.InvariantViolation,
-                          flow.add,
-                          utils.TaskOneArg('task2'),
-                          utils.TaskOneReturn('task1', provides='x'))
-
     def test_linear_flow_provides_required_values(self):
         flow = lf.Flow('lf').add(
             utils.TaskOneReturn('task1', provides='x'),
@@ -107,19 +100,6 @@ class FlowDependenciesTest(test.TestCase):
                                           provides=['i', 'j', 'k']))
         self.assertEqual(flow.requires, set(['a', 'b', 'c', 'z']))
         self.assertEqual(flow.provides, set(['x', 'y', 'q', 'i', 'j', 'k']))
-
-    def test_linear_flow_provides_same_values(self):
-        flow = lf.Flow('lf').add(utils.TaskOneReturn(provides='x'))
-        self.assertRaises(exceptions.DependencyFailure,
-                          flow.add,
-                          utils.TaskOneReturn(provides='x'))
-
-    def test_linear_flow_provides_same_values_one_add(self):
-        flow = lf.Flow('lf')
-        self.assertRaises(exceptions.DependencyFailure,
-                          flow.add,
-                          utils.TaskOneReturn(provides='x'),
-                          utils.TaskOneReturn(provides='x'))
 
     def test_unordered_flow_without_dependencies(self):
         flow = uf.Flow('uf').add(
