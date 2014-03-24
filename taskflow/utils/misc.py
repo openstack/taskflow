@@ -422,7 +422,8 @@ class TransitionNotifier(object):
                 callback(state, *args, **kwargs)
             except Exception:
                 LOG.warn("Failure calling callback %s to notify about state"
-                         " transition %s", callback, state, exc_info=True)
+                         " transition %s, details: %s",
+                         callback, state, details, exc_info=True)
 
     def register(self, state, callback, args=None, kwargs=None):
         assert six.callable(callback), "Callback must be callable"

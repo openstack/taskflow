@@ -15,10 +15,9 @@
 #    under the License.
 
 import contextlib
-
-import collections
-import six
 import threading
+
+import six
 
 from taskflow import exceptions
 from taskflow.persistence.backends import impl_memory
@@ -317,11 +316,11 @@ class WaitForOneFromTask(SaveOrderTask):
 
     def __init__(self, name, wait_for, wait_states, **kwargs):
         super(WaitForOneFromTask, self).__init__(name, **kwargs)
-        if not isinstance(wait_for, collections.Iterable):
+        if isinstance(wait_for, six.string_types):
             self.wait_for = [wait_for]
         else:
             self.wait_for = wait_for
-        if not isinstance(wait_states, collections.Iterable):
+        if isinstance(wait_states, six.string_types):
             self.wait_states = [wait_states]
         else:
             self.wait_states = wait_states
