@@ -41,16 +41,6 @@ class Flow(flow.Flow):
         super(Flow, self).__init__(name, retry)
         self._graph = nx.freeze(nx.DiGraph())
 
-    def _validate(self, graph=None):
-        if graph is None:
-            graph = self._graph
-        # Ensure that there is a valid topological ordering.
-        if not nx.is_directed_acyclic_graph(graph):
-            raise exc.DependencyFailure("No path through the items in the"
-                                        " graph produces an ordering that"
-                                        " will allow for correct dependency"
-                                        " resolution")
-
     def link(self, u, v):
         """Link existing node u as a runtime dependency of existing node v."""
         if not self._graph.has_node(u):
@@ -86,7 +76,11 @@ class Flow(flow.Flow):
         with a frozen version of the replacement graph (this maintains the
         invariant that the underlying graph is immutable).
         """
-        self._validate(replacement_graph)
+        if not nx.is_directed_acyclic_graph(replacement_graph):
+            raise exc.DependencyFailure("No path through the items in the"
+                                        " graph produces an ordering that"
+                                        " will allow for correct dependency"
+                                        " resolution")
         self._graph = nx.freeze(replacement_graph)
 
     def add(self, *items):

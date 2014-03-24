@@ -194,13 +194,6 @@ class FlowDependenciesTest(test.TestCase):
                           flow.add,
                           gf.Flow('gf').add(utils.TaskOneReturn(provides='x')))
 
-    def test_graph_flow_without_dependencies(self):
-        flow = gf.Flow('gf').add(
-            utils.TaskNoRequiresNoReturns('task1'),
-            utils.TaskNoRequiresNoReturns('task2'))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set())
-
     def test_graph_flow_requires_values(self):
         flow = gf.Flow('gf').add(
             utils.TaskOneArg('task1'),
