@@ -46,6 +46,7 @@ class Flattener(object):
         with the following edge attributes (defaulting to the class provided
         edge_data if None), if the edge does not already exist.
         """
+        nodes_to = list(nodes_to)
         for u in nodes_from:
             for v in nodes_to:
                 if not graph.has_edge(u, v):
@@ -103,14 +104,25 @@ class Flattener(object):
             subgraph = self._flatten(item)
             subgraph_map[item] = subgraph
             graph = gu.merge_graphs([graph, subgraph])
+
         # Reconnect all node edges to their corresponding subgraphs.
-        for (u, v, u_v_attrs) in flow.iter_links():
-            # Connect the ones with no predecessors in v to the ones with no
-            # successors in u (thus maintaining the edge dependency).
-            self._add_new_edges(graph,
-                                list(gu.get_no_successors(subgraph_map[u])),
-                                list(gu.get_no_predecessors(subgraph_map[v])),
-                                edge_attrs=u_v_attrs)
+        for (u, v, attrs) in flow.iter_links():
+            if any(attrs.get(k) for k in ('invariant', 'manual', 'retry')):
+                # Connect nodes with no predecessors in v to nodes with
+                # no successors in u (thus maintaining the edge dependency).
+                self._add_new_edges(graph,
+                                    gu.get_no_successors(subgraph_map[u]),
+                                    gu.get_no_predecessors(subgraph_map[v]),
+                                    edge_attrs=attrs)
+            else:
+                # This is dependency-only edge, connect corresponding
+                # providers and consumers.
+                for provider in subgraph_map[u]:
+                    for consumer in subgraph_map[v]:
+                        reasons = provider.provides & consumer.requires
+                        if reasons:
+                            graph.add_edge(provider, consumer, reasons=reasons)
+
         if flow.retry is not None:
             self._connect_retry(flow.retry, graph)
         return graph
