@@ -150,6 +150,9 @@ class Atom(object):
     def __str__(self):
         return "%s==%s" % (self.name, misc.get_version_string(self))
 
+    def __repr__(self):
+        return '<%s %s>' % (reflection.get_class_name(self), self)
+
     @property
     def provides(self):
         """Any outputs this atom produces."""
