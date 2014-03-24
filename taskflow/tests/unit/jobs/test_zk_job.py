@@ -124,8 +124,8 @@ class TestZookeeperJobs(test.TestCase):
             possible_jobs = list(self.board.iterjobs(only_unclaimed=True))
             self.assertEqual(0, len(possible_jobs))
 
-        self.assertRaisesAttrAccess(excp.JobNotFound, j, 'state')
-        self.assertRaises(excp.JobNotFound,
+        self.assertRaisesAttrAccess(excp.NotFound, j, 'state')
+        self.assertRaises(excp.NotFound,
                           self.board.consume, j, self.board.name)
 
     def test_posting_claim_consume(self):
@@ -146,7 +146,7 @@ class TestZookeeperJobs(test.TestCase):
             self.client.flush()
 
             self.assertEqual(0, len(list(self.board.iterjobs())))
-            self.assertRaises(excp.JobNotFound,
+            self.assertRaises(excp.NotFound,
                               self.board.consume, j, self.board.name)
 
     def test_posting_claim_abandon(self):
@@ -277,5 +277,4 @@ class TestZookeeperJobs(test.TestCase):
             possible_jobs = list(self.board.iterjobs(only_unclaimed=True))
             self.assertEqual(1, len(possible_jobs))
             j = possible_jobs[0]
-            self.assertRaises(excp.InvalidJobOperation,
-                              self.board.abandon, j, j.name)
+            self.assertRaises(excp.JobFailure, self.board.abandon, j, j.name)

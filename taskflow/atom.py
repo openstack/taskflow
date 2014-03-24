@@ -137,7 +137,7 @@ class Atom(object):
                                          executor, auto_extract, ignore_list)
         out_of_order = self.provides.intersection(self.requires)
         if out_of_order:
-            raise exceptions.InvariantViolation(
+            raise exceptions.DependencyFailure(
                 "Atom %(item)s provides %(oo)s that are required "
                 "by this atom"
                 % dict(item=self.name, oo=sorted(out_of_order)))

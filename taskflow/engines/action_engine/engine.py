@@ -70,8 +70,8 @@ class ActionEngine(base.EngineBase):
 
     def suspend(self):
         if not self._compiled:
-            raise exc.InvariantViolation("Can not suspend an engine"
-                                         " which has not been compiled")
+            raise exc.InvalidState("Can not suspend an engine"
+                                   " which has not been compiled")
         self._change_state(states.SUSPENDING)
 
     @property
@@ -157,7 +157,7 @@ class ActionEngine(base.EngineBase):
             return
         execution_graph = flow_utils.flatten(self._flow)
         if execution_graph.number_of_nodes() == 0:
-            raise exc.EmptyFlow("Flow %s is empty." % self._flow.name)
+            raise exc.Empty("Flow %s is empty." % self._flow.name)
         self._analyzer = self._graph_analyzer_cls(execution_graph,
                                                   self.storage)
         if self._task_executor is None:

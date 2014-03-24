@@ -28,7 +28,8 @@ class TransitionTest(test.TestCase):
         self.assertFalse(self.check_transition(from_state, to_state))
 
     def assertTransitionForbidden(self, from_state, to_state):
-        self.assertRaisesRegexp(exc.InvalidState, self.transition_exc_regexp,
+        self.assertRaisesRegexp(exc.InvalidState,
+                                self.transition_exc_regexp,
                                 self.check_transition, from_state, to_state)
 
     def assertTransitions(self, from_state, allowed=None, ignored=None,

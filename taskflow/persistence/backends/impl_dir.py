@@ -109,7 +109,7 @@ class Connection(base.Connection):
             except Exception as e:
                 LOG.exception("Failed running locking file based session")
                 # NOTE(harlowja): trap all other errors as storage errors.
-                raise exc.StorageError("Storage backend internal error", e)
+                raise exc.StorageFailure("Storage backend internal error", e)
 
     def _get_logbooks(self):
         lb_uuids = []
@@ -129,7 +129,7 @@ class Connection(base.Connection):
         try:
             books = list(self._get_logbooks())
         except EnvironmentError as e:
-            raise exc.StorageError("Unable to fetch logbooks", e)
+            raise exc.StorageFailure("Unable to fetch logbooks", e)
         else:
             for b in books:
                 yield b
@@ -294,15 +294,16 @@ class Connection(base.Connection):
                 try:
                     misc.ensure_tree(path)
                 except EnvironmentError as e:
-                    raise exc.StorageError("Unable to create logbooks"
-                                           " required child path %s" % path, e)
+                    raise exc.StorageFailure("Unable to create logbooks"
+                                             " required child path %s" % path,
+                                             e)
 
         for path in (self._backend.base_path, self._backend.lock_path):
             try:
                 misc.ensure_tree(path)
             except EnvironmentError as e:
-                raise exc.StorageError("Unable to create logbooks required"
-                                       " path %s" % path, e)
+                raise exc.StorageFailure("Unable to create logbooks required"
+                                         " path %s" % path, e)
 
         self._run_with_process_lock("init", _step_create)
 
@@ -334,8 +335,9 @@ class Connection(base.Connection):
                     shutil.rmtree(task_path)
                 except EnvironmentError as e:
                     if e.errno != errno.ENOENT:
-                        raise exc.StorageError("Unable to remove task"
-                                               " directory %s" % task_path, e)
+                        raise exc.StorageFailure("Unable to remove task"
+                                                 " directory %s" % task_path,
+                                                 e)
 
         def _destroy_flows(flow_details):
             for flow_detail in flow_details:
@@ -346,8 +348,9 @@ class Connection(base.Connection):
                     shutil.rmtree(flow_path)
                 except EnvironmentError as e:
                     if e.errno != errno.ENOENT:
-                        raise exc.StorageError("Unable to remove flow"
-                                               " directory %s" % flow_path, e)
+                        raise exc.StorageFailure("Unable to remove flow"
+                                                 " directory %s" % flow_path,
+                                                 e)
 
         def _destroy_book():
             book = self._get_logbook(book_uuid)
@@ -357,8 +360,8 @@ class Connection(base.Connection):
                 shutil.rmtree(book_path)
             except EnvironmentError as e:
                 if e.errno != errno.ENOENT:
-                    raise exc.StorageError("Unable to remove book"
-                                           " directory %s" % book_path, e)
+                    raise exc.StorageFailure("Unable to remove book"
+                                             " directory %s" % book_path, e)
 
         # Acquire all locks by going through this little hierarchy.
         self._run_with_process_lock("book", _destroy_book)

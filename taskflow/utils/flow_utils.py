@@ -158,8 +158,8 @@ class Flattener(object):
                                             key=lambda node: node.name)
         if dup_names:
             dup_names = ', '.join(sorted(dup_names))
-            raise exceptions.InvariantViolation("Tasks with duplicate names "
-                                                "found: %s" % (dup_names))
+            raise exceptions.Duplicate("Tasks with duplicate names "
+                                       "found: %s" % (dup_names))
         self._history.clear()
 
     @lu.locked

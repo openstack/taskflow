@@ -52,7 +52,7 @@ class Flow(flow.Flow):
             item_provides = item.provides
             bad_provs = item_provides & old_requires
             if bad_provs:
-                raise exceptions.InvariantViolation(
+                raise exceptions.DependencyFailure(
                     "%(item)s provides %(oo)s that are required "
                     "by other item(s) of unordered flow %(flow)s"
                     % dict(item=item.name, flow=self.name,
@@ -70,7 +70,7 @@ class Flow(flow.Flow):
         for item in items:
             bad_reqs = provides & item.requires
             if bad_reqs:
-                raise exceptions.InvariantViolation(
+                raise exceptions.DependencyFailure(
                     "%(item)s requires %(oo)s that are provided "
                     "by other item(s) of unordered flow %(flow)s"
                     % dict(item=item.name, flow=self.name,

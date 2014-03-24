@@ -14,103 +14,116 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import traceback
+
 import six
 
 
 class TaskFlowException(Exception):
-    """Base class for exceptions emitted from this library."""
-    pass
+    """Base class for *most* exceptions emitted from this library.
+
+    NOTE(harlowja): in later versions of python we can likely remove the need
+    to have a cause here as PY3+ have implemented PEP 3134 which handles
+    chaining in a much more elegant manner.
+    """
+    def __init__(self, message, cause=None):
+        super(TaskFlowException, self).__init__(message)
+        self._cause = cause
+
+    @property
+    def cause(self):
+        return self._cause
+
+    def pformat(self, indent=2):
+        """Pretty formats a taskflow exception + any connected causes."""
+        if indent < 0:
+            raise ValueError("indent must be greater than zero")
+
+        def _format(excp, indent_by):
+            lines = []
+            for line in traceback.format_exception_only(type(excp), excp):
+                # We'll add our own newlines on at the end of formatting.
+                if line.endswith("\n"):
+                    line = line[0:-1]
+                lines.append((" " * indent_by) + line)
+            try:
+                lines.extend(_format(excp.cause, indent_by + indent))
+            except AttributeError:
+                pass
+            return lines
+
+        return "\n".join(_format(self, 0))
+
+
+# Errors related to storage or operations on storage units.
+
+class StorageFailure(TaskFlowException):
+    """Raised when storage backends can not be read/saved/deleted..."""
+
+
+# Job related errors.
+
+class JobFailure(TaskFlowException):
+    """Errors related to jobs or operations on jobs."""
+
+
+class UnclaimableJob(JobFailure):
+    """Raised when a job can not be claimed."""
+
+
+# Engine/ during execution related errors.
+
+class ExecutionFailure(TaskFlowException):
+    """Errors related to engine execution."""
+
+
+class RequestTimeout(ExecutionFailure):
+    """Raised when a worker request was not finished within an allotted
+    timeout.
+    """
+
+
+class InvalidState(ExecutionFailure):
+    """Raised when a invalid state transition is attempted while executing."""
+
+
+# Other errors that do not fit the above categories (at the current time).
+
+
+class DependencyFailure(TaskFlowException):
+    """Raised when some type of dependency problem occurs."""
+
+
+class MissingDependencies(DependencyFailure):
+    """Raised when a entity has dependencies that can not be satisfied."""
+    MESSAGE_TPL = ("%(who)s requires %(requirements)s but no other entity"
+                   " produces said requirements")
+
+    def __init__(self, who, requirements, cause=None):
+        message = self.MESSAGE_TPL % {'who': who, 'requirements': requirements}
+        super(MissingDependencies, self).__init__(message, cause=cause)
+        self.missing_requirements = requirements
 
 
 class IncompatibleVersion(TaskFlowException):
     """Raised when some type of version incompatibility is found."""
-    pass
-
-
-class ConnectionFailure(TaskFlowException):
-    """Raised when some type of connection can not be opened or is lost."""
-    pass
 
 
 class Duplicate(TaskFlowException):
     """Raised when a duplicate entry is found."""
-    pass
-
-
-class StorageError(TaskFlowException):
-    """Raised when logbook can not be read/saved/deleted."""
-
-    def __init__(self, message, cause=None):
-        if cause is not None:
-            message += ": %s" % (cause)
-        super(StorageError, self).__init__(message)
-        self.cause = cause
 
 
 class NotFound(TaskFlowException):
     """Raised when some entry in some object doesn't exist."""
-    pass
 
 
-class AlreadyExists(TaskFlowException):
-    """Raised when some entry in some object already exists."""
-    pass
+class Empty(TaskFlowException):
+    """Raised when some object is empty when it shouldn't be."""
 
 
-class InvalidState(TaskFlowException):
-    """Raised when a task/job/workflow is in an invalid state when an
-    operation is attempting to apply to said task/job/workflow.
-    """
-    pass
+# Others.
 
-
-class InvariantViolation(TaskFlowException):
-    """Raised when some type of invariant violation occurs."""
-    pass
-
-
-class InvalidJobOperation(TaskFlowException):
-    """Raised when job operations on a job are not allowed."""
-    pass
-
-
-class UnclaimableJob(TaskFlowException):
-    """Raised when a job can not be claimed."""
-    pass
-
-
-class JobNotFound(TaskFlowException):
-    """Raised when a job entry can not be found."""
-    pass
-
-
-class JobAlreadyExists(TaskFlowException):
-    """Raised when a job entry already exists."""
-    pass
-
-
-class MissingDependencies(InvariantViolation):
-    """Raised when a entity has dependencies that can not be satisfied."""
-    message = ("%(who)s requires %(requirements)s but no other entity produces"
-               " said requirements")
-
-    def __init__(self, who, requirements):
-        message = self.message % {'who': who, 'requirements': requirements}
-        super(MissingDependencies, self).__init__(message)
-        self.missing_requirements = requirements
-
-
-class DependencyFailure(TaskFlowException):
-    """Raised when flow can't resolve dependency."""
-    pass
-
-
-class EmptyFlow(TaskFlowException):
-    """Raised when flow doesn't contain tasks."""
-    pass
-
-
-class WrappedFailure(TaskFlowException):
+class WrappedFailure(Exception):
     """Wraps one or several failures.
 
     When exception cannot be re-raised (for example, because
@@ -120,6 +133,7 @@ class WrappedFailure(TaskFlowException):
     """
 
     def __init__(self, causes):
+        super(WrappedFailure, self).__init__()
         self._causes = []
         for cause in causes:
             if cause.check(type(self)) and cause.exception:
@@ -166,7 +180,3 @@ def exception_message(exc):
         return six.text_type(exc)
     except UnicodeError:
         return str(exc)
-
-
-class Timeout(TaskFlowException):
-    """Raised when something was not finished within the given timeout."""
