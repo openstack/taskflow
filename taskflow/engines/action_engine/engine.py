@@ -82,13 +82,16 @@ class ActionEngine(base.EngineBase):
     @lock_utils.locked
     def run(self):
         """Runs the flow in the engine to completion."""
-        if self.storage.get_flow_state() == states.REVERTED:
-            self._reset()
         self.compile()
         external_provides = set(self.storage.fetch_all().keys())
         missing = self._flow.requires - external_provides
         if missing:
             raise exc.MissingDependencies(self._flow, sorted(missing))
+
+        if self.storage.get_flow_state() == states.REVERTED:
+            self._root.reset_all()
+            self._change_state(states.PENDING)
+
         self._task_executor.start()
         try:
             self._run()
@@ -128,15 +131,6 @@ class ActionEngine(base.EngineBase):
                        flow_uuid=flow_uuid,
                        old_state=old_state)
         self.notifier.notify(state, details)
-
-    def _reset(self):
-        for name, uuid in self.storage.reset_tasks():
-            details = dict(engine=self,
-                           task_name=name,
-                           task_uuid=uuid,
-                           result=None)
-            self.task_notifier.notify(states.PENDING, details)
-        self._change_state(states.PENDING)
 
     def _ensure_storage_for(self, execution_graph):
         # NOTE(harlowja): signal to the tasks that exist that we are about to

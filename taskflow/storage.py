@@ -378,24 +378,6 @@ class Storage(object):
             if self._reset_task(td, state):
                 self._with_connection(self._save_task_detail, td)
 
-    def reset_tasks(self):
-        """Reset all tasks to PENDING state, removing results.
-
-        Returns list of (name, uuid) tuples for all tasks that were reset.
-        """
-        reset_results = []
-
-        def do_reset_all(connection):
-            for td in self._flowdetail:
-                if self._reset_task(td, states.PENDING):
-                    self._save_task_detail(connection, td)
-                    reset_results.append((td.name, td.uuid))
-
-        with self._lock.write_lock():
-            self._with_connection(do_reset_all)
-
-        return reset_results
-
     def inject(self, pairs):
         """Add values into storage.
 

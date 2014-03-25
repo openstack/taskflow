@@ -169,9 +169,17 @@ class FutureGraphAction(object):
                 next_nodes.add(node)
         return next_nodes
 
+    def reset_all(self):
+        self._retry_subflow(None)
+
     def _retry_subflow(self, retry):
-        self._storage.set_atom_intention(retry.name, st.EXECUTE)
-        for node in self._analyzer.iterate_subgraph(retry):
+        if retry is not None:
+            self._storage.set_atom_intention(retry.name, st.EXECUTE)
+            nodes_iter = self._analyzer.iterate_subgraph(retry)
+        else:
+            nodes_iter = self._analyzer.iterate_all_nodes()
+
+        for node in nodes_iter:
             if isinstance(node, task.BaseTask):
                 self._task_action.change_state(node, st.PENDING, progress=0.0)
             else:
