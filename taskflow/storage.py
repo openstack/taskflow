@@ -236,15 +236,12 @@ class Storage(object):
 
     def _update_atom_metadata(self, atom_name, update_with,
                               expected_type=None):
-        if not update_with:
-            update_with = {}
         with self._lock.write_lock():
             ad = self._atomdetail_by_name(atom_name,
                                           expected_type=expected_type)
-            if not ad.meta:
-                ad.meta = {}
-            ad.meta.update(update_with)
-            self._with_connection(self._save_atom_detail, ad)
+            if update_with:
+                ad.meta.update(update_with)
+                self._with_connection(self._save_atom_detail, ad)
 
     def update_atom_metadata(self, atom_name, update_with):
         """Updates a atoms metadata given another dictionary or a list of
@@ -288,7 +285,7 @@ class Storage(object):
                                           expected_type=logbook.TaskDetail)
             try:
                 return ad.meta['progress']
-            except (TypeError, KeyError):
+            except KeyError:
                 return 0.0
 
     def get_task_progress_details(self, task_name):
@@ -303,7 +300,7 @@ class Storage(object):
                                           expected_type=logbook.TaskDetail)
             try:
                 return ad.meta['progress_details']
-            except (TypeError, KeyError):
+            except KeyError:
                 return None
 
     def _check_all_results_provided(self, atom_name, data):

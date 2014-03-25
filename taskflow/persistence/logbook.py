@@ -48,6 +48,16 @@ def _safe_unmarshal_time(when):
     return timeutils.unmarshall_time(when)
 
 
+def _fix_meta(data):
+    # Handle the case where older schemas allowed this to be non-dict by
+    # correcting this case by replacing it with a dictionary when a non-dict
+    # is found.
+    meta = data.get('meta')
+    if not isinstance(meta, dict):
+        meta = {}
+    return meta
+
+
 class LogBook(object):
     """This class that contains a dict of flow detail entries for a
     given *job* so that the job can track what 'work' has been
@@ -67,7 +77,7 @@ class LogBook(object):
         self._flowdetails_by_id = {}
         self.created_at = timeutils.utcnow()
         self.updated_at = None
-        self.meta = None
+        self.meta = {}
 
     def add(self, fd):
         """Adds a new entry to the underlying logbook.
@@ -124,7 +134,7 @@ class LogBook(object):
         obj = cls(data['name'], uuid=data['uuid'])
         obj.updated_at = unmarshal_fn(data['updated_at'])
         obj.created_at = unmarshal_fn(data['created_at'])
-        obj.meta = data.get('meta')
+        obj.meta = _fix_meta(data)
         return obj
 
     @property
@@ -156,10 +166,7 @@ class FlowDetail(object):
         self._name = name
         self._atomdetails_by_id = {}
         self.state = None
-        # Any other metadata to include about this flow while storing. For
-        # example timing information could be stored here, other misc. flow
-        # related items (edge connections)...
-        self.meta = None
+        self.meta = {}
 
     def update(self, fd):
         """Updates the objects state to be the same as the given one."""
@@ -202,7 +209,7 @@ class FlowDetail(object):
         """Translates the given data into an instance of this class."""
         obj = cls(data['name'], data['uuid'])
         obj.state = data.get('state')
-        obj.meta = data.get('meta')
+        obj.meta = _fix_meta(data)
         return obj
 
     def add(self, ad):
@@ -256,10 +263,7 @@ class AtomDetail(object):
         # An Failure object that holds exception the atom may have thrown
         # (or part of it), useful for knowing what failed.
         self.failure = None
-        # Any other metadata to include about this atom while storing. For
-        # example timing information could be stored here, other misc. atom
-        # related items.
-        self.meta = None
+        self.meta = {}
         # The version of the atom this atom details was associated with which
         # is quite useful for determining what versions of atoms this detail
         # information can be associated with.
@@ -326,7 +330,7 @@ class AtomDetail(object):
         self.intention = data.get('intention')
         self.results = data.get('results')
         self.version = data.get('version')
-        self.meta = data.get('meta')
+        self.meta = _fix_meta(data)
         failure = data.get('failure')
         if failure:
             self.failure = misc.Failure.from_dict(failure)
