@@ -105,5 +105,5 @@ class Flow(flow.Flow):
 
     def iter_links(self):
         # NOTE(imelnikov): children in unordered flow have no dependencies
-        # betwean each other by construction.
+        # between each other due to invariants retained during construction.
         return iter(())
