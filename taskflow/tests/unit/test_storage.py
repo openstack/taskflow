@@ -186,34 +186,6 @@ class StorageTestMixin(object):
         s.ensure_task('my task')
         self.assertEqual(s.reset('my task'), None)
 
-    def test_reset_tasks(self):
-        s = self._get_storage()
-        s.ensure_task('my task')
-        s.save('my task', 5)
-        s.ensure_task('my other task')
-        s.save('my other task', 7)
-
-        s.reset_tasks()
-
-        self.assertEqual(s.get_task_state('my task'), states.PENDING)
-        self.assertRaises(exceptions.NotFound, s.get, 'my task')
-        self.assertEqual(s.get_task_state('my other task'), states.PENDING)
-        self.assertRaises(exceptions.NotFound, s.get, 'my other task')
-
-    def test_reset_tasks_does_not_breaks_inject(self):
-        s = self._get_storage()
-        s.inject({'foo': 'bar', 'spam': 'eggs'})
-
-        # NOTE(imelnikov): injecting is implemented as special task
-        # so resetting tasks may break it if implemented incorrectly.
-        s.reset_tasks()
-
-        self.assertEqual(s.fetch('spam'), 'eggs')
-        self.assertEqual(s.fetch_all(), {
-            'foo': 'bar',
-            'spam': 'eggs',
-        })
-
     def test_fetch_by_name(self):
         s = self._get_storage()
         name = 'my result'
@@ -350,32 +322,6 @@ class StorageTestMixin(object):
 
         # Only one task should have been made, no more.
         self.assertEqual(1, len(s._flowdetail))
-
-    def test_many_thread_one_reset(self):
-        s = self._get_storage(threaded=True)
-        s.ensure_task('a')
-        s.set_task_state('a', states.SUSPENDED)
-        s.ensure_task('b')
-        s.set_task_state('b', states.SUSPENDED)
-
-        results = []
-        result_lock = threading.Lock()
-
-        def reset_all():
-            r = s.reset_tasks()
-            with result_lock:
-                results.append(r)
-
-        threads = []
-        for i in range(0, self.thread_count):
-            threads.append(threading.Thread(target=reset_all))
-
-        self._run_many_threads(threads)
-
-        # Only one thread should have actually reset (not anymore)
-        results = [r for r in results if len(r)]
-        self.assertEqual(1, len(results))
-        self.assertEqual(['a', 'b'], sorted([a[0] for a in results[0]]))
 
     def test_many_thread_inject(self):
         s = self._get_storage(threaded=True)
