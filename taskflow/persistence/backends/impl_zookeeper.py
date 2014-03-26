@@ -78,7 +78,7 @@ class ZkBackend(base.Backend):
         try:
             k_utils.finalize_client(self._client)
         except (k_exc.KazooException, k_exc.ZookeeperError) as e:
-            raise exc.StorageError("Unable to finalize client", e)
+            raise exc.StorageFailure("Unable to finalize client", e)
 
 
 class ZkConnection(base.Connection):
@@ -94,7 +94,11 @@ class ZkConnection(base.Connection):
 
     def validate(self):
         with self._exc_wrapper():
-            k_utils.check_compatible(self._client, MIN_ZK_VERSION)
+            try:
+                k_utils.check_compatible(self._client, MIN_ZK_VERSION)
+            except exc.IncompatibleVersion as e:
+                raise exc.StorageFailure("Backend storage is not a"
+                                         " compatible version", e)
 
     @property
     def backend(self):
@@ -129,16 +133,16 @@ class ZkConnection(base.Connection):
         try:
             yield
         except self._client.handler.timeout_exception as e:
-            raise exc.ConnectionFailure("Storage backend timeout: %s" % e)
+            raise exc.StorageFailure("Storage backend timeout", e)
         except k_exc.SessionExpiredError as e:
-            raise exc.ConnectionFailure("Storage backend session"
-                                        " has expired: %s" % e)
+            raise exc.StorageFailure("Storage backend session"
+                                     " has expired", e)
         except k_exc.NoNodeError as e:
             raise exc.NotFound("Storage backend node not found: %s" % e)
         except k_exc.NodeExistsError as e:
-            raise exc.AlreadyExists("Storage backend duplicate node: %s" % e)
+            raise exc.Duplicate("Storage backend duplicate node: %s" % e)
         except (k_exc.KazooException, k_exc.ZookeeperError) as e:
-            raise exc.StorageError("Storage backend internal error", e)
+            raise exc.StorageFailure("Storage backend internal error", e)
 
     def update_task_details(self, td):
         """Update a task_detail transactionally."""

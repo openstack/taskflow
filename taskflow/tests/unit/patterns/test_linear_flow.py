@@ -100,13 +100,13 @@ class LinearFlowTest(test.TestCase):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = lf.Flow('test')
-        self.assertRaises(exc.InvariantViolation, f.add, task2, task1)
+        self.assertRaises(exc.DependencyFailure, f.add, task2, task1)
 
     def test_linear_flow_two_dependent_tasks_reverse_order2(self):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = lf.Flow('test').add(task2)
-        self.assertRaises(exc.InvariantViolation, f.add, task1)
+        self.assertRaises(exc.DependencyFailure, f.add, task1)
 
     def test_linear_flow_two_task_same_provide(self):
         task1 = _task(name='task1', provides=['a', 'b'])

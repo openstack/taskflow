@@ -108,7 +108,7 @@ class Storage(object):
             else:
                 td = self._flowdetail.find(task_id)
                 if td.atom_type != logbook.TASK_DETAIL:
-                    raise exceptions.AlreadyExists(
+                    raise exceptions.Duplicate(
                         "Task detail %s already exists in flow detail %s." %
                         (task_name, self._flowdetail.name))
             self._set_result_mapping(task_name, result_mapping)
@@ -136,7 +136,7 @@ class Storage(object):
             else:
                 td = self._flowdetail.find(retry_id)
                 if td.atom_type != logbook.RETRY_DETAIL:
-                    raise exceptions.AlreadyExists(
+                    raise exceptions.Duplicate(
                         "Task detail %s already exists in flow detail %s." %
                         (retry_name, self._flowdetail.name))
             self._set_result_mapping(retry_name, result_mapping)

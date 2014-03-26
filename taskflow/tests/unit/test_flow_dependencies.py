@@ -131,7 +131,7 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_unordered_flow_provides_required_values(self):
         flow = uf.Flow('uf')
-        self.assertRaises(exceptions.InvariantViolation,
+        self.assertRaises(exceptions.DependencyFailure,
                           flow.add,
                           utils.TaskOneReturn('task1', provides='x'),
                           utils.TaskOneArg('task2'))
@@ -139,14 +139,14 @@ class FlowDependenciesTest(test.TestCase):
     def test_unordered_flow_requires_provided_value_other_call(self):
         flow = uf.Flow('uf')
         flow.add(utils.TaskOneReturn('task1', provides='x'))
-        self.assertRaises(exceptions.InvariantViolation,
+        self.assertRaises(exceptions.DependencyFailure,
                           flow.add,
                           utils.TaskOneArg('task2'))
 
     def test_unordered_flow_provides_required_value_other_call(self):
         flow = uf.Flow('uf')
         flow.add(utils.TaskOneArg('task2'))
-        self.assertRaises(exceptions.InvariantViolation,
+        self.assertRaises(exceptions.DependencyFailure,
                           flow.add,
                           utils.TaskOneReturn('task1', provides='x'))
 
@@ -251,7 +251,7 @@ class FlowDependenciesTest(test.TestCase):
                                                           requires=['a']))
 
     def test_task_requires_and_provides_same_values(self):
-        self.assertRaises(exceptions.InvariantViolation,
+        self.assertRaises(exceptions.DependencyFailure,
                           utils.TaskOneArgOneReturn,
                           requires='a',
                           provides='a')
@@ -279,7 +279,7 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.provides, set(['a', 'b']))
 
     def test_retry_requires_and_provides_same_value(self):
-        self.assertRaises(exceptions.InvariantViolation,
+        self.assertRaises(exceptions.DependencyFailure,
                           retry.AlwaysRevert,
                           'rt', requires=['x', 'y'], provides=['x', 'y'])
 
@@ -339,7 +339,7 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_linear_flow_retry_and_task_dependency_conflict(self):
         flow = lf.Flow('lf', retry.AlwaysRevert('rt', requires=['x']))
-        self.assertRaises(exceptions.InvariantViolation,
+        self.assertRaises(exceptions.DependencyFailure,
                           flow.add,
                           utils.TaskOneReturn(provides=['x']))
 
@@ -361,7 +361,7 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_unordered_flow_retry_and_task_dependency_conflict(self):
         flow = uf.Flow('uf', retry.AlwaysRevert('rt', requires=['x']))
-        self.assertRaises(exceptions.InvariantViolation,
+        self.assertRaises(exceptions.DependencyFailure,
                           flow.add,
                           utils.TaskOneReturn(provides=['x']))
 
@@ -390,7 +390,7 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_graph_flow_retry_and_task_dependency_conflict(self):
         flow = gf.Flow('gf', retry.AlwaysRevert('rt', requires=['x']))
-        self.assertRaises(exceptions.InvariantViolation,
+        self.assertRaises(exceptions.DependencyFailure,
                           flow.add,
                           utils.TaskOneReturn(provides=['x']))
 

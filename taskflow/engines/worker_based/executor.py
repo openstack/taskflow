@@ -118,12 +118,12 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         """Handle expired request.
 
         When request has expired it is removed from the requests cache and
-        the `Timeout` exception is set as a request result.
+        the `RequestTimeout` exception is set as a request result.
         """
         LOG.debug("Request '%r' has expired.", request)
         LOG.debug("The '%r' request has expired.", request)
         request.set_result(misc.Failure.from_exception(
-            exc.Timeout("The '%r' request has expired" % request)))
+            exc.RequestTimeout("The '%r' request has expired" % request)))
 
     def _on_wait(self):
         """This function is called cyclically between draining events."""

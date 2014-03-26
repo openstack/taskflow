@@ -504,7 +504,7 @@ class StorageTestMixin(object):
     def test_ensure_retry_and_task_with_same_name(self):
         s = self._get_storage()
         s.ensure_task('my retry')
-        self.assertRaisesRegexp(exceptions.AlreadyExists,
+        self.assertRaisesRegexp(exceptions.Duplicate,
                                 '^Task detail', s.ensure_retry, 'my retry')
 
     def test_save_retry_results(self):

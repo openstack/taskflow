@@ -109,16 +109,15 @@ class ZookeeperJob(base_job.Job):
             job_data = misc.decode_json(raw_data)
         except k_exceptions.NoNodeError:
             pass
-        except k_exceptions.SessionExpiredError:
-            raise excp.ConnectionFailure("Can not fetch the state of %s,"
-                                         " session expired" % (self.uuid))
-        except self._client.handler.timeout_exception:
-            raise excp.ConnectionFailure("Can not fetch the state of %s,"
-                                         " connection timed out" % (self.uuid))
+        except k_exceptions.SessionExpiredError as e:
+            raise excp.JobFailure("Can not fetch the state of %s,"
+                                  " session expired" % (self.uuid), e)
+        except self._client.handler.timeout_exception as e:
+            raise excp.JobFailure("Can not fetch the state of %s,"
+                                  " connection timed out" % (self.uuid), e)
         except k_exceptions.KazooException as e:
-            raise excp.InvalidJobOperation("Can not fetch the state of %s,"
-                                           " internal error: %s"
-                                           % (self.uuid, e))
+            raise excp.JobFailure("Can not fetch the state of %s, internal"
+                                  " error" % (self.uuid), e)
         if not job_data:
             # No data this job has been completed (the owner that we might have
             # fetched will not be able to be fetched again, since the job node
@@ -200,7 +199,7 @@ class ZookeeperJobBoard(jobboard.JobBoard):
             try:
                 if job.state in ok_states:
                     yield job
-            except (excp.InvalidJobOperation, excp.ConnectionFailure) as e:
+            except excp.JobFailure as e:
                 LOG.warn("Failed determining the state of job %s"
                          " due to: %s", job.uuid, e)
 
@@ -308,8 +307,8 @@ class ZookeeperJobBoard(jobboard.JobBoard):
                 return job
             except k_exceptions.NodeExistsException:
                 try_clean(job_path)
-                raise excp.JobAlreadyExists("Duplicate job %s already posted"
-                                            % job.uuid)
+                raise excp.Duplicate("Duplicate job %s already posted"
+                                     % job.uuid)
             except Exception:
                 with excutils.save_and_reraise_exception():
                     try_clean(job_path)
@@ -346,21 +345,21 @@ class ZookeeperJobBoard(jobboard.JobBoard):
             with self._job_mutate:
                 if job_path not in self._known_jobs:
                     fail_msg_tpl += ", unknown job"
-                    raise excp.JobNotFound(fail_msg_tpl % (job_uuid))
+                    raise excp.NotFound(fail_msg_tpl % (job_uuid))
         try:
             yield
-        except self._client.handler.timeout_exception:
+        except self._client.handler.timeout_exception as e:
             fail_msg_tpl += ", connection timed out"
-            raise excp.ConnectionFailure(fail_msg_tpl % (job_uuid))
-        except k_exceptions.SessionExpiredError:
+            raise excp.JobFailure(fail_msg_tpl % (job_uuid), e)
+        except k_exceptions.SessionExpiredError as e:
             fail_msg_tpl += ", session expired"
-            raise excp.ConnectionFailure(fail_msg_tpl % (job_uuid))
+            raise excp.JobFailure(fail_msg_tpl % (job_uuid), e)
         except k_exceptions.NoNodeError:
             fail_msg_tpl += ", unknown job"
-            raise excp.JobNotFound(fail_msg_tpl % (job_uuid))
+            raise excp.NotFound(fail_msg_tpl % (job_uuid))
         except k_exceptions.KazooException as e:
-            fail_msg_tpl += ", internal error: %s"
-            raise excp.InvalidJobOperation(fail_msg_tpl % (job_uuid, e))
+            fail_msg_tpl += ", internal error"
+            raise excp.JobFailure(fail_msg_tpl % (job_uuid), e)
 
     def find_owner(self, job):
         _job_path, lock_path = _get_paths(self.path, job.uuid)
@@ -389,13 +388,13 @@ class ZookeeperJobBoard(jobboard.JobBoard):
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                raise excp.InvalidJobOperation("Can not consume a job %s"
-                                               " which we can not determine"
-                                               " the owner of" % (job.uuid))
+                raise excp.JobFailure("Can not consume a job %s"
+                                      " which we can not determine"
+                                      " the owner of" % (job.uuid))
             if lock_data.get("owner") != who:
-                raise excp.InvalidJobOperation("Can not consume a job %s"
-                                               " which is not owned by %s"
-                                               % (job.uuid, who))
+                raise excp.JobFailure("Can not consume a job %s"
+                                      " which is not owned by %s"
+                                      % (job.uuid, who))
 
             with self._client.transaction() as txn:
                 txn.delete(lock_path, version=lock_stat.version)
@@ -411,13 +410,13 @@ class ZookeeperJobBoard(jobboard.JobBoard):
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                raise excp.InvalidJobOperation("Can not abandon a job %s"
-                                               " which we can not determine"
-                                               " the owner of" % (job.uuid))
+                raise excp.JobFailure("Can not abandon a job %s"
+                                      " which we can not determine"
+                                      " the owner of" % (job.uuid))
             if lock_data.get("owner") != who:
-                raise excp.InvalidJobOperation("Can not abandon a job %s"
-                                               " which is not owned by %s"
-                                               % (job.uuid, who))
+                raise excp.JobFailure("Can not abandon a job %s"
+                                      " which is not owned by %s"
+                                      % (job.uuid, who))
 
             with self._client.transaction() as txn:
                 txn.delete(lock_path, version=lock_stat.version)
@@ -461,8 +460,7 @@ class ZookeeperJobBoard(jobboard.JobBoard):
             self._client.start(timeout=timeout)
         except (self._client.handler.timeout_exception,
                 k_exceptions.KazooException) as e:
-            raise excp.ConnectionFailure("Failed to connect to"
-                                         " zookeeper due to: %s" % (e))
+            raise excp.JobFailure("Failed to connect to zookeeper", e)
         try:
             kazoo_utils.check_compatible(self._client, MIN_ZK_VERSION)
             self._client.ensure_path(self.path)
@@ -477,5 +475,5 @@ class ZookeeperJobBoard(jobboard.JobBoard):
         except (self._client.handler.timeout_exception,
                 k_exceptions.KazooException) as e:
             try_clean()
-            raise excp.ConnectionFailure("Failed to do post-connection"
-                                         " initialization due to: %s" % (e))
+            raise excp.JobFailure("Failed to do post-connection"
+                                  " initialization", e)

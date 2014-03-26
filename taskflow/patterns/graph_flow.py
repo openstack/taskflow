@@ -123,7 +123,7 @@ class Flow(flow.Flow):
                                flow=provided[value].name,
                                value=value))
                 if value in self._retry_requires:
-                    raise exc.InvariantViolation(
+                    raise exc.DependencyFailure(
                         "Flows retry controller %(retry)s requires %(value)s "
                         "but item %(item)s being added to the flow produces "
                         "that item, this creates a cyclic dependency and is "

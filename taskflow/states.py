@@ -110,7 +110,7 @@ def check_flow_transition(old_state, new_state):
 
     If transition can be performed, it returns True. If transition
     should be ignored, it returns False. If transition is not
-    valid, it raises InvalidState exception.
+    valid, it raises an InvalidState exception.
     """
     if old_state == new_state:
         return False
