@@ -1,6 +1,6 @@
----------------
+------------------------
 Atoms, Tasks and Retries
----------------
+------------------------
 
 An atom is the smallest unit in taskflow which acts as the base for other
 classes. Atoms have a name and a version (if applicable). Atom is expected

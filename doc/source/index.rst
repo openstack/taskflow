@@ -8,10 +8,12 @@ TaskFlow documentation is hosted on wiki: https://wiki.openstack.org/wiki/TaskFl
 Contents
 ========
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    atoms
+   arguments_and_results
    patterns
+   inputs_and_outputs
    engines
    storage
    persistence
