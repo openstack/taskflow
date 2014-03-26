@@ -587,6 +587,9 @@ class WorkerBasedEngineTest(EngineTaskTest,
                 'taskflow.tests.utils',
             ],
             'transport': self.transport,
+            'transport_options': {
+                'polling_interval': 0.01
+            }
         }
         self.worker = wkr.Worker(**worker_conf)
         self.worker_thread = threading.Thread(target=self.worker.run)
