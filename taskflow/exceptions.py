@@ -37,7 +37,7 @@ class TaskFlowException(Exception):
     def pformat(self, indent=2):
         """Pretty formats a taskflow exception + any connected causes."""
         if indent < 0:
-            raise ValueError("indent must be greater than zero")
+            raise ValueError("indent must be greater than or equal to zero")
 
         def _format(excp, indent_by):
             lines = []
