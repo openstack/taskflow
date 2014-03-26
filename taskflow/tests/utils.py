@@ -307,7 +307,13 @@ class WaitForOneFromTask(SaveOrderTask):
         self.event = threading.Event()
 
     def execute(self):
-        self.event.wait()
+        # NOTE(imelnikov): if test was not complete within
+        # 5 minutes, something is terribly wrong
+        self.event.wait(300)
+        if not self.event.is_set():
+            raise RuntimeError('Timeout occurred while waiting '
+                               'for %s to change state to %s'
+                               % (self.wait_for, self.wait_states))
         return super(WaitForOneFromTask, self).execute()
 
     def callback(self, state, details):
