@@ -137,6 +137,22 @@ class FlattenTest(test.TestCase):
         lb = g.subgraph([c, d])
         self.assertEqual(1, lb.number_of_edges())
 
+    def test_unordered_nested_in_linear_flatten(self):
+        a, b, c, d = _make_many(4)
+        flo = lf.Flow('lt').add(
+            a,
+            uf.Flow('ut').add(b, c),
+            d)
+
+        g = f_utils.flatten(flo)
+        self.assertEqual(4, len(g))
+        self.assertItemsEqual(g.edges(), [
+            (a, b),
+            (a, c),
+            (b, d),
+            (c, d)
+        ])
+
     def test_graph_flatten(self):
         a, b, c, d = _make_many(4)
         flo = gf.Flow("test")
@@ -218,10 +234,10 @@ class FlattenTest(test.TestCase):
         g = f_utils.flatten(flo)
         self.assertEqual(3, len(g))
         self.assertItemsEqual(g.edges(data=True), [
-            (a, b, {'reasons': set(['x'])}),
+            (a, c, {'reasons': set(['x'])}),
             (b, c, {'invariant': True})
         ])
-        self.assertItemsEqual([a], g_utils.get_no_predecessors(g))
+        self.assertItemsEqual([a, b], g_utils.get_no_predecessors(g))
         self.assertItemsEqual([c], g_utils.get_no_successors(g))
 
     def test_graph_flatten_nested_provides(self):
@@ -237,10 +253,10 @@ class FlattenTest(test.TestCase):
         self.assertEqual(3, len(g))
         self.assertItemsEqual(g.edges(data=True), [
             (b, c, {'invariant': True}),
-            (c, a, {'reasons': set(['x'])})
+            (b, a, {'reasons': set(['x'])})
         ])
         self.assertItemsEqual([b], g_utils.get_no_predecessors(g))
-        self.assertItemsEqual([a], g_utils.get_no_successors(g))
+        self.assertItemsEqual([a, c], g_utils.get_no_successors(g))
 
     def test_flatten_checks_for_dups(self):
         flo = gf.Flow("test").add(

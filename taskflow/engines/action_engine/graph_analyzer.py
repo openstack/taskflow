@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from networkx.algorithms import traversal
 import six
 
 from taskflow import retry as r
@@ -124,22 +125,8 @@ class GraphAnalyzer(object):
         """Iterates a subgraph connected to current retry controller, including
         nested retry controllers and its nodes.
         """
-        visited_nodes = set()
-        retries_scope = set()
-        retries_scope.add(retry)
-
-        nodes = self._graph.successors(retry)
-        while nodes:
-            next_nodes = []
-            for node in nodes:
-                if node not in visited_nodes:
-                    visited_nodes.add(node)
-                    if self.find_atom_retry(node) in retries_scope:
-                        yield node
-                        if isinstance(node, r.Retry):
-                            retries_scope.add(node)
-                        next_nodes += self._graph.successors(node)
-            nodes = next_nodes
+        for _src, dst in traversal.dfs_edges(self._graph, retry):
+            yield dst
 
     def iterate_retries(self, state=None):
         """Iterates retry controllers of a graph with given state or all

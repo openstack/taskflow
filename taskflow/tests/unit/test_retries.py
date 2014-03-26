@@ -493,7 +493,7 @@ class RetryTest(utils.EngineTestBase):
         self.assertEqual(self.values, expected)
 
     def test_for_each_with_set(self):
-        collection = ([3, 2, 5])
+        collection = set([3, 2, 5])
         retry1 = retry.ForEach(collection, 'r1', provides='x')
         flow = lf.Flow('flow-1', retry1).add(utils.FailingTaskWithOneArg('t1'))
         engine = self._make_engine(flow)
@@ -635,6 +635,53 @@ class RetryTest(utils.EngineTestBase):
         self.assertEqual(len(r.history), 1)
         self.assertEqual(r.history[0][1], {})
         self.assertEqual(isinstance(r.history[0][0], misc.Failure), True)
+
+    def test_nested_provides_graph_reverts_correctly(self):
+        flow = gf.Flow("test").add(
+            utils.SaveOrderTask('a', requires=['x']),
+            lf.Flow("test2", retry=retry.Times(2)).add(
+                utils.SaveOrderTask('b', provides='x'),
+                utils.FailingTask('c')))
+        engine = self._make_engine(flow)
+        engine.compile()
+        engine.storage.save('test2_retry', 1)
+        engine.storage.save('b', 11)
+        engine.storage.save('a', 10)
+        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+        self.assertItemsEqual(self.values[:3], [
+            'a reverted(10)',
+            'c reverted(Failure: RuntimeError: Woot!)',
+            'b reverted(11)',
+        ])
+        # Task 'a' was or was not executed again, both cases are ok.
+        self.assertIsSuperAndSubsequence(self.values[3:], [
+            'b',
+            'c reverted(Failure: RuntimeError: Woot!)',
+            'b reverted(5)'
+        ])
+        self.assertEqual(engine.storage.get_flow_state(), st.REVERTED)
+
+    def test_nested_provides_graph_retried_correctly(self):
+        flow = gf.Flow("test").add(
+            utils.SaveOrderTask('a', requires=['x']),
+            lf.Flow("test2", retry=retry.Times(2)).add(
+                utils.SaveOrderTask('b', provides='x'),
+                utils.SaveOrderTask('c')))
+        engine = self._make_engine(flow)
+        engine.compile()
+        engine.storage.save('test2_retry', 1)
+        engine.storage.save('b', 11)
+        # pretend that 'c' failed
+        fail = misc.Failure.from_exception(RuntimeError('Woot!'))
+        engine.storage.save('c', fail, st.FAILURE)
+
+        engine.run()
+        self.assertItemsEqual(self.values[:2], [
+            'c reverted(Failure: RuntimeError: Woot!)',
+            'b reverted(11)',
+        ])
+        self.assertItemsEqual(self.values[2:], ['b', 'c', 'a'])
+        self.assertEqual(engine.storage.get_flow_state(), st.SUCCESS)
 
 
 class RetryParallelExecutionTest(utils.EngineTestBase):
