@@ -44,6 +44,12 @@ class Proxy(object):
         self._transport = kwargs.get('transport')
         self._transport_opts = kwargs.get('transport_options')
 
+        self._drain_events_timeout = DRAIN_EVENTS_PERIOD
+        if self._transport == 'memory' and self._transport_opts:
+            polling_interval = self._transport_opts.get('polling_interval')
+            if polling_interval:
+                self._drain_events_timeout = polling_interval
+
         # create connection
         self._conn = kombu.Connection(self._url, transport=self._transport,
                                       transport_options=self._transport_opts)
@@ -95,7 +101,7 @@ class Proxy(object):
                 self._running.set()
                 while self.is_running:
                     try:
-                        conn.drain_events(timeout=DRAIN_EVENTS_PERIOD)
+                        conn.drain_events(timeout=self._drain_events_timeout)
                     except socket.timeout:
                         pass
                     if self._on_wait is not None:
