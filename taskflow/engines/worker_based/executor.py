@@ -105,8 +105,11 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                 elif response.state == pr.PROGRESS:
                     request.on_progress(**response.data)
                 elif response.state in (pr.FAILURE, pr.SUCCESS):
-                    request.set_result(**response.data)
+                    # NOTE(imelnikov): request should not be in cache when
+                    # another thread can see its result and schedule another
+                    # request with same uuid; so we remove it, then set result
                     self._requests_cache.delete(request.uuid)
+                    request.set_result(**response.data)
                 else:
                     LOG.warning("Unexpected response status: '%s'",
                                 response.state)
