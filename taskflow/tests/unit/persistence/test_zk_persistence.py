@@ -34,7 +34,8 @@ TEST_PATH_TPL = '/taskflow/persistence-test/%s'
 def _zookeeper_available():
     client = kazoo_utils.make_client(TEST_CONFIG)
     try:
-        client.start()
+        # NOTE(imelnikov): 3 seconds we should be enough for localhost
+        client.start(timeout=3)
         zk_ver = client.server_version()
         if zk_ver >= impl_zookeeper.MIN_ZK_VERSION:
             return True
@@ -43,14 +44,13 @@ def _zookeeper_available():
     except Exception:
         return False
     finally:
-        try:
-            client.stop()
-            client.close()
-        except Exception:
-            pass
+        kazoo_utils.finalize_client(client)
 
 
-@testtools.skipIf(not _zookeeper_available(), 'zookeeper is not available')
+_ZOOKEEPER_AVAILABLE = _zookeeper_available()
+
+
+@testtools.skipIf(not _ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
 class ZkPersistenceTest(test.TestCase, base.PersistenceTestMixin):
     def _get_connection(self):
         return self.backend.get_connection()
