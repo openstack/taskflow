@@ -28,7 +28,6 @@ from taskflow.openstack.common import uuidutils
 
 from taskflow.persistence import logbook
 from taskflow import states
-from taskflow.utils import persistence_utils
 
 BASE = declarative_base()
 
@@ -47,27 +46,6 @@ class Json(types.TypeDecorator):
 
     def process_result_value(self, value, dialect):
         return jsonutils.loads(value)
-
-
-class Failure(types.TypeDecorator):
-    """Put misc.Failure object into database column.
-
-    We convert Failure object to dict, serialize that dict into
-    JSON and save it. None is stored as NULL.
-
-    The conversion is lossy since we cannot save exc_info.
-    """
-    impl = types.Text
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        return jsonutils.dumps(persistence_utils.failure_to_dict(value))
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        return persistence_utils.failure_from_dict(jsonutils.loads(value))
 
 
 class ModelBase(TimestampMixin):
@@ -98,23 +76,23 @@ class FlowDetail(BASE, ModelBase):
 
     # Relationships
     parent_uuid = Column(String, ForeignKey('logbooks.uuid'))
-    taskdetails = relationship("TaskDetail",
+    atomdetails = relationship("AtomDetail",
                                single_parent=True,
                                backref=backref("flowdetails",
                                                cascade="save-update, delete, "
                                                        "merge"))
 
 
-class TaskDetail(BASE, ModelBase):
-    __tablename__ = 'taskdetails'
+class AtomDetail(BASE, ModelBase):
+    __tablename__ = 'atomdetails'
 
-    atom_type = Column(Enum(*logbook.ATOM_TYPES, name='atom_types'))
     # Member variables
+    atom_type = Column(Enum(*logbook.ATOM_TYPES, name='atom_types'))
     state = Column(String)
     intention = Column(Enum(*states.INTENTIONS, name='intentions'))
     results = Column(Json)
-    failure = Column(Failure)
-    version = Column(String)
+    failure = Column(Json)
+    version = Column(Json)
 
     # Relationships
     parent_uuid = Column(String, ForeignKey('flowdetails.uuid'))

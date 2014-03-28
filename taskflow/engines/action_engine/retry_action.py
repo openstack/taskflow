@@ -37,7 +37,7 @@ class RetryAction(object):
         return kwargs
 
     def change_state(self, retry, state, result=None):
-        old_state = self._storage.get_task_state(retry.name)
+        old_state = self._storage.get_atom_state(retry.name)
         if old_state == state:
             return state != states.PENDING
         if state in SAVE_RESULT_STATES:
@@ -45,9 +45,8 @@ class RetryAction(object):
         elif state == states.REVERTED:
             self._storage.cleanup_retry_history(retry.name, state)
         else:
-            self._storage.set_task_state(retry.name, state)
-
-        retry_uuid = self._storage.get_task_uuid(retry.name)
+            self._storage.set_atom_state(retry.name, state)
+        retry_uuid = self._storage.get_atom_uuid(retry.name)
         details = dict(retry_name=retry.name,
                        retry_uuid=retry_uuid,
                        result=result)

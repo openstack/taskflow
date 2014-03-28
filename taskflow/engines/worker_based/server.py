@@ -22,7 +22,6 @@ from kombu import exceptions as kombu_exc
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow.utils import misc
-from taskflow.utils import persistence_utils as pu
 
 LOG = logging.getLogger(__name__)
 
@@ -86,13 +85,13 @@ class Server(object):
         if result is not None:
             data_type, data = result
             if data_type == 'failure':
-                action_args['result'] = pu.failure_from_dict(data)
+                action_args['result'] = misc.Failure.from_dict(data)
             else:
                 action_args['result'] = data
         if failures is not None:
             action_args['failures'] = {}
             for k, v in failures.items():
-                action_args['failures'][k] = pu.failure_from_dict(v)
+                action_args['failures'][k] = misc.Failure.from_dict(v)
         return task_cls, action, action_args
 
     @staticmethod
@@ -164,7 +163,7 @@ class Server(object):
         except ValueError:
             with misc.capture_failure() as failure:
                 LOG.exception("Failed to parse request")
-                reply_callback(result=pu.failure_to_dict(failure))
+                reply_callback(result=failure.to_dict())
                 return
 
         # get task endpoint
@@ -174,7 +173,7 @@ class Server(object):
             with misc.capture_failure() as failure:
                 LOG.exception("The '%s' task endpoint does not exist",
                               task_cls)
-                reply_callback(result=pu.failure_to_dict(failure))
+                reply_callback(result=failure.to_dict())
                 return
         else:
             reply_callback(state=pr.RUNNING)
@@ -185,10 +184,10 @@ class Server(object):
         except Exception:
             with misc.capture_failure() as failure:
                 LOG.exception("The %s task execution failed", endpoint)
-                reply_callback(result=pu.failure_to_dict(failure))
+                reply_callback(result=failure.to_dict())
         else:
             if isinstance(result, misc.Failure):
-                reply_callback(result=pu.failure_to_dict(result))
+                reply_callback(result=result.to_dict())
             else:
                 reply_callback(state=pr.SUCCESS, result=result)
 

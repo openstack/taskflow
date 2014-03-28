@@ -37,7 +37,6 @@ from taskflow.persistence.backends.sqlalchemy import models
 from taskflow.persistence import logbook
 from taskflow.utils import eventlet_utils
 from taskflow.utils import misc
-from taskflow.utils import persistence_utils
 
 
 LOG = logging.getLogger(__name__)
@@ -347,17 +346,17 @@ class Connection(base.Connection):
     def clear_all(self):
         return self._run_in_session(self._clear_all)
 
-    def _update_task_details(self, session, td):
-        # Must already exist since a tasks details has a strong connection to
-        # a flow details, and tasks details can not be saved on there own since
-        # they *must* have a connection to an existing flow details.
-        td_m = _task_details_get_model(td.uuid, session=session)
-        td_m = _taskdetails_merge(td_m, td)
-        td_m = session.merge(td_m)
-        return _convert_td_to_external(td_m)
+    def _update_atom_details(self, session, ad):
+        # Must already exist since a atoms details has a strong connection to
+        # a flow details, and atom details can not be saved on there own since
+        # they *must* have a connection to an existing flow detail.
+        ad_m = _atom_details_get_model(ad.uuid, session=session)
+        ad_m = _atomdetails_merge(ad_m, ad)
+        ad_m = session.merge(ad_m)
+        return _convert_ad_to_external(ad_m)
 
-    def update_task_details(self, task_detail):
-        return self._run_in_session(self._update_task_details, td=task_detail)
+    def update_atom_details(self, atom_detail):
+        return self._run_in_session(self._update_atom_details, ad=atom_detail)
 
     def _update_flow_details(self, session, fd):
         # Must already exist since a flow details has a strong connection to
@@ -432,12 +431,63 @@ class Connection(base.Connection):
 ###
 
 
+def _atomdetails_merge(ad_m, ad):
+    atom_type = logbook.atom_detail_type(ad)
+    if atom_type != ad_m.atom_type:
+        raise exc.StorageError("Can not merge differing atom types (%s != %s)"
+                               % (atom_type, ad_m.atom_type))
+    ad_d = ad.to_dict()
+    ad_m.state = ad_d['state']
+    ad_m.intention = ad_d['intention']
+    ad_m.results = ad_d['results']
+    ad_m.version = ad_d['version']
+    ad_m.failure = ad_d['failure']
+    ad_m.meta = ad_d['meta']
+    ad_m.name = ad_d['name']
+    return ad_m
+
+
+def _flowdetails_merge(fd_m, fd):
+    fd_d = fd.to_dict()
+    fd_m.state = fd_d['state']
+    fd_m.name = fd_d['name']
+    fd_m.meta = fd_d['meta']
+    for ad in fd:
+        existing_ad = False
+        for ad_m in fd_m.atomdetails:
+            if ad_m.uuid == ad.uuid:
+                existing_ad = True
+                ad_m = _atomdetails_merge(ad_m, ad)
+                break
+        if not existing_ad:
+            ad_m = _convert_ad_to_internal(ad, fd_m.uuid)
+            fd_m.atomdetails.append(ad_m)
+    return fd_m
+
+
+def _logbook_merge(lb_m, lb):
+    lb_d = lb.to_dict()
+    lb_m.meta = lb_d['meta']
+    lb_m.name = lb_d['name']
+    lb_m.created_at = lb_d['created_at']
+    lb_m.updated_at = lb_d['updated_at']
+    for fd in lb:
+        existing_fd = False
+        for fd_m in lb_m.flowdetails:
+            if fd_m.uuid == fd.uuid:
+                existing_fd = True
+                fd_m = _flowdetails_merge(fd_m, fd)
+        if not existing_fd:
+            lb_m.flowdetails.append(_convert_fd_to_internal(fd, lb_m.uuid))
+    return lb_m
+
+
 def _convert_fd_to_external(fd):
     fd_c = logbook.FlowDetail(fd.name, uuid=fd.uuid)
     fd_c.meta = fd.meta
     fd_c.state = fd.state
-    for td in fd.taskdetails:
-        fd_c.add(_convert_td_to_external(td))
+    for ad_m in fd.atomdetails:
+        fd_c.add(_convert_ad_to_external(ad_m))
     return fd_c
 
 
@@ -445,47 +495,40 @@ def _convert_fd_to_internal(fd, parent_uuid):
     fd_m = models.FlowDetail(name=fd.name, uuid=fd.uuid,
                              parent_uuid=parent_uuid, meta=fd.meta,
                              state=fd.state)
-    fd_m.taskdetails = []
-    for td in fd:
-        fd_m.taskdetails.append(_convert_td_to_internal(td, fd_m.uuid))
+    fd_m.atomdetails = []
+    for ad in fd:
+        fd_m.atomdetails.append(_convert_ad_to_internal(ad, fd_m.uuid))
     return fd_m
 
 
-def _convert_td_to_internal(td, parent_uuid):
-    results = td.results
-    if td.atom_type == logbook.RETRY_DETAIL:
-        results = persistence_utils.encode_retry_results(results)
-    return models.TaskDetail(name=td.name, uuid=td.uuid,
-                             atom_type=td.atom_type,
-                             intention=td.intention,
-                             state=td.state, results=results,
-                             failure=td.failure, meta=td.meta,
-                             version=td.version, parent_uuid=parent_uuid)
+def _convert_ad_to_internal(ad, parent_uuid):
+    converted = ad.to_dict()
+    converted['atom_type'] = logbook.atom_detail_type(ad)
+    converted['parent_uuid'] = parent_uuid
+    return models.AtomDetail(**converted)
 
 
-def _convert_td_to_external(td):
+def _convert_ad_to_external(ad):
     # Convert from sqlalchemy model -> external model, this allows us
     # to change the internal sqlalchemy model easily by forcing a defined
     # interface (that isn't the sqlalchemy model itself).
-    results = td.results
-    if td.atom_type == logbook.RETRY_DETAIL:
-        results = persistence_utils.decode_retry_results(results)
-    atom_cls = logbook.get_atom_detail_class(td.atom_type)
-    td_c = atom_cls(td.name, uuid=td.uuid)
-    td_c.state = td.state
-    td_c.intention = td.intention
-    td_c.results = results
-    td_c.failure = td.failure
-    td_c.meta = td.meta
-    td_c.version = td.version
-    return td_c
+    atom_cls = logbook.atom_detail_class(ad.atom_type)
+    return atom_cls.from_dict({
+        'state': ad.state,
+        'intention': ad.intention,
+        'results': ad.results,
+        'failure': ad.failure,
+        'meta': ad.meta,
+        'version': ad.version,
+        'name': ad.name,
+        'uuid': ad.uuid,
+    })
 
 
 def _convert_lb_to_external(lb_m):
-    """Don't expose the internal sqlalchemy ORM model to the external api."""
-    lb_c = logbook.LogBook(lb_m.name, lb_m.uuid,
-                           updated_at=lb_m.updated_at,
-                           created_at=lb_m.created_at)
+    lb_c = logbook.LogBook(lb_m.name, lb_m.uuid)
+    lb_c.updated_at = lb_m.updated_at
+    lb_c.created_at = lb_m.created_at
     lb_c.meta = lb_m.meta
     for fd_m in lb_m.flowdetails:
         lb_c.add(_convert_fd_to_external(fd_m))
@@ -493,7 +536,6 @@ def _convert_lb_to_external(lb_m):
 
 
 def _convert_lb_to_internal(lb_c):
-    """Don't expose the external model to the sqlalchemy ORM model."""
     lb_m = models.LogBook(uuid=lb_c.uuid, meta=lb_c.meta, name=lb_c.name)
     lb_m.flowdetails = []
     for fd_c in lb_c:
@@ -508,48 +550,15 @@ def _logbook_get_model(lb_id, session):
     return entry
 
 
-def _flow_details_get_model(f_id, session):
-    entry = session.query(models.FlowDetail).filter_by(uuid=f_id).first()
+def _flow_details_get_model(flow_id, session):
+    entry = session.query(models.FlowDetail).filter_by(uuid=flow_id).first()
     if entry is None:
-        raise exc.NotFound("No flow details found with id: %s" % f_id)
+        raise exc.NotFound("No flow details found with id: %s" % flow_id)
     return entry
 
 
-def _task_details_get_model(t_id, session):
-    entry = session.query(models.TaskDetail).filter_by(uuid=t_id).first()
+def _atom_details_get_model(atom_id, session):
+    entry = session.query(models.AtomDetail).filter_by(uuid=atom_id).first()
     if entry is None:
-        raise exc.NotFound("No task details found with id: %s" % t_id)
+        raise exc.NotFound("No atom details found with id: %s" % atom_id)
     return entry
-
-
-def _logbook_merge(lb_m, lb):
-    lb_m = persistence_utils.logbook_merge(lb_m, lb)
-    for fd in lb:
-        existing_fd = False
-        for fd_m in lb_m.flowdetails:
-            if fd_m.uuid == fd.uuid:
-                existing_fd = True
-                fd_m = _flowdetails_merge(fd_m, fd)
-        if not existing_fd:
-            lb_m.flowdetails.append(_convert_fd_to_internal(fd, lb_m.uuid))
-    return lb_m
-
-
-def _flowdetails_merge(fd_m, fd):
-    fd_m = persistence_utils.flow_details_merge(fd_m, fd)
-    for td in fd:
-        existing_td = False
-        for td_m in fd_m.taskdetails:
-            if td_m.uuid == td.uuid:
-                existing_td = True
-                td_m = _taskdetails_merge(td_m, td)
-                break
-        if not existing_td:
-            td_m = _convert_td_to_internal(td, fd_m.uuid)
-            fd_m.taskdetails.append(td_m)
-    return fd_m
-
-
-def _taskdetails_merge(td_m, td):
-    td_i = _convert_td_to_internal(td, td_m.parent_uuid)
-    return persistence_utils.task_details_merge(td_m, td_i)

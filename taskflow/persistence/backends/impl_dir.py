@@ -25,9 +25,9 @@ import six
 from taskflow import exceptions as exc
 from taskflow.openstack.common import jsonutils
 from taskflow.persistence.backends import base
+from taskflow.persistence import logbook
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
-from taskflow.utils import persistence_utils as p_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ class Connection(base.Connection):
         self._backend = backend
         self._file_cache = self._backend._file_cache
         self._flow_path = os.path.join(self._backend.base_path, 'flows')
-        self._task_path = os.path.join(self._backend.base_path, 'tasks')
+        self._atom_path = os.path.join(self._backend.base_path, 'atoms')
         self._book_path = os.path.join(self._backend.base_path, 'books')
 
     def validate(self):
@@ -73,7 +73,7 @@ class Connection(base.Connection):
             self._backend.base_path,
             self._backend.lock_path,
             self._flow_path,
-            self._task_path,
+            self._atom_path,
             self._book_path,
         ]
         for p in paths:
@@ -141,37 +141,38 @@ class Connection(base.Connection):
     def close(self):
         pass
 
-    def _save_task_details(self, task_detail, ignore_missing):
-        # See if we have an existing task detail to merge with.
-        e_td = None
+    def _save_atom_details(self, atom_detail, ignore_missing):
+        # See if we have an existing atom detail to merge with.
+        e_ad = None
         try:
-            e_td = self._get_task_details(task_detail.uuid, lock=False)
+            e_ad = self._get_atom_details(atom_detail.uuid, lock=False)
         except EnvironmentError:
             if not ignore_missing:
-                raise exc.NotFound("No task details found with id: %s"
-                                   % task_detail.uuid)
-        if e_td is not None:
-            task_detail = p_utils.task_details_merge(e_td, task_detail)
-        td_path = os.path.join(self._task_path, task_detail.uuid)
-        td_data = p_utils.format_task_detail(task_detail)
-        self._write_to(td_path, jsonutils.dumps(td_data))
-        return task_detail
+                raise exc.NotFound("No atom details found with id: %s"
+                                   % atom_detail.uuid)
+        if e_ad is not None:
+            atom_detail = e_ad.merge(atom_detail)
+        ad_path = os.path.join(self._atom_path, atom_detail.uuid)
+        ad_data = base._format_atom(atom_detail)
+        self._write_to(ad_path, jsonutils.dumps(ad_data))
+        return atom_detail
 
-    def update_task_details(self, task_detail):
-        return self._run_with_process_lock("task",
-                                           self._save_task_details,
-                                           task_detail,
+    def update_atom_details(self, atom_detail):
+        return self._run_with_process_lock("atom",
+                                           self._save_atom_details,
+                                           atom_detail,
                                            ignore_missing=False)
 
-    def _get_task_details(self, uuid, lock=True):
+    def _get_atom_details(self, uuid, lock=True):
 
         def _get():
-            td_path = os.path.join(self._task_path, uuid)
-            td_data = misc.decode_json(self._read_from(td_path))
-            return p_utils.unformat_task_detail(uuid, td_data)
+            ad_path = os.path.join(self._atom_path, uuid)
+            ad_data = misc.decode_json(self._read_from(ad_path))
+            ad_cls = logbook.atom_detail_class(ad_data['type'])
+            return ad_cls.from_dict(ad_data['atom'])
 
         if lock:
-            return self._run_with_process_lock('task', _get)
+            return self._run_with_process_lock('atom', _get)
         else:
             return _get()
 
@@ -181,17 +182,17 @@ class Connection(base.Connection):
             fd_path = os.path.join(self._flow_path, uuid)
             meta_path = os.path.join(fd_path, 'metadata')
             meta = misc.decode_json(self._read_from(meta_path))
-            fd = p_utils.unformat_flow_detail(uuid, meta)
-            td_to_load = []
-            td_path = os.path.join(fd_path, 'tasks')
+            fd = logbook.FlowDetail.from_dict(meta)
+            ad_to_load = []
+            ad_path = os.path.join(fd_path, 'atoms')
             try:
-                td_to_load = [f for f in os.listdir(td_path)
-                              if os.path.islink(os.path.join(td_path, f))]
+                ad_to_load = [f for f in os.listdir(ad_path)
+                              if os.path.islink(os.path.join(ad_path, f))]
             except EnvironmentError as e:
                 if e.errno != errno.ENOENT:
                     raise
-            for t_uuid in td_to_load:
-                fd.add(self._get_task_details(t_uuid))
+            for ad_uuid in ad_to_load:
+                fd.add(self._get_atom_details(ad_uuid))
             return fd
 
         if lock:
@@ -199,13 +200,13 @@ class Connection(base.Connection):
         else:
             return _get()
 
-    def _save_tasks_and_link(self, task_details, local_task_path):
-        for task_detail in task_details:
-            self._save_task_details(task_detail, ignore_missing=True)
-            src_td_path = os.path.join(self._task_path, task_detail.uuid)
-            target_td_path = os.path.join(local_task_path, task_detail.uuid)
+    def _save_atoms_and_link(self, atom_details, local_atom_path):
+        for atom_detail in atom_details:
+            self._save_atom_details(atom_detail, ignore_missing=True)
+            src_ad_path = os.path.join(self._atom_path, atom_detail.uuid)
+            target_ad_path = os.path.join(local_atom_path, atom_detail.uuid)
             try:
-                os.symlink(src_td_path, target_td_path)
+                os.symlink(src_ad_path, target_ad_path)
             except EnvironmentError as e:
                 if e.errno != errno.EEXIST:
                     raise
@@ -220,22 +221,21 @@ class Connection(base.Connection):
                 raise exc.NotFound("No flow details found with id: %s"
                                    % flow_detail.uuid)
         if e_fd is not None:
-            e_fd = p_utils.flow_details_merge(e_fd, flow_detail)
-            for td in flow_detail:
-                if e_fd.find(td.uuid) is None:
-                    e_fd.add(td)
+            e_fd = e_fd.merge(flow_detail)
+            for ad in flow_detail:
+                if e_fd.find(ad.uuid) is None:
+                    e_fd.add(ad)
             flow_detail = e_fd
         flow_path = os.path.join(self._flow_path, flow_detail.uuid)
         misc.ensure_tree(flow_path)
-        self._write_to(
-            os.path.join(flow_path, 'metadata'),
-            jsonutils.dumps(p_utils.format_flow_detail(flow_detail)))
+        self._write_to(os.path.join(flow_path, 'metadata'),
+                       jsonutils.dumps(flow_detail.to_dict()))
         if len(flow_detail):
-            task_path = os.path.join(flow_path, 'tasks')
-            misc.ensure_tree(task_path)
-            self._run_with_process_lock('task',
-                                        self._save_tasks_and_link,
-                                        list(flow_detail), task_path)
+            atom_path = os.path.join(flow_path, 'atoms')
+            misc.ensure_tree(atom_path)
+            self._run_with_process_lock('atom',
+                                        self._save_atoms_and_link,
+                                        list(flow_detail), atom_path)
         return flow_detail
 
     def update_flow_details(self, flow_detail):
@@ -263,18 +263,15 @@ class Connection(base.Connection):
         except exc.NotFound:
             pass
         if e_lb is not None:
-            e_lb = p_utils.logbook_merge(e_lb, book)
+            e_lb = e_lb.merge(book)
             for fd in book:
                 if e_lb.find(fd.uuid) is None:
                     e_lb.add(fd)
             book = e_lb
         book_path = os.path.join(self._book_path, book.uuid)
         misc.ensure_tree(book_path)
-        created_at = None
-        if e_lb is not None:
-            created_at = e_lb.created_at
-        self._write_to(os.path.join(book_path, 'metadata'), jsonutils.dumps(
-            p_utils.format_logbook(book, created_at=created_at)))
+        self._write_to(os.path.join(book_path, 'metadata'),
+                       jsonutils.dumps(book.to_dict(marshal_time=True)))
         if len(book):
             flow_path = os.path.join(book_path, 'flows')
             misc.ensure_tree(flow_path)
@@ -290,7 +287,7 @@ class Connection(base.Connection):
     def upgrade(self):
 
         def _step_create():
-            for path in (self._book_path, self._flow_path, self._task_path):
+            for path in (self._book_path, self._flow_path, self._atom_path):
                 try:
                     misc.ensure_tree(path)
                 except EnvironmentError as e:
@@ -310,15 +307,15 @@ class Connection(base.Connection):
     def clear_all(self):
 
         def _step_clear():
-            for d in (self._book_path, self._flow_path, self._task_path):
+            for d in (self._book_path, self._flow_path, self._atom_path):
                 if os.path.isdir(d):
                     shutil.rmtree(d)
 
-        def _step_task():
-            self._run_with_process_lock("task", _step_clear)
+        def _step_atom():
+            self._run_with_process_lock("atom", _step_clear)
 
         def _step_flow():
-            self._run_with_process_lock("flow", _step_task)
+            self._run_with_process_lock("flow", _step_atom)
 
         def _step_book():
             self._run_with_process_lock("book", _step_flow)
@@ -328,21 +325,21 @@ class Connection(base.Connection):
 
     def destroy_logbook(self, book_uuid):
 
-        def _destroy_tasks(task_details):
-            for task_detail in task_details:
-                task_path = os.path.join(self._task_path, task_detail.uuid)
+        def _destroy_atoms(atom_details):
+            for atom_detail in atom_details:
+                atom_path = os.path.join(self._atom_path, atom_detail.uuid)
                 try:
-                    shutil.rmtree(task_path)
+                    shutil.rmtree(atom_path)
                 except EnvironmentError as e:
                     if e.errno != errno.ENOENT:
-                        raise exc.StorageFailure("Unable to remove task"
-                                                 " directory %s" % task_path,
+                        raise exc.StorageFailure("Unable to remove atom"
+                                                 " directory %s" % atom_path,
                                                  e)
 
         def _destroy_flows(flow_details):
             for flow_detail in flow_details:
                 flow_path = os.path.join(self._flow_path, flow_detail.uuid)
-                self._run_with_process_lock("task", _destroy_tasks,
+                self._run_with_process_lock("atom", _destroy_atoms,
                                             list(flow_detail))
                 try:
                     shutil.rmtree(flow_path)
@@ -376,7 +373,7 @@ class Connection(base.Connection):
                 raise exc.NotFound("No logbook found with id: %s" % book_uuid)
             else:
                 raise
-        lb = p_utils.unformat_logbook(book_uuid, meta)
+        lb = logbook.LogBook.from_dict(meta, unmarshal_time=True)
         fd_path = os.path.join(book_path, 'flows')
         fd_uuids = []
         try:

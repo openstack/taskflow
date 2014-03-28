@@ -102,13 +102,13 @@ class PersistenceTestMixin(object):
         # their parent existing).
         with contextlib.closing(self._get_connection()) as conn:
             self.assertRaises(exc.NotFound, conn.update_flow_details, fd)
-            self.assertRaises(exc.NotFound, conn.update_task_details, td)
+            self.assertRaises(exc.NotFound, conn.update_atom_details, td)
 
         # Ok now we should be able to save them.
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
             conn.update_flow_details(fd)
-            conn.update_task_details(td)
+            conn.update_atom_details(td)
 
     def test_task_detail_meta_update(self):
         lb_id = uuidutils.generate_uuid()
@@ -123,18 +123,18 @@ class PersistenceTestMixin(object):
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
             conn.update_flow_details(fd)
-            conn.update_task_details(td)
+            conn.update_atom_details(td)
 
         td.meta['test'] = 43
         with contextlib.closing(self._get_connection()) as conn:
-            conn.update_task_details(td)
+            conn.update_atom_details(td)
 
         with contextlib.closing(self._get_connection()) as conn:
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
         td2 = fd2.find(td.uuid)
         self.assertEqual(td2.meta.get('test'), 43)
-        self.assertEqual(td2.atom_type, logbook.TASK_DETAIL)
+        self.assertIsInstance(td2, logbook.TaskDetail)
 
     def test_task_detail_with_failure(self):
         lb_id = uuidutils.generate_uuid()
@@ -154,7 +154,7 @@ class PersistenceTestMixin(object):
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
             conn.update_flow_details(fd)
-            conn.update_task_details(td)
+            conn.update_atom_details(td)
 
         # Read failure back
         with contextlib.closing(self._get_connection()) as conn:
@@ -165,7 +165,7 @@ class PersistenceTestMixin(object):
         self.assertEqual(failure.exception_str, 'Woot!')
         self.assertIs(failure.check(RuntimeError), RuntimeError)
         self.assertEqual(failure.traceback_str, td.failure.traceback_str)
-        self.assertEqual(td2.atom_type, logbook.TASK_DETAIL)
+        self.assertIsInstance(td2, logbook.TaskDetail)
 
     def test_logbook_merge_flow_detail(self):
         lb_id = uuidutils.generate_uuid()
@@ -246,21 +246,21 @@ class PersistenceTestMixin(object):
         lb = logbook.LogBook(name=lb_name, uuid=lb_id)
         fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        td = logbook.RetryDetail("detail-1", uuid=uuidutils.generate_uuid())
-        td.intention = states.REVERT
-        fd.add(td)
+        rd = logbook.RetryDetail("detail-1", uuid=uuidutils.generate_uuid())
+        rd.intention = states.REVERT
+        fd.add(rd)
 
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
             conn.update_flow_details(fd)
-            conn.update_task_details(td)
+            conn.update_atom_details(rd)
 
         with contextlib.closing(self._get_connection()) as conn:
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
-        td2 = fd2.find(td.uuid)
-        self.assertEqual(td2.atom_type, logbook.RETRY_DETAIL)
-        self.assertEqual(td2.intention, states.REVERT)
+        rd2 = fd2.find(rd.uuid)
+        self.assertEqual(rd2.intention, states.REVERT)
+        self.assertIsInstance(rd2, logbook.RetryDetail)
 
     def test_retry_detail_save_with_task_failure(self):
         lb_id = uuidutils.generate_uuid()
@@ -268,23 +268,24 @@ class PersistenceTestMixin(object):
         lb = logbook.LogBook(name=lb_name, uuid=lb_id)
         fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        td = logbook.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
+        rd = logbook.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
         fail = misc.Failure.from_exception(RuntimeError('fail'))
-        td.results.append((42, {'some-task': fail}))
-        fd.add(td)
+        rd.results.append((42, {'some-task': fail}))
+        fd.add(rd)
 
         # save it
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
             conn.update_flow_details(fd)
-            conn.update_task_details(td)
+            conn.update_atom_details(rd)
 
         # now read it back
         with contextlib.closing(self._get_connection()) as conn:
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
-        td2 = fd2.find(td.uuid)
-        fail2 = td2.results[0][1].get('some-task')
+        rd2 = fd2.find(rd.uuid)
+        self.assertIsInstance(rd2, logbook.RetryDetail)
+        fail2 = rd2.results[0][1].get('some-task')
         self.assertIsInstance(fail2, misc.Failure)
         self.assertTrue(fail.matches(fail2))
 
@@ -294,23 +295,24 @@ class PersistenceTestMixin(object):
         lb = logbook.LogBook(name=lb_name, uuid=lb_id)
         fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        td = logbook.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
-        fd.add(td)
+        rd = logbook.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
+        fd.add(rd)
 
         # save it
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
             conn.update_flow_details(fd)
-            conn.update_task_details(td)
+            conn.update_atom_details(rd)
 
         # change intention and save
-        td.intention = states.REVERT
+        rd.intention = states.REVERT
         with contextlib.closing(self._get_connection()) as conn:
-            conn.update_task_details(td)
+            conn.update_atom_details(rd)
 
         # now read it back
         with contextlib.closing(self._get_connection()) as conn:
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
-        td2 = fd2.find(td.uuid)
-        self.assertEqual(td2.intention, states.REVERT)
+        rd2 = fd2.find(rd.uuid)
+        self.assertEqual(rd2.intention, states.REVERT)
+        self.assertIsInstance(rd2, logbook.RetryDetail)

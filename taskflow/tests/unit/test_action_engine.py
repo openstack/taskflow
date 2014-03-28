@@ -263,7 +263,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
 
         with contextlib.closing(self.backend.get_connection()) as conn:
             fd.update(conn.update_flow_details(fd))
-            td.update(conn.update_task_details(td))
+            td.update(conn.update_atom_details(td))
 
         engine = self._make_engine(flow, fd)
         engine.run()

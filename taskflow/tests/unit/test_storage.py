@@ -61,7 +61,7 @@ class StorageTestMixin(object):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
         s = storage.SingleThreadedStorage(flow_detail=flow_detail)
         s.ensure_task('my_task')
-        self.assertTrue(uuidutils.is_uuid_like(s.get_task_uuid('my_task')))
+        self.assertTrue(uuidutils.is_uuid_like(s.get_atom_uuid('my_task')))
 
     def test_flow_name_and_uuid(self):
         flow_detail = logbook.FlowDetail(name='test-fd', uuid='aaaa')
@@ -72,8 +72,8 @@ class StorageTestMixin(object):
     def test_ensure_task(self):
         s = self._get_storage()
         s.ensure_task('my task')
-        self.assertEqual(s.get_task_state('my task'), states.PENDING)
-        self.assertTrue(uuidutils.is_uuid_like(s.get_task_uuid('my task')))
+        self.assertEqual(s.get_atom_state('my task'), states.PENDING)
+        self.assertTrue(uuidutils.is_uuid_like(s.get_atom_uuid('my task')))
 
     def test_get_tasks_states(self):
         s = self._get_storage()
@@ -84,13 +84,13 @@ class StorageTestMixin(object):
             'my task': (states.SUCCESS, states.EXECUTE),
             'my task2': (states.PENDING, states.EXECUTE),
         }
-        self.assertEqual(s.get_tasks_states(['my task', 'my task2']), expected)
+        self.assertEqual(s.get_atoms_states(['my task', 'my task2']), expected)
 
     def test_ensure_task_flow_detail(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
         s = self._get_storage(flow_detail)
         s.ensure_task('my task', '3.11')
-        td = flow_detail.find(s.get_task_uuid('my task'))
+        td = flow_detail.find(s.get_atom_uuid('my task'))
         self.assertIsNotNone(td)
         self.assertEqual(td.name, 'my task')
         self.assertEqual(td.version, '3.11')
@@ -101,7 +101,7 @@ class StorageTestMixin(object):
         td = logbook.TaskDetail(name='my_task', uuid='42')
         flow_detail.add(td)
         s = self._get_storage(flow_detail)
-        self.assertEqual('42', s.get_task_uuid('my_task'))
+        self.assertEqual('42', s.get_atom_uuid('my_task'))
 
     def test_ensure_existing_task(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
@@ -109,7 +109,7 @@ class StorageTestMixin(object):
         flow_detail.add(td)
         s = self._get_storage(flow_detail)
         s.ensure_task('my_task')
-        self.assertEqual('42', s.get_task_uuid('my_task'))
+        self.assertEqual('42', s.get_atom_uuid('my_task'))
 
     def test_save_and_get(self):
         s = self._get_storage()
@@ -117,22 +117,22 @@ class StorageTestMixin(object):
         s.save('my task', 5)
         self.assertEqual(s.get('my task'), 5)
         self.assertEqual(s.fetch_all(), {})
-        self.assertEqual(s.get_task_state('my task'), states.SUCCESS)
+        self.assertEqual(s.get_atom_state('my task'), states.SUCCESS)
 
     def test_save_and_get_other_state(self):
         s = self._get_storage()
         s.ensure_task('my task')
         s.save('my task', 5, states.FAILURE)
         self.assertEqual(s.get('my task'), 5)
-        self.assertEqual(s.get_task_state('my task'), states.FAILURE)
+        self.assertEqual(s.get_atom_state('my task'), states.FAILURE)
 
-    def test_save_and_get_failure(self):
+    def test_save_and_get_cached_failure(self):
         failure = misc.Failure.from_exception(RuntimeError('Woot!'))
         s = self._get_storage()
         s.ensure_task('my task')
         s.save('my task', failure, states.FAILURE)
         self.assertEqual(s.get('my task'), failure)
-        self.assertEqual(s.get_task_state('my task'), states.FAILURE)
+        self.assertEqual(s.get_atom_state('my task'), states.FAILURE)
         self.assertTrue(s.has_failures())
         self.assertEqual(s.get_failures(), {'my task': failure})
 
@@ -143,18 +143,19 @@ class StorageTestMixin(object):
         s.save('my task', failure, states.FAILURE)
         self.assertEqual(s.get('my task'), failure)
         s._failures['my task'] = None
-        self.assertEqual(s.get('my task'), failure)
+        self.assertTrue(failure.matches(s.get('my task')))
 
     def test_get_failure_from_reverted_task(self):
         failure = misc.Failure.from_exception(RuntimeError('Woot!'))
+
         s = self._get_storage()
         s.ensure_task('my task')
         s.save('my task', failure, states.FAILURE)
 
-        s.set_task_state('my task', states.REVERTING)
+        s.set_atom_state('my task', states.REVERTING)
         self.assertEqual(s.get('my task'), failure)
 
-        s.set_task_state('my task', states.REVERTED)
+        s.set_atom_state('my task', states.REVERTED)
         self.assertEqual(s.get('my task'), failure)
 
     def test_get_failure_after_reload(self):
@@ -163,10 +164,10 @@ class StorageTestMixin(object):
         s.ensure_task('my task')
         s.save('my task', failure, states.FAILURE)
         s2 = self._get_storage(s._flowdetail)
-        self.assertIs(s2.has_failures(), True)
-        self.assertEqual(s2.get_failures(), {'my task': failure})
-        self.assertEqual(s2.get('my task'), failure)
-        self.assertEqual(s2.get_task_state('my task'), states.FAILURE)
+        self.assertTrue(s2.has_failures())
+        self.assertEqual(1, len(s2.get_failures()))
+        self.assertTrue(failure.matches(s2.get('my task')))
+        self.assertEqual(s2.get_atom_state('my task'), states.FAILURE)
 
     def test_get_non_existing_var(self):
         s = self._get_storage()
@@ -178,7 +179,7 @@ class StorageTestMixin(object):
         s.ensure_task('my task')
         s.save('my task', 5)
         s.reset('my task')
-        self.assertEqual(s.get_task_state('my task'), states.PENDING)
+        self.assertEqual(s.get_atom_state('my task'), states.PENDING)
         self.assertRaises(exceptions.NotFound, s.get, 'my task')
 
     def test_reset_unknown_task(self):
@@ -203,11 +204,11 @@ class StorageTestMixin(object):
     def test_task_metadata_update_with_none(self):
         s = self._get_storage()
         s.ensure_task('my task')
-        s.update_task_metadata('my task', None)
+        s.update_atom_metadata('my task', None)
         self.assertEqual(s.get_task_progress('my task'), 0.0)
         s.set_task_progress('my task', 0.5)
         self.assertEqual(s.get_task_progress('my task'), 0.5)
-        s.update_task_metadata('my task', None)
+        s.update_atom_metadata('my task', None)
         self.assertEqual(s.get_task_progress('my task'), 0.5)
 
     def test_default_task_progress(self):
@@ -357,24 +358,24 @@ class StorageTestMixin(object):
         s = self._get_storage()
         state = states.PENDING
         s.ensure_task('my task')
-        s.set_task_state('my task', state)
-        self.assertEqual(s.get_task_state('my task'), state)
+        s.set_atom_state('my task', state)
+        self.assertEqual(s.get_atom_state('my task'), state)
 
     def test_get_state_of_unknown_task(self):
         s = self._get_storage()
         self.assertRaisesRegexp(exceptions.NotFound, '^Unknown',
-                                s.get_task_state, 'my task')
+                                s.get_atom_state, 'my task')
 
     def test_task_by_name(self):
         s = self._get_storage()
         s.ensure_task('my task')
-        self.assertTrue(uuidutils.is_uuid_like(s.get_task_uuid('my task')))
+        self.assertTrue(uuidutils.is_uuid_like(s.get_atom_uuid('my task')))
 
     def test_unknown_task_by_name(self):
         s = self._get_storage()
         self.assertRaisesRegexp(exceptions.NotFound,
-                                '^Unknown task name:',
-                                s.get_task_uuid, '42')
+                                '^Unknown atom',
+                                s.get_atom_uuid, '42')
 
     def test_initial_flow_state(self):
         s = self._get_storage()
@@ -451,7 +452,7 @@ class StorageTestMixin(object):
         s = self._get_storage()
         s.ensure_task('my retry')
         self.assertRaisesRegexp(exceptions.Duplicate,
-                                '^Task detail', s.ensure_retry, 'my retry')
+                                '^Atom detail', s.ensure_retry, 'my retry')
 
     def test_save_retry_results(self):
         s = self._get_storage()
@@ -481,21 +482,21 @@ class StorageTestMixin(object):
         self.assertEqual(history, [])
         self.assertEqual(s.fetch_all(), {})
 
-    def test_retry_failure(self):
-        fail = misc.Failure(exc_info=(RuntimeError, RuntimeError(), None))
+    def test_cached_retry_failure(self):
+        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
         s = self._get_storage()
         s.ensure_retry('my retry', result_mapping={'x': 0})
         s.save('my retry', 'a')
-        s.save('my retry', fail, states.FAILURE)
+        s.save('my retry', failure, states.FAILURE)
         history = s.get_retry_history('my retry')
-        self.assertEqual(history, [('a', {}), (fail, {})])
+        self.assertEqual(history, [('a', {}), (failure, {})])
         self.assertIs(s.has_failures(), True)
-        self.assertEqual(s.get_failures(), {'my retry': fail})
+        self.assertEqual(s.get_failures(), {'my retry': failure})
 
     def test_logbook_get_unknown_atom_type(self):
         self.assertRaisesRegexp(TypeError,
-                                'Unknown atom type',
-                                logbook.get_atom_detail_class, 'some_detail')
+                                'Unknown atom',
+                                logbook.atom_detail_class, 'some_detail')
 
     def test_save_task_intention(self):
         s = self._get_storage()

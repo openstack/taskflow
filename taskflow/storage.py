@@ -36,10 +36,11 @@ STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
 class Storage(object):
     """Interface between engines and logbook.
 
-    This class provides a simple interface to save tasks of a given flow and
+    This class provides a simple interface to save atoms of a given flow and
     associated activity and results to persistence layer (logbook,
-    task_details, flow_details) for use by engines, making it easier to
-    interact with the underlying storage & backend mechanism.
+    atom_details, flow_details) for use by engines. This makes it easier to
+    interact with the underlying storage & backend mechanism through this
+    interface rather than accessing those objects directly.
     """
 
     injector_name = '_TaskFlow_INJECTOR'
@@ -54,15 +55,17 @@ class Storage(object):
         # NOTE(imelnikov): failure serialization looses information,
         # so we cache failures here, in task name -> misc.Failure mapping.
         self._failures = {}
-        for td in self._flowdetail:
-            if td.failure is not None:
-                self._failures[td.name] = td.failure
+        for ad in self._flowdetail:
+            if ad.failure is not None:
+                self._failures[ad.name] = ad.failure
 
-        self._task_name_to_uuid = dict((td.name, td.uuid)
-                                       for td in self._flowdetail)
+        self._atom_name_to_uuid = dict((ad.name, ad.uuid)
+                                       for ad in self._flowdetail)
 
         try:
-            injector_td = self._taskdetail_by_name(self.injector_name)
+            injector_td = self._atomdetail_by_name(
+                self.injector_name,
+                expected_type=logbook.TaskDetail)
         except exceptions.NotFound:
             pass
         else:
@@ -100,16 +103,16 @@ class Storage(object):
         """
         with self._lock.write_lock():
             try:
-                task_id = self._task_name_to_uuid[task_name]
+                task_id = self._atom_name_to_uuid[task_name]
             except KeyError:
                 task_id = uuidutils.generate_uuid()
                 self._create_atom_detail(logbook.TaskDetail, task_name,
                                          task_id, task_version)
             else:
-                td = self._flowdetail.find(task_id)
-                if td.atom_type != logbook.TASK_DETAIL:
+                ad = self._flowdetail.find(task_id)
+                if not isinstance(ad, logbook.TaskDetail):
                     raise exceptions.Duplicate(
-                        "Task detail %s already exists in flow detail %s." %
+                        "Atom detail %s already exists in flow detail %s." %
                         (task_name, self._flowdetail.name))
             self._set_result_mapping(task_name, result_mapping)
         return task_id
@@ -128,16 +131,16 @@ class Storage(object):
         """
         with self._lock.write_lock():
             try:
-                retry_id = self._task_name_to_uuid[retry_name]
+                retry_id = self._atom_name_to_uuid[retry_name]
             except KeyError:
                 retry_id = uuidutils.generate_uuid()
                 self._create_atom_detail(logbook.RetryDetail, retry_name,
                                          retry_id, retry_version)
             else:
-                td = self._flowdetail.find(retry_id)
-                if td.atom_type != logbook.RETRY_DETAIL:
+                ad = self._flowdetail.find(retry_id)
+                if not isinstance(ad, logbook.RetryDetail):
                     raise exceptions.Duplicate(
-                        "Task detail %s already exists in flow detail %s." %
+                        "Atom detail %s already exists in flow detail %s." %
                         (retry_name, self._flowdetail.name))
             self._set_result_mapping(retry_name, result_mapping)
         return retry_id
@@ -153,7 +156,7 @@ class Storage(object):
         ad.version = task_version
         self._flowdetail.add(ad)
         self._with_connection(self._save_flow_detail)
-        self._task_name_to_uuid[ad.name] = ad.uuid
+        self._atom_name_to_uuid[ad.name] = ad.uuid
 
     @property
     def flow_name(self):
@@ -171,73 +174,93 @@ class Storage(object):
         # added item to the flow detail).
         self._flowdetail.update(conn.update_flow_details(self._flowdetail))
 
-    def _taskdetail_by_name(self, task_name):
+    def _atomdetail_by_name(self, atom_name, expected_type=None):
         try:
-            return self._flowdetail.find(self._task_name_to_uuid[task_name])
+            ad = self._flowdetail.find(self._atom_name_to_uuid[atom_name])
         except KeyError:
-            raise exceptions.NotFound("Unknown task name: %s" % task_name)
+            raise exceptions.NotFound("Unknown atom name: %s" % atom_name)
+        else:
+            # TODO(harlowja): we need to figure out how to get away from doing
+            # these kinds of type checks in general (since they likely mean
+            # we aren't doing something right).
+            if expected_type and not isinstance(ad, expected_type):
+                raise TypeError("Atom %s is not of the expected type: %s"
+                                % (atom_name,
+                                   reflection.get_class_name(expected_type)))
+            return ad
 
-    def _save_task_detail(self, conn, task_detail):
-        # NOTE(harlowja): we need to update our contained task detail if
+    def _save_atom_detail(self, conn, atom_detail):
+        # NOTE(harlowja): we need to update our contained atom detail if
         # the result of the update actually added more (aka another process
-        # is also modifying the task detail).
-        task_detail.update(conn.update_task_details(task_detail))
+        # is also modifying the task detail), since python is by reference
+        # and the contained atom detail will reflect the old state if we don't
+        # do this update.
+        atom_detail.update(conn.update_atom_details(atom_detail))
 
-    def get_task_uuid(self, task_name):
-        """Get task uuid by given name."""
+    def get_atom_uuid(self, atom_name):
+        """Gets an atoms uuid given a atoms name."""
         with self._lock.read_lock():
-            td = self._taskdetail_by_name(task_name)
-            return td.uuid
+            ad = self._atomdetail_by_name(atom_name)
+            return ad.uuid
 
-    def set_task_state(self, task_name, state):
-        """Set task or retry state."""
+    def set_atom_state(self, atom_name, state):
+        """Sets an atoms state."""
         with self._lock.write_lock():
-            td = self._taskdetail_by_name(task_name)
-            td.state = state
-            self._with_connection(self._save_task_detail, td)
+            ad = self._atomdetail_by_name(atom_name)
+            ad.state = state
+            self._with_connection(self._save_atom_detail, ad)
 
-    def get_task_state(self, task_name):
-        """Get state of task with given name."""
+    def get_atom_state(self, atom_name):
+        """Gets the state of an atom given an atoms name."""
         with self._lock.read_lock():
-            td = self._taskdetail_by_name(task_name)
-            return td.state
+            ad = self._atomdetail_by_name(atom_name)
+            return ad.state
 
     def set_atom_intention(self, atom_name, intention):
-        """Set intention for atom with given name."""
-        td = self._taskdetail_by_name(atom_name)
-        td.intention = intention
-        self._with_connection(self._save_task_detail, task_detail=td)
+        """Sets the intention of an atom given an atoms name."""
+        ad = self._atomdetail_by_name(atom_name)
+        ad.intention = intention
+        self._with_connection(self._save_atom_detail, ad)
 
     def get_atom_intention(self, atom_name):
-        """Get intention of atom with given name."""
-        return self._taskdetail_by_name(atom_name).intention
+        """Gets the intention of an atom given an atoms name."""
+        ad = self._atomdetail_by_name(atom_name)
+        return ad.intention
 
-    def get_tasks_states(self, task_names):
-        """Gets all task states."""
+    def get_atoms_states(self, atom_names):
+        """Gets all atoms states given a set of names."""
         with self._lock.read_lock():
-            return dict((name, (self.get_task_state(name),
+            return dict((name, (self.get_atom_state(name),
                                 self.get_atom_intention(name)))
-                        for name in task_names)
+                        for name in atom_names)
 
-    def update_task_metadata(self, task_name, update_with):
-        """Updates a tasks metadata."""
+    def _update_atom_metadata(self, atom_name, update_with,
+                              expected_type=None):
         if not update_with:
-            return
+            update_with = {}
         with self._lock.write_lock():
-            td = self._taskdetail_by_name(task_name)
-            if not td.meta:
-                td.meta = {}
-            td.meta.update(update_with)
-            self._with_connection(self._save_task_detail, td)
+            ad = self._atomdetail_by_name(atom_name,
+                                          expected_type=expected_type)
+            if not ad.meta:
+                ad.meta = {}
+            ad.meta.update(update_with)
+            self._with_connection(self._save_atom_detail, ad)
+
+    def update_atom_metadata(self, atom_name, update_with):
+        """Updates a atoms metadata given another dictionary or a list of
+        (key, value) pairs to include in the updated metadata (newer keys will
+        overwrite older keys).
+        """
+        self._update_atom_metadata(atom_name, update_with)
 
     def set_task_progress(self, task_name, progress, details=None):
-        """Set task progress.
+        """Set a tasks progress.
 
         :param task_name: task name
-        :param progress: task progress
-        :param details: task specific progress information
+        :param progress: tasks progress (0.0 <-> 1.0)
+        :param details: any task specific progress details
         """
-        metadata_update = {
+        update_with = {
             'progress': progress,
         }
         if details is not None:
@@ -245,109 +268,118 @@ class Storage(object):
             # updating details (e.g. automatically from engine)
             # we save progress value with details, too.
             if details:
-                metadata_update['progress_details'] = {
+                update_with['progress_details'] = {
                     'at_progress': progress,
                     'details': details,
                 }
             else:
-                metadata_update['progress_details'] = None
-        self.update_task_metadata(task_name, metadata_update)
+                update_with['progress_details'] = None
+        self._update_atom_metadata(task_name, update_with,
+                                   expected_type=logbook.TaskDetail)
 
     def get_task_progress(self, task_name):
-        """Get progress of task with given name.
+        """Get the progress of a task given a tasks name.
 
-        :param task_name: task name
+        :param task_name: tasks name
         :returns: current task progress value
         """
         with self._lock.read_lock():
-            td = self._taskdetail_by_name(task_name)
-            if not td.meta:
+            ad = self._atomdetail_by_name(task_name,
+                                          expected_type=logbook.TaskDetail)
+            try:
+                return ad.meta['progress']
+            except (TypeError, KeyError):
                 return 0.0
-            return td.meta.get('progress', 0.0)
 
     def get_task_progress_details(self, task_name):
-        """Get progress details of task with given name.
+        """Get the progress details of a task given a tasks name.
 
         :param task_name: task name
         :returns: None if progress_details not defined, else progress_details
                  dict
         """
         with self._lock.read_lock():
-            td = self._taskdetail_by_name(task_name)
-            if not td.meta:
+            ad = self._atomdetail_by_name(task_name,
+                                          expected_type=logbook.TaskDetail)
+            try:
+                return ad.meta['progress_details']
+            except (TypeError, KeyError):
                 return None
-            return td.meta.get('progress_details')
 
-    def _check_all_results_provided(self, task_name, data):
-        """Warn if task did not provide some of results.
+    def _check_all_results_provided(self, atom_name, data):
+        """Warn if an atom did not provide some of its expected results.
 
-        This may happen if task returns shorter tuple or list or dict
-        without all needed keys. It may also happen if task returns
+        This may happen if atom returns shorter tuple or list or dict
+        without all needed keys. It may also happen if atom returns
         result of wrong type.
         """
-        result_mapping = self._result_mappings.get(task_name)
+        result_mapping = self._result_mappings.get(atom_name)
         if not result_mapping:
             return
         for name, index in six.iteritems(result_mapping):
             try:
                 misc.item_from(data, index, name=name)
             except exceptions.NotFound:
-                LOG.warning("Task %s did not supply result "
-                            "with index %r (name %s)", task_name, index, name)
+                LOG.warning("Atom %s did not supply result "
+                            "with index %r (name %s)", atom_name, index, name)
 
-    def save(self, task_name, data, state=states.SUCCESS):
-        """Put result for task with id 'uuid' to storage."""
+    def save(self, atom_name, data, state=states.SUCCESS):
+        """Put result for atom with id 'uuid' to storage."""
         with self._lock.write_lock():
-            td = self._taskdetail_by_name(task_name)
-            td.state = state
+            ad = self._atomdetail_by_name(atom_name)
+            ad.state = state
             if state == states.FAILURE and isinstance(data, misc.Failure):
+                # FIXME(harlowja): this seems like it should be internal logic
+                # in the atom detail object and not in here. Fix that soon...
+                #
                 # Do not clean retry history
-                if td.atom_type != logbook.RETRY_DETAIL:
-                    td.results = None
-                td.failure = data
-                self._failures[td.name] = data
+                if not isinstance(ad, logbook.RetryDetail):
+                    ad.results = None
+                ad.failure = data
+                self._failures[ad.name] = data
             else:
-                if td.atom_type == logbook.RETRY_DETAIL:
-                    td.results.append((data, {}))
+                # FIXME(harlowja): this seems like it should be internal logic
+                # in the atom detail object and not in here. Fix that soon...
+                if isinstance(ad, logbook.RetryDetail):
+                    ad.results.append((data, {}))
                 else:
-                    td.results = data
-                td.failure = None
-                self._check_all_results_provided(td.name, data)
-            self._with_connection(self._save_task_detail, task_detail=td)
+                    ad.results = data
+                ad.failure = None
+                self._check_all_results_provided(ad.name, data)
+            self._with_connection(self._save_atom_detail, ad)
 
     def save_retry_failure(self, retry_name, failed_atom_name, failure):
         """Save subflow failure to retry controller history."""
         with self._lock.write_lock():
-            td = self._taskdetail_by_name(retry_name)
-            if td.atom_type != logbook.RETRY_DETAIL:
-                raise TypeError(
-                    "Atom %s is not a retry controller." % retry_name)
-            failures = td.results[-1][1]
+            ad = self._atomdetail_by_name(retry_name,
+                                          expected_type=logbook.RetryDetail)
+            failures = ad.results[-1][1]
             if failed_atom_name not in failures:
                 failures[failed_atom_name] = failure
-                self._with_connection(self._save_task_detail, task_detail=td)
+                self._with_connection(self._save_atom_detail, ad)
 
     def cleanup_retry_history(self, retry_name, state):
-        """Cleanup history of retry with given name."""
+        """Cleanup history of retry atom with given name."""
         with self._lock.write_lock():
-            td = self._taskdetail_by_name(retry_name)
-            td.state = state
-            td.results = []
-            self._with_connection(self._save_task_detail, task_detail=td)
+            ad = self._atomdetail_by_name(retry_name,
+                                          expected_type=logbook.RetryDetail)
+            ad.state = state
+            ad.results = []
+            self._with_connection(self._save_atom_detail, ad)
 
-    def get(self, task_name):
-        """Get result for task with name 'task_name' to storage."""
+    def get(self, atom_name):
+        """Gets the result for an atom with a given name from storage."""
         with self._lock.read_lock():
-            td = self._taskdetail_by_name(task_name)
-            if td.failure is not None:
-                cached = self._failures.get(task_name)
-                if td.failure.matches(cached):
+            ad = self._atomdetail_by_name(atom_name)
+            if ad.failure is not None:
+                cached = self._failures.get(atom_name)
+                if ad.failure.matches(cached):
                     return cached
-                return td.failure
-            if td.state not in STATES_WITH_RESULTS:
-                raise exceptions.NotFound("Result for task %s is not known"
-                                          % task_name)
-            return td.results
+                return ad.failure
+            if ad.state not in STATES_WITH_RESULTS:
+                raise exceptions.NotFound("Result for atom %s is not currently"
+                                          " known" % atom_name)
+            return ad.results
 
     def get_failures(self):
         """Get list of failures that happened with this flow.
@@ -362,21 +394,21 @@ class Storage(object):
         with self._lock.read_lock():
             return bool(self._failures)
 
-    def _reset_task(self, td, state):
-        if td.name == self.injector_name:
+    def _reset_atom(self, ad, state):
+        if ad.name == self.injector_name:
             return False
-        if td.state == state:
+        if ad.state == state:
             return False
-        td.reset(state)
-        self._failures.pop(td.name, None)
+        ad.reset(state)
+        self._failures.pop(ad.name, None)
         return True
 
-    def reset(self, task_name, state=states.PENDING):
-        """Remove result for task with id 'uuid' from storage."""
+    def reset(self, atom_name, state=states.PENDING):
+        """Reset atom with given name (if the task is in a given state)."""
         with self._lock.write_lock():
-            td = self._taskdetail_by_name(task_name)
-            if self._reset_task(td, state):
-                self._with_connection(self._save_task_detail, td)
+            ad = self._atomdetail_by_name(atom_name)
+            if self._reset_atom(ad, state):
+                self._with_connection(self._save_atom_detail, ad)
 
     def inject(self, pairs):
         """Add values into storage.
@@ -386,23 +418,26 @@ class Storage(object):
         """
         with self._lock.write_lock():
             try:
-                td = self._taskdetail_by_name(self.injector_name)
+                ad = self._atomdetail_by_name(
+                    self.injector_name,
+                    expected_type=logbook.TaskDetail)
             except exceptions.NotFound:
                 uuid = uuidutils.generate_uuid()
                 self._create_atom_detail(logbook.TaskDetail,
                                          self.injector_name, uuid)
-                td = self._taskdetail_by_name(self.injector_name)
-                td.results = dict(pairs)
-                td.state = states.SUCCESS
+                ad = self._atomdetail_by_name(self.injector_name,
+                                              expected_type=logbook.TaskDetail)
+                ad.results = dict(pairs)
+                ad.state = states.SUCCESS
             else:
-                td.results.update(pairs)
-            self._with_connection(self._save_task_detail, td)
-            names = six.iterkeys(td.results)
+                ad.results.update(pairs)
+            self._with_connection(self._save_atom_detail, ad)
+            names = six.iterkeys(ad.results)
             self._set_result_mapping(self.injector_name,
                                      dict((name, name) for name in names))
 
-    def _set_result_mapping(self, task_name, mapping):
-        """Set mapping for naming task results.
+    def _set_result_mapping(self, atom_name, mapping):
+        """Sets the result mapping for an atom.
 
         The result saved with given name would be accessible by names
         defined in mapping. Mapping is a dict name => index. If index
@@ -411,42 +446,42 @@ class Storage(object):
         """
         if not mapping:
             return
-        self._result_mappings[task_name] = mapping
+        self._result_mappings[atom_name] = mapping
         for name, index in six.iteritems(mapping):
             entries = self._reverse_mapping.setdefault(name, [])
 
             # NOTE(imelnikov): We support setting same result mapping for
-            # the same task twice (e.g when we are injecting 'a' and then
+            # the same atom twice (e.g when we are injecting 'a' and then
             # injecting 'a' again), so we should not log warning below in
             # that case and we should have only one item for each pair
-            # (task_name, index) in entries. It should be put to the end of
+            # (atom_name, index) in entries. It should be put to the end of
             # entries list because order matters on fetching.
             try:
-                entries.remove((task_name, index))
+                entries.remove((atom_name, index))
             except ValueError:
                 pass
 
-            entries.append((task_name, index))
+            entries.append((atom_name, index))
             if len(entries) > 1:
                 LOG.warning("Multiple provider mappings being created for %r",
                             name)
 
     def fetch(self, name):
-        """Fetch named task result."""
+        """Fetch a named atoms result."""
         with self._lock.read_lock():
             try:
                 indexes = self._reverse_mapping[name]
             except KeyError:
                 raise exceptions.NotFound("Name %r is not mapped" % name)
             # Return the first one that is found.
-            for (task_name, index) in reversed(indexes):
+            for (atom_name, index) in reversed(indexes):
                 try:
-                    result = self.get(task_name)
-                    td = self._taskdetail_by_name(task_name)
+                    result = self.get(atom_name)
+                    ad = self._atomdetail_by_name(atom_name)
 
                     # If it is a retry's result then fetch values from the
-                    # latest retry run.
-                    if td.atom_type == logbook.RETRY_DETAIL:
+                    # latest retry run only.
+                    if isinstance(ad, logbook.RetryDetail):
                         if result:
                             result = result[-1][0]
                         else:
@@ -457,7 +492,7 @@ class Storage(object):
             raise exceptions.NotFound("Unable to find result %r" % name)
 
     def fetch_all(self):
-        """Fetch all named task results known so far.
+        """Fetch all named atom results known so far.
 
         Should be used for debugging and testing purposes mostly.
         """
@@ -471,7 +506,7 @@ class Storage(object):
             return results
 
     def fetch_mapped_args(self, args_mapping):
-        """Fetch arguments for the task using arguments mapping."""
+        """Fetch arguments for an atom using an atoms arguments mapping."""
         with self._lock.read_lock():
             return dict((key, self.fetch(name))
                         for key, name in six.iteritems(args_mapping))
@@ -490,19 +525,20 @@ class Storage(object):
                 state = states.PENDING
             return state
 
-    def get_retry_history(self, name):
+    def get_retry_history(self, retry_name):
         """Fetch retry results history."""
         with self._lock.read_lock():
-            td = self._taskdetail_by_name(name)
-            if td.failure is not None:
-                cached = self._failures.get(name)
-                history = list(td.results)
-                if td.failure.matches(cached):
+            ad = self._atomdetail_by_name(retry_name,
+                                          expected_type=logbook.RetryDetail)
+            if ad.failure is not None:
+                cached = self._failures.get(retry_name)
+                history = list(ad.results)
+                if ad.failure.matches(cached):
                     history.append((cached, {}))
                 else:
-                    history.append((td.failure, {}))
+                    history.append((ad.failure, {}))
                 return history
-            return td.results
+            return ad.results
 
 
 class MultiThreadedStorage(Storage):

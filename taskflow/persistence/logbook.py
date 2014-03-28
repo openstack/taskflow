@@ -15,20 +15,37 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
+import copy
 import logging
 
-import abc
 import six
 
+from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 from taskflow import states
+from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
-TASK_DETAIL = 'TASK_DETAIL'
-RETRY_DETAIL = 'RETRY_DETAIL'
 
-ATOM_TYPES = [TASK_DETAIL, RETRY_DETAIL]
+def _copy_function(deep_copy):
+    if deep_copy:
+        return copy.deepcopy
+    else:
+        return lambda x: x
+
+
+def _safe_marshal_time(when):
+    if not when:
+        return None
+    return timeutils.marshall_now(now=when)
+
+
+def _safe_unmarshal_time(when):
+    if not when:
+        return None
+    return timeutils.unmarshall_time(when)
 
 
 class LogBook(object):
@@ -41,24 +58,16 @@ class LogBook(object):
     storage in real time. The data in this class will only be guaranteed to be
     persisted when a save occurs via some backend connection.
     """
-    def __init__(self, name, uuid=None, updated_at=None, created_at=None):
+    def __init__(self, name, uuid=None):
         if uuid:
             self._uuid = uuid
         else:
             self._uuid = uuidutils.generate_uuid()
         self._name = name
         self._flowdetails_by_id = {}
-        self._updated_at = updated_at
-        self._created_at = created_at
+        self.created_at = timeutils.utcnow()
+        self.updated_at = None
         self.meta = None
-
-    @property
-    def created_at(self):
-        return self._created_at
-
-    @property
-    def updated_at(self):
-        return self._updated_at
 
     def add(self, fd):
         """Adds a new entry to the underlying logbook.
@@ -66,9 +75,57 @@ class LogBook(object):
         Does not *guarantee* that the details will be immediately saved.
         """
         self._flowdetails_by_id[fd.uuid] = fd
+        self.updated_at = timeutils.utcnow()
 
     def find(self, flow_uuid):
         return self._flowdetails_by_id.get(flow_uuid, None)
+
+    def merge(self, lb, deep_copy=False):
+        """Merges the current object state with the given ones state.
+
+        NOTE(harlowja): Does not merge the flow details contained in either.
+        """
+        if lb is self:
+            return self
+        copy_fn = _copy_function(deep_copy)
+        if self.meta != lb.meta:
+            self.meta = copy_fn(lb.meta)
+        if lb.created_at != self.created_at:
+            self.created_at = copy_fn(lb.created_at)
+        if lb.updated_at != self.updated_at:
+            self.updated_at = copy_fn(lb.updated_at)
+        return self
+
+    def to_dict(self, marshal_time=False):
+        """Translates the internal state of this object to a dictionary.
+
+        NOTE(harlowja): Does not include the contained flow details.
+        """
+        if not marshal_time:
+            marshal_fn = lambda x: x
+        else:
+            marshal_fn = _safe_marshal_time
+        data = {
+            'name': self.name,
+            'meta': self.meta,
+            'uuid': self.uuid,
+            'updated_at': marshal_fn(self.updated_at),
+            'created_at': marshal_fn(self.created_at),
+        }
+        return data
+
+    @classmethod
+    def from_dict(cls, data, unmarshal_time=False):
+        """Translates the given data into an instance of this class."""
+        if not unmarshal_time:
+            unmarshal_fn = lambda x: x
+        else:
+            unmarshal_fn = _safe_unmarshal_time
+        obj = cls(data['name'], uuid=data['uuid'])
+        obj.updated_at = unmarshal_fn(data['updated_at'])
+        obj.created_at = unmarshal_fn(data['created_at'])
+        obj.meta = data.get('meta')
+        return obj
 
     @property
     def uuid(self):
@@ -87,7 +144,7 @@ class LogBook(object):
 
 
 class FlowDetail(object):
-    """This class contains a dict of task detail entries for a given
+    """This class contains a dict of atom detail entries for a given
     flow along with any metadata associated with that flow.
 
     The data contained within this class need *not* be backed by the backend
@@ -97,7 +154,7 @@ class FlowDetail(object):
     def __init__(self, name, uuid):
         self._uuid = uuid
         self._name = name
-        self._taskdetails_by_id = {}
+        self._atomdetails_by_id = {}
         self.state = None
         # Any other metadata to include about this flow while storing. For
         # example timing information could be stored here, other misc. flow
@@ -107,16 +164,52 @@ class FlowDetail(object):
     def update(self, fd):
         """Updates the objects state to be the same as the given one."""
         if fd is self:
-            return
-        self._taskdetails_by_id = dict(fd._taskdetails_by_id)
+            return self
+        self._atomdetails_by_id = dict(fd._atomdetails_by_id)
         self.state = fd.state
         self.meta = fd.meta
+        return self
 
-    def add(self, td):
-        self._taskdetails_by_id[td.uuid] = td
+    def merge(self, fd, deep_copy=False):
+        """Merges the current object state with the given ones state.
 
-    def find(self, td_uuid):
-        return self._taskdetails_by_id.get(td_uuid)
+        NOTE(harlowja): Does not merge the atom details contained in either.
+        """
+        if fd is self:
+            return self
+        copy_fn = _copy_function(deep_copy)
+        if self.meta != fd.meta:
+            self.meta = copy_fn(fd.meta)
+        if self.state != fd.state:
+            # NOTE(imelnikov): states are just strings, no need to copy.
+            self.state = fd.state
+        return self
+
+    def to_dict(self):
+        """Translates the internal state of this object to a dictionary.
+
+        NOTE(harlowja): Does not include the contained atom details.
+        """
+        return {
+            'name': self.name,
+            'meta': self.meta,
+            'state': self.state,
+            'uuid': self.uuid,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Translates the given data into an instance of this class."""
+        obj = cls(data['name'], data['uuid'])
+        obj.state = data.get('state')
+        obj.meta = data.get('meta')
+        return obj
+
+    def add(self, ad):
+        self._atomdetails_by_id[ad.uuid] = ad
+
+    def find(self, ad_uuid):
+        return self._atomdetails_by_id.get(ad_uuid)
 
     @property
     def uuid(self):
@@ -127,11 +220,11 @@ class FlowDetail(object):
         return self._name
 
     def __iter__(self):
-        for td in six.itervalues(self._taskdetails_by_id):
-            yield td
+        for ad in six.itervalues(self._atomdetails_by_id):
+            yield ad
 
     def __len__(self):
-        return len(self._taskdetails_by_id)
+        return len(self._atomdetails_by_id)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -172,16 +265,71 @@ class AtomDetail(object):
         # information can be associated with.
         self.version = None
 
-    def update(self, td):
+    def update(self, ad):
         """Updates the objects state to be the same as the given one."""
-        if td is self:
-            return
-        self.state = td.state
-        self.intention = td.intention
-        self.meta = td.meta
-        self.failure = td.failure
-        self.results = td.results
-        self.version = td.version
+        if ad is self:
+            return self
+        self.state = ad.state
+        self.intention = ad.intention
+        self.meta = ad.meta
+        self.failure = ad.failure
+        self.results = ad.results
+        self.version = ad.version
+        return self
+
+    @abc.abstractmethod
+    def merge(self, other, deep_copy=False):
+        """Merges the current object state with the given ones state."""
+        copy_fn = _copy_function(deep_copy)
+        # NOTE(imelnikov): states and intentions are just strings,
+        # so there is no need to copy them (strings are immutable in python).
+        self.state = other.state
+        self.intention = other.intention
+        if self.failure != other.failure:
+            # NOTE(imelnikov): we can't just deep copy Failures, as they
+            # contain tracebacks, which are not copyable.
+            if other.failure:
+                if deep_copy:
+                    self.failure = other.failure.copy()
+                else:
+                    self.failure = other.failure
+            else:
+                self.failure = None
+        if self.meta != other.meta:
+            self.meta = copy_fn(other.meta)
+        if self.version != other.version:
+            self.version = copy_fn(other.version)
+        return self
+
+    @abc.abstractmethod
+    def to_dict(self):
+        """Translates the internal state of this object to a dictionary."""
+
+    def _to_dict_shared(self):
+        if self.failure:
+            failure = self.failure.to_dict()
+        else:
+            failure = None
+        return {
+            'failure': failure,
+            'meta': self.meta,
+            'name': self.name,
+            'results': self.results,
+            'state': self.state,
+            'version': self.version,
+            'intention': self.intention,
+            'uuid': self.uuid,
+        }
+
+    def _from_dict_shared(self, data):
+        self.state = data.get('state')
+        self.intention = data.get('intention')
+        self.results = data.get('results')
+        self.version = data.get('version')
+        self.meta = data.get('meta')
+        failure = data.get('failure')
+        if failure:
+            self.failure = misc.Failure.from_dict(failure)
 
     @property
     def uuid(self):
@@ -190,10 +338,6 @@ class AtomDetail(object):
     @property
     def name(self):
         return self._name
-
-    @abc.abstractproperty
-    def atom_type(self):
-        """Identifies atom type represented by this detail."""
 
     @abc.abstractmethod
     def reset(self, state):
@@ -205,15 +349,33 @@ class TaskDetail(AtomDetail):
     def __init__(self, name, uuid):
         super(TaskDetail, self).__init__(name, uuid)
 
-    @property
-    def atom_type(self):
-        return TASK_DETAIL
-
     def reset(self, state):
         self.results = None
         self.failure = None
         self.state = state
         self.intention = states.EXECUTE
+
+    @classmethod
+    def from_dict(cls, data):
+        """Translates the given data into an instance of this class."""
+        obj = cls(data['name'], data['uuid'])
+        obj._from_dict_shared(data)
+        return obj
+
+    def to_dict(self):
+        """Translates the internal state of this object to a dictionary."""
+        return self._to_dict_shared()
+
+    def merge(self, other, deep_copy=False):
+        if not isinstance(other, TaskDetail):
+            raise NotImplemented("Can only merge with other task details")
+        if other is self:
+            return self
+        super(TaskDetail, self).merge(other, deep_copy=deep_copy)
+        copy_fn = _copy_function(deep_copy)
+        if self.results != other.results:
+            self.results = copy_fn(other.results)
+        return self
 
 
 class RetryDetail(AtomDetail):
@@ -222,21 +384,89 @@ class RetryDetail(AtomDetail):
         super(RetryDetail, self).__init__(name, uuid)
         self.results = []
 
-    @property
-    def atom_type(self):
-        return RETRY_DETAIL
-
     def reset(self, state):
         self.results = []
         self.failure = None
         self.state = state
         self.intention = states.EXECUTE
 
+    @classmethod
+    def from_dict(cls, data):
+        """Translates the given data into an instance of this class."""
 
-def get_atom_detail_class(atom_type):
-    if atom_type == TASK_DETAIL:
-        return TaskDetail
-    elif atom_type == RETRY_DETAIL:
-        return RetryDetail
-    else:
-        raise TypeError("Unknown atom type")
+        def decode_results(results):
+            if not results:
+                return []
+            new_results = []
+            for (data, failures) in results:
+                new_failures = {}
+                for (key, failure_data) in six.iteritems(failures):
+                    new_failures[key] = misc.Failure.from_dict(failure_data)
+                new_results.append((data, new_failures))
+            return new_results
+
+        obj = cls(data['name'], data['uuid'])
+        obj._from_dict_shared(data)
+        obj.results = decode_results(obj.results)
+        return obj
+
+    def to_dict(self):
+        """Translates the internal state of this object to a dictionary."""
+
+        def encode_results(results):
+            if not results:
+                return []
+            new_results = []
+            for (data, failures) in results:
+                new_failures = {}
+                for (key, failure) in six.iteritems(failures):
+                    new_failures[key] = failure.to_dict()
+                new_results.append((data, new_failures))
+            return new_results
+
+        base = self._to_dict_shared()
+        base['results'] = encode_results(base.get('results'))
+        return base
+
+    def merge(self, other, deep_copy=False):
+        if not isinstance(other, RetryDetail):
+            raise NotImplemented("Can only merge with other retry details")
+        if other is self:
+            return self
+        super(RetryDetail, self).merge(other, deep_copy=deep_copy)
+        results = []
+        # NOTE(imelnikov): we can't just deep copy Failures, as they
+        # contain tracebacks, which are not copyable.
+        for (data, failures) in other.results:
+            copied_failures = {}
+            for (key, failure) in six.iteritems(failures):
+                if deep_copy:
+                    copied_failures[key] = failure.copy()
+                else:
+                    copied_failures[key] = failure
+            results.append((data, copied_failures))
+        self.results = results
+        return self
+
+
+_DETAIL_TO_NAME = {
+    RetryDetail: 'RETRY_DETAIL',
+    TaskDetail: 'TASK_DETAIL',
+}
+_NAME_TO_DETAIL = dict((name, cls)
+                       for (cls, name) in six.iteritems(_DETAIL_TO_NAME))
+ATOM_TYPES = list(six.iterkeys(_NAME_TO_DETAIL))
+
+
+def atom_detail_class(atom_type):
+    try:
+        return _NAME_TO_DETAIL[atom_type]
+    except KeyError:
+        raise TypeError("Unknown atom type: %s" % (atom_type))
+
+
+def atom_detail_type(atom_detail):
+    try:
+        return _DETAIL_TO_NAME[type(atom_detail)]
+    except KeyError:
+        raise TypeError("Unknown atom type: %s" % type(atom_detail))

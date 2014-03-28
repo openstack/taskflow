@@ -531,6 +531,7 @@ class Failure(object):
     Failure objects encapsulate exception information so that
     it can be re-used later to re-raise or inspect.
     """
+    DICT_VERSION = 1
 
     def __init__(self, exc_info=None, **kwargs):
         if not kwargs:
@@ -662,6 +663,23 @@ class Failure(object):
         """Iterate over exception type names."""
         for et in self._exc_type_names:
             yield et
+
+    @classmethod
+    def from_dict(cls, data):
+        data = dict(data)
+        version = data.pop('version', None)
+        if version != cls.DICT_VERSION:
+            raise ValueError('Invalid dict version of failure object: %r'
+                             % version)
+        return cls(**data)
+
+    def to_dict(self):
+        return {
+            'exception_str': self.exception_str,
+            'traceback_str': self.traceback_str,
+            'exc_type_names': list(self),
+            'version': self.DICT_VERSION,
+        }
 
     def copy(self):
         return Failure(exc_info=copy_exc_info(self.exc_info),

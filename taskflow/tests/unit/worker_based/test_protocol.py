@@ -22,7 +22,6 @@ from taskflow.engines.worker_based import protocol as pr
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.utils import misc
-from taskflow.utils import persistence_utils as pu
 
 
 class TestProtocol(test.TestCase):
@@ -83,15 +82,14 @@ class TestProtocol(test.TestCase):
 
     def test_to_dict_with_result_failure(self):
         failure = misc.Failure.from_exception(RuntimeError('Woot!'))
-        expected = self.request_to_dict(
-            result=('failure', pu.failure_to_dict(failure)))
+        expected = self.request_to_dict(result=('failure', failure.to_dict()))
         self.assertEqual(self.request(result=failure).to_dict(), expected)
 
     def test_to_dict_with_failures(self):
         failure = misc.Failure.from_exception(RuntimeError('Woot!'))
         request = self.request(failures={self.task.name: failure})
         expected = self.request_to_dict(
-            failures={self.task.name: pu.failure_to_dict(failure)})
+            failures={self.task.name: failure.to_dict()})
         self.assertEqual(request.to_dict(), expected)
 
     @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')

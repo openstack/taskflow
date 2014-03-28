@@ -32,17 +32,16 @@ class TaskAction(object):
         self._notifier = notifier
 
     def change_state(self, task, state, result=None, progress=None):
-        old_state = self._storage.get_task_state(task.name)
+        old_state = self._storage.get_atom_state(task.name)
         if old_state == state:
             return state != states.PENDING
         if state in SAVE_RESULT_STATES:
             self._storage.save(task.name, result, state)
         else:
-            self._storage.set_task_state(task.name, state)
+            self._storage.set_atom_state(task.name, state)
         if progress is not None:
             self._storage.set_task_progress(task.name, progress)
-
-        task_uuid = self._storage.get_task_uuid(task.name)
+        task_uuid = self._storage.get_atom_uuid(task.name)
         details = dict(task_name=task.name,
                        task_uuid=task_uuid,
                        result=result)
@@ -65,7 +64,7 @@ class TaskAction(object):
         if not self.change_state(task, states.RUNNING, progress=0.0):
             return
         kwargs = self._storage.fetch_mapped_args(task.rebind)
-        task_uuid = self._storage.get_task_uuid(task.name)
+        task_uuid = self._storage.get_atom_uuid(task.name)
         return self._task_executor.execute_task(task, task_uuid, kwargs,
                                                 self._on_update_progress)
 
@@ -80,7 +79,7 @@ class TaskAction(object):
         if not self.change_state(task, states.REVERTING, progress=0.0):
             return
         kwargs = self._storage.fetch_mapped_args(task.rebind)
-        task_uuid = self._storage.get_task_uuid(task.name)
+        task_uuid = self._storage.get_atom_uuid(task.name)
         task_result = self._storage.get(task.name)
         failures = self._storage.get_failures()
         future = self._task_executor.revert_task(task, task_uuid, kwargs,

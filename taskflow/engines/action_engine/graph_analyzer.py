@@ -100,7 +100,7 @@ class GraphAnalyzer(object):
         for prev_task in self._graph.predecessors(task):
             task_names.append(prev_task.name)
 
-        task_states = self._storage.get_tasks_states(task_names)
+        task_states = self._storage.get_atoms_states(task_names)
         return all(state == st.SUCCESS and intention == st.EXECUTE
                    for state, intention in six.itervalues(task_states))
 
@@ -117,7 +117,7 @@ class GraphAnalyzer(object):
         for prev_task in self._graph.successors(task):
             task_names.append(prev_task.name)
 
-        task_states = self._storage.get_tasks_states(task_names)
+        task_states = self._storage.get_atoms_states(task_names)
         return all(state in (st.PENDING, st.REVERTED)
                    for state, intention in six.itervalues(task_states))
 
@@ -151,4 +151,4 @@ class GraphAnalyzer(object):
         return True
 
     def get_state(self, node):
-        return self._storage.get_task_state(node.name)
+        return self._storage.get_atom_state(node.name)
