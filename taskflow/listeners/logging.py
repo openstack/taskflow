@@ -25,10 +25,12 @@ LOG = logging.getLogger(__name__)
 
 
 class LoggingListener(base.LoggingBase):
-    """Listens for task and flow notifications and writes those notifications
-    to a provided logging backend (if none is provided then this modules
-    logger is used instead) using a configurable logging level (logging.DEBUG
-    if not provided).
+    """Listener that logs notifications it receives.
+
+    It listens for task and flow notifications and writes those
+    notifications to provided logger, or logger of its module
+    (``taskflow.listeners.logging``) if none provided. Log level
+    can also be configured, ``logging.DEBUG`` is used by default.
     """
     def __init__(self, engine,
                  task_listen_for=(misc.TransitionNotifier.ANY,),

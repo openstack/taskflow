@@ -32,6 +32,12 @@ LOG = logging.getLogger(__name__)
 
 
 class TimingListener(base.ListenerBase):
+    """Listener that captures task duration.
+
+    It records how long a task took to execute (or fail)
+    to storage. It saves the duration in seconds as float value
+    to task metadata with key ``'duration'``.
+    """
     def __init__(self, engine):
         super(TimingListener, self).__init__(engine,
                                              task_listen_for=WATCH_STATES,
