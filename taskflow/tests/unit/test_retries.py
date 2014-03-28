@@ -636,6 +636,24 @@ class RetryTest(utils.EngineTestBase):
         self.assertEqual(r.history[0][1], {})
         self.assertEqual(isinstance(r.history[0][0], misc.Failure), True)
 
+    def test_retry_revert_fails(self):
+
+        class FailingRetry(retry.Retry):
+
+            def execute(self, **kwargs):
+                raise ValueError('OMG I FAILED')
+
+            def revert(self, history, **kwargs):
+                raise ValueError('WOOT!')
+
+            def on_failure(self, **kwargs):
+                return retry.REVERT
+
+        r = FailingRetry()
+        flow = lf.Flow('testflow', r)
+        engine = self._make_engine(flow)
+        self.assertRaisesRegexp(ValueError, '^WOOT', engine.run)
+
     def test_nested_provides_graph_reverts_correctly(self):
         flow = gf.Flow("test").add(
             utils.SaveOrderTask('a', requires=['x']),
