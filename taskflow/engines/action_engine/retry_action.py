@@ -17,6 +17,7 @@
 import logging
 
 from taskflow.engines.action_engine import executor as ex
+from taskflow import exceptions
 from taskflow import states
 from taskflow.utils import async_utils
 from taskflow.utils import misc
@@ -55,7 +56,9 @@ class RetryAction(object):
 
     def execute(self, retry):
         if not self.change_state(retry, states.RUNNING):
-            return
+            raise exceptions.InvalidState("Retry controller %s is in invalid "
+                                          "state and can't be executed" %
+                                          retry.name)
         kwargs = self._get_retry_args(retry)
         try:
             result = retry.execute(**kwargs)
@@ -68,7 +71,9 @@ class RetryAction(object):
 
     def revert(self, retry):
         if not self.change_state(retry, states.REVERTING):
-            return
+            raise exceptions.InvalidState("Retry controller %s is in invalid "
+                                          "state and can't be reverted" %
+                                          retry.name)
         kwargs = self._get_retry_args(retry)
         kwargs['flow_failures'] = self._storage.get_failures()
         try:
