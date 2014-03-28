@@ -54,11 +54,7 @@ class FutureGraphAction(object):
                 future = self._schedule_retry(node)
             else:
                 raise TypeError("Unknown how to schedule node %s" % node)
-            if future is not None:
-                futures.append(future)
-            else:
-                next_nodes = self._analyzer.get_next_nodes(node)
-                futures.extend(self._schedule(next_nodes))
+            futures.append(future)
         return futures
 
     def execute(self):

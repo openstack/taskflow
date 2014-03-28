@@ -16,6 +16,7 @@
 
 import logging
 
+from taskflow import exceptions
 from taskflow import states
 from taskflow.utils import misc
 
@@ -62,7 +63,8 @@ class TaskAction(object):
 
     def schedule_execution(self, task):
         if not self.change_state(task, states.RUNNING, progress=0.0):
-            return
+            raise exceptions.InvalidState("Task %s is in invalid state and"
+                                          " can't be executed" % task.name)
         kwargs = self._storage.fetch_mapped_args(task.rebind)
         task_uuid = self._storage.get_atom_uuid(task.name)
         return self._task_executor.execute_task(task, task_uuid, kwargs,
@@ -77,7 +79,8 @@ class TaskAction(object):
 
     def schedule_reversion(self, task):
         if not self.change_state(task, states.REVERTING, progress=0.0):
-            return
+            raise exceptions.InvalidState("Task %s is in invalid state and"
+                                          " can't be reverted" % task.name)
         kwargs = self._storage.fetch_mapped_args(task.rebind)
         task_uuid = self._storage.get_atom_uuid(task.name)
         task_result = self._storage.get(task.name)
