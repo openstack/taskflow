@@ -339,7 +339,7 @@ For ``result`` value, two cases are possible:
 
 * if task is being reverted because it failed (an exception was raised from its
   |task.execute| method), ``result`` value is instance of
-  :py:class:`taskflow.utils.misc.Failure` object that holds exception information;
+  :py:class:`taskflow.failure.Failure` object that holds exception information;
 
 * if task is being reverted because some other task failed, and this task
   finished successfully, ``result`` value is task result fetched from storage:
@@ -349,9 +349,9 @@ All other arguments are fetched from storage in the same way it is done for
 |task.execute| method.
 
 To determine if task failed you can check whether ``result`` is instance of
-:py:class:`taskflow.utils.misc.Failure`::
+:py:class:`taskflow.failure.Failure`::
 
-    from taskflow.utils import misc
+    from taskflow.utils import failure
 
     class RevertingTask(task.Task):
 
@@ -359,7 +359,7 @@ To determine if task failed you can check whether ``result`` is instance of
             return do_something(spam, eggs)
 
         def revert(self, result, spam, eggs):
-            if isinstance(result, misc.Failure):
+            if isinstance(result, failure.Failure):
                 print("This task failed, exception: %s"  % result.exception_str)
             else:
                 print("do_something returned %r" % result)
@@ -374,7 +374,7 @@ Retry Arguments
 
 A Retry controller works with arguments in the same way as a Task. But it has an additional parameter 'history' that is
 a list of tuples. Each tuple contains a result of the previous Retry run and a table where a key is a failed task and a value
-is a :py:class:`taskflow.utils.misc.Failure`.
+is a :py:class:`taskflow.failure.Failure`.
 
 Consider the following Retry::
 
@@ -396,13 +396,13 @@ Consider the following Retry::
 Imagine the following Retry had returned a value '5' and then some task 'A' failed with some exception.
 In this case ``on_failure`` method will receive the following history::
 
-    [('5', {'A': misc.Failure()})]
+    [('5', {'A': failure.Failure()})]
 
 Then the |retry.execute| method will be called again and it'll receive the same history.
 
-If the |retry.execute| method raises an exception, the |retry.revert| method of Retry will be called and :py:class:`taskflow.utils.misc.Failure` object will be present
+If the |retry.execute| method raises an exception, the |retry.revert| method of Retry will be called and :py:class:`taskflow.failure.Failure` object will be present
 in the history instead of Retry result::
 
-    [('5', {'A': misc.Failure()}), (misc.Failure(), {})]
+    [('5', {'A': failure.Failure()}), (failure.Failure(), {})]
 
 After the Retry has been reverted, the Retry history will be cleaned.

@@ -18,9 +18,9 @@ import logging
 
 from taskflow.engines.action_engine import executor as ex
 from taskflow import exceptions
+from taskflow import failure
 from taskflow import states
 from taskflow.utils import async_utils
-from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class RetryAction(object):
         try:
             result = retry.execute(**kwargs)
         except Exception:
-            result = misc.Failure()
+            result = failure.Failure()
             self.change_state(retry, states.FAILURE, result=result)
         else:
             self.change_state(retry, states.SUCCESS, result=result)
@@ -79,7 +79,7 @@ class RetryAction(object):
         try:
             result = retry.revert(**kwargs)
         except Exception:
-            result = misc.Failure()
+            result = failure.Failure()
             self.change_state(retry, states.FAILURE)
         else:
             self.change_state(retry, states.REVERTED)

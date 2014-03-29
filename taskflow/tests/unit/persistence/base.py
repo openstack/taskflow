@@ -17,10 +17,10 @@
 import contextlib
 
 from taskflow import exceptions as exc
+from taskflow import failure
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow import states
-from taskflow.utils import misc
 
 
 class PersistenceTestMixin(object):
@@ -147,7 +147,7 @@ class PersistenceTestMixin(object):
         try:
             raise RuntimeError('Woot!')
         except Exception:
-            td.failure = misc.Failure()
+            td.failure = failure.Failure()
 
         fd.add(td)
 
@@ -161,10 +161,10 @@ class PersistenceTestMixin(object):
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
         td2 = fd2.find(td.uuid)
-        failure = td2.failure
-        self.assertEqual(failure.exception_str, 'Woot!')
-        self.assertIs(failure.check(RuntimeError), RuntimeError)
-        self.assertEqual(failure.traceback_str, td.failure.traceback_str)
+        fail = td2.failure
+        self.assertEqual(fail.exception_str, 'Woot!')
+        self.assertIs(fail.check(RuntimeError), RuntimeError)
+        self.assertEqual(fail.traceback_str, td.failure.traceback_str)
         self.assertIsInstance(td2, logbook.TaskDetail)
 
     def test_logbook_merge_flow_detail(self):
@@ -269,7 +269,7 @@ class PersistenceTestMixin(object):
         fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
         rd = logbook.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
-        fail = misc.Failure.from_exception(RuntimeError('fail'))
+        fail = failure.Failure.from_exception(RuntimeError('fail'))
         rd.results.append((42, {'some-task': fail}))
         fd.add(rd)
 
@@ -286,7 +286,7 @@ class PersistenceTestMixin(object):
         rd2 = fd2.find(rd.uuid)
         self.assertIsInstance(rd2, logbook.RetryDetail)
         fail2 = rd2.results[0][1].get('some-task')
-        self.assertIsInstance(fail2, misc.Failure)
+        self.assertIsInstance(fail2, failure.Failure)
         self.assertTrue(fail.matches(fail2))
 
     def test_retry_detail_save_intention(self):

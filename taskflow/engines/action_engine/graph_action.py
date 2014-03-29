@@ -16,10 +16,10 @@
 
 from taskflow.engines.action_engine import executor as ex
 from taskflow import exceptions as excp
+from taskflow import failure
 from taskflow import retry as r
 from taskflow import states as st
 from taskflow import task
-from taskflow.utils import misc
 
 
 _WAITING_TIMEOUT = 60  # in seconds
@@ -77,7 +77,7 @@ class FutureGraphAction(object):
                 node, event, result = future.result()
                 if isinstance(node, task.BaseTask):
                     self._complete_task(node, event, result)
-                if isinstance(result, misc.Failure):
+                if isinstance(result, failure.Failure):
                     if event == ex.EXECUTED:
                         self._process_atom_failure(node, result)
                     else:
@@ -88,7 +88,7 @@ class FutureGraphAction(object):
                 not_done.extend(self._schedule(next_nodes))
 
         if failures:
-            misc.Failure.reraise_if_any(failures)
+            failure.Failure.reraise_if_any(failures)
 
         if self._analyzer.get_next_nodes():
             return st.SUSPENDED

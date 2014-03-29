@@ -21,6 +21,7 @@ import six
 from concurrent import futures
 
 from taskflow.engines.action_engine import executor
+from taskflow import failure
 from taskflow.utils import misc
 from taskflow.utils import reflection
 
@@ -136,7 +137,7 @@ class Request(Message):
         return False
 
     def to_dict(self):
-        """Return json-serializable request, converting all `misc.Failure`
+        """Return json-serializable request, converting all `failure.Failure`
         objects into dictionaries.
         """
         request = dict(task_cls=self._task_cls, task_name=self._task.name,
@@ -144,15 +145,15 @@ class Request(Message):
                        arguments=self._arguments)
         if 'result' in self._kwargs:
             result = self._kwargs['result']
-            if isinstance(result, misc.Failure):
+            if isinstance(result, failure.Failure):
                 request['result'] = ('failure', result.to_dict())
             else:
                 request['result'] = ('success', result)
         if 'failures' in self._kwargs:
             failures = self._kwargs['failures']
             request['failures'] = {}
-            for task, failure in six.iteritems(failures):
-                request['failures'][task] = failure.to_dict()
+            for task, fail in six.iteritems(failures):
+                request['failures'][task] = fail.to_dict()
         return request
 
     def set_result(self, result):
@@ -182,7 +183,7 @@ class Response(Message):
         state = data['state']
         data = data['data']
         if state == FAILURE and 'result' in data:
-            data['result'] = misc.Failure.from_dict(data['result'])
+            data['result'] = failure.Failure.from_dict(data['result'])
         return cls(state, **data)
 
     @property

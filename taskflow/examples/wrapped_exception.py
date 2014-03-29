@@ -31,10 +31,9 @@ sys.path.insert(0, top_dir)
 import taskflow.engines
 
 from taskflow import exceptions
+from taskflow import failure
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
-from taskflow.tests import utils
-from taskflow.utils import misc
 
 # INTRO: In this example we create two tasks which can trigger exceptions
 # based on various inputs to show how to analyze the thrown exceptions for
@@ -96,20 +95,20 @@ def run(**store):
         SecondTask()
     )
     try:
-        with utils.wrap_all_failures():
+        with failure.wrap_all_failures():
             taskflow.engines.run(flow, store=store,
                                  engine_conf='parallel')
     except exceptions.WrappedFailure as ex:
         unknown_failures = []
-        for failure in ex:
-            if failure.check(FirstException):
-                print("Got FirstException: %s" % failure.exception_str)
-            elif failure.check(SecondException):
-                print("Got SecondException: %s" % failure.exception_str)
+        for fail in ex:
+            if fail.check(FirstException):
+                print("Got FirstException: %s" % fail.exception_str)
+            elif fail.check(SecondException):
+                print("Got SecondException: %s" % fail.exception_str)
             else:
-                print("Unknown failure: %s" % failure)
-                unknown_failures.append(failure)
-        misc.Failure.reraise_if_any(unknown_failures)
+                print("Unknown failure: %s" % fail)
+                unknown_failures.append(fail)
+        failure.Failure.reraise_if_any(unknown_failures)
 
 
 print_wrapped("Raise and catch first exception only")

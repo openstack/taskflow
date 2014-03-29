@@ -21,10 +21,10 @@ import logging
 
 import six
 
+from taskflow import failure
 from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 from taskflow import states
-from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -311,11 +311,11 @@ class AtomDetail(object):
 
     def _to_dict_shared(self):
         if self.failure:
-            failure = self.failure.to_dict()
+            fail = self.failure.to_dict()
         else:
-            failure = None
+            fail = None
         return {
-            'failure': failure,
+            'failure': fail,
             'meta': self.meta,
             'name': self.name,
             'results': self.results,
@@ -331,9 +331,9 @@ class AtomDetail(object):
         self.results = data.get('results')
         self.version = data.get('version')
         self.meta = _fix_meta(data)
-        failure = data.get('failure')
-        if failure:
-            self.failure = misc.Failure.from_dict(failure)
+        fail = data.get('failure')
+        if fail:
+            self.failure = failure.Failure.from_dict(fail)
 
     @property
     def uuid(self):
@@ -405,7 +405,7 @@ class RetryDetail(AtomDetail):
             for (data, failures) in results:
                 new_failures = {}
                 for (key, failure_data) in six.iteritems(failures):
-                    new_failures[key] = misc.Failure.from_dict(failure_data)
+                    new_failures[key] = failure.Failure.from_dict(failure_data)
                 new_results.append((data, new_failures))
             return new_results
 
@@ -423,8 +423,8 @@ class RetryDetail(AtomDetail):
             new_results = []
             for (data, failures) in results:
                 new_failures = {}
-                for (key, failure) in six.iteritems(failures):
-                    new_failures[key] = failure.to_dict()
+                for (key, fail) in six.iteritems(failures):
+                    new_failures[key] = fail.to_dict()
                 new_results.append((data, new_failures))
             return new_results
 
@@ -443,11 +443,11 @@ class RetryDetail(AtomDetail):
         # contain tracebacks, which are not copyable.
         for (data, failures) in other.results:
             copied_failures = {}
-            for (key, failure) in six.iteritems(failures):
+            for (key, fail) in six.iteritems(failures):
                 if deep_copy:
-                    copied_failures[key] = failure.copy()
+                    copied_failures[key] = fail.copy()
                 else:
-                    copied_failures[key] = failure
+                    copied_failures[key] = fail
             results.append((data, copied_failures))
         self.results = results
         return self

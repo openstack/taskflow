@@ -19,6 +19,7 @@ import functools
 import sys
 import time
 
+from taskflow import failure
 from taskflow import states
 from taskflow import test
 from taskflow.tests import utils as test_utils
@@ -284,8 +285,8 @@ class GetClassNameTest(test.TestCase):
         self.assertEqual(name, 'RuntimeError')
 
     def test_global_class(self):
-        name = reflection.get_class_name(misc.Failure)
-        self.assertEqual(name, 'taskflow.utils.misc.Failure')
+        name = reflection.get_class_name(failure.Failure)
+        self.assertEqual(name, 'taskflow.failure.Failure')
 
     def test_class(self):
         name = reflection.get_class_name(Class)

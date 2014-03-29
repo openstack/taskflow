@@ -1,0 +1,5 @@
+=======
+Failure
+=======
+
+.. automodule:: taskflow.failure

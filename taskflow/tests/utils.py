@@ -19,29 +19,13 @@ import threading
 
 import six
 
-from taskflow import exceptions
 from taskflow.persistence.backends import impl_memory
 from taskflow import retry
 from taskflow import task
-from taskflow.utils import misc
 
 ARGS_KEY = '__args__'
 KWARGS_KEY = '__kwargs__'
 ORDER_KEY = '__order__'
-
-
-@contextlib.contextmanager
-def wrap_all_failures():
-    """Convert any exceptions to WrappedFailure.
-
-    When you expect several failures, it may be convenient
-    to wrap any exception with WrappedFailure in order to
-    unify error handling.
-    """
-    try:
-        yield
-    except Exception:
-        raise exceptions.WrappedFailure([misc.Failure()])
 
 
 class DummyTask(task.Task):

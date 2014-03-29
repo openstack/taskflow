@@ -23,9 +23,9 @@ from kombu import exceptions as exc
 from taskflow.engines.worker_based import endpoint as ep
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import server
+from taskflow import failure
 from taskflow import test
 from taskflow.tests import utils
-from taskflow.utils import misc
 
 
 class TestServer(test.MockTestCase):
@@ -185,19 +185,19 @@ class TestServer(test.MockTestCase):
                                result=1)))
 
     def test_parse_request_with_failure_result(self):
-        failure = misc.Failure.from_exception(Exception('test'))
-        request = self.make_request(action='revert', result=failure)
+        fail = failure.Failure.from_exception(Exception('test'))
+        request = self.make_request(action='revert', result=fail)
         task_cls, action, task_args = server.Server._parse_request(**request)
 
         self.assertEqual((task_cls, action, task_args),
                          (self.task.name, 'revert',
                           dict(task_name=self.task.name,
                                arguments=self.task_args,
-                               result=utils.FailureMatcher(failure))))
+                               result=utils.FailureMatcher(fail))))
 
     def test_parse_request_with_failures(self):
-        failures = {'0': misc.Failure.from_exception(Exception('test1')),
-                    '1': misc.Failure.from_exception(Exception('test2'))}
+        failures = {'0': failure.Failure.from_exception(Exception('test1')),
+                    '1': failure.Failure.from_exception(Exception('test2'))}
         request = self.make_request(action='revert', failures=failures)
         task_cls, action, task_args = server.Server._parse_request(**request)
 
@@ -274,16 +274,16 @@ class TestServer(test.MockTestCase):
         self.assertEqual(self.master_mock.mock_calls, [])
         self.assertTrue(mocked_exception.called)
 
-    @mock.patch.object(misc.Failure, 'from_dict')
-    @mock.patch.object(misc.Failure, 'to_dict')
+    @mock.patch.object(failure.Failure, 'from_dict')
+    @mock.patch.object(failure.Failure, 'to_dict')
     def test_process_request_parse_request_failure(self, to_mock, from_mock):
         failure_dict = {
             'failure': 'failure',
         }
-        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
+        fail = failure.Failure.from_exception(RuntimeError('Woot!'))
         to_mock.return_value = failure_dict
         from_mock.side_effect = ValueError('Woot!')
-        request = self.make_request(result=failure)
+        request = self.make_request(result=fail)
 
         # create server and process request
         s = self.server(reset_master_mock=True)
@@ -298,7 +298,7 @@ class TestServer(test.MockTestCase):
         ]
         self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
-    @mock.patch.object(misc.Failure, 'to_dict')
+    @mock.patch.object(failure.Failure, 'to_dict')
     def test_process_request_endpoint_not_found(self, to_mock):
         failure_dict = {
             'failure': 'failure',
@@ -319,7 +319,7 @@ class TestServer(test.MockTestCase):
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
-    @mock.patch.object(misc.Failure, 'to_dict')
+    @mock.patch.object(failure.Failure, 'to_dict')
     def test_process_request_execution_failure(self, to_mock):
         failure_dict = {
             'failure': 'failure',
@@ -344,7 +344,7 @@ class TestServer(test.MockTestCase):
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
-    @mock.patch.object(misc.Failure, 'to_dict')
+    @mock.patch.object(failure.Failure, 'to_dict')
     def test_process_request_task_failure(self, to_mock):
         failure_dict = {
             'failure': 'failure',

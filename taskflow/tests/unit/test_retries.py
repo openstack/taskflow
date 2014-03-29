@@ -21,11 +21,11 @@ from taskflow.patterns import unordered_flow as uf
 import taskflow.engines
 
 from taskflow import exceptions as exc
+from taskflow import failure
 from taskflow import retry
 from taskflow import states as st
 from taskflow import test
 from taskflow.tests import utils
-from taskflow.utils import misc
 
 
 class RetryTest(utils.EngineTestBase):
@@ -558,7 +558,7 @@ class RetryTest(utils.EngineTestBase):
         # we execute retry
         engine.storage.save('flow-1_retry', 1)
         # task fails
-        fail = misc.Failure.from_exception(RuntimeError('foo')),
+        fail = failure.Failure.from_exception(RuntimeError('foo')),
         engine.storage.save('task1', fail, state=st.FAILURE)
         if when == 'task fails':
             return engine
@@ -634,7 +634,7 @@ class RetryTest(utils.EngineTestBase):
                                 self._make_engine(flow).run)
         self.assertEqual(len(r.history), 1)
         self.assertEqual(r.history[0][1], {})
-        self.assertEqual(isinstance(r.history[0][0], misc.Failure), True)
+        self.assertEqual(isinstance(r.history[0][0], failure.Failure), True)
 
     def test_retry_revert_fails(self):
 
@@ -690,7 +690,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.save('test2_retry', 1)
         engine.storage.save('b', 11)
         # pretend that 'c' failed
-        fail = misc.Failure.from_exception(RuntimeError('Woot!'))
+        fail = failure.Failure.from_exception(RuntimeError('Woot!'))
         engine.storage.save('c', fail, st.FAILURE)
 
         engine.run()

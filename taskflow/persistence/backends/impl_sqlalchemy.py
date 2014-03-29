@@ -31,6 +31,7 @@ from sqlalchemy import orm as sa_orm
 from sqlalchemy import pool as sa_pool
 
 from taskflow import exceptions as exc
+from taskflow import failure
 from taskflow.persistence.backends import base
 from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import models
@@ -267,7 +268,7 @@ class Connection(base.Connection):
                     pass
             except sa_exc.OperationalError as ex:
                 if _is_db_connection_error(six.text_type(ex.args[0])):
-                    failures.append(misc.Failure())
+                    failures.append(failure.Failure())
                     return False
             return True
 
@@ -513,7 +514,7 @@ def _convert_ad_to_external(ad):
     # to change the internal sqlalchemy model easily by forcing a defined
     # interface (that isn't the sqlalchemy model itself).
     atom_cls = logbook.atom_detail_class(ad.atom_type)
-    return atom_cls.from_dict({
+    result = atom_cls.from_dict({
         'state': ad.state,
         'intention': ad.intention,
         'results': ad.results,
@@ -523,6 +524,7 @@ def _convert_ad_to_external(ad):
         'name': ad.name,
         'uuid': ad.uuid,
     })
+    return result
 
 
 def _convert_lb_to_external(lb_m):

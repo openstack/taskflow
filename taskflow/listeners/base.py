@@ -21,6 +21,7 @@ import logging
 
 import six
 
+from taskflow import failure
 from taskflow.openstack.common import excutils
 from taskflow import states
 from taskflow.utils import misc
@@ -141,7 +142,7 @@ class LoggingBase(ListenerBase):
             result = details.get('result')
             exc_info = None
             was_failure = False
-            if isinstance(result, misc.Failure):
+            if isinstance(result, failure.Failure):
                 if result.exc_info:
                     exc_info = tuple(result.exc_info)
                 was_failure = True
