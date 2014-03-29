@@ -21,6 +21,7 @@ import logging
 
 import six
 
+from taskflow import exceptions as exc
 from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 from taskflow import states
@@ -269,6 +270,13 @@ class AtomDetail(object):
         # information can be associated with.
         self.version = None
 
+    @property
+    def last_results(self):
+        """Gets the atoms last result (if it has many results it should then
+        return the last one of many).
+        """
+        return self.results
+
     def update(self, ad):
         """Updates the objects state to be the same as the given one."""
         if ad is self:
@@ -393,6 +401,20 @@ class RetryDetail(AtomDetail):
         self.failure = None
         self.state = state
         self.intention = states.EXECUTE
+
+    @property
+    def last_results(self):
+        try:
+            return self.results[-1][0]
+        except IndexError as e:
+            raise exc.NotFound("Last results not found", e)
+
+    @property
+    def last_failures(self):
+        try:
+            return self.results[-1][1]
+        except IndexError as e:
+            raise exc.NotFound("Last failures not found", e)
 
     @classmethod
     def from_dict(cls, data):
