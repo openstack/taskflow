@@ -49,6 +49,10 @@ def _safe_unmarshal_time(when):
     return timeutils.unmarshall_time(when)
 
 
+def _was_failure(state, result):
+    return state == states.FAILURE and isinstance(result, misc.Failure)
+
+
 def _fix_meta(data):
     # Handle the case where older schemas allowed this to be non-dict by
     # correcting this case by replacing it with a dictionary when a non-dict
@@ -317,6 +321,10 @@ class AtomDetail(object):
     def to_dict(self):
         """Translates the internal state of this object to a dictionary."""
 
+    @abc.abstractmethod
+    def put(self, state, result):
+        """Puts a result (acquired in the given state) into this detail."""
+
     def _to_dict_shared(self):
         if self.failure:
             failure = self.failure.to_dict()
@@ -367,6 +375,15 @@ class TaskDetail(AtomDetail):
         self.state = state
         self.intention = states.EXECUTE
 
+    def put(self, state, result):
+        self.state = state
+        if _was_failure(state, result):
+            self.failure = result
+            self.results = None
+        else:
+            self.results = result
+            self.failure = None
+
     @classmethod
     def from_dict(cls, data):
         """Translates the given data into an instance of this class."""
@@ -415,6 +432,15 @@ class RetryDetail(AtomDetail):
             return self.results[-1][1]
         except IndexError as e:
             raise exc.NotFound("Last failures not found", e)
+
+    def put(self, state, result):
+        # Do not clean retry history (only on reset does this happen).
+        self.state = state
+        if _was_failure(state, result):
+            self.failure = result
+        else:
+            self.results.append((result, {}))
+            self.failure = None
 
     @classmethod
     def from_dict(cls, data):

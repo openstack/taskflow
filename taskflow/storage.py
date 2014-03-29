@@ -53,7 +53,7 @@ class Storage(object):
         self._lock = self._lock_cls()
 
         # NOTE(imelnikov): failure serialization looses information,
-        # so we cache failures here, in task name -> misc.Failure mapping.
+        # so we cache failures here, in atom name -> failure mapping.
         self._failures = {}
         for ad in self._flowdetail:
             if ad.failure is not None:
@@ -322,24 +322,12 @@ class Storage(object):
         """Put result for atom with id 'uuid' to storage."""
         with self._lock.write_lock():
             ad = self._atomdetail_by_name(atom_name)
-            ad.state = state
+            ad.put(state, data)
             if state == states.FAILURE and isinstance(data, misc.Failure):
-                # FIXME(harlowja): this seems like it should be internal logic
-                # in the atom detail object and not in here. Fix that soon...
-                #
-                # Do not clean retry history
-                if not isinstance(ad, logbook.RetryDetail):
-                    ad.results = None
-                ad.failure = data
+                # NOTE(imelnikov): failure serialization looses information,
+                # so we cache failures here, in atom name -> failure mapping.
                 self._failures[ad.name] = data
             else:
-                # FIXME(harlowja): this seems like it should be internal logic
-                # in the atom detail object and not in here. Fix that soon...
-                if isinstance(ad, logbook.RetryDetail):
-                    ad.results.append((data, {}))
-                else:
-                    ad.results = data
-                ad.failure = None
                 self._check_all_results_provided(ad.name, data)
             self._with_connection(self._save_atom_detail, ad)
 
