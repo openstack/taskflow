@@ -48,10 +48,6 @@ REVERT = 'REVERT'
 RETRY = 'RETRY'
 INTENTIONS = [EXECUTE, IGNORE, REVERT, RETRY]
 
-# TODO(harlowja): use when we can timeout tasks??
-TIMED_OUT = 'TIMED_OUT'
-
-
 ## Flow state transitions
 # https://wiki.openstack.org/wiki/TaskFlow/States_of_Task_and_Flow#Flow_States
 
