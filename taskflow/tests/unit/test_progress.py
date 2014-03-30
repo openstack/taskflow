@@ -49,6 +49,7 @@ class TestProgress(test.TestCase):
                                   flow_detail=flow_detail,
                                   backend=backend)
         e.compile()
+        e.prepare()
         return e
 
     def tearDown(self):

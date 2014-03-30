@@ -57,6 +57,16 @@ class EngineBase(object):
         """
 
     @abc.abstractmethod
+    def prepare(self):
+        """Performs any pre-run, but post-compilation actions.
+
+        NOTE(harlowja): During preparation it is currently assumed that the
+        underlying storage will be initialized, all final dependencies
+        will be verified, the tasks will be reset and the engine will enter
+        the PENDING state.
+        """
+
+    @abc.abstractmethod
     def run(self):
         """Runs the flow in the engine to completion (or die trying)."""
 

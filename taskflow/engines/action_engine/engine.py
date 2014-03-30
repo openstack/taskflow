@@ -64,6 +64,7 @@ class ActionEngine(base.EngineBase):
         self._task_executor = None
         self._task_action = None
         self._retry_action = None
+        self._storage_ensured = False
 
     def __str__(self):
         return "%s: %s" % (reflection.get_class_name(self), id(self))
@@ -83,15 +84,7 @@ class ActionEngine(base.EngineBase):
     def run(self):
         """Runs the flow in the engine to completion."""
         self.compile()
-        external_provides = set(self.storage.fetch_all().keys())
-        missing = self._flow.requires - external_provides
-        if missing:
-            raise exc.MissingDependencies(self._flow, sorted(missing))
-
-        if self.storage.get_flow_state() == states.REVERTED:
-            self._root.reset_all()
-            self._change_state(states.PENDING)
-
+        self.prepare()
         self._task_executor.start()
         try:
             self._run()
@@ -146,6 +139,27 @@ class ActionEngine(base.EngineBase):
         self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
     @lock_utils.locked
+    def prepare(self):
+        if not self._compiled:
+            raise exc.InvalidState("Can not prepare an engine"
+                                   " which has not been compiled")
+        if not self._storage_ensured:
+            self._ensure_storage_for(self.execution_graph)
+            self._storage_ensured = True
+        # At this point we can check to ensure all dependencies are either
+        # flow/task provided or storage provided, if there are still missing
+        # dependencies then this flow will fail at runtime (which we can avoid
+        # by failing at preparation time).
+        external_provides = set(self.storage.fetch_all().keys())
+        missing = self._flow.requires - external_provides
+        if missing:
+            raise exc.MissingDependencies(self._flow, sorted(missing))
+        # Reset everything back to pending (if we were previously reverted).
+        if self.storage.get_flow_state() == states.REVERTED:
+            self._root.reset_all()
+            self._change_state(states.PENDING)
+
+    @lock_utils.locked
     def compile(self):
         if self._compiled:
             return
@@ -167,13 +181,8 @@ class ActionEngine(base.EngineBase):
                                             self.storage,
                                             self._task_action,
                                             self._retry_action)
-        # NOTE(harlowja): Perform initial state manipulation and setup.
-        #
-        # TODO(harlowja): This doesn't seem like it should be in a compilation
-        # function since compilation seems like it should not modify any
-        # external state.
-        self._ensure_storage_for(execution_graph)
         self._compiled = True
+        return
 
 
 class SingleThreadedActionEngine(ActionEngine):
