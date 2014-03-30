@@ -434,8 +434,8 @@ class Connection(base.Connection):
 def _atomdetails_merge(ad_m, ad):
     atom_type = logbook.atom_detail_type(ad)
     if atom_type != ad_m.atom_type:
-        raise exc.StorageError("Can not merge differing atom types (%s != %s)"
-                               % (atom_type, ad_m.atom_type))
+        raise exc.StorageFailure("Can not merge differing atom types "
+                                 "(%s != %s)" % (atom_type, ad_m.atom_type))
     ad_d = ad.to_dict()
     ad_m.state = ad_d['state']
     ad_m.intention = ad_d['intention']

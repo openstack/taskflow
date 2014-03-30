@@ -58,7 +58,7 @@ class TaskFlowException(Exception):
 # Errors related to storage or operations on storage units.
 
 class StorageFailure(TaskFlowException):
-    """Raised when storage backends can not be read/saved/deleted..."""
+    """Raised when storage backends can not be read/saved/deleted."""
 
 
 # Job related errors.

@@ -18,7 +18,7 @@ from __future__ import absolute_import
 
 import logging
 
-from taskflow import exceptions as excp
+from taskflow import exceptions as exc
 from taskflow.listeners import base
 from taskflow import states
 from taskflow.utils import misc
@@ -55,7 +55,7 @@ class TimingListener(base.ListenerBase):
         try:
             # Don't let storage failures throw exceptions in a listener method.
             self._engine.storage.update_atom_metadata(task_name, meta_update)
-        except excp.StorageError:
+        except exc.StorageFailure:
             LOG.warn("Failure to store duration update %s for task %s",
                      meta_update, task_name, exc_info=True)
 
