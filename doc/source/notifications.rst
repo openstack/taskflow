@@ -1,0 +1,166 @@
+===========================
+Notifications and Listeners
+===========================
+
+.. testsetup::
+
+    from taskflow import task
+    from taskflow.patterns import linear_flow
+    from taskflow import engines
+
+--------
+Overview
+--------
+
+Engines provide a way to receive notification on task and flow state
+transitions, which is useful for monitoring, logging, metrics, debugging
+and plenty of other tasks.
+
+To receive these notifications you should register a callback in
+:py:class:`~taskflow.utils.misc.TransitionNotifier` provided by engine.
+Each engine provides two of them: one notifies about flow state changes,
+and another notifies about changes of tasks.
+
+TaskFlow also has a set of predefined :ref:`listeners`, and provides
+means to write your own listeners, which can be more convenient than
+using raw callbacks.
+
+--------------------------------------
+Receiving Notifications with Callbacks
+--------------------------------------
+
+To manage notifications instances of
+:py:class:`~taskflow.utils.misc.TransitionNotifier` are used.
+
+.. autoclass:: taskflow.utils.misc.TransitionNotifier
+
+Flow Notifications
+------------------
+
+To receive notification on flow state changes use
+:py:class:`~taskflow.utils.misc.TransitionNotifier` available as
+``notifier`` property of the engine. A basic example is:
+
+.. doctest::
+
+   >>> class CatTalk(task.Task):
+   ...   def execute(self, meow):
+   ...     print(meow)
+   ...     return "cat"
+   ...
+   >>> class DogTalk(task.Task):
+   ...   def execute(self, woof):
+   ...     print(woof)
+   ...     return 'dog'
+   ...
+   >>> def flow_transition(state, details):
+   ...     print("Flow '%s' transition to state %s" % (details['flow_name'], state))
+   ...
+   >>>
+   >>> flo = linear_flow.Flow("cat-dog").add(
+   ...   CatTalk(), DogTalk(provides="dog"))
+   >>> eng = engines.load(flo, store={'meow': 'meow', 'woof': 'woof'})
+   >>> eng.notifier.register("*", flow_transition)
+   >>> eng.run()
+   Flow 'cat-dog' transition to state RUNNING
+   meow
+   woof
+   Flow 'cat-dog' transition to state SUCCESS
+
+Task notifications
+------------------
+
+To receive notification on task state changes use
+:py:class:`~taskflow.utils.misc.TransitionNotifier` available as
+``task_notifier`` property of the engine. A basic example is:
+
+.. doctest::
+
+   >>> class CatTalk(task.Task):
+   ...   def execute(self, meow):
+   ...     print(meow)
+   ...     return "cat"
+   ...
+   >>> class DogTalk(task.Task):
+   ...   def execute(self, woof):
+   ...     print(woof)
+   ...     return 'dog'
+   ...
+   >>> def task_transition(state, details):
+   ...     print("Task '%s' transition to state %s" % (details['task_name'], state))
+   ...
+   >>>
+   >>> flo = linear_flow.Flow("cat-dog")
+   >>> flo.add(CatTalk(), DogTalk(provides="dog"))
+   <taskflow.patterns.linear_flow.Flow object at 0x...>
+   >>> eng = engines.load(flo, store={'meow': 'meow', 'woof': 'woof'})
+   >>> eng.task_notifier.register("*", task_transition)
+   >>> eng.run()
+   Task 'CatTalk' transition to state RUNNING
+   meow
+   Task 'CatTalk' transition to state SUCCESS
+   Task 'DogTalk' transition to state RUNNING
+   woof
+   Task 'DogTalk' transition to state SUCCESS
+
+.. _listeners:
+
+---------
+Listeners
+---------
+
+TaskFlow comes with a set of predefined listeners -- helper classes that can be
+used to do various actions on flow and/or tasks transitions. You can also
+create your own listeners easily, which may be more convenient than using raw
+callbacks for some use cases.
+
+For example, this is how you can use
+:py:class:`~taskflow.listeners.printing.PrintingListener`:
+
+.. doctest::
+
+   >>> from taskflow.listeners import printing
+   >>> class CatTalk(task.Task):
+   ...   def execute(self, meow):
+   ...     print(meow)
+   ...     return "cat"
+   ...
+   >>> class DogTalk(task.Task):
+   ...   def execute(self, woof):
+   ...     print(woof)
+   ...     return 'dog'
+   ...
+   >>>
+   >>> flo = linear_flow.Flow("cat-dog").add(
+   ...   CatTalk(), DogTalk(provides="dog"))
+   >>> eng = engines.load(flo, store={'meow': 'meow', 'woof': 'woof'})
+   >>> with printing.PrintingListener(eng):
+   ...   eng.run()
+   ...
+   taskflow.engines.action_engine.engine.SingleThreadedActionEngine: ... has moved flow 'cat-dog' (...) into state 'RUNNING'
+   taskflow.engines.action_engine.engine.SingleThreadedActionEngine: ... has moved task 'CatTalk' (...) into state 'RUNNING'
+   meow
+   taskflow.engines.action_engine.engine.SingleThreadedActionEngine: ... has moved task 'CatTalk' (...) into state 'SUCCESS' with result 'cat' (failure=False)
+   taskflow.engines.action_engine.engine.SingleThreadedActionEngine: ... has moved task 'DogTalk' (...) into state 'RUNNING'
+   woof
+   taskflow.engines.action_engine.engine.SingleThreadedActionEngine: ... has moved task 'DogTalk' (...) into state 'SUCCESS' with result 'dog' (failure=False)
+   taskflow.engines.action_engine.engine.SingleThreadedActionEngine: ... has moved flow 'cat-dog' (...) into state 'SUCCESS'
+
+Basic Listener
+--------------
+
+.. autoclass:: taskflow.listeners.base.ListenerBase
+
+Printing and Logging Listeners
+------------------------------
+
+.. autoclass:: taskflow.listeners.base.LoggingBase
+
+.. autoclass:: taskflow.listeners.logging.LoggingListener
+
+.. autoclass:: taskflow.listeners.printing.PrintingListener
+
+Timing Listener
+---------------
+
+.. autoclass:: taskflow.listeners.timing.TimingListener

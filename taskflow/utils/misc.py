@@ -412,6 +412,7 @@ class TransitionNotifier(object):
         return count
 
     def is_registered(self, state, callback):
+        """Check if a callback is registered."""
         listeners = list(self._listeners.get(state, []))
         for (cb, _args, _kwargs) in listeners:
             if reflection.is_same_callback(cb, callback):
@@ -419,9 +420,18 @@ class TransitionNotifier(object):
         return False
 
     def reset(self):
+        """Forget all previously registered callbacks."""
         self._listeners.clear()
 
     def notify(self, state, details):
+        """Notify about state change.
+
+        All callbacks registered to receive notifications about given
+        state will be called.
+
+        :param state: state we moved to
+        :param details: addition transition details
+        """
         listeners = list(self._listeners.get(self.ANY, []))
         for i in self._listeners[state]:
             if i not in listeners:
@@ -442,6 +452,14 @@ class TransitionNotifier(object):
                          callback, state, details, exc_info=True)
 
     def register(self, state, callback, args=None, kwargs=None):
+        """Register a callback to be called when state is changed.
+
+        Callback will be called with provided ``args`` and ``kwargs`` and
+        when state is changed to ``state`` (or on any state change if
+        ``state`` equals to ``TransitionNotifier.ANY``). It will also
+        get additional keyword argument, ``details``, that will hold
+        transition details provided to :py:meth:`notify` method.
+        """
         assert six.callable(callback), "Callback must be callable"
         if self.is_registered(state, callback):
             raise ValueError("Callback %s already registered" % (callback))
@@ -456,6 +474,7 @@ class TransitionNotifier(object):
         self._listeners[state].append((callback, args, kwargs))
 
     def deregister(self, state, callback):
+        """Remove callback from listening to state ``state``."""
         if state not in self._listeners:
             return
         for i, (cb, args, kwargs) in enumerate(self._listeners[state]):

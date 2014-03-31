@@ -13,8 +13,9 @@ Contents
    atoms
    arguments_and_results
    patterns
-   inputs_and_outputs
    engines
+   inputs_and_outputs
+   notifications
    storage
    persistence
    exceptions
