@@ -464,6 +464,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
             utils.TaskNoRequiresNoReturns(name='task2'))
 
         engine = self._make_engine(flow)
+        engine.compile()
         graph = engine.execution_graph
         self.assertIsInstance(graph, networkx.DiGraph)
 
@@ -471,6 +472,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
         flow = utils.TaskNoRequiresNoReturns(name='task1')
 
         engine = self._make_engine(flow)
+        engine.compile()
         graph = engine.execution_graph
         self.assertIsInstance(graph, networkx.DiGraph)
 

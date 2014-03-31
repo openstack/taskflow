@@ -76,8 +76,14 @@ class ActionEngine(base.EngineBase):
 
     @property
     def execution_graph(self):
-        self.compile()
-        return self._analyzer.execution_graph
+        """The graph of nodes to be executed.
+
+        NOTE(harlowja): Only accessible after compilation has completed.
+        """
+        g = None
+        if self._compiled and self._analyzer:
+            g = self._analyzer.execution_graph
+        return g
 
     @lock_utils.locked
     def run(self):
