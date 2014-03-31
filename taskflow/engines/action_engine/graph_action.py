@@ -15,6 +15,7 @@
 #    under the License.
 
 from taskflow.engines.action_engine import executor as ex
+from taskflow import exceptions as excp
 from taskflow import retry as r
 from taskflow import states as st
 from taskflow import task
@@ -105,6 +106,9 @@ class FutureGraphAction(object):
             return self._task_action.schedule_execution(task)
         elif intention == st.REVERT:
             return self._task_action.schedule_reversion(task)
+        else:
+            raise excp.ExecutionFailure("Unknown how to schedule task with"
+                                        " intention: %s" % intention)
 
     def _complete_task(self, task, event, result):
         """Completes the given task, process task failure."""
@@ -126,6 +130,9 @@ class FutureGraphAction(object):
             self._retry_action.change_state(retry, st.RETRYING)
             self._retry_subflow(retry)
             return self._retry_action.execute(retry)
+        else:
+            raise excp.ExecutionFailure("Unknown how to schedule retry with"
+                                        " intention: %s" % intention)
 
     def _process_atom_failure(self, atom, failure):
         """On atom failure find its retry controller, ask for the action to
