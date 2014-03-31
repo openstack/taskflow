@@ -49,7 +49,7 @@ RETRY = 'RETRY'
 INTENTIONS = [EXECUTE, IGNORE, REVERT, RETRY]
 
 ## Flow state transitions
-# https://wiki.openstack.org/wiki/TaskFlow/States_of_Task_and_Flow#Flow_States
+# See: http://docs.openstack.org/developer/taskflow/states.html
 
 _ALLOWED_FLOW_TRANSITIONS = frozenset((
     (PENDING, RUNNING),       # run it!
@@ -120,7 +120,7 @@ def check_flow_transition(old_state, new_state):
 
 
 ## Task state transitions
-# https://wiki.openstack.org/wiki/TaskFlow/States_of_Task_and_Flow#Task_States
+# See: http://docs.openstack.org/developer/taskflow/states.html
 
 _ALLOWED_TASK_TRANSITIONS = frozenset((
     (PENDING, RUNNING),       # run it!
