@@ -19,9 +19,9 @@ import mock
 from concurrent import futures
 
 from taskflow.engines.worker_based import protocol as pr
-from taskflow import failure
 from taskflow import test
 from taskflow.tests import utils
+from taskflow.utils import misc
 
 
 class TestProtocol(test.TestCase):
@@ -81,15 +81,15 @@ class TestProtocol(test.TestCase):
                          self.request_to_dict(result=('success', None)))
 
     def test_to_dict_with_result_failure(self):
-        fail = failure.Failure.from_exception(RuntimeError('Woot!'))
-        expected = self.request_to_dict(result=('failure', fail.to_dict()))
-        self.assertEqual(self.request(result=fail).to_dict(), expected)
+        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
+        expected = self.request_to_dict(result=('failure', failure.to_dict()))
+        self.assertEqual(self.request(result=failure).to_dict(), expected)
 
     def test_to_dict_with_failures(self):
-        fail = failure.Failure.from_exception(RuntimeError('Woot!'))
-        request = self.request(failures={self.task.name: fail})
+        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
+        request = self.request(failures={self.task.name: failure})
         expected = self.request_to_dict(
-            failures={self.task.name: fail.to_dict()})
+            failures={self.task.name: failure.to_dict()})
         self.assertEqual(request.to_dict(), expected)
 
     @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')

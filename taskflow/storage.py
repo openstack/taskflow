@@ -21,7 +21,6 @@ import logging
 import six
 
 from taskflow import exceptions
-from taskflow import failure
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow import states
@@ -54,7 +53,7 @@ class Storage(object):
         self._lock = self._lock_cls()
 
         # NOTE(imelnikov): failure serialization looses information,
-        # so we cache failures here, in task name -> failure.Failure mapping.
+        # so we cache failures here, in task name -> misc.Failure mapping.
         self._failures = {}
         for ad in self._flowdetail:
             if ad.failure is not None:
@@ -326,7 +325,7 @@ class Storage(object):
         with self._lock.write_lock():
             ad = self._atomdetail_by_name(atom_name)
             ad.state = state
-            if state == states.FAILURE and isinstance(data, failure.Failure):
+            if state == states.FAILURE and isinstance(data, misc.Failure):
                 # FIXME(harlowja): this seems like it should be internal logic
                 # in the atom detail object and not in here. Fix that soon...
                 #

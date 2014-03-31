@@ -24,7 +24,6 @@ from taskflow.engines.action_engine import task_action
 from taskflow.engines import base
 
 from taskflow import exceptions as exc
-from taskflow import failure
 from taskflow.openstack.common import excutils
 from taskflow import retry
 from taskflow import states
@@ -116,7 +115,7 @@ class ActionEngine(base.EngineBase):
             self._change_state(state)
         if state != states.SUSPENDED and state != states.SUCCESS:
             failures = self.storage.get_failures()
-            failure.Failure.reraise_if_any(failures.values())
+            misc.Failure.reraise_if_any(failures.values())
 
     @lock_utils.locked(lock='_state_lock')
     def _change_state(self, state):

@@ -23,9 +23,9 @@ from kombu import exceptions as kombu_exc
 
 from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr
-from taskflow import failure
 from taskflow import test
 from taskflow.tests import utils
+from taskflow.utils import misc
 
 
 class TestWorkerTaskExecutor(test.MockTestCase):
@@ -111,8 +111,8 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
     def test_on_message_response_state_failure(self):
-        fail = failure.Failure.from_exception(Exception('test'))
-        failure_dict = fail.to_dict()
+        failure = misc.Failure.from_exception(Exception('test'))
+        failure_dict = failure.to_dict()
         response = pr.Response(pr.FAILURE, result=failure_dict)
         ex = self.executor()
         ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
@@ -120,7 +120,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
         self.assertEqual(len(ex._requests_cache._data), 0)
         self.assertEqual(self.request_inst_mock.mock_calls, [
-            mock.call.set_result(result=utils.FailureMatcher(fail))
+            mock.call.set_result(result=utils.FailureMatcher(failure))
         ])
         self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 

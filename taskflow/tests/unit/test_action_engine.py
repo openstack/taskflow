@@ -31,7 +31,6 @@ from taskflow.engines.action_engine import engine as eng
 from taskflow.engines.worker_based import engine as w_eng
 from taskflow.engines.worker_based import worker as wkr
 from taskflow import exceptions as exc
-from taskflow import failure
 from taskflow.persistence import logbook
 from taskflow import states
 from taskflow import task
@@ -39,6 +38,7 @@ from taskflow import test
 from taskflow.tests import utils
 
 from taskflow.utils import eventlet_utils as eu
+from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 
 
@@ -488,7 +488,7 @@ class EngineCheckingTaskTest(utils.EngineTestBase):
                 self.assertEqual(result, 'RESULT')
                 self.assertEqual(list(flow_failures.keys()), ['fail1'])
                 fail = flow_failures['fail1']
-                self.assertIsInstance(fail, failure.Failure)
+                self.assertIsInstance(fail, misc.Failure)
                 self.assertEqual(str(fail), 'Failure: RuntimeError: Woot!')
 
         flow = lf.Flow('test').add(

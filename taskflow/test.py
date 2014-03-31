@@ -24,7 +24,7 @@ import fixtures
 import six
 
 from taskflow import exceptions
-from taskflow import failure
+from taskflow.tests import utils
 from taskflow.utils import misc
 
 
@@ -49,13 +49,13 @@ class FailureRegexpMatcher(object):
         self.exc_class = exc_class
         self.pattern = pattern
 
-    def match(self, fail):
-        for cause in fail:
+    def match(self, failure):
+        for cause in failure:
             if cause.check(self.exc_class) is not None:
                 return matchers.MatchesRegex(
                     self.pattern).match(cause.exception_str)
         return matchers.Mismatch("The `%s` wasn't caused by the `%s`" %
-                                 (fail, self.exc_class))
+                                 (failure, self.exc_class))
 
 
 class ItemsEqual(object):
@@ -171,7 +171,7 @@ class TestCase(testcase.TestCase):
         string matches to the given pattern.
         """
         try:
-            with failure.wrap_all_failures():
+            with utils.wrap_all_failures():
                 callable_obj(*args, **kwargs)
         except exceptions.WrappedFailure as e:
             self.assertThat(e, FailureRegexpMatcher(exc_class, pattern))

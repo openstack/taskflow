@@ -21,7 +21,7 @@ from kombu import exceptions as kombu_exc
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
-from taskflow import failure
+from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -77,22 +77,21 @@ class Server(object):
     @staticmethod
     def _parse_request(task_cls, task_name, action, arguments, result=None,
                        failures=None, **kwargs):
-        """Parse request before it can be processed.
-
-        All `failure.Failure` objects that have been converted to dict on the
-        remote side to be serializable are now converted back to objects.
+        """Parse request before it can be processed. All `misc.Failure` objects
+        that have been converted to dict on the remote side to be serializable
+        are now converted back to objects.
         """
         action_args = dict(arguments=arguments, task_name=task_name)
         if result is not None:
             data_type, data = result
             if data_type == 'failure':
-                action_args['result'] = failure.Failure.from_dict(data)
+                action_args['result'] = misc.Failure.from_dict(data)
             else:
                 action_args['result'] = data
         if failures is not None:
             action_args['failures'] = {}
             for k, v in failures.items():
-                action_args['failures'][k] = failure.Failure.from_dict(v)
+                action_args['failures'][k] = misc.Failure.from_dict(v)
         return task_cls, action, action_args
 
     @staticmethod
@@ -162,19 +161,19 @@ class Server(object):
             action_args.update(task_uuid=task_uuid,
                                progress_callback=progress_callback)
         except ValueError:
-            with failure.capture_failure() as fail:
+            with misc.capture_failure() as failure:
                 LOG.exception("Failed to parse request")
-                reply_callback(result=fail.to_dict())
+                reply_callback(result=failure.to_dict())
                 return
 
         # get task endpoint
         try:
             endpoint = self._endpoints[task_cls]
         except KeyError:
-            with failure.capture_failure() as fail:
+            with misc.capture_failure() as failure:
                 LOG.exception("The '%s' task endpoint does not exist",
                               task_cls)
-                reply_callback(result=fail.to_dict())
+                reply_callback(result=failure.to_dict())
                 return
         else:
             reply_callback(state=pr.RUNNING)
@@ -183,11 +182,11 @@ class Server(object):
         try:
             result = getattr(endpoint, action)(**action_args)
         except Exception:
-            with failure.capture_failure() as fail:
+            with misc.capture_failure() as failure:
                 LOG.exception("The %s task execution failed", endpoint)
-                reply_callback(result=fail.to_dict())
+                reply_callback(result=failure.to_dict())
         else:
-            if isinstance(result, failure.Failure):
+            if isinstance(result, misc.Failure):
                 reply_callback(result=result.to_dict())
             else:
                 reply_callback(state=pr.SUCCESS, result=result)

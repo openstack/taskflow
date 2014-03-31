@@ -19,7 +19,7 @@ Contents
    storage
    persistence
    exceptions
-   failure
+   utils
    states
 
 

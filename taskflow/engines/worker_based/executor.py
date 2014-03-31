@@ -24,7 +24,6 @@ from taskflow.engines.worker_based import cache
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow import exceptions as exc
-from taskflow import failure
 from taskflow.utils import async_utils
 from taskflow.utils import misc
 
@@ -126,7 +125,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         """
         LOG.debug("Request '%r' has expired.", request)
         LOG.debug("The '%r' request has expired.", request)
-        request.set_result(failure.Failure.from_exception(
+        request.set_result(misc.Failure.from_exception(
             exc.RequestTimeout("The '%r' request has expired" % request)))
 
     def _on_wait(self):
@@ -162,11 +161,11 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                                 reply_to=self._uuid,
                                 correlation_id=request.uuid)
         except Exception:
-            with failure.capture_failure() as fail:
+            with misc.capture_failure() as failure:
                 LOG.exception("Failed to submit the '%s' request." %
                               request)
                 self._requests_cache.delete(request.uuid)
-                request.set_result(fail)
+                request.set_result(failure)
 
     def _notify_topics(self):
         """Cyclically publish notify message to each topic."""
