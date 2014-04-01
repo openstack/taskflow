@@ -85,8 +85,6 @@ class Storage(object):
         # connection, if a backend is provided in the first place, otherwise
         # don't call the function.
         if self._backend is None:
-            LOG.debug("No backend provided, not calling functor '%s'",
-                      reflection.get_callable_name(functor))
             return
         with contextlib.closing(self._backend.get_connection()) as conn:
             functor(conn, *args, **kwargs)
