@@ -110,17 +110,18 @@ class ActionEngine(base.EngineBase):
             failures = self.storage.get_failures()
             misc.Failure.reraise_if_any(failures.values())
 
-    @lock_utils.locked(lock='_state_lock')
     def _change_state(self, state):
-        old_state = self.storage.get_flow_state()
-        if not states.check_flow_transition(old_state, state):
-            return
-        self.storage.set_flow_state(state)
+        with self._state_lock:
+            old_state = self.storage.get_flow_state()
+            if not states.check_flow_transition(old_state, state):
+                return
+            self.storage.set_flow_state(state)
         try:
             flow_uuid = self._flow.uuid
         except AttributeError:
-            # NOTE(harlowja): if the flow was just a single task, then it will
-            # not itself have a uuid, but the constructed flow_detail will.
+            # NOTE(harlowja): if the flow was just a single task, then it
+            # will not itself have a uuid, but the constructed flow_detail
+            # will.
             if self._flow_detail is not None:
                 flow_uuid = self._flow_detail.uuid
             else:
