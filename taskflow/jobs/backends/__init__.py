@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
+#    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -13,3 +13,33 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+import logging
+
+import six
+from stevedore import driver
+
+from taskflow import exceptions as exc
+
+
+# NOTE(harlowja): this is the entrypoint namespace, not the module namespace.
+BACKEND_NAMESPACE = 'taskflow.jobboards'
+
+LOG = logging.getLogger(__name__)
+
+
+def fetch(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
+    # NOTE(harlowja): this allows simpler syntax.
+    if isinstance(conf, six.string_types):
+        conf = {'board': conf}
+
+    board = conf['board']
+    LOG.debug('Looking for %r jobboard driver in %r', board, namespace)
+    try:
+        mgr = driver.DriverManager(namespace, board,
+                                   invoke_on_load=True,
+                                   invoke_args=(name, conf),
+                                   invoke_kwds=kwargs)
+        return mgr.driver
+    except RuntimeError as e:
+        raise exc.NotFound("Could not find jobboard %s" % (board), e)

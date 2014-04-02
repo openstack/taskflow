@@ -144,8 +144,7 @@ class ZookeeperJob(base_job.Job):
 
 class ZookeeperJobBoard(jobboard.JobBoard):
     def __init__(self, name, conf, client=None):
-        super(ZookeeperJobBoard, self).__init__(name)
-        self._conf = conf
+        super(ZookeeperJobBoard, self).__init__(name, conf)
         if client is not None:
             self._client = client
             self._owned = False

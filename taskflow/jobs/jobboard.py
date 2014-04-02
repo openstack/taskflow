@@ -28,8 +28,9 @@ class JobBoard(object):
     capabilities of the underlying jobboard implementation.
     """
 
-    def __init__(self, name):
+    def __init__(self, name, conf):
         self._name = name
+        self._conf = conf
 
     @abc.abstractmethod
     def iterjobs(self, only_unclaimed=False):
