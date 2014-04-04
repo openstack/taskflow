@@ -262,9 +262,9 @@ class ZookeeperJobBoard(jobboard.JobBoard):
                     # This method is called from a asynchronous handler so it's
                     # better to exit from this quickly to allow other
                     # asynchronous handlers to be executed.
-                    func = functools.partial(self._process_child, path=path)
+                    child_proc = functools.partial(self._process_child, path)
                     result = self._client.get_async(path)
-                    result.rawlink(func)
+                    result.rawlink(child_proc)
 
     def _format_job(self, job):
         posting = {
