@@ -20,6 +20,7 @@ import six
 from stevedore import driver
 
 from taskflow import exceptions as exc
+from taskflow.utils import misc
 
 
 # NOTE(harlowja): this is the entrypoint namespace, not the module namespace.
@@ -33,11 +34,16 @@ def fetch(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
     specific kwargs) in the given entrypoint namespace and create it with the
     given name.
     """
-    # NOTE(harlowja): this allows simpler syntax.
     if isinstance(conf, six.string_types):
         conf = {'board': conf}
-
     board = conf['board']
+    try:
+        pieces = misc.parse_uri(board)
+    except (TypeError, ValueError):
+        pass
+    else:
+        board = pieces['scheme']
+        conf = misc.merge_uri(pieces, conf.copy())
     LOG.debug('Looking for %r jobboard driver in %r', board, namespace)
     try:
         mgr = driver.DriverManager(namespace, board,
