@@ -187,7 +187,24 @@ class ZookeeperJobBoard(jobboard.JobBoard):
             count += 1
         return count
 
-    def iterjobs(self, only_unclaimed=False):
+    def _force_refresh(self, delayed=False):
+        try:
+            children = self._client.get_children(self.path)
+        except self._client.handler.timeout_exception as e:
+            raise excp.JobFailure("Refreshing failure, connection timed out",
+                                  e)
+        except k_exceptions.SessionExpiredError as e:
+            raise excp.JobFailure("Refreshing failure, session expired", e)
+        except k_exceptions.NoNodeError:
+            pass
+        except k_exceptions.KazooException as e:
+            raise excp.JobFailure("Refreshing failure, internal error", e)
+        else:
+            self._on_job_posting(children, delayed=delayed)
+
+    def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
+        if ensure_fresh:
+            self._force_refresh()
         ok_states = ALL_JOB_STATES
         if only_unclaimed:
             ok_states = UNCLAIMED_JOB_STATES
@@ -236,7 +253,7 @@ class ZookeeperJobBoard(jobboard.JobBoard):
             LOG.warn("Internal error fetching job data from path: %s",
                      path, exc_info=True)
 
-    def _on_job_posting(self, children):
+    def _on_job_posting(self, children, delayed=True):
         LOG.debug("Got children %s under path %s", children, self.path)
         child_paths = [k_paths.join(self.path, c) for c in children]
 
@@ -259,12 +276,15 @@ class ZookeeperJobBoard(jobboard.JobBoard):
                 if path not in self._known_jobs:
                     # Fire off the request to populate this job asynchronously.
                     #
-                    # This method is called from a asynchronous handler so it's
-                    # better to exit from this quickly to allow other
-                    # asynchronous handlers to be executed.
+                    # This method is *usually* called from a asynchronous
+                    # handler so it's better to exit from this quickly to
+                    # allow other asynchronous handlers to be executed.
+                    request = self._client.get_async(path)
                     child_proc = functools.partial(self._process_child, path)
-                    result = self._client.get_async(path)
-                    result.rawlink(child_proc)
+                    if delayed:
+                        request.rawlink(child_proc)
+                    else:
+                        child_proc(request)
 
     def _format_job(self, job):
         posting = {

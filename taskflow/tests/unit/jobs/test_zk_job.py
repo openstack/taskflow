@@ -66,6 +66,15 @@ class TestZookeeperJobs(test.TestCase):
             self.client.flush()
             self.assertTrue(self.board.connected)
 
+    def test_fresh_iter(self):
+        with connect_close(self.board):
+            book = p_utils.temporary_log_book()
+            self.board.post('test', book)
+            self.client.flush()
+
+            jobs = list(self.board.iterjobs(ensure_fresh=True))
+            self.assertEqual(1, len(jobs))
+
     def test_posting_received_raw(self):
         book = p_utils.temporary_log_book()
 
@@ -77,7 +86,7 @@ class TestZookeeperJobs(test.TestCase):
             self.client.flush()
 
             self.assertEqual(self.board, posted_job.board)
-            self.assertTrue(1, self.board.job_count)
+            self.assertEqual(1, self.board.job_count)
             self.assertIn(posted_job.uuid, [j.uuid
                                             for j in self.board.iterjobs()])
 
