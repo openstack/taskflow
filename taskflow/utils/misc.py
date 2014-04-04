@@ -391,7 +391,7 @@ class StopWatch(object):
         return self
 
 
-class TransitionNotifier(object):
+class Notifier(object):
     """A utility helper class that can be used to subscribe to
     notifications of events occurring as well as allow a entity to post said
     notifications to subscribers.
@@ -405,15 +405,14 @@ class TransitionNotifier(object):
 
     def __len__(self):
         """Returns how many callbacks are registered."""
-
         count = 0
-        for (_s, callbacks) in six.iteritems(self._listeners):
+        for (_event_type, callbacks) in six.iteritems(self._listeners):
             count += len(callbacks)
         return count
 
-    def is_registered(self, state, callback):
+    def is_registered(self, event_type, callback):
         """Check if a callback is registered."""
-        listeners = list(self._listeners.get(state, []))
+        listeners = list(self._listeners.get(event_type, []))
         for (cb, _args, _kwargs) in listeners:
             if reflection.is_same_callback(cb, callback):
                 return True
@@ -423,17 +422,17 @@ class TransitionNotifier(object):
         """Forget all previously registered callbacks."""
         self._listeners.clear()
 
-    def notify(self, state, details):
-        """Notify about state change.
+    def notify(self, event_type, details):
+        """Notify about event occurrence.
 
         All callbacks registered to receive notifications about given
-        state will be called.
+        event type will be called.
 
-        :param state: state we moved to
-        :param details: addition transition details
+        :param event_type: event type that occured
+        :param details: addition event details
         """
         listeners = list(self._listeners.get(self.ANY, []))
-        for i in self._listeners[state]:
+        for i in self._listeners[event_type]:
             if i not in listeners:
                 listeners.append(i)
         if not listeners:
@@ -445,23 +444,23 @@ class TransitionNotifier(object):
                 kwargs = {}
             kwargs['details'] = details
             try:
-                callback(state, *args, **kwargs)
+                callback(event_type, *args, **kwargs)
             except Exception:
-                LOG.warn("Failure calling callback %s to notify about state"
-                         " transition %s, details: %s",
-                         callback, state, details, exc_info=True)
+                LOG.warn("Failure calling callback %s to notify about event"
+                         " %s, details: %s", callback, event_type,
+                         details, exc_info=True)
 
-    def register(self, state, callback, args=None, kwargs=None):
-        """Register a callback to be called when state is changed.
+    def register(self, event_type, callback, args=None, kwargs=None):
+        """Register a callback to be called when event of a given type occurs.
 
         Callback will be called with provided ``args`` and ``kwargs`` and
-        when state is changed to ``state`` (or on any state change if
-        ``state`` equals to ``TransitionNotifier.ANY``). It will also
-        get additional keyword argument, ``details``, that will hold
-        transition details provided to :py:meth:`notify` method.
+        when event type occurs (or on any event if ``event_type`` equals to
+        ``Notifier.ANY``). It will also get additional keyword argument,
+        ``details``, that will hold event details provided to
+        :py:meth:`notify` method.
         """
         assert six.callable(callback), "Callback must be callable"
-        if self.is_registered(state, callback):
+        if self.is_registered(event_type, callback):
             raise ValueError("Callback %s already registered" % (callback))
         if kwargs:
             for k in self.RESERVED_KEYS:
@@ -471,15 +470,15 @@ class TransitionNotifier(object):
             kwargs = copy.copy(kwargs)
         if args:
             args = copy.copy(args)
-        self._listeners[state].append((callback, args, kwargs))
+        self._listeners[event_type].append((callback, args, kwargs))
 
-    def deregister(self, state, callback):
-        """Remove callback from listening to state ``state``."""
-        if state not in self._listeners:
+    def deregister(self, event_type, callback):
+        """Remove a single callback from listening to event ``event_type``."""
+        if event_type not in self._listeners:
             return
-        for i, (cb, args, kwargs) in enumerate(self._listeners[state]):
+        for i, (cb, args, kwargs) in enumerate(self._listeners[event_type]):
             if reflection.is_same_callback(cb, callback):
-                self._listeners[state].pop(i)
+                self._listeners[event_type].pop(i)
                 break
 
 

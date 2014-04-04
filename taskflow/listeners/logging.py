@@ -33,8 +33,8 @@ class LoggingListener(base.LoggingBase):
     can also be configured, ``logging.DEBUG`` is used by default.
     """
     def __init__(self, engine,
-                 task_listen_for=(misc.TransitionNotifier.ANY,),
-                 flow_listen_for=(misc.TransitionNotifier.ANY,),
+                 task_listen_for=(misc.Notifier.ANY,),
+                 flow_listen_for=(misc.Notifier.ANY,),
                  log=None,
                  level=logging.DEBUG):
         super(LoggingListener, self).__init__(engine,

@@ -46,8 +46,8 @@ class ListenerBase(object):
     """
 
     def __init__(self, engine,
-                 task_listen_for=(misc.TransitionNotifier.ANY,),
-                 flow_listen_for=(misc.TransitionNotifier.ANY,)):
+                 task_listen_for=(misc.Notifier.ANY,),
+                 flow_listen_for=(misc.Notifier.ANY,)):
         if not task_listen_for:
             task_listen_for = []
         if not flow_listen_for:

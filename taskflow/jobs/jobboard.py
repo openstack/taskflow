@@ -19,6 +19,8 @@ import abc
 
 import six
 
+from taskflow.utils import misc
+
 
 @six.add_metaclass(abc.ABCMeta)
 class JobBoard(object):
@@ -114,3 +116,22 @@ class JobBoard(object):
         abandoning a unclaimed job (or a job they do not own) will cause an
         exception.
         """
+
+
+# Jobboard events
+POSTED = 'POSTED'  # new job is/has been posted
+REMOVAL = 'REMOVAL'  # existing job is/has been removed
+
+
+class NotifyingJobBoard(JobBoard):
+    """A jobboard subclass that can notify about jobs being created
+    and removed, which can remove the repeated usage of iterjobs() to achieve
+    the same operation.
+
+    NOTE(harlowja): notifications that are emitted *may* be emitted on a
+    separate dedicated thread when they occur, so ensure that all callbacks
+    registered are thread safe.
+    """
+    def __init__(self, name, conf):
+        super(NotifyingJobBoard, self).__init__(name, conf)
+        self.notifier = misc.Notifier()

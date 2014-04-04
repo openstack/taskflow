@@ -35,8 +35,8 @@ class EngineBase(object):
         else:
             self._conf = dict(conf)
         self._storage = None
-        self.notifier = misc.TransitionNotifier()
-        self.task_notifier = misc.TransitionNotifier()
+        self.notifier = misc.Notifier()
+        self.task_notifier = misc.Notifier()
 
     @property
     def storage(self):

@@ -17,7 +17,7 @@ transitions, which is useful for monitoring, logging, metrics, debugging
 and plenty of other tasks.
 
 To receive these notifications you should register a callback in
-:py:class:`~taskflow.utils.misc.TransitionNotifier` provided by engine.
+:py:class:`~taskflow.utils.misc.Notifier` provided by engine.
 Each engine provides two of them: one notifies about flow state changes,
 and another notifies about changes of tasks.
 
@@ -30,15 +30,15 @@ Receiving Notifications with Callbacks
 --------------------------------------
 
 To manage notifications instances of
-:py:class:`~taskflow.utils.misc.TransitionNotifier` are used.
+:py:class:`~taskflow.utils.misc.Notifier` are used.
 
-.. autoclass:: taskflow.utils.misc.TransitionNotifier
+.. autoclass:: taskflow.utils.misc.Notifier
 
 Flow Notifications
 ------------------
 
 To receive notification on flow state changes use
-:py:class:`~taskflow.utils.misc.TransitionNotifier` available as
+:py:class:`~taskflow.utils.misc.Notifier` available as
 ``notifier`` property of the engine. A basic example is:
 
 .. doctest::
@@ -71,7 +71,7 @@ Task notifications
 ------------------
 
 To receive notification on task state changes use
-:py:class:`~taskflow.utils.misc.TransitionNotifier` available as
+:py:class:`~taskflow.utils.misc.Notifier` available as
 ``task_notifier`` property of the engine. A basic example is:
 
 .. doctest::

@@ -18,6 +18,7 @@ import contextlib
 import functools
 import logging
 
+from concurrent import futures
 from kazoo import exceptions as k_exceptions
 from kazoo.protocol import paths as k_paths
 from kazoo.recipe import watchers
@@ -146,8 +147,9 @@ class ZookeeperJob(base_job.Job):
         return self._book
 
 
-class ZookeeperJobBoard(jobboard.JobBoard):
-    def __init__(self, name, conf, client=None, persistence=None):
+class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
+    def __init__(self, name, conf,
+                 client=None, persistence=None, emit_notifications=True):
         super(ZookeeperJobBoard, self).__init__(name, conf)
         if client is not None:
             self._client = client
@@ -177,6 +179,13 @@ class ZookeeperJobBoard(jobboard.JobBoard):
         # Since we use sequenced ids this will be the path that the sequences
         # are prefixed with, for example, job0000000001, job0000000002, ...
         self._job_base = k_paths.join(path, "job")
+        self._worker = None
+        self._emit_notifications = bool(emit_notifications)
+
+    def _emit(self, state, details):
+        # Submit the work to the executor to avoid blocking the kazoo queue.
+        if self._worker is not None:
+            self._worker.submit(self.notifier.notify, state, details)
 
     @property
     def path(self):
@@ -224,7 +233,12 @@ class ZookeeperJobBoard(jobboard.JobBoard):
 
     def _remove_job(self, path):
         LOG.debug("Removing job that was at path: %s", path)
-        self._known_jobs.pop(path, None)
+        job = self._known_jobs.pop(path, None)
+        if job is not None:
+            self._emit(jobboard.REMOVAL,
+                       details={
+                           'job': job,
+                       })
 
     def _process_child(self, path, request):
         """Receives the result of a child data fetch request."""
@@ -239,6 +253,10 @@ class ZookeeperJobBoard(jobboard.JobBoard):
                                        book_data=job_data.get("book"),
                                        details=job_data.get("details", {}))
                     self._known_jobs[path] = job
+                    self._emit(jobboard.POSTED,
+                               details={
+                                   'job': job,
+                               })
         except (ValueError, TypeError, KeyError):
             LOG.warn("Incorrectly formatted job data found at path: %s",
                      path, exc_info=True)
@@ -447,6 +465,10 @@ class ZookeeperJobBoard(jobboard.JobBoard):
         if self._owned:
             LOG.debug("Stopping client")
             kazoo_utils.finalize_client(self._client)
+        if self._worker is not None:
+            LOG.debug("Shutting down the notifier")
+            self._worker.shutdown()
+            self._worker = None
         self._clear()
         LOG.debug("Stopped & cleared local state")
 
@@ -472,6 +494,8 @@ class ZookeeperJobBoard(jobboard.JobBoard):
             raise excp.JobFailure("Failed to connect to zookeeper", e)
         try:
             kazoo_utils.check_compatible(self._client, MIN_ZK_VERSION)
+            if self._worker is None and self._emit_notifications:
+                self._worker = futures.ThreadPoolExecutor(max_workers=1)
             self._client.ensure_path(self.path)
             self._job_watcher = watchers.ChildrenWatch(
                 self._client,
