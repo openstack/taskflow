@@ -1,0 +1,210 @@
+----
+Jobs
+----
+
+Overview
+========
+
+Jobs and jobboards are a **novel** concept that taskflow provides to allow for
+automatic ownership transfer of workflows between capable
+owners (those owners usually then use :doc:`engines <engines>` to complete the
+workflow). They provide the necessary semantics to be able to atomically
+transfer a job from a producer to a consumer in a reliable and fault tolerant
+manner. They are modeled off the concept used to post and acquire work in the
+physical world (typically a job listing in a newspaper or online website
+serves a similar role).
+
+**TLDR:** It's similar to a queue, but consumers lock items on the queue when
+claiming them, and only remove them from the queue when they're done with the
+work. If the consumer fails, the lock is *automatically* released and the item
+is back on the queue for further consumption.
+
+Features
+--------
+
+- High availability
+
+  - Guarantees workflow forward progress by transfering partially completed work
+    or work that has not been started to entities which can either resume the
+    previously partially completed work or begin initial work to ensure that
+    the workflow as a whole progresses (where progressing implies transitioning
+    through the workflow :doc:`patterns <patterns>` and :doc:`atoms <atoms>`
+    and completing their associated state transitions).
+
+- Atomic transfer and single ownership
+
+  - Ensures that only one workflow is managed (aka owned) by a single owner at
+    a time in an atomic manner (including when the workflow is transferred to
+    a owner that is resuming some other failed owners work). This avoids
+    contention and ensures a workflow is managed by one and only one entity at
+    a time.
+  - *Note:* this does not mean that the owner needs to run the
+    workflow itself but instead said owner could use an engine that runs the
+    work in a distributed manner to ensure that the workflow progresses.
+
+- Separation of workflow construction and execution
+
+  - Jobs can be created with logbooks that contain a specification of the work
+    to be done by a entity (such as an API server). The job then can be
+    completed by a entity that is watching that jobboard (not neccasarily the
+    API server itself). This creates a disconnection between work
+    formation and work completion that is useful for scaling out horizontally.
+
+- Asynchronous completion
+
+  - When for example a API server posts a job for completion to a
+    jobboard that API server can return a *tracking* identifier to the user
+    calling the API service. This  *tracking* identifier can be used by the
+    user to poll for status (similar in concept to a shipping *tracking*
+    identifier created by fedex or UPS).
+
+For more information, please see `wiki page`_ for more details.
+
+Jobs
+----
+
+A job consists of a unique identifier, name, and a reference to a logbook
+which contains the details of the work that has been or should be/will be
+completed to finish the work that has been created for that job.
+
+Jobboards
+---------
+
+A jobboard is responsible for managing the posting, ownership, and delivery
+of jobs. It acts as the location where jobs can be posted, claimed and searched
+for; typically by iteration or notification. Jobboards may be backed by
+different *capable* implementations (each with potentially differing
+configuration) but all jobboards implement the same interface and semantics so
+that the backend usage is as transparent as possible. This allows deployers or
+developers of a service that uses TaskFlow to select a jobboard implementation
+that fits their setup (and there intended usage) best.
+
+Using Jobboards
+===============
+
+All engines are mere classes that implement same interface, and of course it is
+possible to import them and create their instances just like with any classes
+in Python. But the easier (and recommended) way for creating jobboards is by
+using the `fetch()` functionality. Using this function the typical creation of
+a jobboard (and an example posting of a job) might look like:
+
+.. code-block:: python
+
+    from taskflow.persistence import backends as persistence_backends
+    from taskflow.jobs import backends as job_backends
+
+    ...
+    persistence = persistence_backends.fetch({
+        "connection': "mysql",
+        "user": ...,
+        "password": ...,
+    })
+    book = make_and_save_logbook(persistence)
+    board = job_backends.fetch('my-board', {
+        "board": "zookeeper",
+    }, persistence=persistence)
+    job = board.post("my-first-job", book)
+    ...
+
+Consumption of jobs is similarly achieved by creating a jobboard and using
+the iteration functionality to find and claim jobs (and eventually consume
+them). The typical usage of a joboard for consumption (and work completion)
+might look like:
+
+.. code-block:: python
+
+    import time
+
+    from taskflow import exceptions as exc
+    from taskflow.persistence import backends as persistence_backends
+    from taskflow.jobs import backends as job_backends
+
+    ...
+    my_name = 'worker-1'
+    coffee_break_time = 60
+    persistence = persistence_backends.fetch({
+        "connection': "mysql",
+        "user": ...,
+        "password": ...,
+    })
+    board = job_backends.fetch('my-board', {
+        "board": "zookeeper",
+    }, persistence=persistence)
+    while True:
+        my_job = None
+        for job in board.iterjobs(only_unclaimed=True):
+            try:
+                board.claim(job, my_name)
+            except exc.UnclaimableJob:
+                pass
+            else:
+                my_job = job
+                break
+        if my_job is not None:
+            try:
+                perform_job(my_job)
+            except Exception:
+                LOG.exception("I failed performing job: %s", my_job)
+            else:
+                # I finished it, now cleanup.
+                board.consume(my_job)
+                persistence.destroy_logbook(my_job.book.uuid)
+        time.sleep(coffee_break_time)
+    ...
+
+
+.. automodule:: taskflow.jobs.backends
+.. automodule:: taskflow.persistence
+.. automodule:: taskflow.persistence.backends
+
+Jobboard Configuration
+======================
+
+Known engine types are listed below.
+
+Zookeeper
+---------
+
+**Board type**: ``'zookeeper'``
+
+Uses `zookeeper`_ to provide the jobboard capabilities and semantics by using
+a zookeeper directory, ephemeral, non-ephemeral nodes and watches.
+
+Additional *kwarg* parameters:
+
+* ``client``: a class that provides ``kazoo.client.KazooClient``-like
+  interface; it will be used for zookeeper interactions, sharing clients
+  between jobboard instances will likely provide better scalability and can
+  help avoid creating to many open connections to a set of zookeeper servers.
+* ``persistence``: a class that provides a :doc:`persistence <persistence>`
+  backend interface; it will be used for loading jobs logbooks for usage at
+  runtime or for usage before a job is claimed for introspection.
+
+Additional *configuration* parameters:
+
+* ``path``: the root zookeeper path to store job information (*defaults* to
+  ``/taskflow/jobs``)
+* ``hosts``: the list of zookeeper hosts to connect to (*defaults* to
+  ``localhost:2181``); only used if a client is not provided.
+* ``timeout``: the timeout used when performing operations with zookeeper;
+  only used if a client is not provided.
+* ``handler``: a class that provides ``kazoo.handlers``-like interface; it will
+  be used internally by `kazoo`_ to perform asynchronous operations, useful when
+  your program uses eventlet and you want to instruct kazoo to use an eventlet
+  compatible handler (such as the `eventlet handler`_).
+
+
+Job Interface
+=============
+
+.. automodule:: taskflow.jobs.job
+
+Jobboard Interface
+==================
+
+.. automodule:: taskflow.jobs.jobboard
+
+.. _wiki page: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts#Workflow_ownership_transfer
+.. _zookeeper: http://zookeeper.apache.org/
+.. _kazoo: http://kazoo.readthedocs.org/
+.. _eventlet handler: https://pypi.python.org/pypi/kazoo-eventlet-handler/
