@@ -37,6 +37,11 @@ class JobBoard(object):
         """Yields back jobs that are currently on this jobboard (claimed
         or not claimed).
 
+        NOTE(harlowja): the ordering of this iteration should be by posting
+        order (oldest to newest) if possible, but it is left up to the backing
+        implementation to provide the order that best suits it (so don't depend
+        on it always being oldest to newest).
+
         :param only_unclaimed: boolean that indicates whether to only iteration
             over unclaimed jobs.
         :param ensure_fresh: boolean that requests to only iterate over the

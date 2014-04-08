@@ -102,7 +102,6 @@ class TestZookeeperJobs(test.TestCase):
         # Check the actual data that was posted.
         self.assertEqual(1, len(paths))
         path_key = list(six.iterkeys(paths))[0]
-        self.assertIn(posted_job.uuid, path_key)
         self.assertTrue(len(paths[path_key]['data']) > 0)
         self.assertDictEqual({
             'uuid': posted_job.uuid,
@@ -220,13 +219,10 @@ class TestZookeeperJobs(test.TestCase):
             self.assertEqual(states.UNCLAIMED, j.state)
 
     def test_posting_no_post(self):
-
-        def bad_format(job):
-            raise UnicodeError("Could not format")
-
         with connect_close(self.board):
-            with mock.patch.object(self.board, '_format_job', bad_format):
-                self.assertRaises(UnicodeError, self.board.post,
+            with mock.patch.object(self.client, 'create') as create_func:
+                create_func.side_effect = IOError("Unable to post")
+                self.assertRaises(IOError, self.board.post,
                                   'test', p_utils.temporary_log_book())
             self.assertEqual(0, self.board.job_count)
 
