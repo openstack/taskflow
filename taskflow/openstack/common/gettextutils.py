@@ -23,17 +23,28 @@ Usual usage in an openstack.common module:
 """
 
 import copy
+import functools
 import gettext
 import locale
 from logging import handlers
 import os
-import re
 
 from babel import localedata
 import six
 
 _localedir = os.environ.get('taskflow'.upper() + '_LOCALEDIR')
 _t = gettext.translation('taskflow', localedir=_localedir, fallback=True)
+
+# We use separate translation catalogs for each log level, so set up a
+# mapping between the log level name and the translator. The domain
+# for the log level is project_name + "-log-" + log_level so messages
+# for each level end up in their own catalog.
+_t_log_levels = dict(
+    (level, gettext.translation('taskflow' + '-log-' + level,
+                                localedir=_localedir,
+                                fallback=True))
+    for level in ['info', 'warning', 'error', 'critical']
+)
 
 _AVAILABLE_LANGUAGES = {}
 USE_LAZY = False
@@ -58,6 +69,28 @@ def _(msg):
         if six.PY3:
             return _t.gettext(msg)
         return _t.ugettext(msg)
+
+
+def _log_translation(msg, level):
+    """Build a single translation of a log message
+    """
+    if USE_LAZY:
+        return Message(msg, domain='taskflow' + '-log-' + level)
+    else:
+        translator = _t_log_levels[level]
+        if six.PY3:
+            return translator.gettext(msg)
+        return translator.ugettext(msg)
+
+# Translators for log levels.
+#
+# The abbreviated names are meant to reflect the usual use of a short
+# name like '_'. The "L" is for "log" and the other letter comes from
+# the level.
+_LI = functools.partial(_log_translation, level='info')
+_LW = functools.partial(_log_translation, level='warning')
+_LE = functools.partial(_log_translation, level='error')
+_LC = functools.partial(_log_translation, level='critical')
 
 
 def install(domain, lazy=False):
@@ -214,47 +247,22 @@ class Message(six.text_type):
         if other is None:
             params = (other,)
         elif isinstance(other, dict):
-            params = self._trim_dictionary_parameters(other)
+            # Merge the dictionaries
+            # Copy each item in case one does not support deep copy.
+            params = {}
+            if isinstance(self.params, dict):
+                for key, val in self.params.items():
+                    params[key] = self._copy_param(val)
+            for key, val in other.items():
+                params[key] = self._copy_param(val)
         else:
             params = self._copy_param(other)
-        return params
-
-    def _trim_dictionary_parameters(self, dict_param):
-        """Return a dict that only has matching entries in the msgid."""
-        # NOTE(luisg): Here we trim down the dictionary passed as parameters
-        # to avoid carrying a lot of unnecessary weight around in the message
-        # object, for example if someone passes in Message() % locals() but
-        # only some params are used, and additionally we prevent errors for
-        # non-deepcopyable objects by unicoding() them.
-
-        # Look for %(param) keys in msgid;
-        # Skip %% and deal with the case where % is first character on the line
-        keys = re.findall('(?:[^%]|^)?%\((\w*)\)[a-z]', self.msgid)
-
-        # If we don't find any %(param) keys but have a %s
-        if not keys and re.findall('(?:[^%]|^)%[a-z]', self.msgid):
-            # Apparently the full dictionary is the parameter
-            params = self._copy_param(dict_param)
-        else:
-            params = {}
-            # Save our existing parameters as defaults to protect
-            # ourselves from losing values if we are called through an
-            # (erroneous) chain that builds a valid Message with
-            # arguments, and then does something like "msg % kwds"
-            # where kwds is an empty dictionary.
-            src = {}
-            if isinstance(self.params, dict):
-                src.update(self.params)
-            src.update(dict_param)
-            for key in keys:
-                params[key] = self._copy_param(src[key])
-
         return params
 
     def _copy_param(self, param):
         try:
             return copy.deepcopy(param)
-        except TypeError:
+        except Exception:
             # Fallback to casting to unicode this will handle the
             # python code-like objects that can't be deep-copied
             return six.text_type(param)
