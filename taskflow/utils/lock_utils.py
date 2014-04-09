@@ -36,6 +36,17 @@ from taskflow.utils import threading_utils as tu
 LOG = logging.getLogger(__name__)
 
 
+@contextlib.contextmanager
+def try_lock(lock):
+    """Attempts to acquire a lock, and autoreleases if acquisition occurred."""
+    was_locked = lock.acquire(blocking=False)
+    try:
+        yield was_locked
+    finally:
+        if was_locked:
+            lock.release()
+
+
 def locked(*args, **kwargs):
     """A decorator that looks for a given attribute (typically a lock or a list
     of locks) and before executing the decorated function uses the given lock

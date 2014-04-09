@@ -140,6 +140,50 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         self.assertEqual(self.values, ['task1', 'task2'])
         self.assertEqual(len(flow), 2)
 
+    def test_sequential_flow_two_tasks_iter(self):
+        flow = lf.Flow('flow-2').add(
+            utils.SaveOrderTask(name='task1'),
+            utils.SaveOrderTask(name='task2')
+        )
+        e = self._make_engine(flow)
+        gathered_states = list(e.run_iter())
+        self.assertTrue(len(gathered_states) > 0)
+        self.assertEqual(self.values, ['task1', 'task2'])
+        self.assertEqual(len(flow), 2)
+
+    def test_sequential_flow_iter_suspend_resume(self):
+        flow = lf.Flow('flow-2').add(
+            utils.SaveOrderTask(name='task1'),
+            utils.SaveOrderTask(name='task2')
+        )
+        _lb, fd = p_utils.temporary_flow_detail(self.backend)
+        e = self._make_engine(flow, flow_detail=fd)
+        it = e.run_iter()
+        gathered_states = []
+        suspend_it = None
+        while True:
+            try:
+                s = it.send(suspend_it)
+                gathered_states.append(s)
+                if s == states.WAITING:
+                    # Stop it before task2 runs/starts.
+                    suspend_it = True
+            except StopIteration:
+                break
+        self.assertTrue(len(gathered_states) > 0)
+        self.assertEqual(self.values, ['task1'])
+        self.assertEqual(states.SUSPENDED, e.storage.get_flow_state())
+
+        # Attempt to resume it and see what runs now...
+        #
+        # NOTE(harlowja): Clear all the values, but don't reset the reference.
+        while len(self.values):
+            self.values.pop()
+        gathered_states = list(e.run_iter())
+        self.assertTrue(len(gathered_states) > 0)
+        self.assertEqual(self.values, ['task2'])
+        self.assertEqual(states.SUCCESS, e.storage.get_flow_state())
+
     def test_revert_removes_data(self):
         flow = lf.Flow('revert-removes').add(
             utils.TaskOneReturn(provides='one'),

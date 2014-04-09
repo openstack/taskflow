@@ -258,7 +258,7 @@ class EngineTestBase(object):
                 conn.clear_all()
         super(EngineTestBase, self).tearDown()
 
-    def _make_engine(self, flow, flow_detail=None):
+    def _make_engine(self, flow, **kwargs):
         raise NotImplementedError()
 
 

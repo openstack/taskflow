@@ -86,29 +86,61 @@ class ActionEngine(base.EngineBase):
             g = self._analyzer.execution_graph
         return g
 
-    @lock_utils.locked
     def run(self):
-        """Runs the flow in the engine to completion."""
+        with lock_utils.try_lock(self._lock) as was_locked:
+            if not was_locked:
+                raise exc.ExecutionFailure("Engine currently locked, please"
+                                           " try again later")
+            for _state in self.run_iter():
+                pass
+
+    def run_iter(self, timeout=None):
+        """Runs the engine using iteration (or die trying).
+
+        :param timeout: timeout to wait for any tasks to complete (this timeout
+            will be used during the waiting period that occurs after the
+            waiting state is yielded when unfinished tasks are being waited
+            for).
+
+        Instead of running to completion in a blocking manner, this will
+        return a generator which will yield back the various states that the
+        engine is going through (and can be used to run multiple engines at
+        once using a generator per engine). the iterator returned also
+        responds to the send() method from pep-0342 and will attempt to suspend
+        itself if a truthy value is sent in (the suspend may be delayed until
+        all active tasks have finished).
+
+        NOTE(harlowja): using the run_iter method will **not** retain the
+        engine lock while executing so the user should ensure that there is
+        only one entity using a returned engine iterator (one per engine) at a
+        given time.
+        """
         self.compile()
         self.prepare()
         self._task_executor.start()
+        state = None
         try:
-            self._run()
-        finally:
-            self._task_executor.stop()
-
-    def _run(self):
-        self._change_state(states.RUNNING)
-        try:
-            state = self._root.execute()
+            self._change_state(states.RUNNING)
+            for state in self._root.execute_iter(timeout=timeout):
+                try:
+                    try_suspend = yield state
+                except GeneratorExit:
+                    break
+                else:
+                    if try_suspend:
+                        self.suspend()
         except Exception:
             with excutils.save_and_reraise_exception():
                 self._change_state(states.FAILURE)
         else:
-            self._change_state(state)
-        if state != states.SUSPENDED and state != states.SUCCESS:
-            failures = self.storage.get_failures()
-            misc.Failure.reraise_if_any(failures.values())
+            ignorable_states = getattr(self._root, 'ignorable_states', [])
+            if state and state not in ignorable_states:
+                self._change_state(state)
+                if state != states.SUSPENDED and state != states.SUCCESS:
+                    failures = self.storage.get_failures()
+                    misc.Failure.reraise_if_any(failures.values())
+        finally:
+            self._task_executor.stop()
 
     def _change_state(self, state):
         with self._state_lock:

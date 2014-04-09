@@ -48,6 +48,11 @@ REVERT = 'REVERT'
 RETRY = 'RETRY'
 INTENTIONS = [EXECUTE, IGNORE, REVERT, RETRY]
 
+# Additional engine states
+SCHEDULING = 'SCHEDULING'
+WAITING = 'WAITING'
+ANALYZING = 'ANALYZING'
+
 ## Flow state transitions
 # See: http://docs.openstack.org/developer/taskflow/states.html
 
