@@ -67,6 +67,20 @@ class TestZookeeperJobs(test.TestCase):
             self.client.flush()
             self.assertTrue(self.board.connected)
 
+    @mock.patch("taskflow.jobs.backends.impl_zookeeper.misc."
+                "millis_to_datetime")
+    def test_posting_dates(self, mock_dt):
+        epoch = misc.millis_to_datetime(0)
+        mock_dt.return_value = epoch
+
+        with connect_close(self.board):
+            j = self.board.post('test', p_utils.temporary_log_book())
+            self.client.flush()
+            self.assertEqual(epoch, j.created_on)
+            self.assertEqual(epoch, j.last_modified)
+
+        self.assertTrue(mock_dt.called)
+
     def test_fresh_iter(self):
         with connect_close(self.board):
             book = p_utils.temporary_log_book()

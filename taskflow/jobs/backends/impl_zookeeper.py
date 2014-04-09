@@ -60,7 +60,8 @@ def _check_who(who):
 
 class ZookeeperJob(base_job.Job):
     def __init__(self, name, board, client, backend, path,
-                 uuid=None, details=None, book=None, book_data=None):
+                 uuid=None, details=None, book=None, book_data=None,
+                 created_on=None):
         super(ZookeeperJob, self).__init__(name, uuid=uuid, details=details)
         self._board = board
         self._book = book
@@ -74,6 +75,8 @@ class ZookeeperJob(base_job.Job):
                              " can be provided")
         self._path = path
         self._lock_path = "%s.lock" % (path)
+        self._created_on = created_on
+        self._node_not_found = False
 
     @property
     def lock_path(self):
@@ -82,6 +85,57 @@ class ZookeeperJob(base_job.Job):
     @property
     def path(self):
         return self._path
+
+    def _get_node_attr(self, path, attr_name, trans_func=None):
+        try:
+            _data, node_stat = self._client.get(path)
+            attr = getattr(node_stat, attr_name)
+            if trans_func is not None:
+                return trans_func(attr)
+            else:
+                return attr
+        except k_exceptions.NoNodeError as e:
+            raise excp.NotFound("Can not fetch the %r attribute"
+                                " of job %s (%s), path %s not found"
+                                % (attr_name, self.uuid, self.path, path), e)
+        except self._client.handler.timeout_exception as e:
+            raise excp.JobFailure("Can not fetch the %r attribute"
+                                  " of job %s (%s), connection timed out"
+                                  % (attr_name, self.uuid, self.path), e)
+        except k_exceptions.SessionExpiredError as e:
+            raise excp.JobFailure("Can not fetch the %r attribute"
+                                  " of job %s (%s), session expired"
+                                  % (attr_name, self.uuid, self.path), e)
+        except (AttributeError, k_exceptions.KazooException) as e:
+            raise excp.JobFailure("Can not fetch the %r attribute"
+                                  " of job %s (%s), internal error" %
+                                  (attr_name, self.uuid, self.path), e)
+
+    @property
+    def last_modified(self):
+        modified_on = None
+        try:
+            if not self._node_not_found:
+                modified_on = self._get_node_attr(
+                    self.path, 'mtime',
+                    trans_func=misc.millis_to_datetime)
+        except excp.NotFound:
+            self._node_not_found = True
+        return modified_on
+
+    @property
+    def created_on(self):
+        # This one we can cache (since it won't change after creation).
+        if self._node_not_found:
+            return None
+        if self._created_on is None:
+            try:
+                self._created_on = self._get_node_attr(
+                    self.path, 'ctime',
+                    trans_func=misc.millis_to_datetime)
+            except excp.NotFound:
+                self._node_not_found = True
+        return self._created_on
 
     @property
     def board(self):
@@ -243,15 +297,17 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
     def _process_child(self, path, request):
         """Receives the result of a child data fetch request."""
         try:
-            raw_data, _stat = request.get()
+            raw_data, node_stat = request.get()
             job_data = misc.decode_json(raw_data)
+            created_on = misc.millis_to_datetime(node_stat.ctime)
             with self._job_mutate:
                 if path not in self._known_jobs:
                     job = ZookeeperJob(job_data['name'], self,
                                        self._client, self._persistence, path,
                                        uuid=job_data['uuid'],
                                        book_data=job_data.get("book"),
-                                       details=job_data.get("details", {}))
+                                       details=job_data.get("details", {}),
+                                       created_on=created_on)
                     self._known_jobs[path] = job
                     self._emit(jobboard.POSTED,
                                details={

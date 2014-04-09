@@ -18,6 +18,7 @@
 import collections
 import contextlib
 import copy
+import datetime
 import errno
 import functools
 import keyword
@@ -104,6 +105,13 @@ def wraps(fn):
         return f
 
     return wrapper
+
+
+def millis_to_datetime(milliseconds):
+    """Converts a given number of milliseconds from the epoch into a datetime
+    object.
+    """
+    return datetime.datetime.fromtimestamp(float(milliseconds) / 1000)
 
 
 def get_version_string(obj):

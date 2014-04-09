@@ -47,6 +47,16 @@ class Job(object):
         self._details = details
 
     @abc.abstractproperty
+    def last_modified(self):
+        """The datetime the job was last modified."""
+        pass
+
+    @abc.abstractproperty
+    def created_on(self):
+        """The datetime the job was created on."""
+        pass
+
+    @abc.abstractproperty
     def board(self):
         """The board this job was posted on or was created from."""
 
