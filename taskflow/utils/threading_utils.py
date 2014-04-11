@@ -15,6 +15,7 @@
 #    under the License.
 
 import multiprocessing
+import threading
 
 import six
 
@@ -34,3 +35,13 @@ def get_optimal_thread_count():
         # just setup two threads since it's hard to know what else we
         # should do in this situation.
         return 2
+
+
+def daemon_thread(target, *args, **kwargs):
+    """Makes a daemon thread that calls the given target when started."""
+    thread = threading.Thread(target=target, args=args, kwargs=kwargs)
+    # NOTE(skudriashev): When the main thread is terminated unexpectedly
+    # and thread is still alive - it will prevent main thread from exiting
+    # unless the daemon property is set to True.
+    thread.daemon = True
+    return thread
