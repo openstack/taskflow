@@ -12,11 +12,21 @@ use :doc:`persistence` directly.
 Flow Inputs and Outputs
 -----------------------
 
-Tasks accept inputs via task arguments and provide outputs via task results (see :doc:`arguments_and_results` for more details). This the standard and recommended way to pass data from one task to another. Of course not every task argument needs to be provided to some other task of a flow, and not every task result should be consumed by every task.
+Tasks accept inputs via task arguments and provide outputs via task results
+(see :doc:`arguments_and_results` for more details). This is the standard and
+recommended way to pass data from one task to another. Of course not every task
+argument needs to be provided to some other task of a flow, and not every task
+result should be consumed by every task.
 
-If some value is required by one or more tasks of a flow, but is not provided by any task, it is considered to be flow input, and **must** be put into the storage before the flow is run. A set of names required by a flow can be retrieved via that flow's ``requires`` property. These names can be used to determine what names may be applicable for placing in storage ahead of time and which names are not applicable.
+If some value is required by one or more tasks of a flow, but is not provided
+by any task, it is considered to be flow input, and **must** be put into the
+storage before the flow is run. A set of names required by a flow can be
+retrieved via that flow's ``requires`` property. These names can be used to
+determine what names may be applicable for placing in storage ahead of time
+and which names are not applicable.
 
-All values provided by tasks of the flow are considered to be flow outputs; the set of names of such values is available via ``provides`` property of the flow.
+All values provided by tasks of the flow are considered to be flow outputs; the
+set of names of such values is available via ``provides`` property of the flow.
 
 .. testsetup::
 
@@ -52,12 +62,17 @@ As you can see, this flow does not require b, as it is provided by the fist task
 Engine and Storage
 ------------------
 
-The storage layer is how an engine persists flow and task details. For more in-depth design details see :doc:`persistence` and :doc:`storage`.
+The storage layer is how an engine persists flow and task details. For more
+in-depth design details see :doc:`persistence` and :doc:`storage`.
 
 Inputs
 ------
 
-As mentioned above, if some value is required by one or more tasks of a flow, but is not provided by any task, it is considered to be flow input, and **must** be put into the storage before the flow is run. On failure to do so :py:class:`~taskflow.exceptions.MissingDependencies` is raised by engine:
+As mentioned above, if some value is required by one or more tasks of a flow,
+but is not provided by any task, it is considered to be flow input, and
+**must** be put into the storage before the flow is run. On failure to do
+so :py:class:`~taskflow.exceptions.MissingDependencies` is raised by the engine
+prior to running:
 
 .. doctest::
 
@@ -80,7 +95,9 @@ As mentioned above, if some value is required by one or more tasks of a flow, bu
    taskflow.exceptions.MissingDependencies: taskflow.patterns.linear_flow.Flow: cat-dog;
    2 requires ['meow', 'woof'] but no other entity produces said requirements
 
-The recommended way to provide flow inputs is to use ``store`` parameter of engine helpers (:py:func:`~taskflow.engines.helpers.run` or :py:func:`~taskflow.engines.helpers.load`):
+The recommended way to provide flow inputs is to use the ``store`` parameter
+of the engine helpers (:py:func:`~taskflow.engines.helpers.run` or
+:py:func:`~taskflow.engines.helpers.load`):
 
 .. doctest::
 
@@ -102,7 +119,10 @@ The recommended way to provide flow inputs is to use ``store`` parameter of engi
    woof
    {'meow': 'meow', 'woof': 'woof', 'dog': 'dog'}
 
-You can also directly interact with the engine storage layer to add additional values, also you can't use :py:func:`~taskflow.engines.helpers.run` in this case:
+You can also directly interact with the engine storage layer to add
+additional values, note that if this route is used you can't use
+:py:func:`~taskflow.engines.helpers.run` in this case to run your engine (instead
+your must activate the engines run method directly):
 
 .. doctest::
 
@@ -118,7 +138,11 @@ You can also directly interact with the engine storage layer to add additional v
 Outputs
 -------
 
-As you can see from examples above, run method returns all flow outputs in a ``dict``. This same data can be fetched via :py:meth:`~taskflow.storage.Storage.fetch_all` method of the storage. You can also get single results using :py:meth:`~taskflow.storage.Storage.fetch_all`. For example:
+As you can see from examples above, the run method returns all flow outputs in
+a ``dict``. This same data can be fetched via
+:py:meth:`~taskflow.storage.Storage.fetch_all` method of the storage. You can
+also get single results using :py:meth:`~taskflow.storage.Storage.fetch_all`. For
+example:
 
 .. doctest::
 
