@@ -371,6 +371,35 @@ class StorageTestMixin(object):
         s.ensure_task('my task')
         self.assertTrue(uuidutils.is_uuid_like(s.get_atom_uuid('my task')))
 
+    def test_transient_storage_fetch_all(self):
+        s = self._get_storage()
+        s.inject([("a", "b")], transient=True)
+        s.inject([("b", "c")])
+
+        results = s.fetch_all()
+        self.assertEqual({"a": "b", "b": "c"}, results)
+
+    def test_transient_storage_fetch_mapped(self):
+        s = self._get_storage()
+        s.inject([("a", "b")], transient=True)
+        s.inject([("b", "c")])
+        desired = {
+            'y': 'a',
+            'z': 'b',
+        }
+        args = s.fetch_mapped_args(desired)
+        self.assertEqual({'y': 'b', 'z': 'c'}, args)
+
+    def test_transient_storage_restore(self):
+        _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
+        s = self._get_storage(flow_detail=flow_detail)
+        s.inject([("a", "b")], transient=True)
+        s.inject([("b", "c")])
+
+        s2 = self._get_storage(flow_detail=flow_detail)
+        results = s2.fetch_all()
+        self.assertEqual({"b": "c"}, results)
+
     def test_unknown_task_by_name(self):
         s = self._get_storage()
         self.assertRaisesRegexp(exceptions.NotFound,
