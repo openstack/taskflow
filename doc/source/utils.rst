@@ -17,16 +17,8 @@ The following classes and modules are *recommended* for external usage:
 .. autoclass:: taskflow.utils.eventlet_utils.GreenExecutor
     :members:
 
-.. autofunction:: taskflow.utils.graph_utils.pformat
-
-.. autofunction:: taskflow.utils.graph_utils.export_graph_to_dot
-
 .. autofunction:: taskflow.utils.persistence_utils.temporary_log_book
 
 .. autofunction:: taskflow.utils.persistence_utils.temporary_flow_detail
 
 .. autofunction:: taskflow.utils.persistence_utils.pformat
-
-.. autofunction:: taskflow.utils.persistence_utils.pformat_flow_detail
-
-.. autofunction:: taskflow.utils.persistence_utils.pformat_atom_detail

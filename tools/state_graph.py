@@ -11,10 +11,8 @@ import optparse
 import subprocess
 import tempfile
 
-import networkx as nx
-
 from taskflow import states
-from taskflow.utils import graph_utils as gu
+from taskflow.types import graph as gr
 
 
 def mini_exec(cmd, ok_codes=(0,)):
@@ -31,7 +29,7 @@ def mini_exec(cmd, ok_codes=(0,)):
 
 def make_svg(graph, output_filename, output_format):
     # NOTE(harlowja): requires pydot!
-    gdot = gu.export_graph_to_dot(graph)
+    gdot = graph.export_to_dot()
     if output_format == 'dot':
         output = gdot
     elif output_format in ('svg', 'svgz', 'png'):
@@ -62,7 +60,7 @@ def main():
     if options.filename is None:
         options.filename = 'states.%s' % options.format
 
-    g = nx.DiGraph(name="State transitions")
+    g = gr.DiGraph(name="State transitions")
     if not options.tasks:
         source = states._ALLOWED_FLOW_TRANSITIONS
     else:
