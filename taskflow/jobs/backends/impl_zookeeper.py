@@ -192,8 +192,8 @@ class ZookeeperJobBoard(jobboard.JobBoard):
         if only_unclaimed:
             ok_states = UNCLAIMED_JOB_STATES
         with self._job_mutate:
-            known_jobs = list(six.itervalues(self._known_jobs))
-        for (job, posting_state) in known_jobs:
+            known_jobs = list(six.iteritems(self._known_jobs))
+        for (path, (job, posting_state)) in known_jobs:
             if posting_state != _READY:
                 continue
             try:
@@ -202,6 +202,10 @@ class ZookeeperJobBoard(jobboard.JobBoard):
             except excp.JobFailure as e:
                 LOG.warn("Failed determining the state of job %s"
                          " due to: %s", job.uuid, e)
+            except excp.NotFound:
+                # Someone destroyed it while we are iterating.
+                with self._job_mutate:
+                    self._remove_job(path)
 
     def _remove_job(self, path):
         LOG.debug("Removing job that was at path: %s", path)
