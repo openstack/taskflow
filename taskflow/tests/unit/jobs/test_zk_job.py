@@ -44,11 +44,12 @@ def connect_close(*args):
             a.close()
 
 
-def create_board(**kwargs):
-    client = fake_client.FakeClient()
-    board = impl_zookeeper.ZookeeperJobBoard('test-board',
-                                             conf=dict(kwargs),
-                                             client=client)
+def create_board(client=None, persistence=None):
+    if not client:
+        client = fake_client.FakeClient()
+    board = impl_zookeeper.ZookeeperJobBoard('test-board', {},
+                                             client=client,
+                                             persistence=persistence)
     return (client, board)
 
 

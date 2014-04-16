@@ -143,7 +143,7 @@ class ZookeeperJob(base_job.Job):
 
 
 class ZookeeperJobBoard(jobboard.JobBoard):
-    def __init__(self, name, conf, client=None):
+    def __init__(self, name, conf, client=None, persistence=None):
         super(ZookeeperJobBoard, self).__init__(name, conf)
         if client is not None:
             self._client = client
@@ -162,7 +162,7 @@ class ZookeeperJobBoard(jobboard.JobBoard):
         # not currently the full logbook (later when a zookeeper backend
         # appears we can likely optimize for that backend usage by directly
         # reading from the path where the data is stored, if we want).
-        self._persistence = self._conf.get("persistence")
+        self._persistence = persistence
         # Misc. internal details
         self._known_jobs = {}
         self._job_mutate = self._client.handler.rlock_object()
