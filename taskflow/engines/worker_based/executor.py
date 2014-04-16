@@ -15,7 +15,6 @@
 #    under the License.
 
 import logging
-import threading
 
 from kombu import exceptions as kombu_exc
 
@@ -27,6 +26,7 @@ from taskflow import exceptions as exc
 from taskflow.utils import async_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
+from taskflow.utils import threading_utils as tu
 
 LOG = logging.getLogger(__name__)
 
@@ -80,14 +80,6 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         self._periodic = PeriodicWorker(misc.Timeout(pr.NOTIFY_PERIOD),
                                         [self._notify_topics])
         self._periodic_thread = None
-
-    def _make_thread(self, target):
-        thread = threading.Thread(target=target)
-        # NOTE(skudriashev): When the main thread is terminated unexpectedly
-        # and thread is still alive - it will prevent main thread from exiting
-        # unless the daemon property is set to True.
-        thread.daemon = True
-        return thread
 
     def _on_message(self, data, message):
         """This method is called on incoming message."""
@@ -226,12 +218,12 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
     def start(self):
         """Start proxy thread (and associated topic notification thread)."""
         if not _is_alive(self._proxy_thread):
-            self._proxy_thread = self._make_thread(self._proxy.start)
+            self._proxy_thread = tu.daemon_thread(self._proxy.start)
             self._proxy_thread.start()
             self._proxy.wait()
         if not _is_alive(self._periodic_thread):
             self._periodic.reset()
-            self._periodic_thread = self._make_thread(self._periodic.start)
+            self._periodic_thread = tu.daemon_thread(self._periodic.start)
             self._periodic_thread.start()
 
     def stop(self):
