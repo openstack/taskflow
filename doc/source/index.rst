@@ -14,6 +14,7 @@ Contents
    arguments_and_results
    patterns
    engines
+   jobs
    inputs_and_outputs
    notifications
    storage
