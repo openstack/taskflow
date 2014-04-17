@@ -145,6 +145,7 @@ might look like:
                 perform_job(my_job)
             except Exception:
                 LOG.exception("I failed performing job: %s", my_job)
+                board.abandon(my_job, my_name)
             else:
                 # I finished it, now cleanup.
                 board.consume(my_job)
