@@ -154,7 +154,7 @@ class WrappedFailure(Exception):
         """Check if any of exc_classes caused (part of) the failure.
 
         Arguments of this method can be exception types or type names
-        (stings). If any of wrapped failures were caused by exception
+        (strings). If any of wrapped failures were caused by exception
         of given type, the corresponding argument is returned. Else,
         None is returned.
         """
