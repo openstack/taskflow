@@ -29,6 +29,10 @@ LOG = logging.getLogger(__name__)
 
 
 def fetch(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
+    """Fetch a jobboard backend with the given configuration (and any board
+    specific kwargs) in the given entrypoint namespace and create it with the
+    given name.
+    """
     # NOTE(harlowja): this allows simpler syntax.
     if isinstance(conf, six.string_types):
         conf = {'board': conf}

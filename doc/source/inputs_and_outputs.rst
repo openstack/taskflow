@@ -63,7 +63,7 @@ Engine and Storage
 ------------------
 
 The storage layer is how an engine persists flow and task details. For more
-in-depth design details see :doc:`persistence` and :doc:`storage`.
+in-depth design details see :doc:`persistence`.
 
 Inputs
 ------

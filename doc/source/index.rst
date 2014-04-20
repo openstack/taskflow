@@ -17,7 +17,6 @@ Contents
    jobs
    inputs_and_outputs
    notifications
-   storage
    persistence
    exceptions
    utils
