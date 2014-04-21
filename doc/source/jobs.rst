@@ -192,6 +192,52 @@ Additional *configuration* parameters:
   your program uses eventlet and you want to instruct kazoo to use an eventlet
   compatible handler (such as the `eventlet handler`_).
 
+Considerations
+==============
+
+Some usage considerations should be used when using a jobboard to make sure
+it's used in a safe and reliable manner. Eventually we hope to make these
+non-issues but for now they are worth mentioning.
+
+Dual-engine jobs
+----------------
+
+**What:** Since atoms and engines are not currently `preemptable`_ we can not force
+a engine (or the threads/remote workers... it is using to run) to stop working on
+an atom (it is general bad behavior to force code to stop without its consent anyway) if it has
+already started working on an atom (short of doing a ``kill -9`` on the running interpreter).
+This could cause problems since the points an engine can notice that it no longer owns a
+claim is at any :doc:`state <states>` change that occurs (transitioning to a
+new atom or recording a result for example), where upon noticing the claim has
+been lost the engine can immediately stop doing further work. The effect that this
+causes is that when a claim is lost another engine can immediately attempt to acquire
+the claim that was previously lost and it *could* begin working on the unfinished tasks
+that the later engine may also still be executing (since that engine is not yet
+aware that it has lost the claim).
+
+**TLDR:** not `preemptable`_, possible to become aware of losing a claim
+after the fact (at the next state change), another engine could have acquired
+the claim by then, therefore both would be *working* on a job.
+
+**Alleviate by:**
+
+#. Ensure your atoms are `idempotent`_, this will cause an engine that may be
+   executing the same atom to be able to continue executing without causing
+   any conflicts/problems (idempotency guarantees this).
+#. On claiming jobs that have been claimed previously enforce a policy that happens
+   before the jobs workflow begins to execute (possibly prior to an engine beginning
+   the jobs work) that ensures that any prior work has been rolled back before
+   continuing rolling forward. For example:
+
+   * Rolling back the last atom/set of atoms that finished.
+   * Rolling back the last state change that occurred.
+
+#. Delay claiming partially completed work by adding a wait period (to allow the
+   previous engine to coalesce) before working on a partially completed job (combine
+   this with the prior suggestions and dual-engine issues should be avoided).
+
+.. _idempotent: http://en.wikipedia.org/wiki/Idempotence
+.. _preemptable: http://en.wikipedia.org/wiki/Preemption_%28computing%29
 
 Job Interface
 =============
