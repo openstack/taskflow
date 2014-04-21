@@ -32,7 +32,10 @@ SCHEME_REGEX = re.compile(r"^([A-Za-z]{1}[A-Za-z0-9+.-]*):")
 LOG = logging.getLogger(__name__)
 
 
-def fetch(conf, namespace=BACKEND_NAMESPACE):
+def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
+    """Fetches a given backend using the given configuration (and any backend
+    specific kwargs) in the given entrypoint namespace.
+    """
     connection = conf['connection']
 
     match = SCHEME_REGEX.match(connection)
@@ -45,7 +48,8 @@ def fetch(conf, namespace=BACKEND_NAMESPACE):
     try:
         mgr = driver.DriverManager(namespace, backend_name,
                                    invoke_on_load=True,
-                                   invoke_kwds={'conf': conf})
+                                   invoke_args=(conf,),
+                                   invoke_kwds=kwargs)
         return mgr.driver
     except RuntimeError as e:
         raise exc.NotFound("Could not find backend %s: %s" % (backend_name, e))

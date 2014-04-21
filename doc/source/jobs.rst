@@ -85,8 +85,11 @@ Using Jobboards
 All engines are mere classes that implement same interface, and of course it is
 possible to import them and create their instances just like with any classes
 in Python. But the easier (and recommended) way for creating jobboards is by
-using the `fetch()` functionality. Using this function the typical creation of
-a jobboard (and an example posting of a job) might look like:
+using the :py:meth:`fetch() <taskflow.jobs.backends.fetch>` function which uses
+entrypoints (internally using `stevedore`_) to fetch and configure your backend
+
+Using this function the typical creation of a jobboard (and an example posting
+of a job) might look like:
 
 .. code-block:: python
 
@@ -153,11 +156,6 @@ might look like:
         time.sleep(coffee_break_time)
     ...
 
-
-.. automodule:: taskflow.jobs.backends
-.. automodule:: taskflow.persistence
-.. automodule:: taskflow.persistence.backends
-
 Jobboard Configuration
 ======================
 
@@ -198,6 +196,7 @@ Additional *configuration* parameters:
 Job Interface
 =============
 
+.. automodule:: taskflow.jobs.backends
 .. automodule:: taskflow.jobs.job
 
 Jobboard Interface
@@ -209,3 +208,4 @@ Jobboard Interface
 .. _zookeeper: http://zookeeper.apache.org/
 .. _kazoo: http://kazoo.readthedocs.org/
 .. _eventlet handler: https://pypi.python.org/pypi/kazoo-eventlet-handler/
+.. _stevedore: http://stevedore.readthedocs.org/
