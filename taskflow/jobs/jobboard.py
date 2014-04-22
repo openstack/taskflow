@@ -33,9 +33,17 @@ class JobBoard(object):
         self._conf = conf
 
     @abc.abstractmethod
-    def iterjobs(self, only_unclaimed=False):
+    def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
         """Yields back jobs that are currently on this jobboard (claimed
         or not claimed).
+
+        :param only_unclaimed: boolean that indicates whether to only iteration
+            over unclaimed jobs.
+        :param ensure_fresh: boolean that requests to only iterate over the
+            most recent jobs available, where the definition of what is recent
+            is backend specific. It is allowable that a backend may ignore this
+            value if the backends internal semantics/capabilities can not
+            support this argument.
         """
 
     @abc.abstractproperty
