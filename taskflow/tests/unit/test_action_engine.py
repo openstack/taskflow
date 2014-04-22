@@ -15,7 +15,6 @@
 #    under the License.
 
 import contextlib
-import networkx
 import testtools
 import threading
 
@@ -36,6 +35,7 @@ from taskflow import states
 from taskflow import task
 from taskflow import test
 from taskflow.tests import utils
+from taskflow.types import graph as gr
 
 from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import misc
@@ -466,7 +466,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.compile()
         graph = engine.execution_graph
-        self.assertIsInstance(graph, networkx.DiGraph)
+        self.assertIsInstance(graph, gr.DiGraph)
 
     def test_task_graph_property_for_one_task(self):
         flow = utils.TaskNoRequiresNoReturns(name='task1')
@@ -474,7 +474,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.compile()
         graph = engine.execution_graph
-        self.assertIsInstance(graph, networkx.DiGraph)
+        self.assertIsInstance(graph, gr.DiGraph)
 
 
 class EngineCheckingTaskTest(utils.EngineTestBase):

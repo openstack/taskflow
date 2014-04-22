@@ -16,13 +16,11 @@
 
 import logging
 
-import networkx as nx
-
 from taskflow import exceptions
 from taskflow import flow
 from taskflow import retry
 from taskflow import task
-from taskflow.utils import graph_utils as gu
+from taskflow.types import graph as gr
 from taskflow.utils import misc
 
 
@@ -80,7 +78,7 @@ class Flattener(object):
         graph.add_node(retry)
 
         # All graph nodes that have no predecessors should depend on its retry
-        nodes_to = [n for n in gu.get_no_predecessors(graph) if n != retry]
+        nodes_to = [n for n in graph.no_predecessors_iter() if n != retry]
         self._add_new_edges(graph, [retry], nodes_to, RETRY_EDGE_DATA)
 
         # Add link to retry for each node of subgraph that hasn't
@@ -91,34 +89,37 @@ class Flattener(object):
 
     def _flatten_task(self, task):
         """Flattens a individual task."""
-        graph = nx.DiGraph(name=task.name)
+        graph = gr.DiGraph(name=task.name)
         graph.add_node(task)
         return graph
 
     def _flatten_flow(self, flow):
         """Flattens a graph flow."""
-        graph = nx.DiGraph(name=flow.name)
+        graph = gr.DiGraph(name=flow.name)
+
         # Flatten all nodes into a single subgraph per node.
         subgraph_map = {}
         for item in flow:
             subgraph = self._flatten(item)
             subgraph_map[item] = subgraph
-            graph = gu.merge_graphs([graph, subgraph])
+            graph = gr.merge_graphs([graph, subgraph])
 
         # Reconnect all node edges to their corresponding subgraphs.
         for (u, v, attrs) in flow.iter_links():
+            u_g = subgraph_map[u]
+            v_g = subgraph_map[v]
             if any(attrs.get(k) for k in ('invariant', 'manual', 'retry')):
                 # Connect nodes with no predecessors in v to nodes with
                 # no successors in u (thus maintaining the edge dependency).
                 self._add_new_edges(graph,
-                                    gu.get_no_successors(subgraph_map[u]),
-                                    gu.get_no_predecessors(subgraph_map[v]),
+                                    u_g.no_successors_iter(),
+                                    v_g.no_predecessors_iter(),
                                     edge_attrs=attrs)
             else:
                 # This is dependency-only edge, connect corresponding
                 # providers and consumers.
-                for provider in subgraph_map[u]:
-                    for consumer in subgraph_map[v]:
+                for provider in u_g:
+                    for consumer in v_g:
                         reasons = provider.provides & consumer.requires
                         if reasons:
                             graph.add_edge(provider, consumer, reasons=reasons)
@@ -143,7 +144,7 @@ class Flattener(object):
         # and not under all cases.
         if LOG.isEnabledFor(logging.DEBUG):
             LOG.debug("Translated '%s' into a graph:", item)
-            for line in gu.pformat(graph).splitlines():
+            for line in graph.pformat().splitlines():
                 # Indent it so that it's slightly offset from the above line.
                 LOG.debug(" %s", line)
 
@@ -168,10 +169,9 @@ class Flattener(object):
         self._pre_flatten()
         graph = self._flatten(self._root)
         self._post_flatten(graph)
+        self._graph = graph
         if self._freeze:
-            self._graph = nx.freeze(graph)
-        else:
-            self._graph = graph
+            self._graph.freeze()
         return self._graph
 
 

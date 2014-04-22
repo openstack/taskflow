@@ -16,12 +16,11 @@
 
 import collections
 
-import networkx as nx
 from networkx.algorithms import traversal
 
 from taskflow import exceptions as exc
 from taskflow import flow
-from taskflow.utils import graph_utils
+from taskflow.types import graph as gr
 
 
 class Flow(flow.Flow):
@@ -39,7 +38,8 @@ class Flow(flow.Flow):
 
     def __init__(self, name, retry=None):
         super(Flow, self).__init__(name, retry)
-        self._graph = nx.freeze(nx.DiGraph())
+        self._graph = gr.DiGraph()
+        self._graph.freeze()
 
     def link(self, u, v):
         """Link existing node u as a runtime dependency of existing node v."""
@@ -57,7 +57,7 @@ class Flow(flow.Flow):
             mutable_graph = False
         # NOTE(harlowja): Add an edge to a temporary copy and only if that
         # copy is valid then do we swap with the underlying graph.
-        attrs = graph_utils.get_edge_attrs(graph, u, v)
+        attrs = graph.get_edge_data(u, v)
         if not attrs:
             attrs = {}
         if manual:
@@ -67,21 +67,22 @@ class Flow(flow.Flow):
                 attrs['reasons'] = set()
             attrs['reasons'].add(reason)
         if not mutable_graph:
-            graph = nx.DiGraph(graph)
+            graph = gr.DiGraph(graph)
         graph.add_edge(u, v, **attrs)
         return graph
 
-    def _swap(self, replacement_graph):
+    def _swap(self, graph):
         """Validates the replacement graph and then swaps the underlying graph
         with a frozen version of the replacement graph (this maintains the
         invariant that the underlying graph is immutable).
         """
-        if not nx.is_directed_acyclic_graph(replacement_graph):
+        if not graph.is_directed_acyclic():
             raise exc.DependencyFailure("No path through the items in the"
                                         " graph produces an ordering that"
                                         " will allow for correct dependency"
                                         " resolution")
-        self._graph = nx.freeze(replacement_graph)
+        self._graph = graph
+        self._graph.freeze()
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
@@ -109,7 +110,7 @@ class Flow(flow.Flow):
         # NOTE(harlowja): Add items and edges to a temporary copy of the
         # underlying graph and only if that is successful added to do we then
         # swap with the underlying graph.
-        tmp_graph = nx.DiGraph(self._graph)
+        tmp_graph = gr.DiGraph(self._graph)
         for item in items:
             tmp_graph.add_node(item)
             update_requirements(item)
@@ -237,5 +238,6 @@ class TargetedFlow(Flow):
         nodes = [self._target]
         nodes.extend(dst for _src, dst in
                      traversal.dfs_edges(self._graph.reverse(), self._target))
-        self._subgraph = nx.freeze(self._graph.subgraph(nodes))
+        self._subgraph = self._graph.subgraph(nodes)
+        self._subgraph.freeze()
         return self._subgraph
