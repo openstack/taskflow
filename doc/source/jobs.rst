@@ -24,12 +24,12 @@ Features
 
 - High availability
 
-  - Guarantees workflow forward progress by transfering partially completed work
-    or work that has not been started to entities which can either resume the
-    previously partially completed work or begin initial work to ensure that
-    the workflow as a whole progresses (where progressing implies transitioning
-    through the workflow :doc:`patterns <patterns>` and :doc:`atoms <atoms>`
-    and completing their associated state transitions).
+  - Guarantees workflow forward progress by transferring partially complete
+    work or work that has not been started to entities which can either resume
+    the previously partially completed work or begin initial work to ensure
+    that the workflow as a whole progresses (where progressing implies
+    transitioning through the workflow :doc:`patterns <patterns>` and
+    :doc:`atoms <atoms>` and completing their associated state transitions).
 
 - Atomic transfer and single ownership
 
@@ -46,7 +46,7 @@ Features
 
   - Jobs can be created with logbooks that contain a specification of the work
     to be done by a entity (such as an API server). The job then can be
-    completed by a entity that is watching that jobboard (not neccasarily the
+    completed by a entity that is watching that jobboard (not necessarily the
     API server itself). This creates a disconnection between work
     formation and work completion that is useful for scaling out horizontally.
 
@@ -111,7 +111,7 @@ of a job) might look like:
 
 Consumption of jobs is similarly achieved by creating a jobboard and using
 the iteration functionality to find and claim jobs (and eventually consume
-them). The typical usage of a joboard for consumption (and work completion)
+them). The typical usage of a jobboard for consumption (and work completion)
 might look like:
 
 .. code-block:: python
@@ -188,9 +188,9 @@ Additional *configuration* parameters:
 * ``timeout``: the timeout used when performing operations with zookeeper;
   only used if a client is not provided.
 * ``handler``: a class that provides ``kazoo.handlers``-like interface; it will
-  be used internally by `kazoo`_ to perform asynchronous operations, useful when
-  your program uses eventlet and you want to instruct kazoo to use an eventlet
-  compatible handler (such as the `eventlet handler`_).
+  be used internally by `kazoo`_ to perform asynchronous operations, useful
+  when your program uses eventlet and you want to instruct kazoo to use an
+  eventlet compatible handler (such as the `eventlet handler`_).
 
 
 Job Interface

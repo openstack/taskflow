@@ -5,10 +5,10 @@ Persistence
 Overview
 ========
 
-In order to be able to recieve inputs and create outputs from atoms (or other
+In order to be able to receive inputs and create outputs from atoms (or other
 engine processes) in a fault-tolerant way, there is a need to be able to place
 what atoms output in some kind of location where it can be re-used by other
-atoms (or used for other purposes). To accomodate this type of usage taskflow
+atoms (or used for other purposes). To accommodate this type of usage taskflow
 provides an abstraction (provided by pluggable `stevedore`_ backends) that is
 similar in concept to a running programs *memory*.
 
@@ -39,7 +39,7 @@ How it is used
 ==============
 
 On :doc:`engine <engines>` construction typically a backend (it can be optional)
-will be provided which satisifies the :py:class:`~taskflow.persistence.backends.base.Backend`
+will be provided which satisfies the :py:class:`~taskflow.persistence.backends.base.Backend`
 abstraction. Along with providing a backend object a :py:class:`~taskflow.persistence.logbook.FlowDetail`
 object will also be created and provided (this object will contain the details about
 the flow to be ran) to the engine constructor (or associated :py:meth:`load() <taskflow.engines.helpers.load>` helper functions).

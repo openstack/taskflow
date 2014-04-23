@@ -111,7 +111,7 @@ operates.
 .. note::
 
     This engine is under active development and is experimental but it is
-    useable and does work but is missing some features (please check the
+    usable and does work but is missing some features (please check the
     `blueprint page`_ for known issues and plans) that will make it more
     production ready.
 
