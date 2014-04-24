@@ -117,6 +117,18 @@ class JobBoard(object):
         exception.
         """
 
+    @abc.abstractmethod
+    def connect(self):
+        """Opens the connection to any backend system."""
+
+    @abc.abstractmethod
+    def close(self):
+        """Close the connection to any backend system.
+
+        Once closed the jobboard can no longer be used (unless reconnection
+        occurs).
+        """
+
 
 # Jobboard events
 POSTED = 'POSTED'  # new job is/has been posted

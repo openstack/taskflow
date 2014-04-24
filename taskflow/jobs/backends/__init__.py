@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import logging
 
 import six
@@ -47,3 +48,14 @@ def fetch(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
         return mgr.driver
     except RuntimeError as e:
         raise exc.NotFound("Could not find jobboard %s" % (board), e)
+
+
+@contextlib.contextmanager
+def backend(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
+    """Fetches a jobboard backend, connects to it and allows it to be used in
+    a context manager statement with the jobboard being closed upon completion.
+    """
+    jb = fetch(name, conf, namespace=namespace, **kwargs)
+    jb.connect()
+    with contextlib.closing(jb):
+        yield jb
