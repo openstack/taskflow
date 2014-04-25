@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import logging
 import re
 
@@ -53,3 +54,14 @@ def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
         return mgr.driver
     except RuntimeError as e:
         raise exc.NotFound("Could not find backend %s: %s" % (backend_name, e))
+
+
+@contextlib.contextmanager
+def backend(conf, namespace=BACKEND_NAMESPACE, **kwargs):
+    """Fetches a persistence backend, ensures that it is upgraded and upon
+    context manager completion closes the backend.
+    """
+    with contextlib.closing(fetch(conf, namespace=namespace, **kwargs)) as be:
+        with contextlib.closing(be.get_connection()) as conn:
+            conn.upgrade()
+        yield be
