@@ -19,6 +19,7 @@ import contextlib
 import six
 import stevedore.driver
 
+from taskflow import exceptions as exc
 from taskflow.openstack.common import importutils
 from taskflow.persistence import backends as p_backends
 from taskflow.utils import misc
@@ -98,15 +99,19 @@ def load(flow, store=None, flow_detail=None, book=None,
         flow_detail = p_utils.create_flow_detail(flow, book=book,
                                                  backend=backend)
 
-    mgr = stevedore.driver.DriverManager(
-        namespace, engine_name,
-        invoke_on_load=True,
-        invoke_args=(flow, flow_detail, backend, engine_conf),
-        invoke_kwds=kwargs)
-    engine = mgr.driver
-    if store:
-        engine.storage.inject(store)
-    return engine
+    try:
+        mgr = stevedore.driver.DriverManager(
+            namespace, engine_name,
+            invoke_on_load=True,
+            invoke_args=(flow, flow_detail, backend, engine_conf),
+            invoke_kwds=kwargs)
+        engine = mgr.driver
+    except RuntimeError as e:
+        raise exc.NotFound("Could not find engine %s" % (engine_name), e)
+    else:
+        if store:
+            engine.storage.inject(store)
+        return engine
 
 
 def run(flow, store=None, flow_detail=None, book=None,
