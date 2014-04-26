@@ -18,6 +18,7 @@ Contents
    inputs_and_outputs
    notifications
    persistence
+   resumption
    exceptions
    utils
    states

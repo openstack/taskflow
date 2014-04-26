@@ -58,7 +58,7 @@ objects for each atom in the workflow the engine will be executing.
 
 **Execution:** When an engine beings to execute it will examine any previously existing
 :py:class:`~taskflow.persistence.logbook.AtomDetail` objects to see if they can be used
-for resuming; see `big picture`_ for more details on this subject. For atoms which have not
+for resuming; see :doc:`resumption <resumption>` for more details on this subject. For atoms which have not
 finished (or did not finish correctly from a previous run) they will begin executing
 only after any dependent inputs are ready. This is done by analyzing the execution
 graph and looking at predecessor :py:class:`~taskflow.persistence.logbook.AtomDetail`
@@ -88,7 +88,6 @@ A few scenarios come to mind:
   of map-reduce jobs on them.
 
 .. _hdfs: https://hadoop.apache.org/docs/current/hadoop-project-dist/hadoop-hdfs/HdfsUserGuide.html
-.. _big picture: https://wiki.openstack.org/wiki/TaskFlow/Patterns_and_Engines/Persistence#Big_Picture
 
 .. note::
 
