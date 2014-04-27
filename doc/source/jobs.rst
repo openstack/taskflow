@@ -19,8 +19,29 @@ claiming them, and only remove them from the queue when they're done with the
 work. If the consumer fails, the lock is *automatically* released and the item
 is back on the queue for further consumption.
 
+For more information, please see `wiki page`_ for more details.
+
+Definitions
+===========
+
+Jobs
+  A :py:class:`job <taskflow.jobs.job.Job>` consists of a unique identifier, name,
+  and a reference to a :py:class:`logbook <taskflow.persistence.logbook.LogBook>`
+  which contains the details of the work that has been or should be/will be
+  completed to finish the work that has been created for that job.
+
+Jobboards
+  A :py:class:`jobboard <taskflow.jobs.jobboard.JobBoard>` is responsible for managing
+  the posting, ownership, and delivery of jobs. It acts as the location where jobs
+  can be posted, claimed and searched for; typically by iteration or notification.
+  Jobboards may be backed by different *capable* implementations (each with potentially differing
+  configuration) but all jobboards implement the same interface and semantics so
+  that the backend usage is as transparent as possible. This allows deployers or
+  developers of a service that uses TaskFlow to select a jobboard implementation
+  that fits their setup (and there intended usage) best.
+
 Features
---------
+========
 
 - High availability
 
@@ -58,29 +79,8 @@ Features
     user to poll for status (similar in concept to a shipping *tracking*
     identifier created by fedex or UPS).
 
-For more information, please see `wiki page`_ for more details.
-
-Jobs
-----
-
-A job consists of a unique identifier, name, and a reference to a logbook
-which contains the details of the work that has been or should be/will be
-completed to finish the work that has been created for that job.
-
-Jobboards
----------
-
-A jobboard is responsible for managing the posting, ownership, and delivery
-of jobs. It acts as the location where jobs can be posted, claimed and searched
-for; typically by iteration or notification. Jobboards may be backed by
-different *capable* implementations (each with potentially differing
-configuration) but all jobboards implement the same interface and semantics so
-that the backend usage is as transparent as possible. This allows deployers or
-developers of a service that uses TaskFlow to select a jobboard implementation
-that fits their setup (and there intended usage) best.
-
-Using Jobboards
-===============
+Usage
+=====
 
 All engines are mere classes that implement same interface, and of course it is
 possible to import them and create their instances just like with any classes
@@ -155,11 +155,6 @@ might look like:
                 persistence.destroy_logbook(my_job.book.uuid)
         time.sleep(coffee_break_time)
     ...
-
-Jobboard Configuration
-======================
-
-Known engine types are listed below.
 
 Zookeeper
 ---------
@@ -239,15 +234,11 @@ the claim by then, therefore both would be *working* on a job.
 .. _idempotent: http://en.wikipedia.org/wiki/Idempotence
 .. _preemptable: http://en.wikipedia.org/wiki/Preemption_%28computing%29
 
-Job Interface
-=============
+Interfaces
+==========
 
 .. automodule:: taskflow.jobs.backends
 .. automodule:: taskflow.jobs.job
-
-Jobboard Interface
-==================
-
 .. automodule:: taskflow.jobs.jobboard
 
 .. _wiki page: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts#Workflow_ownership_transfer

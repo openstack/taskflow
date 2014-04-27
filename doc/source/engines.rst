@@ -23,8 +23,8 @@ parts of :py:class:`linear flow <taskflow.patterns.linear_flow.Flow>` are run
 one after another, in order, even if engine is *capable* of running tasks in
 parallel).
 
-Creating Engines
-================
+Creating
+========
 
 All engines are mere classes that implement the same interface, and of course
 it is possible to import them and create instances just like with any classes
@@ -43,8 +43,8 @@ might look like::
 
 .. automodule:: taskflow.engines.helpers
 
-Engine Configuration
-====================
+Usage
+=====
 
 To select which engine to use and pass parameters to an engine you should use
 the ``engine_conf`` parameter any helper factory function accepts. It may be:
@@ -53,10 +53,8 @@ the ``engine_conf`` parameter any helper factory function accepts. It may be:
 * a dictionary, holding engine type with key ``'engine'`` and possibly
   type-specific engine parameters.
 
-Known engine types are listed below.
-
-Single-Threaded Engine
-----------------------
+Single-Threaded
+---------------
 
 **Engine type**: ``'serial'``
 
@@ -70,8 +68,8 @@ on. This engine is used by default.
     greenthreads and monkey patching). See `eventlet <http://eventlet.net/>`_
     and `greenlet <http://greenlet.readthedocs.org/>`_ for more details.
 
-Parallel Engine
----------------
+Parallel
+--------
 
 **Engine type**: ``'parallel'``
 
@@ -96,8 +94,8 @@ Additional configuration parameters:
     Running tasks with ``concurrent.futures.ProcessPoolExecutor`` is not
     supported now.
 
-Worker-Based Engine
--------------------
+Worker-Based
+------------
 
 **Engine type**: ``'worker-based'``
 
@@ -118,8 +116,8 @@ operates.
 .. _wiki page: https://wiki.openstack.org/wiki/TaskFlow/Worker-based_Engine
 .. _blueprint page: https://blueprints.launchpad.net/taskflow
 
-Engine Interface
-================
+Interfaces
+==========
 
 .. automodule:: taskflow.engines.base
 
