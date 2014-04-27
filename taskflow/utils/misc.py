@@ -436,7 +436,7 @@ class Notifier(object):
         All callbacks registered to receive notifications about given
         event type will be called.
 
-        :param event_type: event type that occured
+        :param event_type: event type that occurred
         :param details: addition event details
         """
         listeners = list(self._listeners.get(self.ANY, []))

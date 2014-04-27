@@ -78,7 +78,7 @@ class FutureGraphAction(object):
                 not_done, _WAITING_TIMEOUT)
 
             # Analyze the results and schedule more nodes (unless we had
-            # failures). If failures occured just continue processing what
+            # failures). If failures occurred just continue processing what
             # is running (so that we don't leave it abandoned) but do not
             # schedule anything new.
             next_nodes = set()
