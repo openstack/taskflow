@@ -20,6 +20,20 @@ from taskflow import storage as t_storage
 
 
 class WorkerBasedActionEngine(engine.ActionEngine):
+    """Worker based action engine.
+
+    Specific backend configuration:
+
+    :param exchange: broker exchange exchange name in which executor / worker
+                     communication is performed
+    :param url: broker connection url (see format in kombu documentation)
+    :param topics: list of workers topics to communicate with (this will also
+                   be learned by listening to the notifications that workers
+                   emit).
+    :keyword transport: transport to be used (e.g. amqp, memory, etc.)
+    :keyword transport_options: transport specific options
+    """
+
     _storage_cls = t_storage.SingleThreadedStorage
 
     def _task_executor_cls(self):
