@@ -126,7 +126,7 @@ the ``engine_conf`` parameter any helper factory function accepts. It may be:
 
 * a string, naming engine type;
 * a dictionary, holding engine type with key ``'engine'`` and possibly
-  type-specific engine parameters.
+  type-specific engine configuration parameters.
 
 Single-Threaded
 ---------------
@@ -150,7 +150,7 @@ Parallel
 
 Parallel engine schedules tasks onto different threads to run them in parallel.
 
-Additional configuration parameters:
+Additional supported keyword arguments:
 
 * ``executor``: a object that implements a :pep:`3148` compatible `executor`_
   interface; it will be used for scheduling tasks. You can use instances

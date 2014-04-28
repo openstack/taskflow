@@ -57,7 +57,7 @@ def load(flow, store=None, flow_detail=None, book=None,
     Which engine to load is specified in 'engine_conf' parameter. It
     can be a string that names engine type or a dictionary which holds
     engine type (with 'engine' key) and additional engine-specific
-    configuration (for example, executor for multithreaded engine).
+    configuration.
 
     Which storage backend to use is defined by backend parameter. It
     can be backend itself, or a dictionary that is passed to
@@ -119,7 +119,7 @@ def run(flow, store=None, flow_detail=None, book=None,
     Which engine to load is specified in 'engine_conf' parameter. It
     can be a string that names engine type or a dictionary which holds
     engine type (with 'engine' key) and additional engine-specific
-    configuration (for example, executor for multithreaded engine).
+    configuration.
 
     Which storage backend to use is defined by backend parameter. It
     can be backend itself, or a dictionary that is passed to

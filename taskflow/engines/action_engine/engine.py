@@ -204,7 +204,7 @@ class MultiThreadedActionEngine(ActionEngine):
     def _task_executor_cls(self):
         return executor.ParallelTaskExecutor(self._executor)
 
-    def __init__(self, flow, flow_detail, backend, conf):
+    def __init__(self, flow, flow_detail, backend, conf, **kwargs):
         super(MultiThreadedActionEngine, self).__init__(
             flow, flow_detail, backend, conf)
-        self._executor = conf.get('executor', None)
+        self._executor = kwargs.get('executor')
