@@ -37,16 +37,17 @@ class WorkerBasedActionEngine(engine.ActionEngine):
     _storage_cls = t_storage.SingleThreadedStorage
 
     def _task_executor_cls(self):
-        return executor.WorkerTaskExecutor(**self._executor_config)
+        if self._executor is not None:
+            return self._executor
+        return executor.WorkerTaskExecutor(
+            uuid=self._flow_detail.uuid,
+            url=self._conf.get('url'),
+            exchange=self._conf.get('exchange', 'default'),
+            topics=self._conf.get('topics', []),
+            transport=self._conf.get('transport'),
+            transport_options=self._conf.get('transport_options'))
 
-    def __init__(self, flow, flow_detail, backend, conf):
-        self._executor_config = {
-            'uuid': flow_detail.uuid,
-            'url': conf.get('url'),
-            'exchange': conf.get('exchange', 'default'),
-            'topics': conf.get('topics', []),
-            'transport': conf.get('transport'),
-            'transport_options': conf.get('transport_options')
-        }
+    def __init__(self, flow, flow_detail, backend, conf, **kwargs):
         super(WorkerBasedActionEngine, self).__init__(
             flow, flow_detail, backend, conf)
+        self._executor = kwargs.get('executor')

@@ -299,6 +299,12 @@ For complete parameters and object usage please see
     eng = taskflow.engines.load(flow, engine_conf=engine_conf)
     eng.run()
 
+Additional supported keyword arguments:
+
+* ``executor``: a class that provides a
+  :py:class:`~taskflow.engines.worker_based.executor.WorkerTaskExecutor`
+  interface; it will be used for executing, reverting and waiting for remote tasks.
+
 Limitations
 ===========
 
@@ -327,3 +333,4 @@ Interfaces
 .. automodule:: taskflow.engines.worker_based.worker
 .. automodule:: taskflow.engines.worker_based.engine
 .. automodule:: taskflow.engines.worker_based.proxy
+.. automodule:: taskflow.engines.worker_based.executor
