@@ -361,7 +361,7 @@ class AtomDetail(object):
 
     @abc.abstractmethod
     def reset(self, state):
-        """Resets detail results ans failures."""
+        """Resets detail results and failures."""
 
 
 class TaskDetail(AtomDetail):
