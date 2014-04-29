@@ -30,10 +30,7 @@ This abstraction serves the following *major* purposes:
   for retry atoms to be able to decide if they should should continue vs. stop.
 * *Something you create...*
 
-For more *general* information, please see `wiki page`_.
-
 .. _stevedore: http://stevedore.readthedocs.org/
-.. _wiki page: https://wiki.openstack.org/wiki/TaskFlow/Persistence
 
 How it is used
 ==============
