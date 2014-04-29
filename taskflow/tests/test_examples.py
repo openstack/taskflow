@@ -40,6 +40,9 @@ ROOT_DIR = os.path.abspath(
         os.path.dirname(
             os.path.dirname(__file__))))
 
+UUID_RE = re.compile('XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
+                     .replace('X', '[0-9a-f]'))
+
 
 def root_path(*args):
     return os.path.join(ROOT_DIR, *args)
@@ -71,19 +74,26 @@ def expected_output_path(name):
 def list_examples():
     examples_dir = root_path('taskflow', 'examples')
     for filename in os.listdir(examples_dir):
+        path = os.path.join(examples_dir, filename)
+        if not os.path.isfile(path):
+            continue
         name, ext = os.path.splitext(filename)
-        if ext == ".py" and 'utils' not in name.lower():
+        if ext != ".py":
+            continue
+        bad_endings = []
+        for i in ("utils", "no_test"):
+            if name.endswith(i):
+                bad_endings.append(True)
+        if not any(bad_endings):
             yield name
 
 
 class ExamplesTestCase(taskflow.test.TestCase):
-    maxDiff = None  # sky's the limit
-
-    uuid_re = re.compile('XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
-                         .replace('X', '[0-9a-f]'))
-
     @classmethod
     def update(cls):
+        """For each example, adds on a test method that the testing framework
+        will then run.
+        """
         def add_test_method(name, method_name):
             def test_example(self):
                 self._check_example(name)
@@ -91,18 +101,22 @@ class ExamplesTestCase(taskflow.test.TestCase):
             setattr(cls, method_name, test_example)
 
         for name in list_examples():
-            add_test_method(name, 'test_%s' % name)
+            safe_name = str(re.sub("[^a-zA-Z0-9_]+", "_", name))
+            if re.match(r"^[_]+$", safe_name):
+                continue
+            add_test_method(name, 'test_%s' % safe_name)
 
     def _check_example(self, name):
+        """Runs the example, and checks the output against expected output."""
         output = run_example(name)
         eop = expected_output_path(name)
         if os.path.isfile(eop):
             with open(eop) as f:
                 expected_output = f.read()
             # NOTE(imelnikov): on each run new uuid is generated, so we just
-            #   replace them with some constant string
-            output = self.uuid_re.sub('<SOME UUID>', output)
-            expected_output = self.uuid_re.sub('<SOME UUID>', expected_output)
+            # replace them with some constant string
+            output = UUID_RE.sub('<SOME UUID>', output)
+            expected_output = UUID_RE.sub('<SOME UUID>', expected_output)
             self.assertEqual(output, expected_output)
 
 ExamplesTestCase.update()
