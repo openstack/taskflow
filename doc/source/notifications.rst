@@ -67,7 +67,7 @@ To receive notification on flow state changes use
    woof
    Flow 'cat-dog' transition to state SUCCESS
 
-Task notifications
+Task Notifications
 ------------------
 
 To receive notification on task state changes use

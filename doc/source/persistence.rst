@@ -105,8 +105,8 @@ A few scenarios come to mind:
     (when data is saved -- every time it changes or at some particular moments
     or simply never).
 
-Persistence Configuration
-=========================
+Usage
+=====
 
 To select which persistence backend to use you should use the
 :py:meth:`fetch() <taskflow.persistence.backends.fetch>` function which uses
@@ -137,12 +137,16 @@ the following:
   ``'connection'`` and possibly type-specific backend parameters as other
   keys.
 
-Known engine types are listed below.
+Memory
+------
 
 **Connection**: ``'memory'``
 
 Retains all data in local memory (not persisted to reliable storage). Useful
 for scenarios where persistence is not required (and also in unit tests).
+
+Files
+-----
 
 **Connection**: ``'dir'`` or ``'file'``
 
@@ -151,6 +155,9 @@ persisted **locally** in the case of system failure (allowing for resumption
 from the same local machine only). Useful for cases where a *more* reliable
 persistence is desired along with the simplicity of files and directories (a
 concept everyone is familiar with).
+
+Sqlalchemy
+----------
 
 **Connection**: ``'mysql'`` or ``'postgres'`` or ``'sqlite'``
 
@@ -162,6 +169,9 @@ does not apply when using sqlite).
 
 .. _sqlalchemy: http://www.sqlalchemy.org/docs/
 .. _ACID: https://en.wikipedia.org/wiki/ACID
+
+Zookeeper
+---------
 
 **Connection**: ``'zookeeper'``
 
@@ -176,8 +186,8 @@ as the database connection types listed previously).
 .. _zookeeper: http://zookeeper.apache.org
 .. _kazoo: http://kazoo.readthedocs.org/
 
-Persistence Backend Interfaces
-==============================
+Interfaces
+==========
 
 .. automodule:: taskflow.persistence.backends
 .. automodule:: taskflow.persistence.backends.base
