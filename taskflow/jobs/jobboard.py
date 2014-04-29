@@ -36,13 +36,18 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
-        """Yields back jobs that are currently on this jobboard (claimed
-        or not claimed).
+        """Returns an iterator that will provide back jobs that are currently
+        on this jobboard.
 
         NOTE(harlowja): the ordering of this iteration should be by posting
         order (oldest to newest) if possible, but it is left up to the backing
         implementation to provide the order that best suits it (so don't depend
         on it always being oldest to newest).
+
+        NOTE(harlowja): the iterator that is returned may support other
+        attributes which can be used to further customize how iteration can
+        be accomplished; check with the backends iterator object to determine
+        what other attributes are supported.
 
         :param only_unclaimed: boolean that indicates whether to only iteration
             over unclaimed jobs.
@@ -55,7 +60,9 @@ class JobBoard(object):
 
     @abc.abstractproperty
     def job_count(self):
-        """Returns how many jobs are on this jobboard."""
+        """Returns how many jobs are on this jobboard (this count may change as
+        new jobs appear or are removed).
+        """
 
     @abc.abstractmethod
     def find_owner(self, job):

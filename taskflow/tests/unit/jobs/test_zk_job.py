@@ -81,6 +81,18 @@ class TestZookeeperJobs(test.TestCase):
 
         self.assertTrue(mock_dt.called)
 
+    def test_board_iter(self):
+        with connect_close(self.board):
+            it = self.board.iterjobs()
+            self.assertEqual(it.board, self.board)
+            self.assertFalse(it.only_unclaimed)
+            self.assertFalse(it.ensure_fresh)
+
+    def test_board_iter_empty(self):
+        with connect_close(self.board):
+            jobs_found = list(self.board.iterjobs())
+            self.assertEqual([], jobs_found)
+
     def test_fresh_iter(self):
         with connect_close(self.board):
             book = p_utils.temporary_log_book()
