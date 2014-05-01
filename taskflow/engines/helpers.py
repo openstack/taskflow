@@ -47,7 +47,8 @@ def _fetch_validate_factory(flow_factory):
 
 
 def load(flow, store=None, flow_detail=None, book=None,
-         engine_conf=None, backend=None, namespace=ENGINES_NAMESPACE):
+         engine_conf=None, backend=None, namespace=ENGINES_NAMESPACE,
+         **kwargs):
     """Load flow into engine.
 
     This function creates and prepares engine to run the
@@ -100,12 +101,8 @@ def load(flow, store=None, flow_detail=None, book=None,
     mgr = stevedore.driver.DriverManager(
         namespace, engine_name,
         invoke_on_load=True,
-        invoke_kwds={
-            'conf': engine_conf.copy(),
-            'flow': flow,
-            'flow_detail': flow_detail,
-            'backend': backend
-        })
+        invoke_args=(flow, flow_detail, backend, engine_conf),
+        invoke_kwds=kwargs)
     engine = mgr.driver
     if store:
         engine.storage.inject(store)
@@ -113,7 +110,7 @@ def load(flow, store=None, flow_detail=None, book=None,
 
 
 def run(flow, store=None, flow_detail=None, book=None,
-        engine_conf=None, backend=None, namespace=ENGINES_NAMESPACE):
+        engine_conf=None, backend=None, namespace=ENGINES_NAMESPACE, **kwargs):
     """Run the flow.
 
     This function load the flow into engine (with 'load' function)
@@ -141,7 +138,7 @@ def run(flow, store=None, flow_detail=None, book=None,
     """
     engine = load(flow, store=store, flow_detail=flow_detail, book=book,
                   engine_conf=engine_conf, backend=backend,
-                  namespace=namespace)
+                  namespace=namespace, **kwargs)
     engine.run()
     return engine.storage.fetch_all()
 
@@ -187,7 +184,7 @@ def save_factory_details(flow_detail,
 
 def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
                       store=None, book=None, engine_conf=None, backend=None,
-                      namespace=ENGINES_NAMESPACE):
+                      namespace=ENGINES_NAMESPACE, **kwargs):
     """Loads a flow from a factory function into an engine.
 
     Gets flow factory function (or name of it) and creates flow with
@@ -220,7 +217,8 @@ def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
                          flow_factory, factory_args, factory_kwargs,
                          backend=backend)
     return load(flow=flow, store=store, flow_detail=flow_detail, book=book,
-                engine_conf=engine_conf, backend=backend, namespace=namespace)
+                engine_conf=engine_conf, backend=backend, namespace=namespace,
+                **kwargs)
 
 
 def flow_from_detail(flow_detail):
@@ -249,7 +247,7 @@ def flow_from_detail(flow_detail):
 
 
 def load_from_detail(flow_detail, store=None, engine_conf=None, backend=None,
-                     namespace=ENGINES_NAMESPACE):
+                     namespace=ENGINES_NAMESPACE, **kwargs):
     """Reload flow previously loaded with load_form_factory function.
 
     Gets flow factory name from metadata, calls it to recreate the flow
@@ -266,4 +264,4 @@ def load_from_detail(flow_detail, store=None, engine_conf=None, backend=None,
     flow = flow_from_detail(flow_detail)
     return load(flow, flow_detail=flow_detail,
                 store=store, engine_conf=engine_conf, backend=backend,
-                namespace=namespace)
+                namespace=namespace, **kwargs)
