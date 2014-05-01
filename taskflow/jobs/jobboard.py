@@ -76,7 +76,13 @@ class JobBoard(object):
 
         A job that has been consumed can not be reclaimed or reposted by
         another entity (job postings are immutable). Any entity consuming
-        a unclaimed job (or a job they do not own) will cause an exception.
+        a unclaimed job (or a job they do not have a claim on) will cause an
+        exception.
+
+        :param job: a job on this jobboard that can be consumed (if it does
+            not exist then a NotFound exception will be raised).
+        :param who: string that names the entity performing the consumption,
+            this must be the same name that was used for claiming this job.
         """
 
     @abc.abstractmethod
@@ -103,6 +109,10 @@ class JobBoard(object):
         will at sometime in the future work on that jobs flows and either fail
         at completing them (resulting in a reposting) or consume that job from
         the jobboard (signaling its completion).
+
+        :param job: a job on this jobboard that can be claimed (if it does
+            not exist then a NotFound exception will be raised).
+        :param who: string that names the claiming entity.
         """
 
     @abc.abstractmethod
@@ -115,6 +125,11 @@ class JobBoard(object):
         Only the entity that has claimed that job can abandon a job. Any entity
         abandoning a unclaimed job (or a job they do not own) will cause an
         exception.
+
+        :param job: a job on this jobboard that can be abandoned (if it does
+            not exist then a NotFound exception will be raised).
+        :param who: string that names the entity performing the abandoning,
+            this must be the same name that was used for claiming this job.
         """
 
 
