@@ -21,6 +21,7 @@ import stevedore.driver
 
 from taskflow.openstack.common import importutils
 from taskflow.persistence import backends as p_backends
+from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 from taskflow.utils import reflection
 
@@ -80,6 +81,15 @@ def load(flow, store=None, flow_detail=None, book=None,
     if isinstance(engine_conf, six.string_types):
         engine_conf = {'engine': engine_conf}
 
+    engine_name = engine_conf['engine']
+    try:
+        pieces = misc.parse_uri(engine_name)
+    except (TypeError, ValueError):
+        pass
+    else:
+        engine_name = pieces['scheme']
+        engine_conf = misc.merge_uri(pieces, engine_conf.copy())
+
     if isinstance(backend, dict):
         backend = p_backends.fetch(backend)
 
@@ -88,7 +98,7 @@ def load(flow, store=None, flow_detail=None, book=None,
                                                  backend=backend)
 
     mgr = stevedore.driver.DriverManager(
-        namespace, engine_conf['engine'],
+        namespace, engine_name,
         invoke_on_load=True,
         invoke_kwds={
             'conf': engine_conf.copy(),

@@ -24,6 +24,7 @@ import functools
 import keyword
 import logging
 import os
+import re
 import string
 import sys
 import threading
@@ -31,14 +32,100 @@ import time
 import traceback
 
 import six
+from six.moves.urllib import parse as urlparse
 
 from taskflow import exceptions as exc
 from taskflow.openstack.common import jsonutils
+from taskflow.openstack.common import network_utils
 from taskflow.utils import reflection
 
 
 LOG = logging.getLogger(__name__)
 NUMERIC_TYPES = six.integer_types + (float,)
+
+# NOTE(imelnikov): regular expression to get scheme from URI,
+# see RFC 3986 section 3.1
+_SCHEME_REGEX = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
+
+
+def merge_uri(uri_pieces, conf):
+    """Merges the username, password, hostname, and query params of a uri into
+    the given configuration (does not overwrite the configuration keys if they
+    already exist) and returns the adjusted configuration.
+
+    NOTE(harlowja): does not merge the path, scheme or fragment.
+    """
+    for k in ('username', 'password'):
+        if not uri_pieces[k]:
+            continue
+        conf.setdefault(k, uri_pieces[k])
+    hostname = uri_pieces.get('hostname')
+    if hostname:
+        port = uri_pieces.get('port')
+        if port is not None:
+            hostname += ":%s" % (port)
+        conf.setdefault('hostname', hostname)
+    for (k, v) in six.iteritems(uri_pieces['params']):
+        conf.setdefault(k, v)
+    return conf
+
+
+def parse_uri(uri, query_duplicates=False):
+    """Parses a uri into its components and returns a dictionary containing
+    those components.
+    """
+    # Do some basic validation before continuing...
+    if not isinstance(uri, six.string_types):
+        raise TypeError("Can only parse string types to uri data, "
+                        "and not an object of type %s"
+                        % reflection.get_class_name(uri))
+    match = _SCHEME_REGEX.match(uri)
+    if not match:
+        raise ValueError("Uri %r does not start with a RFC 3986 compliant"
+                         " scheme" % (uri))
+    parsed = network_utils.urlsplit(uri)
+    if parsed.query:
+        query_params = urlparse.parse_qsl(parsed.query)
+        if not query_duplicates:
+            query_params = dict(query_params)
+        else:
+            # Retain duplicates in a list for keys which have duplicates, but
+            # for items which are not duplicated, just associate the key with
+            # the value.
+            tmp_query_params = {}
+            for (k, v) in query_params:
+                if k in tmp_query_params:
+                    p_v = tmp_query_params[k]
+                    if isinstance(p_v, list):
+                        p_v.append(v)
+                    else:
+                        p_v = [p_v, v]
+                        tmp_query_params[k] = p_v
+                else:
+                    tmp_query_params[k] = v
+            query_params = tmp_query_params
+    else:
+        query_params = {}
+    uri_pieces = {
+        'scheme': parsed.scheme,
+        'username': parsed.username,
+        'password': parsed.password,
+        'fragment': parsed.fragment,
+        'path': parsed.path,
+        'params': query_params,
+    }
+    for k in ('hostname', 'port'):
+        try:
+            uri_pieces[k] = getattr(parsed, k)
+        except (IndexError, ValueError):
+            # The underlying network_utils throws when the host string is empty
+            # which it may be in cases where it is not provided.
+            #
+            # NOTE(harlowja): when https://review.openstack.org/#/c/86921/ gets
+            # merged we can just remove this since that error will no longer
+            # occur.
+            uri_pieces[k] = None
+    return AttrDict(**uri_pieces)
 
 
 def binary_encode(text, encoding='utf-8'):
