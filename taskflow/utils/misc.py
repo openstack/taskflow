@@ -373,6 +373,16 @@ class StopWatch(object):
         # NOTE(harlowja): don't silence the exception.
         return False
 
+    def leftover(self):
+        if self._duration is None:
+            raise RuntimeError("Can not get the leftover time of a watch that"
+                               " has no duration")
+        if self._state != self._STARTED:
+            raise RuntimeError("Can not get the leftover time of a stopwatch"
+                               " that has not been started")
+        end_time = self._started_at + self._duration
+        return max(0.0, end_time - wallclock())
+
     def expired(self):
         if self._duration is None:
             return False

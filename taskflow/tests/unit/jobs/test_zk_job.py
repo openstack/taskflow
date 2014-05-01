@@ -16,6 +16,8 @@
 
 import contextlib
 import mock
+import threading
+import time
 
 import six
 
@@ -101,6 +103,36 @@ class TestZookeeperJobs(test.TestCase):
 
             jobs = list(self.board.iterjobs(ensure_fresh=True))
             self.assertEqual(1, len(jobs))
+
+    def test_wait_timeout(self):
+        with connect_close(self.board):
+            self.assertRaises(excp.NotFound, self.board.wait, timeout=0.1)
+
+    def test_wait_arrival(self):
+        ev = threading.Event()
+        jobs = []
+
+        def poster(wait_post=0.2):
+            ev.wait()  # wait until the waiter is active
+            time.sleep(wait_post)
+            self.board.post('test', p_utils.temporary_log_book())
+
+        def waiter():
+            ev.set()
+            it = self.board.wait()
+            jobs.extend(it)
+
+        with connect_close(self.board):
+            t1 = threading.Thread(target=poster)
+            t1.daemon = True
+            t1.start()
+            t2 = threading.Thread(target=waiter)
+            t2.daemon = True
+            t2.start()
+            for t in (t1, t2):
+                t.join()
+
+        self.assertEqual(1, len(jobs))
 
     def test_posting_received_raw(self):
         book = p_utils.temporary_log_book()
