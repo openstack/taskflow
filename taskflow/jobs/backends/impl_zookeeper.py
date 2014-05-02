@@ -560,11 +560,12 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
             if self._worker is None and self._emit_notifications:
                 self._worker = futures.ThreadPoolExecutor(max_workers=1)
             self._client.ensure_path(self.path)
-            self._job_watcher = watchers.ChildrenWatch(
-                self._client,
-                self.path,
-                func=self._on_job_posting,
-                allow_session_lost=False)
+            if self._job_watcher is None:
+                self._job_watcher = watchers.ChildrenWatch(
+                    self._client,
+                    self.path,
+                    func=self._on_job_posting,
+                    allow_session_lost=True)
         except excp.IncompatibleVersion:
             with excutils.save_and_reraise_exception():
                 try_clean()
