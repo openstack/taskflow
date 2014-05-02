@@ -53,12 +53,13 @@ and :py:class:`~taskflow.persistence.backends.base.Backend` objects). As an engi
 initializes it will extract (or create) :py:class:`~taskflow.persistence.logbook.AtomDetail`
 objects for each atom in the workflow the engine will be executing.
 
-**Execution:** When an engine beings to execute it will examine any previously existing
-:py:class:`~taskflow.persistence.logbook.AtomDetail` objects to see if they can be used
-for resuming; see :doc:`resumption <resumption>` for more details on this subject. For atoms which have not
-finished (or did not finish correctly from a previous run) they will begin executing
-only after any dependent inputs are ready. This is done by analyzing the execution
-graph and looking at predecessor :py:class:`~taskflow.persistence.logbook.AtomDetail`
+**Execution:** When an engine beings to execute (see :doc:`engine <engines>` for more
+of the details about how an engine goes about this process) it will examine any
+previously existing :py:class:`~taskflow.persistence.logbook.AtomDetail` objects to
+see if they can be used for resuming; see :doc:`resumption <resumption>` for more details
+on this subject. For atoms which have not finished (or did not finish correctly from a
+previous run) they will begin executing only after any dependent inputs are ready. This
+is done by analyzing the execution graph and looking at predecessor :py:class:`~taskflow.persistence.logbook.AtomDetail`
 outputs and states (which may have been persisted in a past run). This will result
 in either using there previous information or by running those predecessors and
 saving their output to the :py:class:`~taskflow.persistence.logbook.FlowDetail` and
