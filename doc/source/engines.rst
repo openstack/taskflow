@@ -99,22 +99,8 @@ Worker-Based
 
 **Engine type**: ``'worker-based'``
 
-This is engine that schedules tasks to **workers** -- separate processes
-dedicated for certain tasks execution, possibly running on other machines,
-connected via `amqp <http://www.amqp.org/>`_ (or other supported
-`kombu <http://kombu.readthedocs.org/>`_ transports). For more information,
-please see `wiki page`_ for more details on how the worker based engine
-operates.
-
-.. note::
-
-    This engine is under active development and is experimental but it is
-    usable and does work but is missing some features (please check the
-    `blueprint page`_ for known issues and plans) that will make it more
-    production ready.
-
-.. _wiki page: https://wiki.openstack.org/wiki/TaskFlow/Worker-based_Engine
-.. _blueprint page: https://blueprints.launchpad.net/taskflow
+For more information, please see :doc:`workers <workers>` for more details on
+how the worker based engine operates (and the design decisions behind it).
 
 Interfaces
 ==========

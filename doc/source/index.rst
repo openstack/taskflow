@@ -14,6 +14,7 @@ Contents
    arguments_and_results
    patterns
    engines
+   workers
    jobs
    inputs_and_outputs
    notifications
@@ -22,7 +23,6 @@ Contents
    exceptions
    utils
    states
-
 
 Indices and tables
 ==================
