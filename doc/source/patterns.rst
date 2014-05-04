@@ -21,3 +21,13 @@ Graph flow
 ~~~~~~~~~~
 
 .. automodule:: taskflow.patterns.graph_flow
+
+Hierarchy
+~~~~~~~~~
+
+.. inheritance-diagram::
+    taskflow.flow
+    taskflow.patterns.linear_flow
+    taskflow.patterns.unordered_flow
+    taskflow.patterns.graph_flow
+    :parts: 2
