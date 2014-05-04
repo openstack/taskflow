@@ -303,13 +303,14 @@ Limitations
 ===========
 
 * Atoms inside a flow must receive and accept parameters only from the ways
-  defined in :doc:`persistence`. In other words, the task that is created when
-  a workflow is constructed will not be the same task that is executed on a
-  remote worker (and any internal state not passed via the
-  :doc:`inputs_and_outputs` mechanism can not be transferred). This means
-  resource objects (database handles, file descriptors, sockets, ...) can **not**
-  be directly sent across to remote workers (instead the configuration that
-  defines how to fetch/create these objects must be instead).
+  defined in :doc:`persistence <persistence>`. In other words, the task
+  that is created when a workflow is constructed will not be the same task that
+  is executed on a remote worker (and any internal state not passed via the
+  :doc:`input and output <inputs_and_outputs>` mechanism can not be
+  transferred). This means resource objects (database handles, file
+  descriptors, sockets, ...) can **not** be directly sent across to remote
+  workers (instead the configuration that defines how to fetch/create these
+  objects must be instead).
 * Worker-based engines will in the future be able to run lightweight tasks
   locally to avoid transport overhead for very simple tasks (currently it will
   run even lightweight tasks remotely, which may be non-performant).

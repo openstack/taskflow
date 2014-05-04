@@ -4,19 +4,20 @@ Inputs and Outputs
 
 In TaskFlow there are multiple ways to provide inputs for your tasks and flows
 and get information from them. This document describes one of them, that
-involves task arguments and results. There are also :doc:`notifications`, which
-allow you to get notified when task or flow changed state. You may also opt to
-use :doc:`persistence` directly.
+involves task arguments and results. There are also
+:doc:`notifications <notifications>`, which allow you to get notified when task
+or flow changed state. You may also opt to use the :doc:`persistence <persistence>`
+layer itself directly.
 
 -----------------------
 Flow Inputs and Outputs
 -----------------------
 
 Tasks accept inputs via task arguments and provide outputs via task results
-(see :doc:`arguments_and_results` for more details). This is the standard and
-recommended way to pass data from one task to another. Of course not every task
-argument needs to be provided to some other task of a flow, and not every task
-result should be consumed by every task.
+(see :doc:`arguments and results <arguments_and_results>` for more details). This
+is the standard and recommended way to pass data from one task to another. Of
+course not every task argument needs to be provided to some other task of a
+flow, and not every task result should be consumed by every task.
 
 If some value is required by one or more tasks of a flow, but is not provided
 by any task, it is considered to be flow input, and **must** be put into the
@@ -62,8 +63,8 @@ As you can see, this flow does not require b, as it is provided by the fist task
 Engine and Storage
 ------------------
 
-The storage layer is how an engine persists flow and task details. For more
-in-depth design details see :doc:`persistence`.
+The storage layer is how an engine persists flow and task details (for more
+in-depth details see :doc:`persistence <persistence>`).
 
 Inputs
 ------

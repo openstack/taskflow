@@ -5,8 +5,8 @@ Atoms, Tasks and Retries
 An atom is the smallest unit in taskflow which acts as the base for other
 classes. Atoms have a name and a version (if applicable). An atom is expected
 to name desired input values (requirements) and name outputs (provided
-values), see :doc:`arguments_and_results` page for a complete reference
-about these inputs and outputs.
+values), see the :doc:`arguments and results <arguments_and_results>` page for
+a complete reference about these inputs and outputs.
 
 .. automodule:: taskflow.atom
 

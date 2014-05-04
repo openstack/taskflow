@@ -9,12 +9,12 @@ Atom Arguments and Results
 .. |retry.revert| replace:: :py:meth:`~taskflow.retry.Retry.revert`
 
 In taskflow, all flow and task state goes to (potentially persistent) storage.
-That includes all the information that atoms (e.g. tasks) in the flow need when
-they are executed, and all the information task produces (via serializable task
-results). A developer who implements tasks or flows can specify what arguments
-a task accepts and what result it returns in several ways. This document will
-help you understand what those ways are and how to use those ways to accomplish
-your desired TaskFlow usage pattern.
+That includes all the information that :doc:`atoms <atoms>` (e.g. tasks) in the
+flow need when they are executed, and all the information task produces (via
+serializable task results). A developer who implements tasks or flows can specify
+what arguments a task accepts and what result it returns in several ways. This
+document will help you understand what those ways are and how to use those ways
+to accomplish your desired usage pattern.
 
 .. glossary::
 

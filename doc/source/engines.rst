@@ -7,8 +7,8 @@ Overview
 
 Engines are what **really** runs your atoms.
 
-An *engine* takes a flow structure (described by :doc:`patterns`) and uses it to
-decide which :doc:`atom <atoms>` to run and when.
+An *engine* takes a flow structure (described by :doc:`patterns <patterns>`) and
+uses it to decide which :doc:`atom <atoms>` to run and when.
 
 TaskFlow provides different implementations of engines. Some may be easier to
 use (ie, require no additional infrastructure setup) and understand; others
@@ -152,11 +152,11 @@ Parallel engine schedules tasks onto different threads to run them in parallel.
 
 Additional configuration parameters:
 
-* ``executor``: a class that provides ``concurrent.futures.Executor``-like
+* ``executor``: a object that implements a :pep:`3148` compatible `executor`_
   interface; it will be used for scheduling tasks. You can use instances
-  of ``concurrent.futures.ThreadPoolExecutor`` or
-  ``taskflow.utils.eventlet_utils.GreenExecutor`` (which internally uses
-  `eventlet <http://eventlet.net/>`_ and greenthread pools).
+  of a `thread pool executor`_ or a
+  :py:class:`green executor <taskflow.utils.eventlet_utils.GreenExecutor>`
+  (which internally uses `eventlet <http://eventlet.net/>`_ and greenthread pools).
 
 .. tip::
 
@@ -166,8 +166,7 @@ Additional configuration parameters:
 
 .. note::
 
-    Running tasks with ``concurrent.futures.ProcessPoolExecutor`` is not
-    supported now.
+    Running tasks with a `process pool executor`_ is not currently supported.
 
 Worker-Based
 ------------
@@ -291,10 +290,6 @@ exceptions). If no failures have occurred then the engine will have finished and
 if so desired the :doc:`persistence <persistence>` can be used to cleanup any
 details that were saved for this execution.
 
-.. _future: https://docs.python.org/dev/library/concurrent.futures.html#future-objects
-.. _executor: https://docs.python.org/dev/library/concurrent.futures.html#concurrent.futures.Executor
-.. _networkx: https://networkx.github.io/
-
 Interfaces
 ==========
 
@@ -311,3 +306,9 @@ Hierarchy
     taskflow.engines.action_engine.engine
     taskflow.engines.worker_based.engine
     :parts: 1
+
+.. _future: https://docs.python.org/dev/library/concurrent.futures.html#future-objects
+.. _executor: https://docs.python.org/dev/library/concurrent.futures.html#concurrent.futures.Executor
+.. _networkx: https://networkx.github.io/
+.. _thread pool executor: https://docs.python.org/dev/library/concurrent.futures.html#threadpoolexecutor
+.. _process pool executor: https://docs.python.org/dev/library/concurrent.futures.html#processpoolexecutor
