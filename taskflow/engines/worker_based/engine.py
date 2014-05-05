@@ -34,9 +34,9 @@ class WorkerBasedActionEngine(engine.ActionEngine):
     :keyword transport_options: transport specific options
     """
 
-    _storage_cls = t_storage.SingleThreadedStorage
+    _storage_factory = t_storage.SingleThreadedStorage
 
-    def _task_executor_cls(self):
+    def _task_executor_factory(self):
         if self._executor is not None:
             return self._executor
         return executor.WorkerTaskExecutor(

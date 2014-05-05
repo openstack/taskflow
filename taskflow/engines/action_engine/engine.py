@@ -48,11 +48,11 @@ class ActionEngine(base.EngineBase):
     reversion to commence. See the valid states in the states module to learn
     more about what other states the tasks & flow being ran can go through.
     """
-    _graph_action_cls = graph_action.FutureGraphAction
-    _graph_analyzer_cls = graph_analyzer.GraphAnalyzer
-    _task_action_cls = task_action.TaskAction
-    _task_executor_cls = executor.SerialTaskExecutor
-    _retry_action_cls = retry_action.RetryAction
+    _graph_action_factory = graph_action.FutureGraphAction
+    _graph_analyzer_factory = graph_analyzer.GraphAnalyzer
+    _task_action_factory = task_action.TaskAction
+    _task_executor_factory = executor.SerialTaskExecutor
+    _retry_action_factory = retry_action.RetryAction
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
@@ -173,35 +173,35 @@ class ActionEngine(base.EngineBase):
         execution_graph = flow_utils.flatten(self._flow)
         if execution_graph.number_of_nodes() == 0:
             raise exc.Empty("Flow %s is empty." % self._flow.name)
-        self._analyzer = self._graph_analyzer_cls(execution_graph,
-                                                  self.storage)
+        self._analyzer = self._graph_analyzer_factory(execution_graph,
+                                                      self.storage)
         if self._task_executor is None:
-            self._task_executor = self._task_executor_cls()
+            self._task_executor = self._task_executor_factory()
         if self._task_action is None:
-            self._task_action = self._task_action_cls(self.storage,
-                                                      self._task_executor,
-                                                      self.task_notifier)
+            self._task_action = self._task_action_factory(self.storage,
+                                                          self._task_executor,
+                                                          self.task_notifier)
         if self._retry_action is None:
-            self._retry_action = self._retry_action_cls(self.storage,
-                                                        self.task_notifier)
-        self._root = self._graph_action_cls(self._analyzer,
-                                            self.storage,
-                                            self._task_action,
-                                            self._retry_action)
+            self._retry_action = self._retry_action_factory(self.storage,
+                                                            self.task_notifier)
+        self._root = self._graph_action_factory(self._analyzer,
+                                                self.storage,
+                                                self._task_action,
+                                                self._retry_action)
         self._compiled = True
         return
 
 
 class SingleThreadedActionEngine(ActionEngine):
     """Engine that runs tasks in serial manner."""
-    _storage_cls = t_storage.SingleThreadedStorage
+    _storage_factory = t_storage.SingleThreadedStorage
 
 
 class MultiThreadedActionEngine(ActionEngine):
     """Engine that runs tasks in parallel manner."""
-    _storage_cls = t_storage.MultiThreadedStorage
+    _storage_factory = t_storage.MultiThreadedStorage
 
-    def _task_executor_cls(self):
+    def _task_executor_factory(self):
         return executor.ParallelTaskExecutor(self._executor)
 
     def __init__(self, flow, flow_detail, backend, conf, **kwargs):

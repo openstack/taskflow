@@ -42,12 +42,13 @@ class EngineBase(object):
     def storage(self):
         """The storage unit for this flow."""
         if self._storage is None:
-            self._storage = self._storage_cls(self._flow_detail, self._backend)
+            self._storage = self._storage_factory(self._flow_detail,
+                                                  self._backend)
         return self._storage
 
     @abc.abstractproperty
-    def _storage_cls(self):
-        """Storage class that will be used to generate storage objects."""
+    def _storage_factory(self):
+        """Storage factory that will be used to generate storage objects."""
 
     @abc.abstractmethod
     def compile(self):
