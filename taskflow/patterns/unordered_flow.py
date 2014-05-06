@@ -41,12 +41,9 @@ class Flow(flow.Flow):
         if not items:
             return self
 
-        # NOTE(harlowja): check that items to be added are actually
-        # independent.
-        provides = set()
-        for subflow in self:
-            provides.update(subflow.provides)
-
+        # check that items don't provide anything that other
+        # part of flow provides or requires
+        provides = self.provides
         old_requires = self.requires
         for item in items:
             item_provides = item.provides
@@ -57,7 +54,7 @@ class Flow(flow.Flow):
                     "by other item(s) of unordered flow %(flow)s"
                     % dict(item=item.name, flow=self.name,
                            oo=sorted(bad_provs)))
-            same_provides = (provides | self._retry_provides) & item.provides
+            same_provides = provides & item.provides
             if same_provides:
                 raise exceptions.DependencyFailure(
                     "%(item)s provides %(value)s but is already being"
@@ -67,6 +64,11 @@ class Flow(flow.Flow):
                            value=sorted(same_provides)))
             provides |= item.provides
 
+        # check that items don't require anything other children provides
+        if self.retry:
+            # NOTE(imelnikov): it is allowed to depend on value provided
+            # by retry controller of the flow
+            provides -= self.retry.provides
         for item in items:
             bad_reqs = provides & item.requires
             if bad_reqs:
@@ -78,23 +80,6 @@ class Flow(flow.Flow):
 
         self._children.update(items)
         return self
-
-    @property
-    def provides(self):
-        provides = set()
-        provides.update(self._retry_provides)
-        for subflow in self:
-            provides.update(subflow.provides)
-        return provides
-
-    @property
-    def requires(self):
-        requires = set()
-        for subflow in self:
-            requires.update(subflow.requires)
-        requires.update(self._retry_requires)
-        requires -= self._retry_provides
-        return requires
 
     def __len__(self):
         return len(self._children)
