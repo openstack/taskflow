@@ -58,6 +58,21 @@ class JobBoard(object):
             support this argument.
         """
 
+    @abc.abstractmethod
+    def wait(self, timeout=None):
+        """Waits a given amount of time for job/s to be posted, when jobs are
+        found then an iterator will be returned that contains the jobs at
+        the given point in time.
+
+        NOTE(harlowja): since a jobboard can be mutated on by multiple external
+        entities at the *same* time the iterator that can be returned *may*
+        still be empty due to other entities removing those jobs after the
+        iterator has been created (be aware of this when using it).
+
+        :param timeout: float that indicates how long to wait for a job to
+            appear (if None then waits forever).
+        """
+
     @abc.abstractproperty
     def job_count(self):
         """Returns how many jobs are on this jobboard (this count may change as
