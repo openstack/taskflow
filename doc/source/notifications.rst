@@ -21,8 +21,8 @@ To receive these notifications you should register a callback in
 Each engine provides two of them: one notifies about flow state changes,
 and another notifies about changes of tasks.
 
-TaskFlow also has a set of predefined :ref:`listeners <listeners>`, and provides
-means to write your own listeners, which can be more convenient than
+TaskFlow also has a set of predefined :ref:`listeners <listeners>`, and
+provides means to write your own listeners, which can be more convenient than
 using raw callbacks.
 
 --------------------------------------

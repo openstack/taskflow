@@ -6,7 +6,8 @@ easy, consistent, and reliable.*
 
 .. note::
 
-    Additional documentation is also hosted on wiki: https://wiki.openstack.org/wiki/TaskFlow
+    Additional documentation is also hosted on wiki:
+    https://wiki.openstack.org/wiki/TaskFlow
 
 Contents
 ========
