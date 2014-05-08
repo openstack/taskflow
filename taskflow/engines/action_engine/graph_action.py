@@ -33,6 +33,11 @@ class FutureGraphAction(object):
     in parallel, this enables parallel flow run and reversion.
     """
 
+    # Informational states this action yields while running, not useful to
+    # have the engine record but useful to provide to end-users when doing
+    # execution iterations.
+    ignorable_states = (st.SCHEDULING, st.WAITING, st.RESUMING, st.ANALYZING)
+
     def __init__(self, analyzer, storage, task_action, retry_action):
         self._analyzer = analyzer
         self._storage = storage
@@ -64,23 +69,41 @@ class FutureGraphAction(object):
                 return (futures, [misc.Failure()])
         return (futures, [])
 
-    def execute(self):
+    def execute_iter(self, timeout=None):
+        if timeout is None:
+            timeout = _WAITING_TIMEOUT
+
         # Prepare flow to be resumed
+        yield st.RESUMING
         next_nodes = self._prepare_flow_for_resume()
         next_nodes.update(self._analyzer.get_next_nodes())
-        not_done, failures = self._schedule(next_nodes)
 
+        # Schedule nodes to be worked on
+        yield st.SCHEDULING
+        if self.is_running():
+            not_done, failures = self._schedule(next_nodes)
+        else:
+            not_done, failures = ([], [])
+
+        # Run!
+        #
+        # At this point we need to ensure we wait for all active nodes to
+        # finish running (even if we are asked to suspend) since we can not
+        # preempt those tasks (maybe in the future we will be better able to do
+        # this).
         while not_done:
-            # NOTE(imelnikov): if timeout occurs before any of futures
-            # completes, done list will be empty and we'll just go
-            # for next iteration.
-            done, not_done = self._task_action.wait_for_any(
-                not_done, _WAITING_TIMEOUT)
+            yield st.WAITING
+
+            # TODO(harlowja): maybe we should start doing 'yield from' this
+            # call sometime in the future, or equivalent that will work in
+            # py2 and py3.
+            done, not_done = self._task_action.wait_for_any(not_done, timeout)
 
             # Analyze the results and schedule more nodes (unless we had
             # failures). If failures occurred just continue processing what
             # is running (so that we don't leave it abandoned) but do not
             # schedule anything new.
+            yield st.ANALYZING
             next_nodes = set()
             for future in done:
                 try:
@@ -102,17 +125,20 @@ class FutureGraphAction(object):
                     else:
                         next_nodes.update(more_nodes)
             if next_nodes and not failures and self.is_running():
-                more_not_done, failures = self._schedule(next_nodes)
-                not_done.extend(more_not_done)
+                yield st.SCHEDULING
+                # Recheck incase someone suspended it.
+                if self.is_running():
+                    more_not_done, failures = self._schedule(next_nodes)
+                    not_done.extend(more_not_done)
 
         if failures:
             misc.Failure.reraise_if_any(failures)
         if self._analyzer.get_next_nodes():
-            return st.SUSPENDED
+            yield st.SUSPENDED
         elif self._analyzer.is_success():
-            return st.SUCCESS
+            yield st.SUCCESS
         else:
-            return st.REVERTED
+            yield st.REVERTED
 
     def _schedule_task(self, task):
         """Schedules the given task for revert or execute depending
