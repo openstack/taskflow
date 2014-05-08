@@ -4,19 +4,19 @@ Inputs and Outputs
 
 In TaskFlow there are multiple ways to provide inputs for your tasks and flows
 and get information from them. This document describes one of them, that
-involves task arguments and results. There are also
-:doc:`notifications <notifications>`, which allow you to get notified when task
-or flow changed state. You may also opt to use the :doc:`persistence <persistence>`
-layer itself directly.
+involves task arguments and results. There are also :doc:`notifications
+<notifications>`, which allow you to get notified when task or flow changed
+state. You may also opt to use the :doc:`persistence <persistence>` layer
+itself directly.
 
 -----------------------
 Flow Inputs and Outputs
 -----------------------
 
 Tasks accept inputs via task arguments and provide outputs via task results
-(see :doc:`arguments and results <arguments_and_results>` for more details). This
-is the standard and recommended way to pass data from one task to another. Of
-course not every task argument needs to be provided to some other task of a
+(see :doc:`arguments and results <arguments_and_results>` for more details).
+This is the standard and recommended way to pass data from one task to another.
+Of course not every task argument needs to be provided to some other task of a
 flow, and not every task result should be consumed by every task.
 
 If some value is required by one or more tasks of a flow, but is not provided
@@ -54,10 +54,12 @@ For example:
 
 .. make vim syntax highlighter happy**
 
-As you can see, this flow does not require b, as it is provided by the fist task.
+As you can see, this flow does not require b, as it is provided by the fist
+task.
 
 .. note::
-   There is no difference between processing of Task and Retry inputs and outputs.
+   There is no difference between processing of Task and Retry inputs
+   and outputs.
 
 ------------------
 Engine and Storage
@@ -93,7 +95,8 @@ prior to running:
    >>> engines.run(flo)
    Traceback (most recent call last):
       ...
-   taskflow.exceptions.MissingDependencies: taskflow.patterns.linear_flow.Flow: cat-dog;
+   taskflow.exceptions.MissingDependencies:
+   taskflow.patterns.linear_flow.Flow: cat-dog;
    2 requires ['meow', 'woof'] but no other entity produces said requirements
 
 The recommended way to provide flow inputs is to use the ``store`` parameter
@@ -120,10 +123,10 @@ of the engine helpers (:py:func:`~taskflow.engines.helpers.run` or
    woof
    {'meow': 'meow', 'woof': 'woof', 'dog': 'dog'}
 
-You can also directly interact with the engine storage layer to add
-additional values, note that if this route is used you can't use
-:py:func:`~taskflow.engines.helpers.run` in this case to run your engine (instead
-your must activate the engines run method directly):
+You can also directly interact with the engine storage layer to add additional
+values, note that if this route is used you can't use
+:py:func:`~taskflow.engines.helpers.run` in this case to run your engine
+(instead your must activate the engines run method directly):
 
 .. doctest::
 
@@ -142,8 +145,8 @@ Outputs
 As you can see from examples above, the run method returns all flow outputs in
 a ``dict``. This same data can be fetched via
 :py:meth:`~taskflow.storage.Storage.fetch_all` method of the storage. You can
-also get single results using :py:meth:`~taskflow.storage.Storage.fetch_all`. For
-example:
+also get single results using :py:meth:`~taskflow.storage.Storage.fetch_all`.
+For example:
 
 .. doctest::
 

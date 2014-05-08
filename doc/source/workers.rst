@@ -7,8 +7,8 @@ Overview
 
 This is engine that schedules tasks to **workers** -- separate processes
 dedicated for certain atoms execution, possibly running on other machines,
-connected via `amqp`_ (or other supported
-`kombu <http://kombu.readthedocs.org/>`_ transports).
+connected via `amqp`_ (or other supported `kombu
+<http://kombu.readthedocs.org/>`_ transports).
 
 .. note::
 
@@ -43,8 +43,9 @@ Worker
   configured to run in as many threads (green or not) as desired.
 
 Proxy
-  Executors interact with workers via a proxy. The proxy maintains the underlying
-  transport and publishes messages (and invokes callbacks on message reception).
+  Executors interact with workers via a proxy. The proxy maintains the
+  underlying transport and publishes messages (and invokes callbacks on message
+  reception).
 
 Requirements
 ------------
@@ -122,12 +123,13 @@ engine executor in the following manner:
 1. The executor initiates task execution/reversion using a proxy object.
 2. :py:class:`~taskflow.engines.worker_based.proxy.Proxy` publishes task
    request (format is described below) into a named exchange using a routing
-   key that is used to deliver request to particular workers topic. The executor
-   then waits for the task requests to be accepted and confirmed by workers. If
-   the executor doesn't get a task confirmation from workers within the given
-   timeout the task is considered as timed-out and a timeout exception is
-   raised.
-3. A worker receives a request message and starts a new thread for processing it.
+   key that is used to deliver request to particular workers topic. The
+   executor then waits for the task requests to be accepted and confirmed by
+   workers. If the executor doesn't get a task confirmation from workers within
+   the given timeout the task is considered as timed-out and a timeout
+   exception is raised.
+3. A worker receives a request message and starts a new thread for processing
+   it.
 
    1. The worker dispatches the request (gets desired endpoint that actually
       executes the task).
@@ -141,8 +143,8 @@ engine executor in the following manner:
       handled by the engine, dispatching to listeners and so-on).
 
 4. The executor gets the task request confirmation from the worker and the task
-   request state changes from the ``PENDING`` to the ``RUNNING`` state. Once
-   a task request is in the ``RUNNING`` state it can't be timed-out (considering
+   request state changes from the ``PENDING`` to the ``RUNNING`` state. Once a
+   task request is in the ``RUNNING`` state it can't be timed-out (considering
    that task execution process may take unpredictable time).
 5. The executor gets the task execution result from the worker and passes it
    back to the executor and worker-based engine to finish task processing (this
@@ -303,7 +305,8 @@ Additional supported keyword arguments:
 
 * ``executor``: a class that provides a
   :py:class:`~taskflow.engines.worker_based.executor.WorkerTaskExecutor`
-  interface; it will be used for executing, reverting and waiting for remote tasks.
+  interface; it will be used for executing, reverting and waiting for remote
+  tasks.
 
 Limitations
 ===========

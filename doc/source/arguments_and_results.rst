@@ -11,10 +11,10 @@ Atom Arguments and Results
 In taskflow, all flow and task state goes to (potentially persistent) storage.
 That includes all the information that :doc:`atoms <atoms>` (e.g. tasks) in the
 flow need when they are executed, and all the information task produces (via
-serializable task results). A developer who implements tasks or flows can specify
-what arguments a task accepts and what result it returns in several ways. This
-document will help you understand what those ways are and how to use those ways
-to accomplish your desired usage pattern.
+serializable task results). A developer who implements tasks or flows can
+specify what arguments a task accepts and what result it returns in several
+ways. This document will help you understand what those ways are and how to use
+those ways to accomplish your desired usage pattern.
 
 .. glossary::
 
@@ -191,11 +191,11 @@ Results Specification
 =====================
 
 In python, function results are not named, so we can not infer what a task
-returns. This is important since the complete task result (what the |task.execute|
-method returns) is saved in (potentially persistent) storage, and it is
-typically (but not always) desirable to make those results accessible to other
-tasks. To accomplish this the task specifies names of those values via its
-``provides`` task constructor parameter or other method (see below).
+returns. This is important since the complete task result (what the
+|task.execute| method returns) is saved in (potentially persistent) storage,
+and it is typically (but not always) desirable to make those results accessible
+to other tasks. To accomplish this the task specifies names of those values via
+its ``provides`` task constructor parameter or other method (see below).
 
 Returning One Value
 -------------------
@@ -267,7 +267,8 @@ Another option is to return several values as a dictionary (aka a ``dict``).
                 'pieces': 'PIECEs'
             }
 
-TaskFlow expects that a dict will be returned if ``provides`` argument is a ``set``:
+TaskFlow expects that a dict will be returned if ``provides`` argument is a
+``set``:
 
 ::
 
@@ -314,15 +315,15 @@ Of course, the flow author can override this to change names if needed:
 
     BitsAndPiecesTask(provides=('b', 'p'))
 
-or to change structure -- e.g. this instance will make whole tuple accessible to
-other tasks by name 'bnp':
+or to change structure -- e.g. this instance will make whole tuple accessible
+to other tasks by name 'bnp':
 
 ::
 
     BitsAndPiecesTask(provides='bnp')
 
-or the flow author may want to return default behavior and hide the results of the
-task from other tasks in the flow (e.g. to avoid naming conflicts):
+or the flow author may want to return default behavior and hide the results of
+the task from other tasks in the flow (e.g. to avoid naming conflicts):
 
 ::
 
@@ -339,7 +340,8 @@ For ``result`` value, two cases are possible:
 
 * if task is being reverted because it failed (an exception was raised from its
   |task.execute| method), ``result`` value is instance of
-  :py:class:`taskflow.utils.misc.Failure` object that holds exception information;
+  :py:class:`taskflow.utils.misc.Failure` object that holds exception
+  information;
 
 * if task is being reverted because some other task failed, and this task
   finished successfully, ``result`` value is task result fetched from storage:
@@ -360,7 +362,8 @@ To determine if task failed you can check whether ``result`` is instance of
 
         def revert(self, result, spam, eggs):
             if isinstance(result, misc.Failure):
-                print("This task failed, exception: %s"  % result.exception_str)
+                print("This task failed, exception: %s"
+                      % result.exception_str)
             else:
                 print("do_something returned %r" % result)
 
@@ -372,9 +375,10 @@ representation of result.
 Retry Arguments
 ===============
 
-A Retry controller works with arguments in the same way as a Task. But it has an additional parameter 'history' that is
-a list of tuples. Each tuple contains a result of the previous Retry run and a table where a key is a failed task and a value
-is a :py:class:`taskflow.utils.misc.Failure`.
+A Retry controller works with arguments in the same way as a Task. But it has
+an additional parameter 'history' that is a list of tuples. Each tuple contains
+a result of the previous Retry run and a table where a key is a failed task and
+a value is a :py:class:`taskflow.utils.misc.Failure`.
 
 Consider the following Retry::
 
@@ -393,15 +397,18 @@ Consider the following Retry::
       def revert(self, history, *args, **kwargs):
           print history
 
-Imagine the following Retry had returned a value '5' and then some task 'A' failed with some exception.
-In this case ``on_failure`` method will receive the following history::
+Imagine the following Retry had returned a value '5' and then some task 'A'
+failed with some exception.  In this case ``on_failure`` method will receive
+the following history::
 
     [('5', {'A': misc.Failure()})]
 
-Then the |retry.execute| method will be called again and it'll receive the same history.
+Then the |retry.execute| method will be called again and it'll receive the same
+history.
 
-If the |retry.execute| method raises an exception, the |retry.revert| method of Retry will be called and :py:class:`taskflow.utils.misc.Failure` object will be present
-in the history instead of Retry result::
+If the |retry.execute| method raises an exception, the |retry.revert| method of
+Retry will be called and :py:class:`taskflow.utils.misc.Failure` object will be
+present in the history instead of Retry result::
 
     [('5', {'A': misc.Failure()}), (misc.Failure(), {})]
 

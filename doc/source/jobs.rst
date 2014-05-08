@@ -6,13 +6,13 @@ Overview
 ========
 
 Jobs and jobboards are a **novel** concept that taskflow provides to allow for
-automatic ownership transfer of workflows between capable
-owners (those owners usually then use :doc:`engines <engines>` to complete the
-workflow). They provide the necessary semantics to be able to atomically
-transfer a job from a producer to a consumer in a reliable and fault tolerant
-manner. They are modeled off the concept used to post and acquire work in the
-physical world (typically a job listing in a newspaper or online website
-serves a similar role).
+automatic ownership transfer of workflows between capable owners (those owners
+usually then use :doc:`engines <engines>` to complete the workflow). They
+provide the necessary semantics to be able to atomically transfer a job from a
+producer to a consumer in a reliable and fault tolerant manner. They are
+modeled off the concept used to post and acquire work in the physical world
+(typically a job listing in a newspaper or online website serves a similar
+role).
 
 **TLDR:** It's similar to a queue, but consumers lock items on the queue when
 claiming them, and only remove them from the queue when they're done with the
@@ -25,20 +25,22 @@ Definitions
 ===========
 
 Jobs
-  A :py:class:`job <taskflow.jobs.job.Job>` consists of a unique identifier, name,
-  and a reference to a :py:class:`logbook <taskflow.persistence.logbook.LogBook>`
-  which contains the details of the work that has been or should be/will be
-  completed to finish the work that has been created for that job.
+  A :py:class:`job <taskflow.jobs.job.Job>` consists of a unique identifier,
+  name, and a reference to a :py:class:`logbook
+  <taskflow.persistence.logbook.LogBook>` which contains the details of the
+  work that has been or should be/will be completed to finish the work that has
+  been created for that job.
 
 Jobboards
-  A :py:class:`jobboard <taskflow.jobs.jobboard.JobBoard>` is responsible for managing
-  the posting, ownership, and delivery of jobs. It acts as the location where jobs
-  can be posted, claimed and searched for; typically by iteration or notification.
-  Jobboards may be backed by different *capable* implementations (each with potentially differing
-  configuration) but all jobboards implement the same interface and semantics so
-  that the backend usage is as transparent as possible. This allows deployers or
-  developers of a service that uses TaskFlow to select a jobboard implementation
-  that fits their setup (and there intended usage) best.
+  A :py:class:`jobboard <taskflow.jobs.jobboard.JobBoard>` is responsible for
+  managing the posting, ownership, and delivery of jobs. It acts as the
+  location where jobs can be posted, claimed and searched for; typically by
+  iteration or notification.  Jobboards may be backed by different *capable*
+  implementations (each with potentially differing configuration) but all
+  jobboards implement the same interface and semantics so that the backend
+  usage is as transparent as possible. This allows deployers or developers of a
+  service that uses TaskFlow to select a jobboard implementation that fits
+  their setup (and there intended usage) best.
 
 Features
 ========
@@ -197,18 +199,19 @@ non-issues but for now they are worth mentioning.
 Dual-engine jobs
 ----------------
 
-**What:** Since atoms and engines are not currently `preemptable`_ we can not force
-a engine (or the threads/remote workers... it is using to run) to stop working on
-an atom (it is general bad behavior to force code to stop without its consent anyway) if it has
-already started working on an atom (short of doing a ``kill -9`` on the running interpreter).
-This could cause problems since the points an engine can notice that it no longer owns a
-claim is at any :doc:`state <states>` change that occurs (transitioning to a
-new atom or recording a result for example), where upon noticing the claim has
-been lost the engine can immediately stop doing further work. The effect that this
-causes is that when a claim is lost another engine can immediately attempt to acquire
-the claim that was previously lost and it *could* begin working on the unfinished tasks
-that the later engine may also still be executing (since that engine is not yet
-aware that it has lost the claim).
+**What:** Since atoms and engines are not currently `preemptable`_ we can not
+force a engine (or the threads/remote workers... it is using to run) to stop
+working on an atom (it is general bad behavior to force code to stop without
+its consent anyway) if it has already started working on an atom (short of
+doing a ``kill -9`` on the running interpreter).  This could cause problems
+since the points an engine can notice that it no longer owns a claim is at any
+:doc:`state <states>` change that occurs (transitioning to a new atom or
+recording a result for example), where upon noticing the claim has been lost
+the engine can immediately stop doing further work. The effect that this causes
+is that when a claim is lost another engine can immediately attempt to acquire
+the claim that was previously lost and it *could* begin working on the
+unfinished tasks that the later engine may also still be executing (since that
+engine is not yet aware that it has lost the claim).
 
 **TLDR:** not `preemptable`_, possible to become aware of losing a claim
 after the fact (at the next state change), another engine could have acquired
@@ -219,17 +222,18 @@ the claim by then, therefore both would be *working* on a job.
 #. Ensure your atoms are `idempotent`_, this will cause an engine that may be
    executing the same atom to be able to continue executing without causing
    any conflicts/problems (idempotency guarantees this).
-#. On claiming jobs that have been claimed previously enforce a policy that happens
-   before the jobs workflow begins to execute (possibly prior to an engine beginning
-   the jobs work) that ensures that any prior work has been rolled back before
-   continuing rolling forward. For example:
+#. On claiming jobs that have been claimed previously enforce a policy that
+   happens before the jobs workflow begins to execute (possibly prior to an
+   engine beginning the jobs work) that ensures that any prior work has been
+   rolled back before continuing rolling forward. For example:
 
    * Rolling back the last atom/set of atoms that finished.
    * Rolling back the last state change that occurred.
 
-#. Delay claiming partially completed work by adding a wait period (to allow the
-   previous engine to coalesce) before working on a partially completed job (combine
-   this with the prior suggestions and dual-engine issues should be avoided).
+#. Delay claiming partially completed work by adding a wait period (to allow
+   the previous engine to coalesce) before working on a partially completed job
+   (combine this with the prior suggestions and dual-engine issues should be
+   avoided).
 
 .. _idempotent: http://en.wikipedia.org/wiki/Idempotence
 .. _preemptable: http://en.wikipedia.org/wiki/Preemption_%28computing%29
