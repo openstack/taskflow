@@ -43,16 +43,10 @@ class Flow(object):
     def __init__(self, name, retry=None):
         self._name = six.text_type(name)
         self._retry = retry
-        # If retry doesn't have a name,
+        # NOTE(akarpinska): if retry doesn't have a name,
         # the name of its owner will be assigned
-        if self._retry:
-            self._retry_provides = self.retry.provides
-            self._retry_requires = self.retry.requires
-            if not self._retry.name:
+        if self._retry and self._retry.name is None:
                 self._retry.set_name(self.name + "_retry")
-        else:
-            self._retry_provides = set()
-            self._retry_requires = set()
 
     @property
     def name(self):
@@ -65,6 +59,10 @@ class Flow(object):
         retries while execution is underway.
         """
         return self._retry
+
+    @abc.abstractmethod
+    def add(self, *items):
+        """Adds a given item/items to this flow."""
 
     @abc.abstractmethod
     def __len__(self):
@@ -90,14 +88,29 @@ class Flow(object):
         lines.append("%s" % (len(self)))
         return "; ".join(lines)
 
-    @abc.abstractmethod
-    def add(self, *items):
-        """Adds a given item/items to this flow."""
-
-    @abc.abstractproperty
-    def requires(self):
-        """Browse argument requirement names this flow requires to run."""
-
-    @abc.abstractproperty
+    @property
     def provides(self):
-        """Browse argument names provided by the flow."""
+        """Set of result names provided by the flow.
+
+        Includes names of all the outputs provided by atoms of this flow.
+        """
+        provides = set()
+        if self._retry:
+            provides.update(self._retry.provides)
+        for subflow in self:
+            provides.update(subflow.provides)
+        return provides
+
+    @property
+    def requires(self):
+        """Set of argument names required by the flow.
+
+        Includes names of all the inputs required by atoms of this
+        flow, but not provided within the flow itself.
+        """
+        requires = set()
+        if self._retry:
+            requires.update(self._retry.requires)
+        for subflow in self:
+            requires.update(subflow.requires)
+        return requires - self.provides

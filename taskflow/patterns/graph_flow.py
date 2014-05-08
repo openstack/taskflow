@@ -104,8 +104,8 @@ class Flow(flow.Flow):
 
         if self.retry:
             update_requirements(self.retry)
-            provided.update(dict((k,
-                                  self.retry) for k in self._retry_provides))
+            provided.update(dict((k, self.retry)
+                                 for k in self.retry.provides))
 
         # NOTE(harlowja): Add items and edges to a temporary copy of the
         # underlying graph and only if that is successful added to do we then
@@ -123,7 +123,7 @@ class Flow(flow.Flow):
                         % dict(item=item.name,
                                flow=provided[value].name,
                                value=value))
-                if value in self._retry_requires:
+                if self.retry and value in self.retry.requires:
                     raise exc.DependencyFailure(
                         "Flows retry controller %(retry)s requires %(value)s "
                         "but item %(item)s being added to the flow produces "
@@ -166,22 +166,6 @@ class Flow(flow.Flow):
     def iter_links(self):
         for (u, v, e_data) in self._get_subgraph().edges_iter(data=True):
             yield (u, v, e_data)
-
-    @property
-    def provides(self):
-        provides = set()
-        provides.update(self._retry_provides)
-        for subflow in self:
-            provides.update(subflow.provides)
-        return provides
-
-    @property
-    def requires(self):
-        requires = set()
-        requires.update(self._retry_requires)
-        for subflow in self:
-            requires.update(subflow.requires)
-        return requires - self.provides
 
 
 class TargetedFlow(Flow):

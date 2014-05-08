@@ -78,22 +78,3 @@ class Flow(flow.Flow):
         for src, dst in zip(self._children[:-1],
                             self._children[1:]):
             yield (src, dst, _LINK_METADATA.copy())
-
-    @property
-    def provides(self):
-        provides = set()
-        provides.update(self._retry_provides)
-        for subflow in self._children:
-            provides.update(subflow.provides)
-        return provides
-
-    @property
-    def requires(self):
-        requires = set()
-        provides = set()
-        requires.update(self._retry_requires)
-        provides.update(self._retry_provides)
-        for subflow in self._children:
-            requires.update(subflow.requires - provides)
-            provides.update(subflow.provides)
-        return requires
