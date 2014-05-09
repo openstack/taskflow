@@ -571,11 +571,6 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
     def _state_change_listener(self, state):
         LOG.debug("Kazoo client has changed to state: %s", state)
 
-    def _clear(self):
-        with self._job_lock:
-            self._known_jobs.clear()
-        self._job_watcher = None
-
     def wait(self, timeout=None):
         # Wait until timeout expires (or forever) for jobs to appear.
         watch = None
@@ -620,7 +615,8 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
             LOG.debug("Shutting down the notifier")
             self._worker.shutdown()
             self._worker = None
-        self._clear()
+        with self._job_lock:
+            self._known_jobs.clear()
         LOG.debug("Stopped & cleared local state")
 
     @lock_utils.locked(lock='_open_close_lock')
