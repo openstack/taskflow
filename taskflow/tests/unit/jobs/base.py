@@ -28,6 +28,8 @@ from taskflow import states
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 
+FLUSH_PATH_TPL = '/taskflow/flush-test/%s'
+
 
 @contextlib.contextmanager
 def connect_close(*args):
@@ -49,7 +51,7 @@ def flush(client, path=None):
     # of this context manager will be applied and all watchers will have fired
     # before this context manager exits.
     if not path:
-        path = "/tmp-%s" % uuidutils.generate_uuid()
+        path = FLUSH_PATH_TPL % uuidutils.generate_uuid()
     created = threading.Event()
     deleted = threading.Event()
 
@@ -64,7 +66,7 @@ def flush(client, path=None):
             return False  # cause this watcher to cease to exist
 
     watchers.DataWatch(client, path, func=on_created)
-    client.create(path)
+    client.create(path, makepath=True)
     created.wait()
     try:
         yield
