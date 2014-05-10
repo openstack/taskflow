@@ -23,11 +23,17 @@ from taskflow import exceptions
 from taskflow.persistence.backends import impl_memory
 from taskflow import retry
 from taskflow import task
+from taskflow.utils import kazoo_utils
 from taskflow.utils import misc
 
 ARGS_KEY = '__args__'
 KWARGS_KEY = '__kwargs__'
 ORDER_KEY = '__order__'
+
+ZK_TEST_CONFIG = {
+    'timeout': 1.0,
+    'hosts': ["localhost:2181"],
+}
 
 
 @contextlib.contextmanager
@@ -42,6 +48,25 @@ def wrap_all_failures():
         yield
     except Exception:
         raise exceptions.WrappedFailure([misc.Failure()])
+
+
+def zookeeper_available(min_version, timeout=3):
+    client = kazoo_utils.make_client(ZK_TEST_CONFIG.copy())
+    try:
+        # NOTE(imelnikov): 3 seconds we should be enough for localhost
+        client.start(timeout=float(timeout))
+        if min_version:
+            zk_ver = client.server_version()
+            if zk_ver >= min_version:
+                return True
+            else:
+                return False
+        else:
+            return True
+    except Exception:
+        return False
+    finally:
+        kazoo_utils.finalize_client(client)
 
 
 class DummyTask(task.Task):
