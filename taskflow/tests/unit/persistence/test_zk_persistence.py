@@ -17,37 +17,18 @@
 import contextlib
 
 import testtools
+from zake import fake_client
 
 from taskflow.openstack.common import uuidutils
+from taskflow.persistence import backends
 from taskflow.persistence.backends import impl_zookeeper
 from taskflow import test
 from taskflow.tests.unit.persistence import base
-from taskflow.utils import kazoo_utils
+from taskflow.tests import utils as test_utils
 
-TEST_CONFIG = {
-    'timeout': 1.0,
-    'hosts': ["localhost:2181"],
-}
 TEST_PATH_TPL = '/taskflow/persistence-test/%s'
-
-
-def _zookeeper_available():
-    client = kazoo_utils.make_client(TEST_CONFIG)
-    try:
-        # NOTE(imelnikov): 3 seconds we should be enough for localhost
-        client.start(timeout=3)
-        zk_ver = client.server_version()
-        if zk_ver >= impl_zookeeper.MIN_ZK_VERSION:
-            return True
-        else:
-            return False
-    except Exception:
-        return False
-    finally:
-        kazoo_utils.finalize_client(client)
-
-
-_ZOOKEEPER_AVAILABLE = _zookeeper_available()
+_ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
+    impl_zookeeper.MIN_ZK_VERSION)
 
 
 @testtools.skipIf(not _ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
@@ -61,7 +42,7 @@ class ZkPersistenceTest(test.TestCase, base.PersistenceTestMixin):
 
     def setUp(self):
         super(ZkPersistenceTest, self).setUp()
-        conf = TEST_CONFIG.copy()
+        conf = test_utils.ZK_TEST_CONFIG.copy()
         # Create a unique path just for this test (so that we don't overwrite
         # what other tests are doing).
         conf['path'] = TEST_PATH_TPL % (uuidutils.generate_uuid())
@@ -74,3 +55,30 @@ class ZkPersistenceTest(test.TestCase, base.PersistenceTestMixin):
         with contextlib.closing(self._get_connection()) as conn:
             conn.upgrade()
             self.addCleanup(self._clear_all)
+
+    def test_zk_persistence_entry_point(self):
+        conf = {'connection': 'zookeeper:'}
+        with contextlib.closing(backends.fetch(conf)) as be:
+            self.assertIsInstance(be, impl_zookeeper.ZkBackend)
+
+
+@testtools.skipIf(_ZOOKEEPER_AVAILABLE, 'zookeeper is available')
+class ZakePersistenceTest(test.TestCase, base.PersistenceTestMixin):
+    def _get_connection(self):
+        return self._backend.get_connection()
+
+    def setUp(self):
+        super(ZakePersistenceTest, self).setUp()
+        conf = {
+            "path": "/taskflow",
+        }
+        self.client = fake_client.FakeClient()
+        self.client.start()
+        self._backend = impl_zookeeper.ZkBackend(conf, client=self.client)
+        conn = self._backend.get_connection()
+        conn.upgrade()
+
+    def test_zk_persistence_entry_point(self):
+        conf = {'connection': 'zookeeper:'}
+        with contextlib.closing(backends.fetch(conf)) as be:
+            self.assertIsInstance(be, impl_zookeeper.ZkBackend)
