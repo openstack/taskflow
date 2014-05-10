@@ -15,6 +15,7 @@
 #    under the License.
 
 import six
+import testtools
 
 from zake import fake_client
 from zake import utils as zake_utils
@@ -24,24 +25,56 @@ from taskflow import states
 from taskflow import test
 
 from taskflow.openstack.common import jsonutils
+from taskflow.openstack.common import uuidutils
 from taskflow.tests.unit.jobs import base
+from taskflow.tests import utils as test_utils
+from taskflow.utils import kazoo_utils
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 
 
+TEST_PATH_TPL = '/taskflow/board-test/%s'
+_ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
+    impl_zookeeper.MIN_ZK_VERSION)
+
+
+@testtools.skipIf(not _ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
+class ZookeeperJobboardTest(test.TestCase, base.BoardTestMixin):
+    def _create_board(self, persistence=None):
+
+        def cleanup_path(client, path):
+            if not client.connected:
+                return
+            client.delete(path, recursive=True)
+
+        client = kazoo_utils.make_client(test_utils.ZK_TEST_CONFIG.copy())
+        path = TEST_PATH_TPL % (uuidutils.generate_uuid())
+        board = impl_zookeeper.ZookeeperJobBoard('test-board', {'path': path},
+                                                 client=client,
+                                                 persistence=persistence)
+        self.addCleanup(kazoo_utils.finalize_client, client)
+        self.addCleanup(cleanup_path, client, path)
+        self.addCleanup(board.close)
+        return (client, board)
+
+    def setUp(self):
+        super(ZookeeperJobboardTest, self).setUp()
+        self.client, self.board = self._create_board()
+
+
 class ZakeJobboardTest(test.TestCase, base.BoardTestMixin):
-    def _create_board(self, client=None, persistence=None):
-        if not client:
-            client = fake_client.FakeClient()
+    def _create_board(self, persistence=None):
+        client = fake_client.FakeClient()
         board = impl_zookeeper.ZookeeperJobBoard('test-board', {},
                                                  client=client,
                                                  persistence=persistence)
+        self.addCleanup(board.close)
+        self.addCleanup(kazoo_utils.finalize_client, client)
         return (client, board)
 
     def setUp(self):
         super(ZakeJobboardTest, self).setUp()
         self.client, self.board = self._create_board()
-        self.addCleanup(self.board.close)
         self.bad_paths = [self.board.path]
         self.bad_paths.extend(zake_utils.partition_path(self.board.path))
 

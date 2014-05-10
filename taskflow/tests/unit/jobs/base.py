@@ -243,8 +243,6 @@ class BoardTestMixin(object):
         self.assertEqual(1, len(book))
 
         client, board = self._create_board(persistence=backend)
-        self.addCleanup(board.close)
-
         with connect_close(board):
             with flush(client):
                 board.post('test', book)
