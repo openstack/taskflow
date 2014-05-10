@@ -31,7 +31,7 @@ sys.path.insert(0, self_dir)
 
 # INTRO: in this example linear_flow we will attach a listener to an engine
 # and delay the return from a function until after the result of a task has
-# occured in that engine. The engine will continue running (in the background)
+# occurred in that engine. The engine will continue running (in the background)
 # while the function will have returned.
 
 import taskflow.engines
