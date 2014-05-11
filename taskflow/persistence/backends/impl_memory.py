@@ -32,7 +32,7 @@ class MemoryBackend(base.Backend):
     """A backend that writes logbooks, flow details, and task details to in
     memory dictionaries.
     """
-    def __init__(self, conf):
+    def __init__(self, conf=None):
         super(MemoryBackend, self).__init__(conf)
         self._log_books = {}
         self._flow_details = {}
