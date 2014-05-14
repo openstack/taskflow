@@ -75,10 +75,16 @@ def check_compatible(client, min_version=None, max_version=None):
 
 def make_client(conf):
     """Creates a kazoo client given a configuration dictionary."""
+    # See: http://kazoo.readthedocs.org/en/latest/api/client.html
     client_kwargs = {
         'read_only': bool(conf.get('read_only')),
         'randomize_hosts': bool(conf.get('randomize_hosts')),
     }
+    # See: http://kazoo.readthedocs.org/en/latest/api/retry.html
+    if 'command_retry' in conf:
+        client_kwargs['command_retry'] = conf['command_retry']
+    if 'connection_retry' in conf:
+        client_kwargs['connection_retry'] = conf['connection_retry']
     hosts = _parse_hosts(conf.get("hosts", "localhost:2181"))
     if not hosts or not isinstance(hosts, six.string_types):
         raise TypeError("Invalid hosts format, expected "
