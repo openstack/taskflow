@@ -32,7 +32,6 @@ from taskflow.jobs import jobboard
 from taskflow.openstack.common import excutils
 from taskflow.openstack.common import jsonutils
 from taskflow.openstack.common import uuidutils
-from taskflow.persistence import logbook
 from taskflow import states
 from taskflow.utils import kazoo_utils
 from taskflow.utils import lock_utils
@@ -145,17 +144,18 @@ class ZookeeperJob(base_job.Job):
     def board(self):
         return self._board
 
-    def _load_book(self, book_uuid, book_name):
-        # No backend to attempt to fetch from :-(
-        if self._backend is None:
-            return logbook.LogBook(name=book_name, uuid=book_uuid)
-        # TODO(harlowja): we are currently limited by assuming that the job
-        # posted has the same backend as this loader (to start this seems to
-        # be a ok assumption, and can be adjusted in the future if we determine
-        # there is a use-case for multi-backend loaders, aka a registry of
-        # loaders).
-        with contextlib.closing(self._backend.get_connection()) as conn:
-            return conn.get_logbook(book_uuid)
+    def _load_book(self):
+        book_uuid = self.book_uuid
+        if self._backend is not None and book_uuid is not None:
+            # TODO(harlowja): we are currently limited by assuming that the
+            # job posted has the same backend as this loader (to start this
+            # seems to be a ok assumption, and can be adjusted in the future
+            # if we determine there is a use-case for multi-backend loaders,
+            # aka a registry of loaders).
+            with contextlib.closing(self._backend.get_connection()) as conn:
+                return conn.get_logbook(book_uuid)
+        # No backend to fetch from or no uuid specified
+        return None
 
     @property
     def state(self):
@@ -194,15 +194,26 @@ class ZookeeperJob(base_job.Job):
     @property
     def book(self):
         if self._book is None:
-            loaded_book = None
-            try:
-                book_uuid = self._book_data['uuid']
-                book_name = self._book_data['name']
-                loaded_book = self._load_book(book_uuid, book_name)
-            except (KeyError, TypeError):
-                pass
-            self._book = loaded_book
+            self._book = self._load_book()
         return self._book
+
+    @property
+    def book_uuid(self):
+        if self._book:
+            return self._book.uuid
+        if self._book_data:
+            return self._book_data.get('uuid')
+        else:
+            return None
+
+    @property
+    def book_name(self):
+        if self._book:
+            return self._book.name
+        if self._book_data:
+            return self._book_data.get('name')
+        else:
+            return None
 
 
 class ZookeeperJobBoardIterator(six.Iterator):

@@ -253,6 +253,8 @@ class BoardTestMixin(object):
             self.assertEqual(1, len(j.book))
             self.assertEqual(book.name, j.book.name)
             self.assertEqual(book.uuid, j.book.uuid)
+            self.assertEqual(book.name, j.book_name)
+            self.assertEqual(book.uuid, j.book_uuid)
 
             flow_details = list(j.book)
             self.assertEqual(flow_detail.uuid, flow_details[0].uuid)

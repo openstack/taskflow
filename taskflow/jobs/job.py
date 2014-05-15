@@ -66,7 +66,24 @@ class Job(object):
 
     @abc.abstractproperty
     def book(self):
-        """Any logbook associated with this job."""
+        """Logbook associated with this job.
+
+        If no logbook is associated with this job, this property is None.
+        """
+
+    @abc.abstractproperty
+    def book_uuid(self):
+        """UUID of logbook associated with this job.
+
+        If no logbook is associated with this job, this property is None.
+        """
+
+    @abc.abstractproperty
+    def book_name(self):
+        """Name of logbook associated with this job.
+
+        If no logbook is associated with this job, this property is None.
+        """
 
     @property
     def uuid(self):
