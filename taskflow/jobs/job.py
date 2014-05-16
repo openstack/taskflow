@@ -99,3 +99,8 @@ class Job(object):
     def name(self):
         """The non-uniquely identifying name of this job."""
         return self._name
+
+    def __str__(self):
+        """Pretty formats the job into something *more* meaningful."""
+        return "%s %s (%s): %s" % (type(self).__name__,
+                                   self.name, self.uuid, self.details)
