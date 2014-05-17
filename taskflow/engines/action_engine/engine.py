@@ -16,6 +16,7 @@
 
 import threading
 
+from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
 from taskflow.engines.action_engine import graph_action
 from taskflow.engines.action_engine import graph_analyzer
@@ -29,7 +30,6 @@ from taskflow import retry
 from taskflow import states
 from taskflow import storage as t_storage
 
-from taskflow.utils import flow_utils
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -53,6 +53,7 @@ class ActionEngine(base.EngineBase):
     _task_action_factory = task_action.TaskAction
     _task_executor_factory = executor.SerialTaskExecutor
     _retry_action_factory = retry_action.RetryAction
+    _compiler_factory = compiler.PatternCompiler
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
@@ -208,15 +209,18 @@ class ActionEngine(base.EngineBase):
         return self._task_action_factory(self.storage, self._task_executor,
                                          self.task_notifier)
 
+    @misc.cachedproperty
+    def _compiler(self):
+        return self._compiler_factory()
+
     @lock_utils.locked
     def compile(self):
         if self._compiled:
             return
-        execution_graph = flow_utils.flatten(self._flow)
-        if execution_graph.number_of_nodes() == 0:
-            raise exc.Empty("Flow %s is empty." % self._flow.name)
-        self._analyzer = self._graph_analyzer_factory(execution_graph,
-                                                      self.storage)
+        compilation = self._compiler.compile(self._flow)
+        if self._analyzer is None:
+            self._analyzer = self._graph_analyzer_factory(
+                compilation.execution_graph, self.storage)
         self._root = self._graph_action_factory(self._analyzer,
                                                 self.storage,
                                                 self._task_action,
