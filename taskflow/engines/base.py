@@ -34,17 +34,13 @@ class EngineBase(object):
             self._conf = {}
         else:
             self._conf = dict(conf)
-        self._storage = None
         self.notifier = misc.Notifier()
         self.task_notifier = misc.Notifier()
 
-    @property
+    @misc.cachedproperty
     def storage(self):
         """The storage unit for this flow."""
-        if self._storage is None:
-            self._storage = self._storage_factory(self._flow_detail,
-                                                  self._backend)
-        return self._storage
+        return self._storage_factory(self._flow_detail, self._backend)
 
     @abc.abstractproperty
     def _storage_factory(self):

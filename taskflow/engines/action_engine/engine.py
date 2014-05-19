@@ -61,9 +61,6 @@ class ActionEngine(base.EngineBase):
         self._compiled = False
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
-        self._task_executor = None
-        self._task_action = None
-        self._retry_action = None
         self._storage_ensured = False
 
     def __str__(self):
@@ -198,6 +195,19 @@ class ActionEngine(base.EngineBase):
             self._root.reset_all()
             self._change_state(states.PENDING)
 
+    @misc.cachedproperty
+    def _retry_action(self):
+        return self._retry_action_factory(self.storage, self.task_notifier)
+
+    @misc.cachedproperty
+    def _task_executor(self):
+        return self._task_executor_factory()
+
+    @misc.cachedproperty
+    def _task_action(self):
+        return self._task_action_factory(self.storage, self._task_executor,
+                                         self.task_notifier)
+
     @lock_utils.locked
     def compile(self):
         if self._compiled:
@@ -207,15 +217,6 @@ class ActionEngine(base.EngineBase):
             raise exc.Empty("Flow %s is empty." % self._flow.name)
         self._analyzer = self._graph_analyzer_factory(execution_graph,
                                                       self.storage)
-        if self._task_executor is None:
-            self._task_executor = self._task_executor_factory()
-        if self._task_action is None:
-            self._task_action = self._task_action_factory(self.storage,
-                                                          self._task_executor,
-                                                          self.task_notifier)
-        if self._retry_action is None:
-            self._retry_action = self._retry_action_factory(self.storage,
-                                                            self.task_notifier)
         self._root = self._graph_action_factory(self._analyzer,
                                                 self.storage,
                                                 self._task_action,

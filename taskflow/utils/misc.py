@@ -21,6 +21,7 @@ import copy
 import datetime
 import errno
 import functools
+import inspect
 import keyword
 import logging
 import os
@@ -172,6 +173,37 @@ def decode_json(raw_data, root_types=(dict,)):
         raise ValueError("Expected (%s) root types not: %s"
                          % (ok_types, type(data)))
     return data
+
+
+class cachedproperty(object):
+    """Descriptor that can be placed on instance methods to translate
+    those methods into properties that will be cached in the instance (avoiding
+    repeated creation checking logic to do the equivalent).
+    """
+    def __init__(self, wrapped):
+        # If a name is provided (as an argument) then this will be the string
+        # to place the cached attribute under if not then it will be the
+        # function itself to be wrapped into a property.
+        if inspect.isfunction(wrapped):
+            self._wrapped = wrapped
+            self._wrapped_attr = "_%s" % (wrapped.__name__)
+        else:
+            self._wrapped_attr = wrapped
+            self._wrapped = None
+
+    def __call__(self, fget):
+        # If __init__ received a string then this will be the function to be
+        # wrapped as a property (if __init__ got a function then this will not
+        # be called).
+        self._wrapped = fget
+        return self
+
+    def __get__(self, source, owner):
+        try:
+            return getattr(source, self._wrapped_attr)
+        except AttributeError:
+            setattr(source, self._wrapped_attr, self._wrapped(source))
+            return getattr(source, self._wrapped_attr)
 
 
 def wallclock():
