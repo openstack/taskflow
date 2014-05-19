@@ -37,6 +37,11 @@ LOG = logging.getLogger(__name__)
 # working and rest in peace.
 _TOMBSTONE = object()
 
+_DONE_STATES = frozenset([
+    futures._base.CANCELLED_AND_NOTIFIED,
+    futures._base.FINISHED,
+])
+
 
 class _WorkItem(object):
     def __init__(self, future, fn, args, kwargs):
@@ -82,6 +87,7 @@ class _Worker(object):
 class GreenFuture(futures.Future):
     def __init__(self):
         super(GreenFuture, self).__init__()
+        assert EVENTLET_AVAILABLE, 'eventlet is needed to use a green future'
         # NOTE(harlowja): replace the built-in condition with a greenthread
         # compatible one so that when getting the result of this future the
         # functions will correctly yield to eventlet. If this is not done then
@@ -95,7 +101,7 @@ class GreenExecutor(futures.Executor):
     """A greenthread backed executor."""
 
     def __init__(self, max_workers=1000):
-        assert EVENTLET_AVAILABLE, 'eventlet is needed to use GreenExecutor'
+        assert EVENTLET_AVAILABLE, 'eventlet is needed to use a green executor'
         assert int(max_workers) > 0, 'Max workers must be greater than zero'
         self._max_workers = int(max_workers)
         self._pool = greenpool.GreenPool(self._max_workers)
@@ -128,3 +134,46 @@ class GreenExecutor(futures.Executor):
             self._work_queue.put(_TOMBSTONE)
         if wait:
             self._pool.waitall()
+
+
+class _GreenWaiter(object):
+    """Provides the event that wait_for_any() blocks on."""
+    def __init__(self):
+        self.event = green_threading.Event()
+
+    def add_result(self, future):
+        self.event.set()
+
+    def add_exception(self, future):
+        self.event.set()
+
+    def add_cancelled(self, future):
+        self.event.set()
+
+
+def _partition_futures(fs):
+    """Partitions the input futures into done and not done lists."""
+    done = set()
+    not_done = set()
+    for f in fs:
+        if f._state in _DONE_STATES:
+            done.add(f)
+        else:
+            not_done.add(f)
+    return (done, not_done)
+
+
+def wait_for_any(fs, timeout=None):
+    assert EVENTLET_AVAILABLE, ('eventlet is needed to wait on green futures')
+    with futures._base._AcquireFutures(fs):
+        (done, not_done) = _partition_futures(fs)
+        if done:
+            return (done, not_done)
+        waiter = _GreenWaiter()
+        for f in fs:
+            f._waiters.append(waiter)
+    waiter.event.wait(timeout)
+    for f in fs:
+        f._waiters.remove(waiter)
+    with futures._base._AcquireFutures(fs):
+        return _partition_futures(fs)

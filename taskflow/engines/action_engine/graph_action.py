@@ -58,10 +58,10 @@ class FutureGraphAction(object):
 
     def _schedule(self, nodes):
         """Schedule a group of nodes for execution."""
-        futures = []
+        futures = set()
         for node in nodes:
             try:
-                futures.append(self._schedule_node(node))
+                futures.add(self._schedule_node(node))
             except Exception:
                 # Immediately stop scheduling future work so that we can
                 # exit execution early (rather than later) if a single task
@@ -83,7 +83,7 @@ class FutureGraphAction(object):
         if self.is_running():
             not_done, failures = self._schedule(next_nodes)
         else:
-            not_done, failures = ([], [])
+            not_done, failures = (set(), [])
 
         # Run!
         #
@@ -129,7 +129,7 @@ class FutureGraphAction(object):
                 # Recheck incase someone suspended it.
                 if self.is_running():
                     more_not_done, failures = self._schedule(next_nodes)
-                    not_done.extend(more_not_done)
+                    not_done.update(more_not_done)
 
         if failures:
             misc.Failure.reraise_if_any(failures)

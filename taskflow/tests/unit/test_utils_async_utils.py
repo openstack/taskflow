@@ -54,40 +54,34 @@ class WaitForAnyTestsMixin(object):
         self.assertIs(done.pop(), f2)
 
 
-class WaiterTestsMixin(object):
+@testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
+class AsyncUtilsEventletTest(test.TestCase,
+                             WaitForAnyTestsMixin):
+    executor_cls = eu.GreenExecutor
+    is_green = True
 
     def test_add_result(self):
-        waiter = au._Waiter(self.is_green)
+        waiter = eu._GreenWaiter()
         self.assertFalse(waiter.event.is_set())
         waiter.add_result(futures.Future())
         self.assertTrue(waiter.event.is_set())
 
     def test_add_exception(self):
-        waiter = au._Waiter(self.is_green)
+        waiter = eu._GreenWaiter()
         self.assertFalse(waiter.event.is_set())
         waiter.add_exception(futures.Future())
         self.assertTrue(waiter.event.is_set())
 
     def test_add_cancelled(self):
-        waiter = au._Waiter(self.is_green)
+        waiter = eu._GreenWaiter()
         self.assertFalse(waiter.event.is_set())
         waiter.add_cancelled(futures.Future())
         self.assertTrue(waiter.event.is_set())
 
 
-@testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
-class AsyncUtilsEventletTest(test.TestCase,
-                             WaitForAnyTestsMixin,
-                             WaiterTestsMixin):
-    executor_cls = eu.GreenExecutor
-    is_green = True
-
-
 class AsyncUtilsThreadedTest(test.TestCase,
-                             WaitForAnyTestsMixin,
-                             WaiterTestsMixin):
+                             WaitForAnyTestsMixin):
     executor_cls = futures.ThreadPoolExecutor
-    is_green = False
 
 
 class MakeCompletedFutureTest(test.TestCase):

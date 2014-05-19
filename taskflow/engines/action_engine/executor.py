@@ -99,7 +99,7 @@ class SerialTaskExecutor(TaskExecutorBase):
 
     def wait_for_any(self, fs, timeout=None):
         # NOTE(imelnikov): this executor returns only done futures.
-        return fs, []
+        return (fs, set())
 
 
 class ParallelTaskExecutor(TaskExecutorBase):
