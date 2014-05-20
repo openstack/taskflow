@@ -204,15 +204,20 @@ Compiling
 ---------
 
 During this stage the flow will be converted into an internal graph
-representation using a flow :py:func:`~taskflow.utils.flow_utils.flatten`
-function. This function converts the flow objects and contained atoms into a
+representation using a
+:py:class:`~taskflow.engines.action_engine.compiler.Compiler` (the default
+implementation for patterns is the
+:py:class:`~taskflow.engines.action_engine.compiler.PatternCompiler`). This
+class compiles/converts the flow objects and contained atoms into a
 `networkx`_ directed graph that contains the equivalent atoms defined in the
 flow and any nested flows & atoms as well as the constraints that are created
 by the application of the different flow patterns. This graph is then what will
 be analyzed & traversed during the engines execution. At this point a few
 helper object are also created and saved to internal engine variables (these
 object help in execution of atoms, analyzing the graph and performing other
-internal engine activities).
+internal engine activities). At the finishing of this stage a
+:py:class:`~taskflow.engines.action_engine.runtime.Runtime` object is created
+which contains references to all needed runtime components.
 
 Preparation
 -----------
@@ -231,7 +236,7 @@ Execution
 The graph (and helper objects) previously created are now used for guiding
 further execution. The flow is put into the ``RUNNING`` :doc:`state <states>`
 and a
-:py:class:`~taskflow.engines.action_engine.graph_action.FutureGraphAction`
+:py:class:`~taskflow.engines.action_engine.runner.Runner` implementation
 object starts to take over and begins going through the stages listed
 below (for a more visual diagram/representation see
 the :ref:`engine state diagram <engine states>`).
@@ -252,35 +257,45 @@ for things like retry atom which can influence what a tasks intention should be
 object which was designed to provide helper methods for this analysis). Once
 these intentions are determined and associated with each task (the intention is
 also stored in the :py:class:`~taskflow.persistence.logbook.AtomDetail` object)
-the scheduling stage starts.
+the :ref:`scheduling <scheduling>` stage starts.
+
+.. _scheduling:
 
 Scheduling
 ^^^^^^^^^^
 
-This stage selects which atoms are eligible to run (looking at there intention,
-checking if predecessor atoms have ran and so-on, again using the
+This stage selects which atoms are eligible to run by using a
+:py:class:`~taskflow.engines.action_engine.runtime.Scheduler` implementation
+(the default implementation looks at there intention, checking if predecessor
+atoms have ran and so-on, using a
 :py:class:`~taskflow.engines.action_engine.graph_analyzer.GraphAnalyzer` helper
-object) and submits those atoms to a previously provided  compatible
-`executor`_ for asynchronous execution. This executor will return a `future`_
-object for each atom submitted; all of which are collected into a list of not
-done futures. This will end the initial round of scheduling and at this point
-the engine enters the waiting stage.
+object as needed) and submits those atoms to a previously provided compatible
+`executor`_ for asynchronous execution. This
+:py:class:`~taskflow.engines.action_engine.runtime.Scheduler` will return a
+`future`_ object for each atom scheduled; all of which are collected into a
+list of not done futures. This will end the initial round of scheduling and at
+this point the engine enters the :ref:`waiting <waiting>` stage.
+
+.. _waiting:
 
 Waiting
 ^^^^^^^
 
 In this stage the engine waits for any of the future objects previously
 submitted to complete. Once one of the future objects completes (or fails) that
-atoms result will be examined and persisted to the persistence backend (saved
+atoms result will be examined and finalized using a
+:py:class:`~taskflow.engines.action_engine.runtime.Completer` implementation.
+It typically will persist results to a provided persistence backend (saved
 into the corresponding :py:class:`~taskflow.persistence.logbook.AtomDetail`
-object) and the state of the atom is changed. At this point what happens falls
-into two categories, one for if that atom failed and one for if it did not. If
-the atom failed it may be set to a new intention such as ``RETRY`` or
+and :py:class:`~taskflow.persistence.logbook.FlowDetail` objects) and reflect
+the new state of the atom. At this point what typically happens falls into two
+categories, one for if that atom failed and one for if it did not. If the atom
+failed it may be set to a new intention such as ``RETRY`` or
 ``REVERT`` (other atoms that were predecessors of this failing atom may also
 have there intention altered). Once this intention adjustment has happened a
-new round of scheduling occurs and this process repeats until the engine
-succeeds or fails (if the process running the engine dies the above stages will
-be restarted and resuming will occur).
+new round of :ref:`scheduling <scheduling>`  occurs and this process repeats
+until the engine succeeds or fails (if the process running the engine dies the
+above stages will be restarted and resuming will occur).
 
 .. note::
 
@@ -293,7 +308,7 @@ Finishing
 ---------
 
 At this point the
-:py:class:`~taskflow.engines.action_engine.graph_action.FutureGraphAction` has
+:py:class:`~taskflow.engines.action_engine.runner.Runner` has
 now finished successfully, failed, or the execution was suspended. Depending on
 which one of these occurs will cause the flow to enter a new state (typically
 one of ``FAILURE``, ``SUSPENDED``, ``SUCCESS`` or ``REVERTED``).
@@ -307,10 +322,12 @@ saved for this execution.
 Interfaces
 ==========
 
-.. automodule:: taskflow.engines.base
+.. automodule:: taskflow.engines.action_engine.compiler
 .. automodule:: taskflow.engines.action_engine.engine
-.. automodule:: taskflow.engines.action_engine.graph_action
 .. automodule:: taskflow.engines.action_engine.graph_analyzer
+.. automodule:: taskflow.engines.action_engine.runner
+.. automodule:: taskflow.engines.action_engine.runtime
+.. automodule:: taskflow.engines.base
 
 Hierarchy
 =========

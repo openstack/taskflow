@@ -18,10 +18,8 @@ import threading
 
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
-from taskflow.engines.action_engine import graph_action
-from taskflow.engines.action_engine import graph_analyzer
-from taskflow.engines.action_engine import retry_action
-from taskflow.engines.action_engine import task_action
+from taskflow.engines.action_engine import runner
+from taskflow.engines.action_engine import runtime
 from taskflow.engines import base
 
 from taskflow import exceptions as exc
@@ -38,28 +36,27 @@ from taskflow.utils import reflection
 class ActionEngine(base.EngineBase):
     """Generic action-based engine.
 
-    This engine flattens the flow (and any subflows) into a execution graph
+    This engine compiles the flow (and any subflows) into a compilation unit
     which contains the full runtime definition to be executed and then uses
-    this graph in combination with the action classes & storage to attempt to
-    run your flow (and any subflows & contained tasks) to completion.
+    this compilation unit in combination with the executor, runtime, runner
+    and storage classes to attempt to run your flow (and any subflows &
+    contained atoms) to completion.
 
-    During this process it is permissible and valid to have a task or multiple
-    tasks in the execution graph fail, which will cause the process of
-    reversion to commence. See the valid states in the states module to learn
-    more about what other states the tasks & flow being ran can go through.
+    NOTE(harlowja): during this process it is permissible and valid to have a
+    task or multiple tasks in the execution graph fail (at the same time even),
+    which will cause the process of reversion or retrying to commence. See the
+    valid states in the states module to learn more about what other states
+    the tasks and flow being ran can go through.
     """
-    _graph_action_factory = graph_action.FutureGraphAction
-    _graph_analyzer_factory = graph_analyzer.GraphAnalyzer
-    _task_action_factory = task_action.TaskAction
-    _task_executor_factory = executor.SerialTaskExecutor
-    _retry_action_factory = retry_action.RetryAction
     _compiler_factory = compiler.PatternCompiler
+    _task_executor_factory = executor.SerialTaskExecutor
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
-        self._analyzer = None
-        self._root = None
+        self._runner = None
+        self._runtime = None
         self._compiled = False
+        self._compilation = None
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
         self._storage_ensured = False
@@ -80,8 +77,8 @@ class ActionEngine(base.EngineBase):
         NOTE(harlowja): Only accessible after compilation has completed.
         """
         g = None
-        if self._compiled and self._analyzer:
-            g = self._analyzer.execution_graph
+        if self._compiled:
+            g = self._compilation.execution_graph
         return g
 
     def run(self):
@@ -119,7 +116,7 @@ class ActionEngine(base.EngineBase):
         state = None
         try:
             self._change_state(states.RUNNING)
-            for state in self._root.execute_iter(timeout=timeout):
+            for state in self._runner.run_iter(timeout=timeout):
                 try:
                     try_suspend = yield state
                 except GeneratorExit:
@@ -131,7 +128,7 @@ class ActionEngine(base.EngineBase):
             with excutils.save_and_reraise_exception():
                 self._change_state(states.FAILURE)
         else:
-            ignorable_states = getattr(self._root, 'ignorable_states', [])
+            ignorable_states = getattr(self._runner, 'ignorable_states', [])
             if state and state not in ignorable_states:
                 self._change_state(state)
                 if state != states.SUSPENDED and state != states.SUCCESS:
@@ -162,12 +159,12 @@ class ActionEngine(base.EngineBase):
                        old_state=old_state)
         self.notifier.notify(state, details)
 
-    def _ensure_storage_for(self, execution_graph):
+    def _ensure_storage(self):
         # NOTE(harlowja): signal to the tasks that exist that we are about to
         # resume, if they have a previous state, they will now transition to
         # a resuming state (and then to suspended).
         self._change_state(states.RESUMING)  # does nothing in PENDING state
-        for node in execution_graph.nodes_iter():
+        for node in self._compilation.execution_graph.nodes_iter():
             version = misc.get_version_string(node)
             if isinstance(node, retry.Retry):
                 self.storage.ensure_retry(node.name, version, node.save_as)
@@ -175,7 +172,6 @@ class ActionEngine(base.EngineBase):
                 self.storage.ensure_task(node.name, version, node.save_as)
             if node.inject:
                 self.storage.inject_task_args(node.name, node.inject)
-
         self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
     @lock_utils.locked
@@ -184,7 +180,7 @@ class ActionEngine(base.EngineBase):
             raise exc.InvalidState("Can not prepare an engine"
                                    " which has not been compiled")
         if not self._storage_ensured:
-            self._ensure_storage_for(self.execution_graph)
+            self._ensure_storage()
             self._storage_ensured = True
         # At this point we can check to ensure all dependencies are either
         # flow/task provided or storage provided, if there are still missing
@@ -196,21 +192,12 @@ class ActionEngine(base.EngineBase):
             raise exc.MissingDependencies(self._flow, sorted(missing))
         # Reset everything back to pending (if we were previously reverted).
         if self.storage.get_flow_state() == states.REVERTED:
-            self._root.reset_all()
+            self._runtime.reset_all()
             self._change_state(states.PENDING)
-
-    @misc.cachedproperty
-    def _retry_action(self):
-        return self._retry_action_factory(self.storage, self.task_notifier)
 
     @misc.cachedproperty
     def _task_executor(self):
         return self._task_executor_factory()
-
-    @misc.cachedproperty
-    def _task_action(self):
-        return self._task_action_factory(self.storage, self._task_executor,
-                                         self.task_notifier)
 
     @misc.cachedproperty
     def _compiler(self):
@@ -220,16 +207,13 @@ class ActionEngine(base.EngineBase):
     def compile(self):
         if self._compiled:
             return
-        compilation = self._compiler.compile(self._flow)
-        if self._analyzer is None:
-            self._analyzer = self._graph_analyzer_factory(
-                compilation.execution_graph, self.storage)
-        self._root = self._graph_action_factory(self._analyzer,
-                                                self.storage,
-                                                self._task_action,
-                                                self._retry_action)
+        self._compilation = self._compiler.compile(self._flow)
+        self._runtime = runtime.Runtime(self._compilation,
+                                        self.storage,
+                                        self.task_notifier,
+                                        self._task_executor)
+        self._runner = runner.Runner(self._runtime, self._task_executor)
         self._compiled = True
-        return
 
 
 class SingleThreadedActionEngine(ActionEngine):
