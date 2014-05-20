@@ -180,30 +180,37 @@ class cachedproperty(object):
     those methods into properties that will be cached in the instance (avoiding
     repeated creation checking logic to do the equivalent).
     """
-    def __init__(self, wrapped):
+    def __init__(self, fget):
         # If a name is provided (as an argument) then this will be the string
         # to place the cached attribute under if not then it will be the
         # function itself to be wrapped into a property.
-        if inspect.isfunction(wrapped):
-            self._wrapped = wrapped
-            self._wrapped_attr = "_%s" % (wrapped.__name__)
+        if inspect.isfunction(fget):
+            self._fget = fget
+            self._attr_name = "_%s" % (fget.__name__)
         else:
-            self._wrapped_attr = wrapped
-            self._wrapped = None
+            self._attr_name = fget
+            self._fget = None
 
     def __call__(self, fget):
         # If __init__ received a string then this will be the function to be
         # wrapped as a property (if __init__ got a function then this will not
         # be called).
-        self._wrapped = fget
+        self._fget = fget
         return self
 
-    def __get__(self, source, owner):
+    def __set__(self, instance, value):
+        raise AttributeError("can't set attribute")
+
+    def __delete__(self, instance):
+        raise AttributeError("can't delete attribute")
+
+    def __get__(self, instance, owner):
         try:
-            return getattr(source, self._wrapped_attr)
+            return getattr(instance, self._attr_name)
         except AttributeError:
-            setattr(source, self._wrapped_attr, self._wrapped(source))
-            return getattr(source, self._wrapped_attr)
+            value = self._fget(instance)
+            setattr(instance, self._attr_name, value)
+            return value
 
 
 def wallclock():
