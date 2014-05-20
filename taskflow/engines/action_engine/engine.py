@@ -28,7 +28,7 @@ from taskflow import exceptions as exc
 from taskflow.openstack.common import excutils
 from taskflow import retry
 from taskflow import states
-from taskflow import storage as t_storage
+from taskflow import storage as atom_storage
 
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
@@ -231,12 +231,12 @@ class ActionEngine(base.EngineBase):
 
 class SingleThreadedActionEngine(ActionEngine):
     """Engine that runs tasks in serial manner."""
-    _storage_factory = t_storage.SingleThreadedStorage
+    _storage_factory = atom_storage.SingleThreadedStorage
 
 
 class MultiThreadedActionEngine(ActionEngine):
     """Engine that runs tasks in parallel manner."""
-    _storage_factory = t_storage.MultiThreadedStorage
+    _storage_factory = atom_storage.MultiThreadedStorage
 
     def _task_executor_factory(self):
         return executor.ParallelTaskExecutor(self._executor)
