@@ -232,7 +232,9 @@ The graph (and helper objects) previously created are now used for guiding
 further execution. The flow is put into the ``RUNNING`` :doc:`state <states>`
 and a
 :py:class:`~taskflow.engines.action_engine.graph_action.FutureGraphAction`
-object starts to take over and begins going through the stages listed below.
+object starts to take over and begins going through the stages listed
+below (for a more visual diagram/representation see
+the :ref:`engine state diagram <engine states>`).
 
 Resumption
 ^^^^^^^^^^

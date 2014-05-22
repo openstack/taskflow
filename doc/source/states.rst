@@ -1,9 +1,40 @@
-------------------------------
-States of Task, Retry and Flow
-------------------------------
+------
+States
+------
 
-Flow States
-===========
+.. _engine states:
+
+Engine
+======
+
+.. image:: img/engine_states.png
+   :height: 265px
+   :align: right
+   :alt: Action engine state transitions
+
+Executing
+---------
+
+**RESUMING** - Prepare flow to be resumed.
+
+**SCHEDULING** - Schedule nodes to be worked on.
+
+**WAITING** - Wait for nodes to finish executing.
+
+**ANALYZING** - Analyze and process result/s of node completion.
+
+End
+---
+
+**SUCCESS** - Engine completed successfully.
+
+**REVERTED** - Engine reverting was induced and all nodes were not completed
+successfully.
+
+**SUSPENDED** - Engine was suspended while running..
+
+Flow
+====
 
 .. image:: img/flow_states.png
    :height: 400px
@@ -60,8 +91,8 @@ chance to run.
   type of misuse/state violation is occurring, and should be reported as such.
 
 
-Task States
-===========
+Task
+====
 
 .. image:: img/task_states.png
    :height: 265px
@@ -91,8 +122,8 @@ goes to the FAILURE state.
 **REVERTED** - The task that has been reverted appears it this state.
 
 
-Retry States
-============
+Retry
+=====
 
 .. image:: img/retry_states.png
    :height: 275px
