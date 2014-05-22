@@ -88,6 +88,7 @@ def _build_arg_mapping(task_name, reqs, rebind_args, function, do_infer,
         for arg in ignore_list:
             if arg in task_args:
                 task_args.remove(arg)
+
     result = {}
     if reqs:
         result.update((a, a) for a in reqs)
@@ -135,10 +136,11 @@ class Atom(object):
                   of this atom).
     """
 
-    def __init__(self, name=None, provides=None):
+    def __init__(self, name=None, provides=None, inject=None):
         self._name = name
         self.save_as = _save_as_to_mapping(provides)
         self.version = (1, 0)
+        self.inject = inject
 
     def _build_arg_mapping(self, executor, requires=None, rebind=None,
                            auto_extract=True, ignore_list=None):
@@ -180,4 +182,7 @@ class Atom(object):
         requires and what it produces (since this would be an impossible
         dependency to satisfy).
         """
-        return set(self.rebind.values())
+        requires = set(self.rebind.values())
+        if self.inject:
+            requires = requires - set(six.iterkeys(self.inject))
+        return requires
