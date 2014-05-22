@@ -113,7 +113,8 @@ def merge_graphs(graphs, allow_overlaps=False):
             overlaps = graph.subgraph(g.nodes_iter())
             if len(overlaps):
                 raise ValueError("Can not merge graph %s into %s since there "
-                                 "are %s overlapping nodes" (g, graph,
+                                 "are %s overlapping nodes (and we do not "
+                                 "support merging nodes)" % (g, graph,
                                                              len(overlaps)))
         # Keep the target graphs name.
         name = graph.name
