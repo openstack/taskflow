@@ -1,0 +1,13 @@
+# Created using web sequence diagrams.
+#
+# https://www.websequencediagrams.com/
+
+note over RESUMING
+Running starts here
+end note
+
+RESUMING->SCHEDULING: Resumes and \nschedules initial tasks.
+SCHEDULING->WAITING: Waits for any \nfuture<task> to complete.
+WAITING->WAITING: Continue waiting for \nfuture<task> to complete.
+WAITING->ANALYZING: Analyze future<task> results.
+ANALYZING->SCHEDULING: Schedules next set of tasks.
