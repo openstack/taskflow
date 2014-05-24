@@ -27,6 +27,7 @@ Contents
    exceptions
    utils
    states
+   examples
 
 Indices and tables
 ==================
