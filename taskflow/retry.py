@@ -126,7 +126,7 @@ class Times(Retry):
         return REVERT
 
     def execute(self, history, *args, **kwargs):
-        return len(history)+1
+        return len(history) + 1
 
 
 class ForEachBase(Retry):

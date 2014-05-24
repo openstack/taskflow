@@ -117,18 +117,27 @@ class Atom(object):
     An atom is a named object that operates with input flow data to perform
     some action that furthers the overall flows progress. It usually also
     produces some of its own named output as a result of this process.
+
+    :ivar version: An *immutable* version that associates version information
+                   with this atom. It can be useful in resuming older versions
+                   of atoms. Standard major, minor versioning concepts
+                   should apply.
+    :ivar save_as: An *immutable* output ``resource`` name dict this atom
+                   produces that other atoms may depend on this atom providing.
+                   The format is output index (or key when a dictionary
+                   is returned from the execute method) to stored argument
+                   name.
+    :ivar rebind: An *immutable* input ``resource`` mapping dictionary that
+                  can be used to alter the inputs given to this atom. It is
+                  typically used for mapping a prior tasks output into
+                  the names that this atom expects (in a way this is like
+                  remapping a namespace of another atom into the namespace
+                  of this atom).
     """
 
     def __init__(self, name=None, provides=None):
         self._name = name
-        # An *immutable* output 'resource' name dict this atom
-        # produces that other atoms may depend on this atom providing.
-        #
-        # Format is output index:arg_name
         self.save_as = _save_as_to_mapping(provides)
-        # This identifies the version of the atom to be ran which
-        # can be useful in resuming older versions of atoms. Standard
-        # major, minor version semantics apply.
         self.version = (1, 0)
 
     def _build_arg_mapping(self, executor, requires=None, rebind=None,
@@ -155,10 +164,20 @@ class Atom(object):
 
     @property
     def provides(self):
-        """Any outputs this atom produces."""
+        """Any outputs this atom produces.
+
+        NOTE(harlowja): there can be no intersection between what this atom
+        requires and what it produces (since this would be an impossible
+        dependency to satisfy).
+        """
         return set(self.save_as)
 
     @property
     def requires(self):
-        """Any inputs this atom requires to execute."""
+        """Any inputs this atom requires to function (if applicable).
+
+        NOTE(harlowja): there can be no intersection between what this atom
+        requires and what it produces (since this would be an impossible
+        dependency to satisfy).
+        """
         return set(self.rebind.values())
