@@ -5,7 +5,7 @@ Atoms, Tasks and Retries
 Atom
 ====
 
-An :py:class:`atom <taskflow.atom.Atom>` is the smallest unit in taskflow which
+An :py:class:`atom <taskflow.atom.Atom>` is the smallest unit in TaskFlow which
 acts as the base for other classes (its naming was inspired from the
 similarities between this type and `atoms`_ in the physical world). Atoms
 have a name and may have a version. An atom is expected to name desired input

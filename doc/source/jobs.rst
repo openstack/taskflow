@@ -5,7 +5,7 @@ Jobs
 Overview
 ========
 
-Jobs and jobboards are a **novel** concept that taskflow provides to allow for
+Jobs and jobboards are a **novel** concept that TaskFlow provides to allow for
 automatic ownership transfer of workflows between capable owners (those owners
 usually then use :doc:`engines <engines>` to complete the workflow). They
 provide the necessary semantics to be able to atomically transfer a job from a

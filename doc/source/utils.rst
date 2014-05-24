@@ -2,7 +2,7 @@
 Utils
 -----
 
-There are various helper utils that are part of taskflows internal usage (and
+There are various helper utils that are part of TaskFlows internal usage (and
 external/public usage of these helpers should be kept to a minimum as these
 utility functions may be altered more often in the future).
 
