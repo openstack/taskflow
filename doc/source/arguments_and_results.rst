@@ -1,4 +1,3 @@
-
 ==========================
 Atom Arguments and Results
 ==========================
@@ -37,12 +36,12 @@ those ways to accomplish your desired usage pattern.
     from taskflow import task
 
 
-Arguments Specification
+Arguments specification
 =======================
 
 There are different ways to specify the task argument ``requires`` set.
 
-Arguments Inference
+Arguments inference
 -------------------
 
 Task arguments can be inferred from arguments of the |task.execute| method of
@@ -130,7 +129,7 @@ passed to |task.execute| method as ``vm_name``, value from ``vm_image_id`` is
 passed as ``vm_image_id``, and value from ``admin_key_name`` is passed as
 ``admin_key_name`` parameter in ``kwargs``.
 
-Manually Specifying Requirements
+Manually specifying requirements
 --------------------------------
 
 **Why:** It is often useful to manually specify the requirements of a task,
@@ -187,7 +186,7 @@ avoid invalid argument mappings.
 
 .. make vim sphinx highlighter happy**
 
-Results Specification
+Results specification
 =====================
 
 In python, function results are not named, so we can not infer what a task
@@ -197,7 +196,7 @@ and it is typically (but not always) desirable to make those results accessible
 to other tasks. To accomplish this the task specifies names of those values via
 its ``provides`` task constructor parameter or other method (see below).
 
-Returning One Value
+Returning one value
 -------------------
 
 If task returns just one value, ``provides`` should be string -- the
@@ -212,8 +211,8 @@ name of the value.
     >>> TheAnswerReturningTask(provides='the_answer').provides
     set(['the_answer'])
 
-Returning Tuple
----------------
+Returning a tuple
+-----------------
 
 For a task that returns several values, one option (as usual in python) is to
 return those values via a ``tuple``.
@@ -252,8 +251,8 @@ and passed to the |task.revert| method).
     warning is printed to logs and if use of such parameter is attempted a
     ``NotFound`` exception is raised.
 
-Returning Dictionary
---------------------
+Returning a dictionary
+----------------------
 
 Another option is to return several values as a dictionary (aka a ``dict``).
 
@@ -293,7 +292,7 @@ will be able to get elements from storage by name:
     parameters are left undefined: a warning is printed to logs and if use of
     such parameter is attempted a ``NotFound`` exception is raised.
 
-Default Provides
+Default provides
 ----------------
 
 As mentioned above, the default task base class provides nothing, which means
@@ -329,7 +328,7 @@ the task from other tasks in the flow (e.g. to avoid naming conflicts):
 
     BitsAndPiecesTask(provides=())
 
-Revert Arguments
+Revert arguments
 ================
 
 To revert a task engine calls its |task.revert| method. This method
@@ -372,7 +371,7 @@ task failed, exception:"`` and exception message on revert. If this task
 finished successfully, it will print ``"do_something returned"`` and
 representation of result.
 
-Retry Arguments
+Retry arguments
 ===============
 
 A Retry controller works with arguments in the same way as a Task. But it has
