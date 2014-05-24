@@ -26,7 +26,7 @@ provides means to write your own listeners, which can be more convenient than
 using raw callbacks.
 
 --------------------------------------
-Receiving Notifications with Callbacks
+Receiving notifications with callbacks
 --------------------------------------
 
 To manage notifications instances of
@@ -34,7 +34,7 @@ To manage notifications instances of
 
 .. autoclass:: taskflow.utils.misc.Notifier
 
-Flow Notifications
+Flow notifications
 ------------------
 
 To receive notification on flow state changes use
@@ -67,7 +67,7 @@ To receive notification on flow state changes use
    woof
    Flow 'cat-dog' transition to state SUCCESS
 
-Task Notifications
+Task notifications
 ------------------
 
 To receive notification on task state changes use
@@ -146,12 +146,12 @@ For example, this is how you can use
    taskflow.engines.action_engine.engine.SingleThreadedActionEngine: ... has moved task 'DogTalk' (...) into state 'SUCCESS' with result 'dog' (failure=False)
    taskflow.engines.action_engine.engine.SingleThreadedActionEngine: ... has moved flow 'cat-dog' (...) into state 'SUCCESS'
 
-Basic Listener
+Basic listener
 --------------
 
 .. autoclass:: taskflow.listeners.base.ListenerBase
 
-Printing and Logging Listeners
+Printing and logging listeners
 ------------------------------
 
 .. autoclass:: taskflow.listeners.base.LoggingBase
@@ -160,7 +160,7 @@ Printing and Logging Listeners
 
 .. autoclass:: taskflow.listeners.printing.PrintingListener
 
-Timing Listener
+Timing listener
 ---------------
 
 .. autoclass:: taskflow.listeners.timing.TimingListener

@@ -10,7 +10,7 @@ state. You may also opt to use the :doc:`persistence <persistence>` layer
 itself directly.
 
 -----------------------
-Flow Inputs and Outputs
+Flow inputs and outputs
 -----------------------
 
 Tasks accept inputs via task arguments and provide outputs via task results
@@ -62,7 +62,7 @@ task.
    and outputs.
 
 ------------------
-Engine and Storage
+Engine and storage
 ------------------
 
 The storage layer is how an engine persists flow and task details (for more
