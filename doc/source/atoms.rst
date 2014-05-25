@@ -76,7 +76,7 @@ The current enumeration set that can be returned from this method is:
 To aid in the reconciliation process the
 :py:class:`retry <taskflow.retry.Retry>` base class also mandates ``execute``
 and ``revert`` methods (although subclasses are allowed to define these methods
-as no-ops) that can be used by a retry atom to track interact with the runtime
+as no-ops) that can be used by a retry atom to interact with the runtime
 execution model (for example, to track the number of times it has been
 called which is useful for the :py:class:`~taskflow.retry.ForEach` retry
 subclass).
