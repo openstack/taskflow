@@ -22,7 +22,7 @@ class that is attached
 to :py:class:`engine <taskflow.engines.base.EngineBase>`
 attributes ``task_notifier`` and ``notifier``.
 
-Taskflow also comes with a set of predefined :ref:`listeners <listeners>`, and
+TaskFlow also comes with a set of predefined :ref:`listeners <listeners>`, and
 provides means to write your own listeners, which can be more convenient than
 using raw callbacks.
 

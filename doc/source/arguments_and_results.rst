@@ -7,7 +7,7 @@ Atom Arguments and Results
 .. |retry.execute| replace:: :py:meth:`~taskflow.retry.Retry.execute`
 .. |retry.revert| replace:: :py:meth:`~taskflow.retry.Retry.revert`
 
-In taskflow, all flow and task state goes to (potentially persistent) storage.
+In TaskFlow, all flow and task state goes to (potentially persistent) storage.
 That includes all the information that :doc:`atoms <atoms>` (e.g. tasks) in the
 flow need when they are executed, and all the information task produces (via
 serializable task results). A developer who implements tasks or flows can

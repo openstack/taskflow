@@ -13,10 +13,10 @@ atoms we need to create a model and corresponding information that allows us to
 persist the *right* amount of information to preserve, resume, and rollback a
 flow on software or hardware failure.
 
-To allow for resumption taskflow must be able to re-create the flow and
+To allow for resumption TaskFlow must be able to re-create the flow and
 re-connect the links between atom (and between atoms->atom details and so on)
 in order to revert those atoms or resume those atoms in the correct ordering.
-Taskflow provides a pattern that can help in automating this process (it does
+TaskFlow provides a pattern that can help in automating this process (it does
 **not** prohibit the user from creating their own strategies for doing this).
 
 Factories
@@ -129,7 +129,7 @@ some kind of upgrade or to fix a bug in a prior atoms code).
 factory should replace this name where it was being used previously.
 
 **Runtime change:** This will fall under the same runtime adjustments that
-exist when a new atom is added. In the future taskflow could make this easier
+exist when a new atom is added. In the future TaskFlow could make this easier
 by providing a ``upgrade()`` function that can be used to give users the
 ability to upgrade atoms before running (manual introspection & modification of
 a :py:class:`~taskflow.persistence.logbook.LogBook` can be done before engine
@@ -144,7 +144,7 @@ decides that N atoms should be merged in <N atoms (typically occurring during
 refactoring).
 
 **Runtime change:** This will fall under the same runtime adjustments that
-exist when a new atom is added or removed. In the future taskflow could make
+exist when a new atom is added or removed. In the future TaskFlow could make
 this easier by providing a ``migrate()`` function that can be used to give
 users the ability to migrate atoms previous data before running (manual
 introspection & modification of a

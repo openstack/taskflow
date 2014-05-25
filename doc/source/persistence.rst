@@ -8,7 +8,7 @@ Overview
 In order to be able to receive inputs and create outputs from atoms (or other
 engine processes) in a fault-tolerant way, there is a need to be able to place
 what atoms output in some kind of location where it can be re-used by other
-atoms (or used for other purposes). To accommodate this type of usage taskflow
+atoms (or used for other purposes). To accommodate this type of usage TaskFlow
 provides an abstraction (provided by pluggable `stevedore`_ backends) that is
 similar in concept to a running programs *memory*.
 
