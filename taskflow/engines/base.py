@@ -24,7 +24,13 @@ from taskflow.utils import misc
 
 @six.add_metaclass(abc.ABCMeta)
 class EngineBase(object):
-    """Base for all engines implementations."""
+    """Base for all engines implementations.
+
+    :ivar notifier: A notification object that will dispatch events that
+                    occur related to the flow the engine contains.
+    :ivar task_notifier: A notification object that will dispatch events that
+                         occur related to the tasks the engine contains.
+    """
 
     def __init__(self, flow, flow_detail, backend, conf):
         self._flow = flow

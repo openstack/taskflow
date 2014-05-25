@@ -16,12 +16,13 @@ Engines provide a way to receive notification on task and flow state
 transitions, which is useful for monitoring, logging, metrics, debugging
 and plenty of other tasks.
 
-To receive these notifications you should register a callback in
-:py:class:`~taskflow.utils.misc.Notifier` provided by engine.
-Each engine provides two of them: one notifies about flow state changes,
-and another notifies about changes of tasks.
+To receive these notifications you should register a callback with
+an instance of the the :py:class:`notifier <taskflow.utils.misc.Notifier>`
+class that is attached
+to :py:class:`engine <taskflow.engines.base.EngineBase>`
+attributes ``task_notifier`` and ``notifier``.
 
-TaskFlow also has a set of predefined :ref:`listeners <listeners>`, and
+Taskflow also comes with a set of predefined :ref:`listeners <listeners>`, and
 provides means to write your own listeners, which can be more convenient than
 using raw callbacks.
 
