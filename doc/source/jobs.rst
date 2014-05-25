@@ -19,7 +19,10 @@ claiming them, and only remove them from the queue when they're done with the
 work. If the consumer fails, the lock is *automatically* released and the item
 is back on the queue for further consumption.
 
-For more information, please see `wiki page`_ for more details.
+.. note::
+
+    For more information, please visit the `paradigm shift`_ page for
+    more details.
 
 Definitions
 ===========
@@ -245,7 +248,7 @@ Interfaces
 .. automodule:: taskflow.jobs.job
 .. automodule:: taskflow.jobs.jobboard
 
-.. _wiki page: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts#Workflow_ownership_transfer
+.. _paradigm shift: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts#Workflow_ownership_transfer
 .. _zookeeper: http://zookeeper.apache.org/
 .. _kazoo: http://kazoo.readthedocs.org/
 .. _eventlet handler: https://pypi.python.org/pypi/kazoo-eventlet-handler/
