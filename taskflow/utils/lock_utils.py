@@ -262,7 +262,7 @@ class DummyReaderWriterLock(_ReaderWriterLockBase):
     def is_reader(self):
         return False
 
-    def is_writer(self):
+    def is_writer(self, check_pending=True):
         return False
 
     @property
