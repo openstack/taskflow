@@ -65,7 +65,8 @@ class TaskAction(object):
         if not self.change_state(task, states.RUNNING, progress=0.0):
             raise exceptions.InvalidState("Task %s is in invalid state and"
                                           " can't be executed" % task.name)
-        kwargs = self._storage.fetch_mapped_args(task.rebind)
+        kwargs = self._storage.fetch_mapped_args(task.rebind,
+                                                 task_name=task.name)
         task_uuid = self._storage.get_atom_uuid(task.name)
         return self._task_executor.execute_task(task, task_uuid, kwargs,
                                                 self._on_update_progress)
@@ -81,7 +82,8 @@ class TaskAction(object):
         if not self.change_state(task, states.REVERTING, progress=0.0):
             raise exceptions.InvalidState("Task %s is in invalid state and"
                                           " can't be reverted" % task.name)
-        kwargs = self._storage.fetch_mapped_args(task.rebind)
+        kwargs = self._storage.fetch_mapped_args(task.rebind,
+                                                 task_name=task.name)
         task_uuid = self._storage.get_atom_uuid(task.name)
         task_result = self._storage.get(task.name)
         failures = self._storage.get_failures()

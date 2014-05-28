@@ -90,6 +90,36 @@ class ArgumentsPassingTest(utils.EngineTestBase):
             'result': 30,
         })
 
+    def test_argument_injection(self):
+        flow = utils.TaskMultiArgOneReturn(provides='result',
+                                           inject={'x': 1, 'y': 4, 'z': 9})
+        engine = self._make_engine(flow)
+        engine.run()
+        self.assertEqual(engine.storage.fetch_all(), {
+            'result': 14,
+        })
+
+    def test_argument_injection_rebind(self):
+        flow = utils.TaskMultiArgOneReturn(provides='result',
+                                           rebind=['a', 'b', 'c'],
+                                           inject={'a': 1, 'b': 4, 'c': 9})
+        engine = self._make_engine(flow)
+        engine.run()
+        self.assertEqual(engine.storage.fetch_all(), {
+            'result': 14,
+        })
+
+    def test_argument_injection_required(self):
+        flow = utils.TaskMultiArgOneReturn(provides='result',
+                                           requires=['a', 'b', 'c'],
+                                           inject={'x': 1, 'y': 4, 'z': 9,
+                                                   'a': 0, 'b': 0, 'c': 0})
+        engine = self._make_engine(flow)
+        engine.run()
+        self.assertEqual(engine.storage.fetch_all(), {
+            'result': 14,
+        })
+
     def test_all_arguments_mapping(self):
         flow = utils.TaskMultiArgOneReturn(provides='result',
                                            rebind=['a', 'b', 'c'])

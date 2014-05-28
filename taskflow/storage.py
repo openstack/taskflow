@@ -52,6 +52,7 @@ class Storage(object):
         self._flowdetail = flow_detail
         self._lock = self._lock_cls()
         self._transients = {}
+        self._injected_args = {}
 
         # NOTE(imelnikov): failure serialization looses information,
         # so we cache failures here, in atom name -> failure mapping.
@@ -410,6 +411,10 @@ class Storage(object):
             if self._reset_atom(ad, state):
                 self._with_connection(self._save_atom_detail, ad)
 
+    def inject_task_args(self, task_name, injected_args):
+        self._injected_args.setdefault(task_name, {})
+        self._injected_args[task_name].update(injected_args)
+
     def inject(self, pairs, transient=False):
         """Add values into storage.
 
@@ -516,11 +521,19 @@ class Storage(object):
                     pass
             return results
 
-    def fetch_mapped_args(self, args_mapping):
+    def fetch_mapped_args(self, args_mapping, task_name=None):
         """Fetch arguments for an atom using an atoms arguments mapping."""
         with self._lock.read_lock():
-            return dict((key, self.fetch(name))
-                        for key, name in six.iteritems(args_mapping))
+            injected_args = {}
+            if task_name:
+                injected_args = self._injected_args.get(task_name, {})
+            mapped_args = {}
+            for key, name in six.iteritems(args_mapping):
+                if name in injected_args:
+                    mapped_args[key] = injected_args[name]
+                else:
+                    mapped_args[key] = self.fetch(name)
+            return mapped_args
 
     def set_flow_state(self, state):
         """Set flow details state and save it."""

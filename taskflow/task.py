@@ -36,10 +36,10 @@ class BaseTask(atom.Atom):
 
     TASK_EVENTS = ('update_progress', )
 
-    def __init__(self, name, provides=None):
+    def __init__(self, name, provides=None, inject=None):
         if name is None:
             name = reflection.get_class_name(self)
-        super(BaseTask, self).__init__(name, provides)
+        super(BaseTask, self).__init__(name, provides, inject=inject)
         # Map of events => lists of callbacks to invoke on task events.
         self._events_listeners = collections.defaultdict(list)
 
@@ -172,11 +172,11 @@ class Task(BaseTask):
     default_provides = None
 
     def __init__(self, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None):
+                 auto_extract=True, rebind=None, inject=None):
         """Initialize task instance."""
         if provides is None:
             provides = self.default_provides
-        super(Task, self).__init__(name, provides=provides)
+        super(Task, self).__init__(name, provides=provides, inject=inject)
         self._build_arg_mapping(self.execute, requires, rebind, auto_extract)
 
 
@@ -188,7 +188,7 @@ class FunctorTask(BaseTask):
 
     def __init__(self, execute, name=None, provides=None,
                  requires=None, auto_extract=True, rebind=None, revert=None,
-                 version=None):
+                 version=None, inject=None):
         assert six.callable(execute), ("Function to use for executing must be"
                                        " callable")
         if revert:
@@ -196,7 +196,8 @@ class FunctorTask(BaseTask):
                                           " be callable")
         if name is None:
             name = reflection.get_callable_name(execute)
-        super(FunctorTask, self).__init__(name, provides=provides)
+        super(FunctorTask, self).__init__(name, provides=provides,
+                                          inject=inject)
         self._execute = execute
         self._revert = revert
         if version is not None:
