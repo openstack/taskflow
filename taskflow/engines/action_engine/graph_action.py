@@ -16,9 +16,9 @@
 
 from taskflow.engines.action_engine import executor as ex
 from taskflow import exceptions as excp
-from taskflow import retry as r
+from taskflow import retry as retry_atom
 from taskflow import states as st
-from taskflow import task
+from taskflow import task as task_atom
 from taskflow.utils import misc
 
 
@@ -49,9 +49,9 @@ class FutureGraphAction(object):
 
     def _schedule_node(self, node):
         """Schedule a single node for execution."""
-        if isinstance(node, task.BaseTask):
+        if isinstance(node, task_atom.BaseTask):
             return self._schedule_task(node)
-        elif isinstance(node, r.Retry):
+        elif isinstance(node, retry_atom.Retry):
             return self._schedule_retry(node)
         else:
             raise TypeError("Unknown how to schedule node %s" % node)
@@ -108,7 +108,7 @@ class FutureGraphAction(object):
             for future in done:
                 try:
                     node, event, result = future.result()
-                    if isinstance(node, task.BaseTask):
+                    if isinstance(node, task_atom.BaseTask):
                         self._complete_task(node, event, result)
                     if isinstance(result, misc.Failure):
                         if event == ex.EXECUTED:
@@ -185,15 +185,15 @@ class FutureGraphAction(object):
         if retry:
             # Ask retry controller what to do in case of failure
             action = self._retry_action.on_failure(retry, atom, failure)
-            if action == r.RETRY:
+            if action == retry_atom.RETRY:
                 # Prepare subflow for revert
                 self._storage.set_atom_intention(retry.name, st.RETRY)
                 for node in self._analyzer.iterate_subgraph(retry):
                     self._storage.set_atom_intention(node.name, st.REVERT)
-            elif action == r.REVERT:
+            elif action == retry_atom.REVERT:
                 # Ask parent checkpoint
                 self._process_atom_failure(retry, failure)
-            elif action == r.REVERT_ALL:
+            elif action == retry_atom.REVERT_ALL:
                 # Prepare all flow for revert
                 self._revert_all()
         else:
@@ -217,9 +217,9 @@ class FutureGraphAction(object):
 
     def _reset_nodes(self, nodes_iter, intention=st.EXECUTE):
         for node in nodes_iter:
-            if isinstance(node, task.BaseTask):
+            if isinstance(node, task_atom.BaseTask):
                 self._task_action.change_state(node, st.PENDING, progress=0.0)
-            elif isinstance(node, r.Retry):
+            elif isinstance(node, retry_atom.Retry):
                 self._retry_action.change_state(node, st.PENDING)
             else:
                 raise TypeError("Unknown how to reset node %s" % node)
