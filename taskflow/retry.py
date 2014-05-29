@@ -26,18 +26,45 @@ from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
-# Retry actions
+# Decision results.
 REVERT = "REVERT"
 REVERT_ALL = "REVERT_ALL"
 RETRY = "RETRY"
 
 
 @six.add_metaclass(abc.ABCMeta)
-class Retry(atom.Atom):
-    """A base class for retry that controls subflow execution.
-       Retry can be executed multiple times and reverted. On subflow
-       failure it makes a decision about what should be done with the flow
-       (retry, revert to the previous retry, revert the whole flow, etc.).
+class Decider(object):
+    """A base class or mixin for an object that can decide how to resolve
+    execution failures.
+
+    A decider may be executed multiple times on subflow or other atom
+    failure and it is expected to make a decision about what should be done
+    to resolve the failure (retry, revert to the previous retry, revert
+    the whole flow, etc.).
+    """
+
+    @abc.abstractmethod
+    def on_failure(self, history, *args, **kwargs):
+        """On subflow failure makes a decision about the future flow
+        execution using information about prior previous failures (if this
+        historical failure information is not available or was not persisted
+        this history will be empty).
+
+        Returns retry action constant:
+        * 'RETRY' when subflow must be reverted and restarted again (maybe
+          with new parameters).
+        * 'REVERT' when this subflow must be completely reverted and parent
+          subflow should make a decision about the flow execution.
+        * 'REVERT_ALL' in a case when the whole flow must be reverted and
+          marked as FAILURE.
+        """
+
+
+@six.add_metaclass(abc.ABCMeta)
+class Retry(atom.Atom, Decider):
+    """A base class for a retry object that decides how to resolve subflow
+    execution failures and may also provide execute and revert methods to alter
+    the inputs of subflow atoms.
     """
 
     default_provides = None
@@ -76,19 +103,6 @@ class Retry(atom.Atom):
            a reversion. This method will be called only if a subflow must be
            reverted without the retry. It won't be called on subflow retry, but
            all subflow's tasks will be reverted before the retry.
-        """
-
-    @abc.abstractmethod
-    def on_failure(self, history, *args, **kwargs):
-        """On subflow failure makes a decision about the future flow
-           execution using information about all previous failures.
-           Returns retry action constant:
-           'RETRY' when subflow must be reverted and restarted again (maybe
-           with new parameters).
-           'REVERT' when this subflow must be completely reverted and parent
-           subflow should make a decision about the flow execution.
-           'REVERT_ALL' in a case when the whole flow must be reverted and
-           marked as FAILURE.
         """
 
 
