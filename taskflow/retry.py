@@ -51,12 +51,13 @@ class Decider(object):
         this history will be empty).
 
         Returns retry action constant:
-        * 'RETRY' when subflow must be reverted and restarted again (maybe
+
+        * ``RETRY`` when subflow must be reverted and restarted again (maybe
           with new parameters).
-        * 'REVERT' when this subflow must be completely reverted and parent
+        * ``REVERT`` when this subflow must be completely reverted and parent
           subflow should make a decision about the flow execution.
-        * 'REVERT_ALL' in a case when the whole flow must be reverted and
-          marked as FAILURE.
+        * ``REVERT_ALL`` in a case when the whole flow must be reverted and
+          marked as ``FAILURE``.
         """
 
 
