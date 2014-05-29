@@ -61,6 +61,12 @@ class StorageFailure(TaskFlowException):
     """Raised when storage backends can not be read/saved/deleted."""
 
 
+# Conductor related errors.
+
+class ConductorFailure(TaskFlowException):
+    """Errors related to conducting activities."""
+
+
 # Job related errors.
 
 class JobFailure(TaskFlowException):

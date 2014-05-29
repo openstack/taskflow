@@ -154,6 +154,10 @@ class JobBoard(object):
             this must be the same name that was used for claiming this job.
         """
 
+    @abc.abstractproperty
+    def connected(self):
+        """Returns if this jobboard is connected."""
+
     @abc.abstractmethod
     def connect(self):
         """Opens the connection to any backend system."""
