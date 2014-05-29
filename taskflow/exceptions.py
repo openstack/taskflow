@@ -34,7 +34,7 @@ class TaskFlowException(Exception):
     def cause(self):
         return self._cause
 
-    def pformat(self, indent=2):
+    def pformat(self, indent=2, indent_text=" "):
         """Pretty formats a taskflow exception + any connected causes."""
         if indent < 0:
             raise ValueError("indent must be greater than or equal to zero")
@@ -45,7 +45,7 @@ class TaskFlowException(Exception):
                 # We'll add our own newlines on at the end of formatting.
                 if line.endswith("\n"):
                     line = line[0:-1]
-                lines.append((" " * indent_by) + line)
+                lines.append((indent_text * indent_by) + line)
             try:
                 lines.extend(_format(excp.cause, indent_by + indent))
             except AttributeError:
