@@ -19,6 +19,8 @@ in order to revert those atoms or resume those atoms in the correct ordering.
 Taskflow provides a pattern that can help in automating this process (it does
 **not** prohibit the user from creating their own strategies for doing this).
 
+.. _resumption factories:
+
 Factories
 =========
 

@@ -11,19 +11,34 @@ easy, consistent, and reliable.*
 
 Contents
 ========
+
 .. toctree::
    :maxdepth: 2
 
    atoms
    arguments_and_results
+   inputs_and_outputs
+
    patterns
    engines
-   workers
-   jobs
-   inputs_and_outputs
    notifications
    persistence
    resumption
+
+   jobs
+   conductors
+
+.. toctree::
+   :hidden:
+
+   workers
+
+Miscellaneous
+-------------
+
+.. toctree::
+   :maxdepth: 2
+
    exceptions
    utils
    states
