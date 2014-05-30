@@ -134,6 +134,11 @@ class Atom(object):
                   the names that this atom expects (in a way this is like
                   remapping a namespace of another atom into the namespace
                   of this atom).
+    :ivar inject: An *immutable* input_name => value dictionary which specifies
+                  any initial inputs that should be automatically injected into
+                  the atoms scope before the atom execution commences (this
+                  allows for providing atom *local* values that do not need to
+                  be provided by other atoms).
     """
 
     def __init__(self, name=None, provides=None, inject=None):
