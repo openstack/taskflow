@@ -24,7 +24,8 @@ from taskflow import retry
 
 from taskflow import test
 from taskflow.tests import utils as t_utils
-from taskflow.utils import flow_utils as f_utils
+
+from taskflow.engines.action_engine import compiler
 
 
 def _make_many(amount):
@@ -35,24 +36,26 @@ def _make_many(amount):
     return tasks
 
 
-class FlattenTest(test.TestCase):
-    def test_flatten_task(self):
+class PatternCompileTest(test.TestCase):
+    def test_task(self):
         task = t_utils.DummyTask(name='a')
-        g = f_utils.flatten(task)
-
+        compilation = compiler.PatternCompiler().compile(task)
+        g = compilation.execution_graph
         self.assertEqual(list(g.nodes()), [task])
         self.assertEqual(list(g.edges()), [])
 
-    def test_flatten_retry(self):
+    def test_retry(self):
         r = retry.AlwaysRevert('r1')
         msg_regex = "^Retry controller .* is used not as a flow parameter"
-        self.assertRaisesRegexp(TypeError, msg_regex, f_utils.flatten, r)
+        self.assertRaisesRegexp(TypeError, msg_regex,
+                                compiler.PatternCompiler().compile, r)
 
-    def test_flatten_wrong_object(self):
+    def test_wrong_object(self):
         msg_regex = '^Unknown type requested to flatten'
-        self.assertRaisesRegexp(TypeError, msg_regex, f_utils.flatten, 42)
+        self.assertRaisesRegexp(TypeError, msg_regex,
+                                compiler.PatternCompiler().compile, 42)
 
-    def test_linear_flatten(self):
+    def test_linear(self):
         a, b, c, d = _make_many(4)
         flo = lf.Flow("test")
         flo.add(a, b, c)
@@ -60,7 +63,8 @@ class FlattenTest(test.TestCase):
         sflo.add(d)
         flo.add(sflo)
 
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(4, len(g))
 
         order = g.topological_sort()
@@ -71,18 +75,20 @@ class FlattenTest(test.TestCase):
         self.assertEqual([d], list(g.no_successors_iter()))
         self.assertEqual([a], list(g.no_predecessors_iter()))
 
-    def test_invalid_flatten(self):
+    def test_invalid(self):
         a, b, c = _make_many(3)
         flo = lf.Flow("test")
         flo.add(a, b, c)
         flo.add(flo)
-        self.assertRaises(ValueError, f_utils.flatten, flo)
+        self.assertRaises(ValueError,
+                          compiler.PatternCompiler().compile, flo)
 
-    def test_unordered_flatten(self):
+    def test_unordered(self):
         a, b, c, d = _make_many(4)
         flo = uf.Flow("test")
         flo.add(a, b, c, d)
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(4, len(g))
         self.assertEqual(0, g.number_of_edges())
         self.assertEqual(set([a, b, c, d]),
@@ -90,14 +96,16 @@ class FlattenTest(test.TestCase):
         self.assertEqual(set([a, b, c, d]),
                          set(g.no_predecessors_iter()))
 
-    def test_linear_nested_flatten(self):
+    def test_linear_nested(self):
         a, b, c, d = _make_many(4)
         flo = lf.Flow("test")
         flo.add(a, b)
         flo2 = uf.Flow("test2")
         flo2.add(c, d)
         flo.add(flo2)
-        g = f_utils.flatten(flo)
+
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(4, len(g))
 
         lb = g.subgraph([a, b])
@@ -112,7 +120,7 @@ class FlattenTest(test.TestCase):
         self.assertTrue(g.has_edge(b, c))
         self.assertTrue(g.has_edge(b, d))
 
-    def test_unordered_nested_flatten(self):
+    def test_unordered_nested(self):
         a, b, c, d = _make_many(4)
         flo = uf.Flow("test")
         flo.add(a, b)
@@ -120,7 +128,8 @@ class FlattenTest(test.TestCase):
         flo2.add(c, d)
         flo.add(flo2)
 
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(4, len(g))
         for n in [a, b]:
             self.assertFalse(g.has_edge(n, c))
@@ -134,14 +143,15 @@ class FlattenTest(test.TestCase):
         lb = g.subgraph([c, d])
         self.assertEqual(1, lb.number_of_edges())
 
-    def test_unordered_nested_in_linear_flatten(self):
+    def test_unordered_nested_in_linear(self):
         a, b, c, d = _make_many(4)
         flo = lf.Flow('lt').add(
             a,
             uf.Flow('ut').add(b, c),
             d)
 
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(4, len(g))
         self.assertItemsEqual(g.edges(), [
             (a, b),
@@ -150,16 +160,17 @@ class FlattenTest(test.TestCase):
             (c, d)
         ])
 
-    def test_graph_flatten(self):
+    def test_graph(self):
         a, b, c, d = _make_many(4)
         flo = gf.Flow("test")
         flo.add(a, b, c, d)
 
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(4, len(g))
         self.assertEqual(0, g.number_of_edges())
 
-    def test_graph_flatten_nested(self):
+    def test_graph_nested(self):
         a, b, c, d, e, f, g = _make_many(7)
         flo = gf.Flow("test")
         flo.add(a, b, c, d)
@@ -168,14 +179,15 @@ class FlattenTest(test.TestCase):
         flo2.add(e, f, g)
         flo.add(flo2)
 
-        graph = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        graph = compilation.execution_graph
         self.assertEqual(7, len(graph))
         self.assertItemsEqual(graph.edges(data=True), [
             (e, f, {'invariant': True}),
             (f, g, {'invariant': True})
         ])
 
-    def test_graph_flatten_nested_graph(self):
+    def test_graph_nested_graph(self):
         a, b, c, d, e, f, g = _make_many(7)
         flo = gf.Flow("test")
         flo.add(a, b, c, d)
@@ -184,11 +196,12 @@ class FlattenTest(test.TestCase):
         flo2.add(e, f, g)
         flo.add(flo2)
 
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(7, len(g))
         self.assertEqual(0, g.number_of_edges())
 
-    def test_graph_flatten_links(self):
+    def test_graph_links(self):
         a, b, c, d = _make_many(4)
         flo = gf.Flow("test")
         flo.add(a, b, c, d)
@@ -196,7 +209,8 @@ class FlattenTest(test.TestCase):
         flo.link(b, c)
         flo.link(c, d)
 
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(4, len(g))
         self.assertItemsEqual(g.edges(data=True), [
             (a, b, {'manual': True}),
@@ -206,12 +220,13 @@ class FlattenTest(test.TestCase):
         self.assertItemsEqual([a], g.no_predecessors_iter())
         self.assertItemsEqual([d], g.no_successors_iter())
 
-    def test_graph_flatten_dependencies(self):
+    def test_graph_dependencies(self):
         a = t_utils.ProvidesRequiresTask('a', provides=['x'], requires=[])
         b = t_utils.ProvidesRequiresTask('b', provides=[], requires=['x'])
         flo = gf.Flow("test").add(a, b)
 
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(2, len(g))
         self.assertItemsEqual(g.edges(data=True), [
             (a, b, {'reasons': set(['x'])})
@@ -219,7 +234,7 @@ class FlattenTest(test.TestCase):
         self.assertItemsEqual([a], g.no_predecessors_iter())
         self.assertItemsEqual([b], g.no_successors_iter())
 
-    def test_graph_flatten_nested_requires(self):
+    def test_graph_nested_requires(self):
         a = t_utils.ProvidesRequiresTask('a', provides=['x'], requires=[])
         b = t_utils.ProvidesRequiresTask('b', provides=[], requires=[])
         c = t_utils.ProvidesRequiresTask('c', provides=[], requires=['x'])
@@ -228,7 +243,8 @@ class FlattenTest(test.TestCase):
             lf.Flow("test2").add(b, c)
         )
 
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(3, len(g))
         self.assertItemsEqual(g.edges(data=True), [
             (a, c, {'reasons': set(['x'])}),
@@ -237,7 +253,7 @@ class FlattenTest(test.TestCase):
         self.assertItemsEqual([a, b], g.no_predecessors_iter())
         self.assertItemsEqual([c], g.no_successors_iter())
 
-    def test_graph_flatten_nested_provides(self):
+    def test_graph_nested_provides(self):
         a = t_utils.ProvidesRequiresTask('a', provides=[], requires=['x'])
         b = t_utils.ProvidesRequiresTask('b', provides=['x'], requires=[])
         c = t_utils.ProvidesRequiresTask('c', provides=[], requires=[])
@@ -246,7 +262,8 @@ class FlattenTest(test.TestCase):
             lf.Flow("test2").add(b, c)
         )
 
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(3, len(g))
         self.assertItemsEqual(g.edges(data=True), [
             (b, c, {'invariant': True}),
@@ -255,46 +272,50 @@ class FlattenTest(test.TestCase):
         self.assertItemsEqual([b], g.no_predecessors_iter())
         self.assertItemsEqual([a, c], g.no_successors_iter())
 
-    def test_flatten_checks_for_dups(self):
+    def test_checks_for_dups(self):
         flo = gf.Flow("test").add(
             t_utils.DummyTask(name="a"),
             t_utils.DummyTask(name="a")
         )
         self.assertRaisesRegexp(exc.Duplicate,
-                                '^Tasks with duplicate names',
-                                f_utils.flatten, flo)
+                                '^Atoms with duplicate names',
+                                compiler.PatternCompiler().compile, flo)
 
-    def test_flatten_checks_for_dups_globally(self):
+    def test_checks_for_dups_globally(self):
         flo = gf.Flow("test").add(
             gf.Flow("int1").add(t_utils.DummyTask(name="a")),
             gf.Flow("int2").add(t_utils.DummyTask(name="a")))
         self.assertRaisesRegexp(exc.Duplicate,
-                                '^Tasks with duplicate names',
-                                f_utils.flatten, flo)
+                                '^Atoms with duplicate names',
+                                compiler.PatternCompiler().compile, flo)
 
-    def test_flatten_retry_in_linear_flow(self):
+    def test_retry_in_linear_flow(self):
         flo = lf.Flow("test", retry.AlwaysRevert("c"))
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(1, len(g))
         self.assertEqual(0, g.number_of_edges())
 
-    def test_flatten_retry_in_unordered_flow(self):
+    def test_retry_in_unordered_flow(self):
         flo = uf.Flow("test", retry.AlwaysRevert("c"))
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(1, len(g))
         self.assertEqual(0, g.number_of_edges())
 
-    def test_flatten_retry_in_graph_flow(self):
+    def test_retry_in_graph_flow(self):
         flo = gf.Flow("test", retry.AlwaysRevert("c"))
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(1, len(g))
         self.assertEqual(0, g.number_of_edges())
 
-    def test_flatten_retry_in_nested_flows(self):
+    def test_retry_in_nested_flows(self):
         c1 = retry.AlwaysRevert("c1")
         c2 = retry.AlwaysRevert("c2")
         flo = lf.Flow("test", c1).add(lf.Flow("test2", c2))
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
 
         self.assertEqual(2, len(g))
         self.assertItemsEqual(g.edges(data=True), [
@@ -304,11 +325,13 @@ class FlattenTest(test.TestCase):
         self.assertItemsEqual([c1], g.no_predecessors_iter())
         self.assertItemsEqual([c2], g.no_successors_iter())
 
-    def test_flatten_retry_in_linear_flow_with_tasks(self):
+    def test_retry_in_linear_flow_with_tasks(self):
         c = retry.AlwaysRevert("c")
         a, b = _make_many(2)
         flo = lf.Flow("test", c).add(a, b)
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
+
         self.assertEqual(3, len(g))
         self.assertItemsEqual(g.edges(data=True), [
             (a, b, {'invariant': True}),
@@ -320,11 +343,13 @@ class FlattenTest(test.TestCase):
         self.assertIs(c, g.node[a]['retry'])
         self.assertIs(c, g.node[b]['retry'])
 
-    def test_flatten_retry_in_unordered_flow_with_tasks(self):
+    def test_retry_in_unordered_flow_with_tasks(self):
         c = retry.AlwaysRevert("c")
         a, b = _make_many(2)
         flo = uf.Flow("test", c).add(a, b)
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
+
         self.assertEqual(3, len(g))
         self.assertItemsEqual(g.edges(data=True), [
             (c, a, {'retry': True}),
@@ -336,11 +361,12 @@ class FlattenTest(test.TestCase):
         self.assertIs(c, g.node[a]['retry'])
         self.assertIs(c, g.node[b]['retry'])
 
-    def test_flatten_retry_in_graph_flow_with_tasks(self):
+    def test_retry_in_graph_flow_with_tasks(self):
         r = retry.AlwaysRevert("cp")
         a, b, c = _make_many(3)
         flo = gf.Flow("test", r).add(a, b, c).link(b, c)
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
         self.assertEqual(4, len(g))
 
         self.assertItemsEqual(g.edges(data=True), [
@@ -355,7 +381,7 @@ class FlattenTest(test.TestCase):
         self.assertIs(r, g.node[b]['retry'])
         self.assertIs(r, g.node[c]['retry'])
 
-    def test_flatten_retries_hierarchy(self):
+    def test_retries_hierarchy(self):
         c1 = retry.AlwaysRevert("cp1")
         c2 = retry.AlwaysRevert("cp2")
         a, b, c, d = _make_many(4)
@@ -363,7 +389,9 @@ class FlattenTest(test.TestCase):
             a,
             lf.Flow("test", c2).add(b, c),
             d)
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
+
         self.assertEqual(6, len(g))
         self.assertItemsEqual(g.edges(data=True), [
             (c1, a, {'retry': True}),
@@ -379,14 +407,16 @@ class FlattenTest(test.TestCase):
         self.assertIs(c1, g.node[c2]['retry'])
         self.assertIs(None, g.node[c1].get('retry'))
 
-    def test_flatten_retry_subflows_hierarchy(self):
+    def test_retry_subflows_hierarchy(self):
         c1 = retry.AlwaysRevert("cp1")
         a, b, c, d = _make_many(4)
         flo = lf.Flow("test", c1).add(
             a,
             lf.Flow("test").add(b, c),
             d)
-        g = f_utils.flatten(flo)
+        compilation = compiler.PatternCompiler().compile(flo)
+        g = compilation.execution_graph
+
         self.assertEqual(5, len(g))
         self.assertItemsEqual(g.edges(data=True), [
             (c1, a, {'retry': True}),
