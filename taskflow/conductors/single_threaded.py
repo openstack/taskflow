@@ -67,20 +67,22 @@ class SingleThreadedConductor(base.Conductor):
 
     @lock_utils.locked
     def stop(self, timeout=None):
-        """Stops dispatching and returns whether the dispatcher loop is active
-        or whether it has ceased. If a timeout is provided the dispatcher
-        loop may not have ceased by the timeout reached (the request to cease
-        will be honored in the future).
+        """Requests the conductor to stop dispatching and returns whether the
+        stop request was successfully completed. If the dispatching is still
+        occurring then False is returned otherwise True will be returned to
+        signal that the conductor is no longer dispatching job requests.
+
+        NOTE(harlowja): If a timeout is provided the dispatcher loop may
+        not have ceased by the timeout reached (the request to cease will
+        be honored in the future) and False will be returned indicating this.
         """
         self._wait_timeout.interrupt()
         self._dead.wait(timeout)
-        return self.dispatching
+        return self._dead.is_set()
 
     @property
     def dispatching(self):
-        if self._dead.is_set():
-            return False
-        return True
+        return not self._dead.is_set()
 
     def _dispatch_job(self, job):
         LOG.info("Dispatching job: %s", job)
