@@ -106,9 +106,10 @@ class Conductor(object):
     @abc.abstractmethod
     def _dispatch_job(self, job):
         """Accepts a single (already claimed) job and causes it to be run in
-        an engine. The job is consumed upon completion (unless False is
-        returned which will signify the job should be abandoned instead)
+        an engine. Returns a boolean that signifies whether the job should
+        be consumed. The job is consumed upon completion (unless False is
+        returned which will signify the job should be abandoned instead).
 
-        :param job: A Job instance that has already been claimed by the
-            jobboard.
+        :param job: A job instance that has already been claimed by the
+                    jobboard.
         """
