@@ -22,8 +22,3 @@ The following classes and modules are *recommended* for external usage:
 .. autofunction:: taskflow.utils.persistence_utils.temporary_flow_detail
 
 .. autofunction:: taskflow.utils.persistence_utils.pformat
-
-Internal usage
-==============
-
-.. automodule:: taskflow.utils.flow_utils
