@@ -127,6 +127,10 @@ class Empty(TaskFlowException):
     """Raised when some object is empty when it shouldn't be."""
 
 
+class MultipleChoices(TaskFlowException):
+    """Raised when some decision can't be made due to many possible choices."""
+
+
 # Others.
 
 class WrappedFailure(Exception):
