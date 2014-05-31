@@ -81,10 +81,9 @@ class Conductor(object):
             store = dict(job.details["store"])
         else:
             store = {}
-        engine_conf = dict(self._engine_conf)
         return taskflow.engines.load_from_detail(flow_detail,
                                                  store=store,
-                                                 engine_conf=engine_conf,
+                                                 engine_conf=self._engine_conf,
                                                  backend=self._persistence)
 
     @lock_utils.locked
