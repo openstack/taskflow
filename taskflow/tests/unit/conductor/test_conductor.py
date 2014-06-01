@@ -88,7 +88,8 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
         with close_many(components.conductor, components.client):
             t = make_thread(components.conductor)
             t.start()
-            self.assertFalse(components.conductor.stop(0.5))
+            self.assertTrue(components.conductor.stop(0.5))
+            self.assertFalse(components.conductor.dispatching)
             t.join()
 
     def test_run(self):
@@ -111,7 +112,7 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
                                   details={'flow_uuid': fd.uuid})
             consumed_event.wait(1.0)
             self.assertTrue(consumed_event.is_set())
-            components.conductor.stop(1.0)
+            self.assertTrue(components.conductor.stop(1.0))
             self.assertFalse(components.conductor.dispatching)
 
         persistence = components.persistence
@@ -142,7 +143,7 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
                                   details={'flow_uuid': fd.uuid})
             consumed_event.wait(1.0)
             self.assertTrue(consumed_event.is_set())
-            components.conductor.stop(1.0)
+            self.assertTrue(components.conductor.stop(1.0))
             self.assertFalse(components.conductor.dispatching)
 
         persistence = components.persistence
