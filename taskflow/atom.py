@@ -52,7 +52,7 @@ def _save_as_to_mapping(save_as):
         # a unordered set) so the only way for us to easily map the result of
         # the atom will be via the key itself.
         return dict((key, key) for key in save_as)
-    raise TypeError('Task provides parameter '
+    raise TypeError('Atom provides parameter '
                     'should be str, set or tuple/list, not %r' % save_as)
 
 
@@ -76,39 +76,39 @@ def _build_rebind_dict(args, rebind_args):
         raise TypeError('Invalid rebind value: %s' % rebind_args)
 
 
-def _build_arg_mapping(task_name, reqs, rebind_args, function, do_infer,
+def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
                        ignore_list=None):
     """Given a function, its requirements and a rebind mapping this helper
     function will build the correct argument mapping for the given function as
     well as verify that the final argument mapping does not have missing or
     extra arguments (where applicable).
     """
-    task_args = reflection.get_callable_args(function, required_only=True)
+    atom_args = reflection.get_callable_args(function, required_only=True)
     if ignore_list:
         for arg in ignore_list:
-            if arg in task_args:
-                task_args.remove(arg)
+            if arg in atom_args:
+                atom_args.remove(arg)
 
     result = {}
     if reqs:
         result.update((a, a) for a in reqs)
     if do_infer:
-        result.update((a, a) for a in task_args)
-    result.update(_build_rebind_dict(task_args, rebind_args))
+        result.update((a, a) for a in atom_args)
+    result.update(_build_rebind_dict(atom_args, rebind_args))
 
     if not reflection.accepts_kwargs(function):
         all_args = reflection.get_callable_args(function, required_only=False)
         extra_args = set(result) - set(all_args)
         if extra_args:
             extra_args_str = ', '.join(sorted(extra_args))
-            raise ValueError('Extra arguments given to task %s: %s'
-                             % (task_name, extra_args_str))
+            raise ValueError('Extra arguments given to atom %s: %s'
+                             % (atom_name, extra_args_str))
 
     # NOTE(imelnikov): don't use set to preserve order in error message
-    missing_args = [arg for arg in task_args if arg not in result]
+    missing_args = [arg for arg in atom_args if arg not in result]
     if missing_args:
-        raise ValueError('Missing arguments for task %s: %s'
-                         % (task_name, ' ,'.join(missing_args)))
+        raise ValueError('Missing arguments for atom %s: %s'
+                         % (atom_name, ' ,'.join(missing_args)))
     return result
 
 
@@ -130,7 +130,7 @@ class Atom(object):
                    name.
     :ivar rebind: An *immutable* input ``resource`` mapping dictionary that
                   can be used to alter the inputs given to this atom. It is
-                  typically used for mapping a prior tasks output into
+                  typically used for mapping a prior atoms output into
                   the names that this atom expects (in a way this is like
                   remapping a namespace of another atom into the namespace
                   of this atom).

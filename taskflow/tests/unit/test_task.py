@@ -85,7 +85,7 @@ class TaskTest(test.TestCase):
         self.assertEqual(my_task.save_as, {'food': 0})
 
     def test_bad_provides(self):
-        self.assertRaisesRegexp(TypeError, '^Task provides',
+        self.assertRaisesRegexp(TypeError, '^Atom provides',
                                 MyTask, provides=object())
 
     def test_requires_by_default(self):
