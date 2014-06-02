@@ -31,10 +31,6 @@ class GraphAnalyzer(object):
         self._graph = graph
         self._storage = storage
 
-    @property
-    def execution_graph(self):
-        return self._graph
-
     def get_next_nodes(self, node=None):
         if node is None:
             execute = self.browse_nodes_for_execute()
