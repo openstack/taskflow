@@ -16,6 +16,7 @@
 
 import collections
 import functools
+import inspect
 import sys
 import time
 
@@ -369,6 +370,25 @@ class CachedPropertyTest(test.TestCase):
         self.assertEqual('b', a.b)
         self.assertRaises(AttributeError, try_set, a)
         self.assertEqual('b', a.b)
+
+    def test_documented_property(self):
+
+        class A(object):
+            @misc.cachedproperty
+            def b(self):
+                """I like bees."""
+                return 'b'
+
+        self.assertEqual("I like bees.", inspect.getdoc(A.b))
+
+    def test_undocumented_property(self):
+
+        class A(object):
+            @misc.cachedproperty
+            def b(self):
+                return 'b'
+
+        self.assertEqual(None, inspect.getdoc(A.b))
 
 
 class AttrDictTest(test.TestCase):
