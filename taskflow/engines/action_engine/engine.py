@@ -171,7 +171,7 @@ class ActionEngine(base.EngineBase):
             else:
                 self.storage.ensure_task(node.name, version, node.save_as)
             if node.inject:
-                self.storage.inject_task_args(node.name, node.inject)
+                self.storage.inject_atom_args(node.name, node.inject)
         self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
     @lock_utils.locked
