@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
 import logging
 
 from taskflow import exceptions as exc
@@ -27,10 +26,19 @@ from taskflow.utils import misc
 LOG = logging.getLogger(__name__)
 
 
-# The result of a compilers compile() is this tuple (for now it is just a
-# execution graph but in the future it may grow to include more attributes
-# that help the runtime units execute in a more optimal/featureful manner).
-Compilation = collections.namedtuple("Compilation", ["execution_graph"])
+class Compilation(object):
+    """The result of a compilers compile() is this *immutable* object.
+
+    For now it is just a execution graph but in the future it will grow to
+    include more methods & properties that help the various runtime units
+    execute in a more optimal & featureful manner.
+    """
+    def __init__(self, execution_graph):
+        self._execution_graph = execution_graph
+
+    @property
+    def execution_graph(self):
+        return self._execution_graph
 
 
 class PatternCompiler(object):

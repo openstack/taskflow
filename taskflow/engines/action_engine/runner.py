@@ -43,11 +43,10 @@ class Runner(object):
     ignorable_states = (st.SCHEDULING, st.WAITING, st.RESUMING, st.ANALYZING)
 
     def __init__(self, runtime, waiter):
-        self._runtime = runtime
         self._scheduler = runtime.scheduler
         self._completer = runtime.completer
         self._storage = runtime.storage
-        self._analyzer = runtime.graph_analyzer
+        self._analyzer = runtime.analyzer
         self._waiter = waiter
 
     def is_running(self):

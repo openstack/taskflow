@@ -253,7 +253,7 @@ analyzing the current state of the task; which is determined by looking at the
 state in the task detail object for that task and analyzing edges of the graph
 for things like retry atom which can influence what a tasks intention should be
 (this is aided by the usage of the
-:py:class:`~taskflow.engines.action_engine.graph_analyzer.GraphAnalyzer` helper
+:py:class:`~taskflow.engines.action_engine.analyzer.Analyzer` helper
 object which was designed to provide helper methods for this analysis). Once
 these intentions are determined and associated with each task (the intention is
 also stored in the :py:class:`~taskflow.persistence.logbook.AtomDetail` object)
@@ -268,7 +268,7 @@ This stage selects which atoms are eligible to run by using a
 :py:class:`~taskflow.engines.action_engine.runtime.Scheduler` implementation
 (the default implementation looks at there intention, checking if predecessor
 atoms have ran and so-on, using a
-:py:class:`~taskflow.engines.action_engine.graph_analyzer.GraphAnalyzer` helper
+:py:class:`~taskflow.engines.action_engine.analyzer.Analyzer` helper
 object as needed) and submits those atoms to a previously provided compatible
 `executor`_ for asynchronous execution. This
 :py:class:`~taskflow.engines.action_engine.runtime.Scheduler` will return a
@@ -322,9 +322,9 @@ saved for this execution.
 Interfaces
 ==========
 
+.. automodule:: taskflow.engines.action_engine.analyzer
 .. automodule:: taskflow.engines.action_engine.compiler
 .. automodule:: taskflow.engines.action_engine.engine
-.. automodule:: taskflow.engines.action_engine.graph_analyzer
 .. automodule:: taskflow.engines.action_engine.runner
 .. automodule:: taskflow.engines.action_engine.runtime
 .. automodule:: taskflow.engines.base
