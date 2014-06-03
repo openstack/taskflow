@@ -161,10 +161,7 @@ class ActionEngine(base.EngineBase):
         self.notifier.notify(state, details)
 
     def _ensure_storage(self):
-        # NOTE(harlowja): signal to the tasks that exist that we are about to
-        # resume, if they have a previous state, they will now transition to
-        # a resuming state (and then to suspended).
-        self._change_state(states.RESUMING)  # does nothing in PENDING state
+        """Ensure all contained atoms exist in the storage unit."""
         for node in self._compilation.execution_graph.nodes_iter():
             version = misc.get_version_string(node)
             if isinstance(node, retry.Retry):
@@ -173,7 +170,6 @@ class ActionEngine(base.EngineBase):
                 self.storage.ensure_task(node.name, version, node.save_as)
             if node.inject:
                 self.storage.inject_atom_args(node.name, node.inject)
-        self._change_state(states.SUSPENDED)  # does nothing in PENDING state
 
     @lock_utils.locked
     def prepare(self):
@@ -181,7 +177,12 @@ class ActionEngine(base.EngineBase):
             raise exc.InvalidState("Can not prepare an engine"
                                    " which has not been compiled")
         if not self._storage_ensured:
+            # Set our own state to resuming -> (ensure atoms exist
+            # in storage) -> suspended in the storage unit and notify any
+            # attached listeners of these changes.
+            self._change_state(states.RESUMING)
             self._ensure_storage()
+            self._change_state(states.SUSPENDED)
             self._storage_ensured = True
         # At this point we can check to ensure all dependencies are either
         # flow/task provided or storage provided, if there are still missing
