@@ -23,6 +23,7 @@ from taskflow.utils import misc
 from taskflow.engines.action_engine import analyzer as ca
 from taskflow.engines.action_engine import executor as ex
 from taskflow.engines.action_engine import retry_action as ra
+from taskflow.engines.action_engine import runner as ru
 from taskflow.engines.action_engine import task_action as ta
 
 
@@ -49,6 +50,10 @@ class Runtime(object):
     @misc.cachedproperty
     def analyzer(self):
         return ca.Analyzer(self._compilation, self._storage)
+
+    @misc.cachedproperty
+    def runner(self):
+        return ru.Runner(self, self._task_executor)
 
     @misc.cachedproperty
     def completer(self):
