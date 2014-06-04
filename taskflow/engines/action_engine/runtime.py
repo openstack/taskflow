@@ -20,8 +20,8 @@ from taskflow import states as st
 from taskflow import task as task_atom
 from taskflow.utils import misc
 
+from taskflow.engines.action_engine import analyzer as ca
 from taskflow.engines.action_engine import executor as ex
-from taskflow.engines.action_engine import graph_analyzer as ga
 from taskflow.engines.action_engine import retry_action as ra
 from taskflow.engines.action_engine import task_action as ta
 
@@ -47,9 +47,8 @@ class Runtime(object):
         return self._storage
 
     @misc.cachedproperty
-    def graph_analyzer(self):
-        return ga.GraphAnalyzer(self._compilation.execution_graph,
-                                self._storage)
+    def analyzer(self):
+        return ca.Analyzer(self._compilation, self._storage)
 
     @misc.cachedproperty
     def completer(self):
@@ -82,11 +81,11 @@ class Runtime(object):
                 self.storage.set_atom_intention(node.name, intention)
 
     def reset_all(self, state=st.PENDING, intention=st.EXECUTE):
-        self.reset_nodes(self.graph_analyzer.iterate_all_nodes(),
+        self.reset_nodes(self.analyzer.iterate_all_nodes(),
                          state=state, intention=intention)
 
     def reset_subgraph(self, node, state=st.PENDING, intention=st.EXECUTE):
-        self.reset_nodes(self.graph_analyzer.iterate_subgraph(node),
+        self.reset_nodes(self.analyzer.iterate_subgraph(node),
                          state=state, intention=intention)
 
 
@@ -100,7 +99,7 @@ class Completer(object):
     """Completes atoms using actions to complete them."""
 
     def __init__(self, runtime):
-        self._analyzer = runtime.graph_analyzer
+        self._analyzer = runtime.analyzer
         self._retry_action = runtime.retry_action
         self._runtime = runtime
         self._storage = runtime.storage
@@ -183,7 +182,7 @@ class Scheduler(object):
     """Schedules atoms using actions to schedule."""
 
     def __init__(self, runtime):
-        self._analyzer = runtime.graph_analyzer
+        self._analyzer = runtime.analyzer
         self._retry_action = runtime.retry_action
         self._runtime = runtime
         self._storage = runtime.storage

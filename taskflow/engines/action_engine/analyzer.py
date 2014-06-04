@@ -17,19 +17,21 @@
 from networkx.algorithms import traversal
 import six
 
-from taskflow import retry as r
+from taskflow import retry as retry_atom
 from taskflow import states as st
 
 
-class GraphAnalyzer(object):
-    """Analyzes a execution graph to get the next nodes for execution or
-    reversion by utilizing the graphs nodes and edge relations and comparing
-    the node state against the states stored in storage.
+class Analyzer(object):
+    """Analyzes a compilation output to get the next atoms for execution or
+    reversion by utilizing the compilations underlying structures (graphs,
+    nodes and edge relations...) and using this information along with the
+    atom state/states stored in storage to provide useful analysis functions
+    to the rest of the runtime system.
     """
 
-    def __init__(self, graph, storage):
-        self._graph = graph
+    def __init__(self, compilation, storage):
         self._storage = storage
+        self._graph = compilation.execution_graph
 
     def get_next_nodes(self, node=None):
         if node is None:
@@ -129,7 +131,7 @@ class GraphAnalyzer(object):
         retries if state is None.
         """
         for node in self._graph.nodes_iter():
-            if isinstance(node, r.Retry):
+            if isinstance(node, retry_atom.Retry):
                 if not state or self.get_state(node) == state:
                     yield node
 
