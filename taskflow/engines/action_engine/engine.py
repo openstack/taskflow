@@ -71,15 +71,17 @@ class ActionEngine(base.EngineBase):
         self._change_state(states.SUSPENDING)
 
     @property
-    def execution_graph(self):
-        """The graph of nodes to be executed.
+    def compilation(self):
+        """The compilation result.
 
-        NOTE(harlowja): Only accessible after compilation has completed.
+        NOTE(harlowja): Only accessible after compilation has completed (None
+        will be returned when this property is accessed before compilation has
+        completed successfully).
         """
-        g = None
         if self._compiled:
-            g = self._compilation.execution_graph
-        return g
+            return self._compilation
+        else:
+            return None
 
     def run(self):
         with lock_utils.try_lock(self._lock) as was_locked:

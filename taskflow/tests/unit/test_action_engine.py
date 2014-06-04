@@ -509,7 +509,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
 
         engine = self._make_engine(flow)
         engine.compile()
-        graph = engine.execution_graph
+        graph = engine.compilation.execution_graph
         self.assertIsInstance(graph, gr.DiGraph)
 
     def test_task_graph_property_for_one_task(self):
@@ -517,7 +517,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
 
         engine = self._make_engine(flow)
         engine.compile()
-        graph = engine.execution_graph
+        graph = engine.compilation.execution_graph
         self.assertIsInstance(graph, gr.DiGraph)
 
 
