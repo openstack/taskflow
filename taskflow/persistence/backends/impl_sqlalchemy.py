@@ -21,6 +21,7 @@ from __future__ import absolute_import
 
 import contextlib
 import copy
+import functools
 import logging
 import time
 
@@ -121,15 +122,19 @@ def _thread_yield(dbapi_con, con_record):
     time.sleep(0)
 
 
-def _set_mode_traditional(dbapi_con, con_record, connection_proxy):
-    """Set engine mode to 'traditional'.
+def _set_sql_mode(sql_mode, dbapi_con, connection_rec):
+    """Set the sql_mode session variable.
 
-    Required to prevent silent truncates at insert or update operations
-    under MySQL. By default MySQL truncates inserted string if it longer
-    than a declared field just with warning. That is fraught with data
-    corruption.
+    MySQL supports several server modes. The default is None, but sessions
+    may choose to enable server modes like TRADITIONAL, ANSI,
+    several STRICT_* modes and others.
+
+    Note: passing in '' (empty string) for sql_mode clears
+    the SQL mode for the session, overriding a potentially set
+    server default.
     """
-    dbapi_con.cursor().execute("SET SESSION sql_mode = TRADITIONAL;")
+    cursor = dbapi_con.cursor()
+    cursor.execute("SET SESSION sql_mode = %s", [sql_mode])
 
 
 def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
@@ -200,8 +205,14 @@ class SQLAlchemyBackend(base.Backend):
         if 'mysql' in e_url.drivername:
             if misc.as_bool(conf.pop('checkout_ping', True)):
                 sa.event.listen(engine, 'checkout', _ping_listener)
+            mode = None
             if misc.as_bool(conf.pop('mysql_traditional_mode', True)):
-                sa.event.listen(engine, 'checkout', _set_mode_traditional)
+                mode = 'TRADITIONAL'
+            if 'mysql_sql_mode' in conf:
+                mode = conf.pop('mysql_sql_mode')
+            if mode is not None:
+                sa.event.listen(engine, 'connect',
+                                functools.partial(_set_sql_mode, mode))
         return engine
 
     @property
