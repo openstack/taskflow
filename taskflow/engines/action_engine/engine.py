@@ -18,7 +18,6 @@ import threading
 
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
-from taskflow.engines.action_engine import runner
 from taskflow.engines.action_engine import runtime
 from taskflow.engines import base
 
@@ -53,7 +52,6 @@ class ActionEngine(base.EngineBase):
 
     def __init__(self, flow, flow_detail, backend, conf):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
-        self._runner = None
         self._runtime = None
         self._compiled = False
         self._compilation = None
@@ -116,9 +114,10 @@ class ActionEngine(base.EngineBase):
         self.prepare()
         self._task_executor.start()
         state = None
+        runner = self._runtime.runner
         try:
             self._change_state(states.RUNNING)
-            for state in self._runner.run_iter(timeout=timeout):
+            for state in runner.run_iter(timeout=timeout):
                 try:
                     try_suspend = yield state
                 except GeneratorExit:
@@ -130,7 +129,7 @@ class ActionEngine(base.EngineBase):
             with excutils.save_and_reraise_exception():
                 self._change_state(states.FAILURE)
         else:
-            ignorable_states = getattr(self._runner, 'ignorable_states', [])
+            ignorable_states = getattr(runner, 'ignorable_states', [])
             if state and state not in ignorable_states:
                 self._change_state(state)
                 if state != states.SUSPENDED and state != states.SUCCESS:
@@ -214,7 +213,6 @@ class ActionEngine(base.EngineBase):
                                         self.storage,
                                         self.task_notifier,
                                         self._task_executor)
-        self._runner = runner.Runner(self._runtime, self._task_executor)
         self._compiled = True
 
 
