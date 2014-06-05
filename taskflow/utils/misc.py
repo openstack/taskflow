@@ -187,15 +187,18 @@ class cachedproperty(object):
         if inspect.isfunction(fget):
             self._fget = fget
             self._attr_name = "_%s" % (fget.__name__)
+            self.__doc__ = getattr(fget, '__doc__', None)
         else:
             self._attr_name = fget
             self._fget = None
+            self.__doc__ = None
 
     def __call__(self, fget):
         # If __init__ received a string then this will be the function to be
         # wrapped as a property (if __init__ got a function then this will not
         # be called).
         self._fget = fget
+        self.__doc__ = getattr(fget, '__doc__', None)
         return self
 
     def __set__(self, instance, value):
@@ -205,6 +208,8 @@ class cachedproperty(object):
         raise AttributeError("can't delete attribute")
 
     def __get__(self, instance, owner):
+        if instance is None:
+            return self
         try:
             return getattr(instance, self._attr_name)
         except AttributeError:
