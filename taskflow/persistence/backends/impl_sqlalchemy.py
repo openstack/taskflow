@@ -306,8 +306,11 @@ class Connection(base.Connection):
             with session.begin():
                 return functor(session, *args, **kwargs)
         except sa_exc.SQLAlchemyError as e:
-            LOG.exception('Failed running database session')
-            raise exc.StorageFailure("Storage backend internal error", e)
+            LOG.exception("Failed running '%s' within a database session",
+                          functor.__name__)
+            raise exc.StorageFailure("Storage backend internal error, failed"
+                                     " running '%s' within a database"
+                                     " session" % functor.__name__, e)
 
     def _make_session(self):
         try:
