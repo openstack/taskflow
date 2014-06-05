@@ -34,7 +34,7 @@ class RetryAction(object):
 
     def _get_retry_args(self, retry):
         kwargs = self._storage.fetch_mapped_args(retry.rebind,
-                                                 task_name=retry.name)
+                                                 atom_name=retry.name)
         kwargs['history'] = self._storage.get_retry_history(retry.name)
         return kwargs
 

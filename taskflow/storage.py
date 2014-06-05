@@ -411,9 +411,22 @@ class Storage(object):
             if self._reset_atom(ad, state):
                 self._with_connection(self._save_atom_detail, ad)
 
-    def inject_task_args(self, task_name, injected_args):
-        self._injected_args.setdefault(task_name, {})
-        self._injected_args[task_name].update(injected_args)
+    def inject_atom_args(self, atom_name, pairs):
+        """Add *transient* values into storage for a specific atom only.
+
+        This method injects a dictionary/pairs of arguments for an atom so that
+        when that atom is scheduled for execution it will have immediate access
+        to these arguments.
+
+        NOTE(harlowja): injected atom arguments take precedence over arguments
+        provided by predecessor atoms or arguments provided by injecting into
+        the flow scope (using the inject() method).
+        """
+        if atom_name not in self._atom_name_to_uuid:
+            raise exceptions.NotFound("Unknown atom name: %s" % atom_name)
+        with self._lock.write_lock():
+            self._injected_args.setdefault(atom_name, {})
+            self._injected_args[atom_name].update(pairs)
 
     def inject(self, pairs, transient=False):
         """Add values into storage.
@@ -521,12 +534,12 @@ class Storage(object):
                     pass
             return results
 
-    def fetch_mapped_args(self, args_mapping, task_name=None):
+    def fetch_mapped_args(self, args_mapping, atom_name=None):
         """Fetch arguments for an atom using an atoms arguments mapping."""
         with self._lock.read_lock():
             injected_args = {}
-            if task_name:
-                injected_args = self._injected_args.get(task_name, {})
+            if atom_name:
+                injected_args = self._injected_args.get(atom_name, {})
             mapped_args = {}
             for key, name in six.iteritems(args_mapping):
                 if name in injected_args:
