@@ -411,18 +411,6 @@ class ExponentialBackoff(object):
         return "ExponentialBackoff: %s" % ([str(v) for v in self])
 
 
-def as_bool(val):
-    """Converts an arbitrary value into a boolean."""
-    if isinstance(val, bool):
-        return val
-    if isinstance(val, six.string_types):
-        if val.lower() in ('f', 'false', '0', 'n', 'no'):
-            return False
-        if val.lower() in ('t', 'true', '1', 'y', 'yes'):
-            return True
-    return bool(val)
-
-
 def as_int(obj, quiet=False):
     """Converts an arbitrary value into a integer."""
     # Try "2" -> 2
