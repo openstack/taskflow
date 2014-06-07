@@ -110,7 +110,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         tasks = notify['tasks']
 
         # add worker info to the cache
-        self._workers_cache.set(topic, tasks)
+        self._workers_cache[topic] = tasks
 
         # publish waiting requests
         for request in self._requests_cache.get_waiting_requests(tasks):
@@ -137,7 +137,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                     # NOTE(imelnikov): request should not be in cache when
                     # another thread can see its result and schedule another
                     # request with same uuid; so we remove it, then set result
-                    self._requests_cache.delete(request.uuid)
+                    del self._requests_cache[request.uuid]
                     request.set_result(**response.data)
                 else:
                     LOG.warning("Unexpected response status: '%s'",
@@ -175,10 +175,10 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
             # processing thread get list of waiting requests and publish it
             # before it is published here, so it wouldn't be published twice.
             request.set_pending()
-            self._requests_cache.set(request.uuid, request)
+            self._requests_cache[request.uuid] = request
             self._publish_request(request, topic)
         else:
-            self._requests_cache.set(request.uuid, request)
+            self._requests_cache[request.uuid] = request
 
         return request.result
 
@@ -191,9 +191,8 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                                 correlation_id=request.uuid)
         except Exception:
             with misc.capture_failure() as failure:
-                LOG.exception("Failed to submit the '%s' request." %
-                              request)
-                self._requests_cache.delete(request.uuid)
+                LOG.exception("Failed to submit the '%s' request.", request)
+                del self._requests_cache[request.uuid]
                 request.set_result(failure)
 
     def _notify_topics(self):
