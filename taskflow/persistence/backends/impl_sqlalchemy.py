@@ -167,6 +167,14 @@ def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
 
 
 class SQLAlchemyBackend(base.Backend):
+    """A sqlalchemy backend.
+
+    Example conf:
+
+    conf = {
+        "connection": "sqlite:////tmp/test.db",
+    }
+    """
     def __init__(self, conf, engine=None):
         super(SQLAlchemyBackend, self).__init__(conf)
         if engine is not None:
@@ -337,9 +345,13 @@ class Connection(base.Connection):
         failures[-1].reraise()
 
     def _run_in_session(self, functor, *args, **kwargs):
-        """Runs a function in a session and makes sure that sqlalchemy
-        exceptions aren't emitted from that sessions actions (as that would
-        expose the underlying backends exception model).
+        """Runs a callback in a session.
+
+        This function proxy will create a session, and then call the callback
+        with that session (along with the provided args and kwargs). It ensures
+        that the session is opened & closed and makes sure that sqlalchemy
+        exceptions aren't emitted from the callback or sessions actions (as
+        that would expose the underlying sqlalchemy exception model).
         """
         try:
             session = self._make_session()

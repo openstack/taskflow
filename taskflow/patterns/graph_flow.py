@@ -72,9 +72,12 @@ class Flow(flow.Flow):
         return graph
 
     def _swap(self, graph):
-        """Validates the replacement graph and then swaps the underlying graph
-        with a frozen version of the replacement graph (this maintains the
-        invariant that the underlying graph is immutable).
+        """Validates the replacement graph and then swaps the underlying graph.
+
+        After swapping occurs the underlying graph will be frozen so that the
+        immutability invariant is maintained (we may be able to relax this
+        constraint in the future since our exposed public api does not allow
+        direct access to the underlying graph).
         """
         if not graph.is_directed_acyclic():
             raise exc.DependencyFailure("No path through the items in the"

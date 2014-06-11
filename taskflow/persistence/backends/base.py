@@ -70,9 +70,11 @@ class Connection(object):
 
     @abc.abstractmethod
     def validate(self):
-        """Validates that a backend is still ok to be used (the semantics
-        of this vary depending on the backend). On failure a backend specific
-        exception is raised that will indicate why the failure occurred.
+        """Validates that a backend is still ok to be used.
+
+        The semantics of this *may* vary depending on the backend. On failure a
+        backend specific exception should be raised that will indicate why the
+        failure occurred.
         """
         pass
 

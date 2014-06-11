@@ -54,9 +54,7 @@ from taskflow.utils import lock_utils
 
 
 def _get_connect_string(backend, user, passwd, database=None, variant=None):
-    """Try to get a connection with a very specific set of values, if we get
-    these then we'll run the tests, otherwise they are skipped.
-    """
+    """Forms a sqlalchemy database uri string for the given values."""
     if backend == "postgres":
         if not variant:
             variant = 'psycopg2'

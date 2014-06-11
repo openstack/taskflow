@@ -77,9 +77,12 @@ class Storage(object):
 
     @abc.abstractproperty
     def _lock_cls(self):
-        """Lock class used to generate reader/writer locks for protecting
-        read/write access to the underlying storage backend and internally
-        mutating operations.
+        """Lock class used to generate reader/writer locks.
+
+        These locks are used for protecting read/write access to the
+        underlying storage backend when internally mutating operations occur.
+        They ensure that we read and write data in a consistent manner when
+        being used in a multithreaded situation.
         """
 
     def _with_connection(self, functor, *args, **kwargs):
@@ -248,9 +251,12 @@ class Storage(object):
                 self._with_connection(self._save_atom_detail, ad)
 
     def update_atom_metadata(self, atom_name, update_with):
-        """Updates a atoms metadata given another dictionary or a list of
-        (key, value) pairs to include in the updated metadata (newer keys will
-        overwrite older keys).
+        """Updates a atoms associated metadata.
+
+        This update will take a provided dictionary or a list of (key, value)
+        pairs to include in the updated metadata (newer keys will overwrite
+        older keys) and after merging saves the updated data into the
+        underlying persistence layer.
         """
         self._update_atom_metadata(atom_name, update_with)
 

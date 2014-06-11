@@ -64,14 +64,20 @@ def _fix_meta(data):
 
 
 class LogBook(object):
-    """This class that contains a dict of flow detail entries for a
-    given *job* so that the job can track what 'work' has been
-    completed for resumption/reverting and miscellaneous tracking
+    """A container of flow details, a name and associated metadata.
+
+    Typically this class contains a collection of flow detail entries
+    for a given engine (or job) so that those entities can track what 'work'
+    has been completed for resumption, reverting and miscellaneous tracking
     purposes.
 
     The data contained within this class need *not* be backed by the backend
     storage in real time. The data in this class will only be guaranteed to be
     persisted when a save occurs via some backend connection.
+
+    NOTE(harlowja): the naming of this class is analogous to a ships log or a
+    similar type of record used in detailing work that been completed (or work
+    that has not been completed).
     """
     def __init__(self, name, uuid=None):
         if uuid:
@@ -159,8 +165,11 @@ class LogBook(object):
 
 
 class FlowDetail(object):
-    """This class contains a dict of atom detail entries for a given
-    flow along with any metadata associated with that flow.
+    """A container of atom details, a name and associated metadata.
+
+    Typically this class contains a collection of atom detail entries that
+    represent the atoms in a given flow structure (along with any other needed
+    metadata relevant to that flow).
 
     The data contained within this class need *not* be backed by the backend
     storage in real time. The data in this class will only be guaranteed to be
@@ -241,13 +250,15 @@ class FlowDetail(object):
 
 @six.add_metaclass(abc.ABCMeta)
 class AtomDetail(object):
-    """This is a base class that contains an entry that contains the
-    persistence of an atom after or before (or during) it is running including
-    any results it may have produced, any state that it may be in (failed
-    for example), any exception that occurred when running and any associated
-    stacktrace that may have occurring during that exception being thrown
-    and any other metadata that should be stored along-side the details
-    about this atom.
+    """A base container of atom specific runtime information and metadata.
+
+    This is a base class that contains attributes that are used to connect
+    a atom to the persistence layer during, after, or before it is running
+    including any results it may have produced, any state that it may be
+    in (failed for example), any exception that occurred when running and any
+    associated stacktrace that may have occurring during that exception being
+    thrown and any other metadata that should be stored along-side the details
+    about the connected atom.
 
     The data contained within this class need *not* backed by the backend
     storage in real time. The data in this class will only be guaranteed to be
@@ -276,8 +287,11 @@ class AtomDetail(object):
 
     @property
     def last_results(self):
-        """Gets the atoms last result (if it has many results it should then
-        return the last one of many).
+        """Gets the atoms last result.
+
+        If the atom has produced many results (for example if it has been
+        retried, reverted, executed and ...) this returns the last one of
+        many results.
         """
         return self.results
 

@@ -34,9 +34,16 @@ MIN_ZK_VERSION = (3, 4, 0)
 
 
 class ZkBackend(base.Backend):
-    """ZooKeeper as backend storage implementation
+    """A zookeeper backend.
 
-    Example conf (use Kazoo):
+    This backend writes logbooks, flow details, and atom details to a provided
+    base path in zookeeper. It will create and store those objects in three
+    key directories (one for logbooks, one for flow details and one for atom
+    details). It creates those associated directories and then creates files
+    inside those directories that represent the contents of those objects for
+    later reading and writing.
+
+    Example conf:
 
     conf = {
         "hosts": "192.168.0.1:2181,192.168.0.2:2181,192.168.0.3:2181",
@@ -126,8 +133,11 @@ class ZkConnection(base.Connection):
 
     @contextlib.contextmanager
     def _exc_wrapper(self):
-        """Exception wrapper which wraps kazoo exceptions and groups them
-        to taskflow exceptions.
+        """Exception context-manager which wraps kazoo exceptions.
+
+        This is used to capture and wrap any kazoo specific exceptions and
+        then group them into corresponding taskflow exceptions (not doing
+        that would expose the underlying kazoo exception model).
         """
         try:
             yield

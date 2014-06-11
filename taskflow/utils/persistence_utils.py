@@ -39,11 +39,10 @@ def temporary_log_book(backend=None):
 
 
 def temporary_flow_detail(backend=None):
-    """Creates a temporary flow detail and logbook for temporary usage in
-    the given backend.
+    """Creates a temporary flow detail and logbook in the given backend.
 
     Mainly useful for tests and other use cases where a temporary flow detail
-    is needed for a short-period of time.
+    and a temporary logbook is needed for a short-period of time.
     """
     flow_id = uuidutils.generate_uuid()
     book = temporary_log_book(backend)
@@ -57,9 +56,18 @@ def temporary_flow_detail(backend=None):
 
 
 def create_flow_detail(flow, book=None, backend=None, meta=None):
-    """Creates a flow detail for the given flow and adds it to the provided
-    logbook (if provided) and then uses the given backend (if provided) to
-    save the logbook then returns the created flow detail.
+    """Creates a flow detail for a flow & adds & saves it in a logbook.
+
+    This will create a flow detail for the given flow using the flow name,
+    and add it to the provided logbook and then uses the given backend to save
+    the logbook and then returns the created flow detail.
+
+    If no book is provided a temporary one will be created automatically (no
+    reference to the logbook will be returned, so this should nearly *always*
+    be provided or only used in situations where no logbook is needed, for
+    example in tests). If no backend is provided then no saving will occur and
+    the created flow detail will not be persisted even if the flow detail was
+    added to a given (or temporarily generated) logbook.
     """
     flow_id = uuidutils.generate_uuid()
     flow_name = getattr(flow, 'name', None)

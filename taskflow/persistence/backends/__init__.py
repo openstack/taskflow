@@ -30,8 +30,25 @@ LOG = logging.getLogger(__name__)
 
 
 def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
-    """Fetches a given backend using the given configuration (and any backend
-    specific kwargs) in the given entrypoint namespace.
+    """Fetch a persistence backend with the given configuration.
+
+    This fetch method will look for the entrypoint name in the entrypoint
+    namespace, and then attempt to instantiate that entrypoint using the
+    provided configuration and any persistence backend specific kwargs.
+
+    NOTE(harlowja): to aid in making it easy to specify configuration and
+    options to a backend the configuration (which is typical just a dictionary)
+    can also be a uri string that identifies the entrypoint name and any
+    configuration specific to that backend.
+
+    For example, given the following configuration uri:
+
+    mysql://<not-used>/?a=b&c=d
+
+    This will look for the entrypoint named 'mysql' and will provide
+    a configuration object composed of the uris parameters, in this case that
+    is {'a': 'b', 'c': 'd'} to the constructor of that persistence backend
+    instance.
     """
     backend_name = conf['connection']
     try:
@@ -54,8 +71,12 @@ def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
 
 @contextlib.contextmanager
 def backend(conf, namespace=BACKEND_NAMESPACE, **kwargs):
-    """Fetches a persistence backend, ensures that it is upgraded and upon
-    context manager completion closes the backend.
+    """Fetches a backend, connects, upgrades, then closes it on completion.
+
+    This allows a backend instance to be fetched, connected to, have its schema
+    upgraded (if the schema is already up to date this is a no-op) and then
+    used in a context manager statement with the backend being closed upon
+    context manager exit.
     """
     with contextlib.closing(fetch(conf, namespace=namespace, **kwargs)) as be:
         with contextlib.closing(be.get_connection()) as conn:

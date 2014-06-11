@@ -22,11 +22,13 @@ from taskflow import states as st
 
 
 class Analyzer(object):
-    """Analyzes a compilation output to get the next atoms for execution or
-    reversion by utilizing the compilations underlying structures (graphs,
-    nodes and edge relations...) and using this information along with the
-    atom state/states stored in storage to provide useful analysis functions
-    to the rest of the runtime system.
+    """Analyzes a compilation and aids in execution processes.
+
+    Its primary purpose is to get the next atoms for execution or reversion
+    by utilizing the compilations underlying structures (graphs, nodes and
+    edge relations...) and using this information along with the atom
+    state/states stored in storage to provide other useful functionality to
+    the rest of the runtime system.
     """
 
     def __init__(self, compilation, storage):
@@ -56,8 +58,11 @@ class Analyzer(object):
             return []
 
     def browse_nodes_for_execute(self, node=None):
-        """Browse next nodes to execute for given node if specified and
-        for whole graph otherwise.
+        """Browse next nodes to execute.
+
+        This returns a collection of nodes that are ready to be executed, if
+        given a specific node it will only examine the successors of that node,
+        otherwise it will examine the whole graph.
         """
         if node:
             nodes = self._graph.successors(node)
@@ -71,8 +76,11 @@ class Analyzer(object):
         return available_nodes
 
     def browse_nodes_for_revert(self, node=None):
-        """Browse next nodes to revert for given node if specified and
-        for whole graph otherwise.
+        """Browse next nodes to revert.
+
+        This returns a collection of nodes that are ready to be be reverted, if
+        given a specific node it will only examine the predecessors of that
+        node, otherwise it will examine the whole graph.
         """
         if node:
             nodes = self._graph.predecessors(node)
@@ -87,7 +95,6 @@ class Analyzer(object):
 
     def _is_ready_for_execute(self, task):
         """Checks if task is ready to be executed."""
-
         state = self.get_state(task)
         intention = self._storage.get_atom_intention(task.name)
         transition = st.check_task_transition(state, st.RUNNING)
@@ -104,7 +111,6 @@ class Analyzer(object):
 
     def _is_ready_for_revert(self, task):
         """Checks if task is ready to be reverted."""
-
         state = self.get_state(task)
         intention = self._storage.get_atom_intention(task.name)
         transition = st.check_task_transition(state, st.REVERTING)
@@ -120,15 +126,14 @@ class Analyzer(object):
                    for state, intention in six.itervalues(task_states))
 
     def iterate_subgraph(self, retry):
-        """Iterates a subgraph connected to current retry controller, including
-        nested retry controllers and its nodes.
-        """
+        """Iterates a subgraph connected to given retry controller."""
         for _src, dst in traversal.dfs_edges(self._graph, retry):
             yield dst
 
     def iterate_retries(self, state=None):
-        """Iterates retry controllers of a graph with given state or all
-        retries if state is None.
+        """Iterates retry controllers that match the provided state.
+
+        If no state is provided it will yield back all retry controllers.
         """
         for node in self._graph.nodes_iter():
             if isinstance(node, retry_atom.Retry):

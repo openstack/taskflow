@@ -53,7 +53,7 @@ SCHEDULING = 'SCHEDULING'
 WAITING = 'WAITING'
 ANALYZING = 'ANALYZING'
 
-## Flow state transitions
+# Flow state transitions
 # See: http://docs.openstack.org/developer/taskflow/states.html
 
 _ALLOWED_FLOW_TRANSITIONS = frozenset((
@@ -124,7 +124,7 @@ def check_flow_transition(old_state, new_state):
                            % pair)
 
 
-## Task state transitions
+# Task state transitions
 # See: http://docs.openstack.org/developer/taskflow/states.html
 
 _ALLOWED_TASK_TRANSITIONS = frozenset((

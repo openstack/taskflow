@@ -31,8 +31,7 @@ class DiGraph(nx.DiGraph):
         return self
 
     def get_edge_data(self, u, v, default=None):
-        """Returns a *copy* of the attribute dictionary associated with edges
-        between (u, v).
+        """Returns a *copy* of the edge attribute dictionary between (u, v).
 
         NOTE(harlowja): this differs from the networkx get_edge_data() as that
         function does not return a copy (but returns a reference to the actual
@@ -48,7 +47,9 @@ class DiGraph(nx.DiGraph):
         return nx.topological_sort(self)
 
     def pformat(self):
-        """Pretty formats your graph into a string representation that includes
+        """Pretty formats your graph into a string.
+
+        This pretty formatted string representation includes many useful
         details about your graph, including; name, type, frozeness, node count,
         nodes, edge count, edges, graph density and graph cycles (if any).
         """

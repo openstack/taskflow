@@ -1,4 +1,4 @@
-hacking>=0.8.0,<0.9
+hacking>=0.9.1,<0.10
 discover
 coverage>=3.6
 mock>=1.0

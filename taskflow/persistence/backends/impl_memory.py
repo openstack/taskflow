@@ -15,8 +15,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Implementation of in-memory backend."""
-
 import logging
 
 import six
@@ -29,8 +27,10 @@ LOG = logging.getLogger(__name__)
 
 
 class MemoryBackend(base.Backend):
-    """A backend that writes logbooks, flow details, and task details to in
-    memory dictionaries.
+    """A in-memory (non-persistent) backend.
+
+    This backend writes logbooks, flow details, and atom details to in-memory
+    dictionaries and retrieves from those dictionaries as needed.
     """
     def __init__(self, conf=None):
         super(MemoryBackend, self).__init__(conf)

@@ -24,7 +24,9 @@ from taskflow.utils import lock_utils
 
 @six.add_metaclass(abc.ABCMeta)
 class Conductor(object):
-    """Conductors act as entities which extract jobs from a jobboard, assign
+    """Conductors conduct jobs & assist in associated runtime interactions.
+
+    Conductors act as entities which extract jobs from a jobboard, assign
     there work to some engine (using some desired configuration) and then wait
     for that work to complete. If the work fails then they abandon the claimed
     work (or if the process they are running in crashes or dies this
@@ -99,13 +101,13 @@ class Conductor(object):
 
     @abc.abstractmethod
     def run(self):
-        """Continuously claims, runs, and consumes jobs, and waits for more
-        jobs when there are none left on the jobboard.
-        """
+        """Continuously claims, runs, and consumes jobs (and repeat)."""
 
     @abc.abstractmethod
     def _dispatch_job(self, job):
-        """Accepts a single (already claimed) job and causes it to be run in
+        """Dispatches a claimed job for work completion.
+
+        Accepts a single (already claimed) job and causes it to be run in
         an engine. Returns a boolean that signifies whether the job should
         be consumed. The job is consumed upon completion (unless False is
         returned which will signify the job should be abandoned instead).

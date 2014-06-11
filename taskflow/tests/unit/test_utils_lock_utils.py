@@ -29,7 +29,7 @@ from taskflow.utils import lock_utils
 NAPPY_TIME = 0.05
 
 # We will spend this amount of time doing some "fake" work.
-WORK_TIMES = [(0.01 + x/100.0) for x in range(0, 5)]
+WORK_TIMES = [(0.01 + x / 100.0) for x in range(0, 5)]
 
 
 def _find_overlaps(times, start, end):

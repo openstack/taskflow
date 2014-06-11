@@ -84,9 +84,7 @@ class ExecutionFailure(TaskFlowException):
 
 
 class RequestTimeout(ExecutionFailure):
-    """Raised when a worker request was not finished within an allotted
-    timeout.
-    """
+    """Raised when a worker request was not finished within allotted time."""
 
 
 class InvalidState(ExecutionFailure):
