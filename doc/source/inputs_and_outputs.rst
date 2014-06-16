@@ -145,7 +145,7 @@ Outputs
 As you can see from examples above, the run method returns all flow outputs in
 a ``dict``. This same data can be fetched via
 :py:meth:`~taskflow.storage.Storage.fetch_all` method of the storage. You can
-also get single results using :py:meth:`~taskflow.storage.Storage.fetch_all`.
+also get single results using :py:meth:`~taskflow.storage.Storage.fetch`.
 For example:
 
 .. doctest::
