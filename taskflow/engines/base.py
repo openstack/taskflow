@@ -54,9 +54,12 @@ class EngineBase(object):
 
     @abc.abstractmethod
     def compile(self):
-        """Compiles the contained flow into a structure which the engine can
-        use to run or if this can not be done then an exception is thrown
-        indicating why this compilation could not be achieved.
+        """Compiles the contained flow into a internal representation.
+
+        This internal representation is what the engine will *actually* use to
+        run. If this compilation can not be accomplished then an exception
+        is expected to be thrown with a message indicating why the compilation
+        could not be achieved.
         """
 
     @abc.abstractmethod

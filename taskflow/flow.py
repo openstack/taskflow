@@ -55,8 +55,11 @@ class Flow(object):
 
     @property
     def retry(self):
-        """A retry object that will affect control how (and if) this flow
-        retries while execution is underway.
+        """The associated flow retry controller.
+
+        This retry controller object will affect & control how (and if) this
+        flow and its contained components retry when execution is underway and
+        a failure occurs.
         """
         return self._retry
 

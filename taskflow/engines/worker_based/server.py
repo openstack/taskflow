@@ -77,9 +77,10 @@ class Server(object):
     @staticmethod
     def _parse_request(task_cls, task_name, action, arguments, result=None,
                        failures=None, **kwargs):
-        """Parse request before it can be processed. All `misc.Failure` objects
-        that have been converted to dict on the remote side to be serializable
-        are now converted back to objects.
+        """Parse request before it can be further processed.
+
+        All `misc.Failure` objects that have been converted to dict on the
+        remote side will now converted back to `misc.Failure` objects.
         """
         action_args = dict(arguments=arguments, task_name=task_name)
         if result is not None:
@@ -96,9 +97,10 @@ class Server(object):
 
     @staticmethod
     def _parse_message(message):
-        """Parse broker message to get the `reply_to` and the `correlation_id`
-        properties. If required properties are missing - the `ValueError` is
-        raised.
+        """Extracts required attributes out of the messages properties.
+
+        This extracts the `reply_to` and the `correlation_id` properties. If
+        any of these required properties are missing a `ValueError` is raised.
         """
         properties = []
         for prop in ('reply_to', 'correlation_id'):

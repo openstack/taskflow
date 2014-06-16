@@ -24,10 +24,15 @@ from taskflow.utils import misc
 
 @six.add_metaclass(abc.ABCMeta)
 class JobBoard(object):
-    """A jobboard is an abstract representation of a place where jobs
-    can be posted, reposted, claimed and transferred. There can be multiple
-    implementations of this job board, depending on the desired semantics and
-    capabilities of the underlying jobboard implementation.
+    """A place where jobs can be posted, reposted, claimed and transferred.
+
+    There can be multiple implementations of this job board, depending on the
+    desired semantics and capabilities of the underlying jobboard
+    implementation.
+
+    NOTE(harlowja): the name is meant to be an analogous to a board/posting
+    system that is used in newspapers, or elsewhere to solicit jobs that
+    people can interview and apply for (and then work on & complete).
     """
 
     def __init__(self, name, conf):
@@ -36,8 +41,7 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
-        """Returns an iterator that will provide back jobs that are currently
-        on this jobboard.
+        """Returns an iterator of jobs that are currently on this board.
 
         NOTE(harlowja): the ordering of this iteration should be by posting
         order (oldest to newest) if possible, but it is left up to the backing
@@ -60,9 +64,10 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def wait(self, timeout=None):
-        """Waits a given amount of time for job/s to be posted, when jobs are
-        found then an iterator will be returned that contains the jobs at
-        the given point in time.
+        """Waits a given amount of time for jobs to be posted.
+
+        When jobs are found then an iterator will be returned that can be used
+        to iterate over those jobs.
 
         NOTE(harlowja): since a jobboard can be mutated on by multiple external
         entities at the *same* time the iterator that can be returned *may*
@@ -75,8 +80,11 @@ class JobBoard(object):
 
     @abc.abstractproperty
     def job_count(self):
-        """Returns how many jobs are on this jobboard (this count may change as
-        new jobs appear or are removed).
+        """Returns how many jobs are on this jobboard.
+
+        NOTE(harlowja): this count may change as jobs appear or are removed so
+        the accuracy of this count should not be used in a way that requires
+        it to be exact & absolute.
         """
 
     @abc.abstractmethod
@@ -90,11 +98,13 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def consume(self, job, who):
-        """Permanently (and atomically) removes a job from the jobboard,
-        signaling that this job has been completed by the entity assigned
-        to that job.
+        """Permanently (and atomically) removes a job from the jobboard.
 
-        Only the entity that has claimed that job is able to consume a job.
+        Consumption signals to the board (and any others examining the board)
+        that this job has been completed by the entity that previously claimed
+        that job.
+
+        Only the entity that has claimed that job is able to consume the job.
 
         A job that has been consumed can not be reclaimed or reposted by
         another entity (job postings are immutable). Any entity consuming
@@ -109,11 +119,13 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def post(self, name, book, details=None):
-        """Atomically creates and posts a job to the jobboard, allowing others
-        to attempt to claim that job (and subsequently work on that job). The
-        contents of the provided logbook must provide enough information for
-        others to reference to construct & work on the desired entries that
-        are contained in that logbook.
+        """Atomically creates and posts a job to the jobboard.
+
+        This posting allowing others to attempt to claim that job (and
+        subsequently work on that job). The contents of the provided logbook
+        must provide *enough* information for others to reference to
+        construct & work on the desired entries that are contained in that
+        logbook.
 
         Once a job has been posted it can only be removed by consuming that
         job (after that job is claimed). Any entity can post/propose jobs
@@ -124,13 +136,14 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def claim(self, job, who):
-        """Atomically attempts to claim the given job for the entity and either
-        succeeds or fails at claiming by throwing corresponding exceptions.
+        """Atomically attempts to claim the provided job.
 
         If a job is claimed it is expected that the entity that claims that job
-        will at sometime in the future work on that jobs flows and either fail
-        at completing them (resulting in a reposting) or consume that job from
-        the jobboard (signaling its completion).
+        will at sometime in the future work on that jobs contents and either
+        fail at completing them (resulting in a reposting) or consume that job
+        from the jobboard (signaling its completion). If claiming fails then
+        a corresponding exception will be raised to signal this to the claim
+        attempter.
 
         :param job: a job on this jobboard that can be claimed (if it does
             not exist then a NotFound exception will be raised).
@@ -139,10 +152,12 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def abandon(self, job, who):
-        """Atomically abandons the given job on the jobboard, allowing that job
-        to be reclaimed by others. This would typically occur if the entity
-        that has claimed the job has failed or is unable to complete the job
-        or jobs it has claimed.
+        """Atomically attempts to abandon the provided job.
+
+        This abandonment signals to others that the job may now be reclaimed.
+        This would typically occur if the entity that has claimed the job has
+        failed or is unable to complete the job or jobs it had previously
+        claimed.
 
         Only the entity that has claimed that job can abandon a job. Any entity
         abandoning a unclaimed job (or a job they do not own) will cause an
@@ -177,13 +192,14 @@ REMOVAL = 'REMOVAL'  # existing job is/has been removed
 
 
 class NotifyingJobBoard(JobBoard):
-    """A jobboard subclass that can notify about jobs being created
-    and removed, which can remove the repeated usage of iterjobs() to achieve
-    the same operation.
+    """A jobboard subclass that can notify others about board events.
+
+    Implementers are expected to notify *at least* about jobs being posted
+    and removed.
 
     NOTE(harlowja): notifications that are emitted *may* be emitted on a
     separate dedicated thread when they occur, so ensure that all callbacks
-    registered are thread safe.
+    registered are thread safe (and block for as little time as possible).
     """
     def __init__(self, name, conf):
         super(NotifyingJobBoard, self).__init__(name, conf)

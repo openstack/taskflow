@@ -33,10 +33,24 @@ LOG = logging.getLogger(__name__)
 
 
 class DirBackend(base.Backend):
-    """A backend that writes logbooks, flow details, and task details to a
-    provided directory. This backend does *not* provide transactional semantics
-    although it does guarantee that there will be no race conditions when
-    writing/reading by using file level locking.
+    """A directory and file based backend.
+
+    This backend writes logbooks, flow details, and atom details to a provided
+    base path on the local filesystem. It will create and store those objects
+    in three key directories (one for logbooks, one for flow details and one
+    for atom details). It creates those associated directories and then
+    creates files inside those directories that represent the contents of those
+    objects for later reading and writing.
+
+    This backend does *not* provide true transactional semantics. It does
+    guarantee that there will be no interprocess race conditions when
+    writing and reading by using a consistent hierarchy of file based locks.
+
+    Example conf:
+
+    conf = {
+        "path": "/tmp/taskflow",
+    }
     """
     def __init__(self, conf):
         super(DirBackend, self).__init__(conf)

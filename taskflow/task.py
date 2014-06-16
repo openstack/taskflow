@@ -30,8 +30,12 @@ LOG = logging.getLogger(__name__)
 
 @six.add_metaclass(abc.ABCMeta)
 class BaseTask(atom.Atom):
-    """An abstraction that defines a potential piece of work that can be
-    applied and can be reverted to undo the work as a single task.
+    """An abstraction that defines a potential piece of work.
+
+    This potential piece of work is expected to be able to contain
+    functionality that defines what can be executed to accomplish that work
+    as well as a way of defining what can be executed to reverted/undo that
+    same piece of work.
     """
 
     TASK_EVENTS = ('update_progress', )
@@ -101,8 +105,12 @@ class BaseTask(atom.Atom):
 
     @contextlib.contextmanager
     def autobind(self, event_name, handler_func, **kwargs):
-        """Binds a given function to the task for a given event name and then
-        unbinds that event name and associated function automatically on exit.
+        """Binds & unbinds a given event handler to the task.
+
+        This function binds and unbinds using the context manager protocol.
+        When events are triggered on the task of the given event name this
+        handler will automatically be called with the provided keyword
+        arguments.
         """
         bound = False
         if handler_func is not None:
@@ -135,10 +143,11 @@ class BaseTask(atom.Atom):
         self._events_listeners[event].append((handler, kwargs))
 
     def unbind(self, event, handler=None):
-        """Remove a previously-attached event handler from the task. If handler
-        function not passed, then unbind all event handlers for the provided
-        event. If multiple of the same handlers are bound, then the first
-        match is removed (and only the first match).
+        """Remove a previously-attached event handler from the task.
+
+        If a handler function not passed, then this will unbind all event
+        handlers for the provided event. If multiple of the same handlers are
+        bound, then the first match is removed (and only the first match).
 
         :param event: event type
         :param handler: handler previously bound

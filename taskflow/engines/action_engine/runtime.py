@@ -28,9 +28,11 @@ from taskflow.engines.action_engine import task_action as ta
 
 
 class Runtime(object):
-    """An object that contains various utility methods and properties that
-    represent the collection of runtime components and functionality needed
-    for an action engine to run to completion.
+    """A aggregate of runtime objects, properties, ... used during execution.
+
+    This object contains various utility methods and properties that represent
+    the collection of runtime components and functionality needed for an
+    action engine to run to completion.
     """
 
     def __init__(self, compilation, storage, task_notifier, task_executor):
@@ -155,8 +157,13 @@ class Completer(object):
         return False
 
     def _process_atom_failure(self, atom, failure):
-        """On atom failure find its retry controller, ask for the action to
-        perform with failed subflow and set proper intention for subflow nodes.
+        """Processes atom failure & applies resolution strategies.
+
+        On atom failure this will find the atoms associated retry controller
+        and ask that controller for the strategy to perform to resolve that
+        failure. After getting a resolution strategy decision this method will
+        then adjust the needed other atoms intentions, and states, ... so that
+        the failure can be worked around.
         """
         retry = self._analyzer.find_atom_retry(atom)
         if retry:
@@ -195,6 +202,9 @@ class Scheduler(object):
 
     def _schedule_node(self, node):
         """Schedule a single node for execution."""
+        # TODO(harlowja): we need to rework this so that we aren't doing type
+        # checking here, type checking usually means something isn't done right
+        # and usually will limit extensibility in the future.
         if isinstance(node, task_atom.BaseTask):
             return self._schedule_task(node)
         elif isinstance(node, retry_atom.Retry):
@@ -204,8 +214,10 @@ class Scheduler(object):
                             % (node, type(node)))
 
     def _schedule_retry(self, retry):
-        """Schedules the given retry for revert or execute depending
-        on its intention.
+        """Schedules the given retry atom for *future* completion.
+
+        Depending on the atoms stored intention this may schedule the retry
+        atom for reversion or execution.
         """
         intention = self._storage.get_atom_intention(retry.name)
         if intention == st.EXECUTE:
@@ -221,8 +233,10 @@ class Scheduler(object):
                                         " intention: %s" % intention)
 
     def _schedule_task(self, task):
-        """Schedules the given task for revert or execute depending
-        on its intention.
+        """Schedules the given task atom for *future* completion.
+
+        Depending on the atoms stored intention this may schedule the task
+        atom for reversion or execution.
         """
         intention = self._storage.get_atom_intention(task.name)
         if intention == st.EXECUTE:

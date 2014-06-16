@@ -46,8 +46,12 @@ def finalize_client(client):
 
 
 def check_compatible(client, min_version=None, max_version=None):
-    """Checks if a kazoo client is backed by a zookeeper server version
-    that satisfies a given min (inclusive) and max (inclusive) version range.
+    """Checks if a kazoo client is backed by a zookeeper server version.
+
+    This check will verify that the zookeeper server version that the client
+    is connected to satisfies a given minimum version (inclusive) and
+    maximum (inclusive) version range. If the server is not in the provided
+    version range then a exception is raised indiciating this.
     """
     server_version = None
     if min_version:

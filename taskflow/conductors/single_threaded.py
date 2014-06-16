@@ -67,10 +67,13 @@ class SingleThreadedConductor(base.Conductor):
 
     @lock_utils.locked
     def stop(self, timeout=None):
-        """Requests the conductor to stop dispatching and returns whether the
-        stop request was successfully completed. If the dispatching is still
-        occurring then False is returned otherwise True will be returned to
-        signal that the conductor is no longer dispatching job requests.
+        """Requests the conductor to stop dispatching.
+
+        This method can be used to request that a conductor stop its
+        consumption & dispatching loop. It returns whether the stop request
+        was successfully completed. If the dispatching is still occurring
+        then False is returned otherwise True will be returned to signal that
+        the conductor is no longer consuming & dispatching job requests.
 
         NOTE(harlowja): If a timeout is provided the dispatcher loop may
         not have ceased by the timeout reached (the request to cease will

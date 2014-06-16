@@ -34,8 +34,7 @@ RETRY = "RETRY"
 
 @six.add_metaclass(abc.ABCMeta)
 class Decider(object):
-    """A base class or mixin for an object that can decide how to resolve
-    execution failures.
+    """A class/mixin object that can decide how to resolve execution failures.
 
     A decider may be executed multiple times on subflow or other atom
     failure and it is expected to make a decision about what should be done
@@ -45,10 +44,11 @@ class Decider(object):
 
     @abc.abstractmethod
     def on_failure(self, history, *args, **kwargs):
-        """On subflow failure makes a decision about the future flow
-        execution using information about prior previous failures (if this
-        historical failure information is not available or was not persisted
-        this history will be empty).
+        """On failure makes a decision about the future.
+
+        This method will typically use information about prior failures (if
+        this historical failure information is not available or was not
+        persisted this history will be empty).
 
         Returns retry action constant:
 
@@ -63,9 +63,13 @@ class Decider(object):
 
 @six.add_metaclass(abc.ABCMeta)
 class Retry(atom.Atom, Decider):
-    """A base class for a retry object that decides how to resolve subflow
-    execution failures and may also provide execute and revert methods to alter
-    the inputs of subflow atoms.
+    """A class that can decide how to resolve execution failures.
+
+    This abstract base class is used to inherit from and provide different
+    strategies that will be activated upon execution failures. Since a retry
+    object is an atom it may also provide execute and revert methods to alter
+    the inputs of connected atoms (depending on the desired strategy to be
+    used this can be quite useful).
     """
 
     default_provides = None
@@ -88,22 +92,32 @@ class Retry(atom.Atom, Decider):
 
     @abc.abstractmethod
     def execute(self, history, *args, **kwargs):
-        """Activate a given retry which will produce data required to
-           start or restart a subflow using previously provided values and a
-           history of subflow failures from previous runs.
-           Retry can provide same values multiple times (after each run),
-           the latest value will be used by tasks. Old values will be saved to
-           the history of retry that is a list of tuples (result, failures)
-           where failures is a dictionary of failures by task names.
-           This allows to make retries of subflow with different parameters.
+        """Executes the given retry atom.
+
+        This execution activates a given retry which will typically produce
+        data required to start or restart a connected component using
+        previously provided values and a history of prior failures from
+        previous runs. The historical data can be analyzed to alter the
+        resolution strategy that this retry controller will use.
+
+        For example, a retry can provide the same values multiple times (after
+        each run), the latest value or some other variation. Old values will be
+        saved to the history of the retry atom automatically, that is a list of
+        tuples (result, failures) are persisted where failures is a dictionary
+        of failures indexed by task names and the result is the execution
+        result returned by this retry controller during that failure resolution
+        attempt.
         """
 
     def revert(self, history, *args, **kwargs):
-        """Revert this retry using the given context, all results
-           that had been provided by previous tries and all errors caused
-           a reversion. This method will be called only if a subflow must be
-           reverted without the retry. It won't be called on subflow retry, but
-           all subflow's tasks will be reverted before the retry.
+        """Reverts this retry using the given context.
+
+        On revert call all results that had been provided by previous tries
+        and all errors caused during reversion are provided. This method
+        will be called *only* if a subflow must be reverted without the
+        retry (that is to say that the controller has ran out of resolution
+        options and has either given up resolution or has failed to handle
+        a execution failure).
         """
 
 
@@ -146,9 +160,12 @@ class Times(Retry):
 
 
 class ForEachBase(Retry):
-    """Base class for retries that iterate given collection."""
+    """Base class for retries that iterate over a given collection."""
 
     def _get_next_value(self, values, history):
+        # Fetches the next resolution result to try, removes overlapping
+        # entries with what has already been tried and then returns the first
+        # resolution strategy remaining.
         items = (item for item, _failures in history)
         remaining = misc.sequence_minus(values, items)
         if not remaining:
@@ -166,8 +183,10 @@ class ForEachBase(Retry):
 
 
 class ForEach(ForEachBase):
-    """Accepts a collection of values to the constructor. Returns the next
-    element of the collection on each try.
+    """Applies a statically provided collection of strategies.
+
+    Accepts a collection of decision strategies on construction and returns the
+    next element of the collection on each try.
     """
 
     def __init__(self, values, name=None, provides=None, requires=None,
@@ -180,12 +199,17 @@ class ForEach(ForEachBase):
         return self._on_failure(self._values, history)
 
     def execute(self, history, *args, **kwargs):
+        # NOTE(harlowja): This allows any connected components to know the
+        # current resolution strategy being attempted.
         return self._get_next_value(self._values, history)
 
 
 class ParameterizedForEach(ForEachBase):
-    """Accepts a collection of values from storage as a parameter of execute
-     method. Returns the next element of the collection on each try.
+    """Applies a dynamically provided collection of strategies.
+
+    Accepts a collection of decision strategies from a predecessor (or from
+    storage) as a parameter and returns the next element of that collection on
+    each try.
     """
 
     def on_failure(self, values, history, *args, **kwargs):

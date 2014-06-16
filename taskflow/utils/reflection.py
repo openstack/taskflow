@@ -31,8 +31,11 @@ def _get_members(obj, exclude_hidden):
 
 
 def find_subclasses(locations, base_cls, exclude_hidden=True):
-    """Examines the given locations for types which are subclasses of the base
-    class type provided and returns the found subclasses.
+    """Finds subclass types in the given locations.
+
+    This will examines the given locations for types which are subclasses of
+    the base class type provided and returns the found subclasses (or fails
+    with exceptions if this introspection can not be accomplished).
 
     If a string is provided as one of the locations it will be imported and
     examined if it is a subclass of the base class. If a module is given,

@@ -42,8 +42,7 @@ class Compilation(object):
 
 
 class PatternCompiler(object):
-    """Compiles patterns & atoms (potentially nested) into an compilation
-    unit with a *logically* equivalent directed acyclic graph representation.
+    """Compiles patterns & atoms into a compilation unit.
 
     NOTE(harlowja): during this pattern translation process any nested flows
     will be converted into there equivalent subgraphs. This currently implies
@@ -51,8 +50,8 @@ class PatternCompiler(object):
     be associated with there previously containing flow but instead will lose
     this identity and what will remain is the logical constraints that there
     contained flow mandated. In the future this may be changed so that this
-    association is not lost via the compilation process (since it is sometime
-    useful to retain part of this relationship).
+    association is not lost via the compilation process (since it can be
+    useful to retain this relationship).
     """
     def compile(self, root):
         graph = _Flattener(root).flatten()
@@ -80,9 +79,11 @@ class _Flattener(object):
         self._freeze = bool(freeze)
 
     def _add_new_edges(self, graph, nodes_from, nodes_to, edge_attrs):
-        """Adds new edges from nodes to other nodes in the specified graph,
-        with the following edge attributes (defaulting to the class provided
-        edge_data if None), if the edge does not already exist.
+        """Adds new edges from nodes to other nodes in the specified graph.
+
+        It will connect the nodes_from to the nodes_to if an edge currently
+        does *not* exist. When an edge is created the provided edge attributes
+        will be applied to the new edge between these two nodes.
         """
         nodes_to = list(nodes_to)
         for u in nodes_from:

@@ -29,9 +29,7 @@ DRAIN_EVENTS_PERIOD = 1
 
 
 class Proxy(object):
-    """Proxy picks up messages from the named exchange, calls on_message
-    callback when new message received and is used to publish messages.
-    """
+    """A proxy processes messages from/to the named exchange."""
 
     def __init__(self, topic, exchange_name, on_message, on_wait=None,
                  **kwargs):
@@ -61,7 +59,7 @@ class Proxy(object):
 
     @property
     def is_running(self):
-        """Return whether proxy is running."""
+        """Return whether the proxy is running."""
         return self._running.is_set()
 
     def _make_queue(self, name, exchange, **kwargs):
@@ -74,7 +72,7 @@ class Proxy(object):
                            **kwargs)
 
     def publish(self, msg, routing_key, **kwargs):
-        """Publish message to the named exchange with routing key."""
+        """Publish message to the named exchange with given routing key."""
         LOG.debug("Sending %s", msg)
         if isinstance(routing_key, six.string_types):
             routing_keys = [routing_key]

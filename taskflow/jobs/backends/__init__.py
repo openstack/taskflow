@@ -31,9 +31,25 @@ LOG = logging.getLogger(__name__)
 
 
 def fetch(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
-    """Fetch a jobboard backend with the given configuration (and any board
-    specific kwargs) in the given entrypoint namespace and create it with the
-    given name.
+    """Fetch a jobboard backend with the given configuration.
+
+    This fetch method will look for the entrypoint name in the entrypoint
+    namespace, and then attempt to instantiate that entrypoint using the
+    provided name, configuration and any board specific kwargs.
+
+    NOTE(harlowja): to aid in making it easy to specify configuration and
+    options to a board the configuration (which is typical just a dictionary)
+    can also be a uri string that identifies the entrypoint name and any
+    configuration specific to that board.
+
+    For example, given the following configuration uri:
+
+    zookeeper://<not-used>/?a=b&c=d
+
+    This will look for the entrypoint named 'zookeeper' and will provide
+    a configuration object composed of the uris parameters, in this case that
+    is {'a': 'b', 'c': 'd'} to the constructor of that board instance (also
+    including the name specified).
     """
     if isinstance(conf, six.string_types):
         conf = {'board': conf}
@@ -58,8 +74,11 @@ def fetch(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
 
 @contextlib.contextmanager
 def backend(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
-    """Fetches a jobboard backend, connects to it and allows it to be used in
-    a context manager statement with the jobboard being closed upon completion.
+    """Fetches a jobboard, connects to it and closes it on completion.
+
+    This allows a board instance to fetched, connected to, and then used in a
+    context manager statement with the board being closed upon context
+    manager exit.
     """
     jb = fetch(name, conf, namespace=namespace, **kwargs)
     jb.connect()

@@ -48,9 +48,16 @@ def try_lock(lock):
 
 
 def locked(*args, **kwargs):
-    """A decorator that looks for a given attribute (typically a lock or a list
-    of locks) and before executing the decorated function uses the given lock
-    or list of locks as a context manager, automatically releasing on exit.
+    """A locking decorator.
+
+    It will look for a provided attribute (typically a lock or a list
+    of locks) on the first argument of the function decorated (typically this
+    is the 'self' object) and before executing the decorated function it
+    activates the given lock or list of locks as a context manager,
+    automatically releasing that lock on exit.
+
+    NOTE(harlowja): if no attribute is provided then by default the attribute
+    named '_lock' is looked for.
     """
 
     def decorator(f):
@@ -244,8 +251,11 @@ class ReaderWriterLock(_ReaderWriterLockBase):
 
 
 class DummyReaderWriterLock(_ReaderWriterLockBase):
-    """A dummy reader/writer lock that doesn't lock anything but provides same
-    functions as a normal reader/writer lock class.
+    """A dummy reader/writer lock.
+
+    This dummy lock doesn't lock anything but provides the same functions as a
+    normal reader/writer lock class and can be useful in unit tests or other
+    similar scenarios (do *not* use it if locking is actually required).
     """
     @contextlib.contextmanager
     def write_lock(self):
@@ -271,11 +281,10 @@ class DummyReaderWriterLock(_ReaderWriterLockBase):
 
 
 class MultiLock(object):
-    """A class which can attempt to obtain many locks at once and release
-    said locks when exiting.
+    """A class which attempts to obtain & release many locks at once.
 
-    Useful as a context manager around many locks (instead of having to nest
-    said individual context managers).
+    It is typically useful as a context manager around many locks (instead of
+    having to nest individual lock context managers).
     """
 
     def __init__(self, locks):
@@ -318,7 +327,9 @@ class MultiLock(object):
 
 
 class _InterProcessLock(object):
-    """Lock implementation which allows multiple locks, working around
+    """An interprocess locking implementation.
+
+    This is a lock implementation which allows multiple locks, working around
     issues like bugs.debian.org/cgi-bin/bugreport.cgi?bug=632857 and does
     not require any cleanup. Since the lock is always held on a file
     descriptor rather than outside of the process, the lock gets dropped

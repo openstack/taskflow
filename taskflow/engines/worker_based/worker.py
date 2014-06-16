@@ -96,8 +96,8 @@ class Worker(object):
             LOG.info("Starting the '%s' topic worker using a %s.", self._topic,
                      self._executor)
         LOG.info("Tasks list:")
-        for endpoint in self._endpoints:
-            LOG.info("|-- %s", endpoint)
+        for e in self._endpoints:
+            LOG.info("|-- %s", e)
         self._server.start()
 
     def wait(self):

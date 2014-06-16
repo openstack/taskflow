@@ -41,8 +41,11 @@ class GreaterThanEqual(object):
 
 
 class FailureRegexpMatcher(object):
-    """Matches if the failure was caused by the given exception and its string
-    matches to the given pattern.
+    """Matches if the failure was caused by the given exception and message.
+
+    This will match if a given failure contains and exception of the given
+    class type and if its string message matches to the given regular
+    expression pattern.
     """
 
     def __init__(self, exc_class, pattern):
@@ -59,8 +62,10 @@ class FailureRegexpMatcher(object):
 
 
 class ItemsEqual(object):
-    """Matches the sequence that has same elements as reference
-    object, regardless of the order.
+    """Matches the items in two sequences.
+
+    This matcher will validate that the provided sequence has the same elements
+    as a reference sequence, regardless of the order.
     """
 
     def __init__(self, seq):
@@ -167,9 +172,7 @@ class TestCase(testcase.TestCase):
 
     def assertFailuresRegexp(self, exc_class, pattern, callable_obj, *args,
                              **kwargs):
-        """Assert that the callable failed with the given exception and its
-        string matches to the given pattern.
-        """
+        """Asserts the callable failed with the given exception and message."""
         try:
             with utils.wrap_all_failures():
                 callable_obj(*args, **kwargs)
@@ -200,8 +203,11 @@ class MockTestCase(TestCase):
         return mocked
 
     def _patch_class(self, module, name, autospec=True, attach_as=None):
-        """Patch class, create class instance mock and attach them to
-        the master mock.
+        """Patches a modules class.
+
+        This will create a class instance mock (using the provided name to
+        find the class in the module) and attach a mock class the master mock
+        to be cleaned up on test exit.
         """
         if autospec:
             instance_mock = mock.Mock(spec_set=getattr(module, name))

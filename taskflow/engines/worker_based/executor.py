@@ -216,7 +216,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         return async_utils.wait_for_any(fs, timeout)
 
     def start(self):
-        """Start proxy thread (and associated topic notification thread)."""
+        """Starts proxy thread and associated topic notification thread."""
         if not _is_alive(self._proxy_thread):
             self._proxy_thread = tu.daemon_thread(self._proxy.start)
             self._proxy_thread.start()
@@ -227,9 +227,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
             self._periodic_thread.start()
 
     def stop(self):
-        """Stop proxy thread (and associated topic notification thread), so
-        those threads will be gracefully terminated.
-        """
+        """Stops proxy thread and associated topic notification thread."""
         if self._periodic_thread is not None:
             self._periodic.stop()
             self._periodic_thread.join()

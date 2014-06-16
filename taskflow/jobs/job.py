@@ -24,16 +24,22 @@ from taskflow.openstack.common import uuidutils
 
 @six.add_metaclass(abc.ABCMeta)
 class Job(object):
-    """A job is a higher level abstraction over a set of flows as well as the
-    *ownership* of those flows, it is the highest piece of work that can be
-    owned by an entity performing those flows.
+    """A abstraction that represents a named and trackable unit of work.
 
-    Only one entity will be operating on the flows contained in a job at a
-    given time (for the foreseeable future).
+    A job connects a logbook, a owner, last modified and created on dates and
+    any associated state that the job has. Since it is a connector to a
+    logbook, which are each associated with a set of factories that can create
+    set of flows, it is the current top-level container for a piece of work
+    that can be owned by an entity (typically that entity will read those
+    logbooks and run any contained flows).
 
-    It is the object that should be transferred to another entity on failure of
-    so that the contained flows ownership can be transferred to the secondary
-    entity for resumption/continuation/reverting.
+    Only one entity will be allowed to own and operate on the flows contained
+    in a job at a given time (for the foreseeable future).
+
+    NOTE(harlowja): It is the object that will be transferred to another
+    entity on failure so that the contained flows ownership can be
+    transferred to the secondary entity/owner for resumption, continuation,
+    reverting...
     """
 
     def __init__(self, name, uuid=None, details=None):

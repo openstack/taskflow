@@ -86,8 +86,10 @@ class Notify(Message):
 
 
 class Request(Message):
-    """Represents request with execution results. Every request is created in
-    the WAITING state and is expired within the given timeout.
+    """Represents request with execution results.
+
+    Every request is created in the WAITING state and is expired within the
+    given timeout.
     """
     TYPE = REQUEST
 
@@ -136,8 +138,11 @@ class Request(Message):
         return False
 
     def to_dict(self):
-        """Return json-serializable request, converting all `misc.Failure`
-        objects into dictionaries.
+        """Return json-serializable request.
+
+        To convert requests that have failed due to some exception this will
+        convert all `misc.Failure` objects into dictionaries (which will then
+        be reconstituted by the receiver).
         """
         request = dict(task_cls=self._task_cls, task_name=self._task.name,
                        task_version=self._task.version, action=self._action,

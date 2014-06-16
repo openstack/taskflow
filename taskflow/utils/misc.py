@@ -50,9 +50,11 @@ _SCHEME_REGEX = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
 
 
 def merge_uri(uri_pieces, conf):
-    """Merges the username, password, hostname, and query params of a uri into
-    the given configuration (does not overwrite the configuration keys if they
-    already exist) and returns the adjusted configuration.
+    """Merges a parsed uri into the given configuration dictionary.
+
+    Merges the username, password, hostname, and query params of a uri into
+    the given configuration (it does not overwrite the configuration keys if
+    they already exist) and returns the adjusted configuration.
 
     NOTE(harlowja): does not merge the path, scheme or fragment.
     """
@@ -72,9 +74,7 @@ def merge_uri(uri_pieces, conf):
 
 
 def parse_uri(uri, query_duplicates=False):
-    """Parses a uri into its components and returns a dictionary containing
-    those components.
-    """
+    """Parses a uri into its components."""
     # Do some basic validation before continuing...
     if not isinstance(uri, six.string_types):
         raise TypeError("Can only parse string types to uri data, "
@@ -176,9 +176,17 @@ def decode_json(raw_data, root_types=(dict,)):
 
 
 class cachedproperty(object):
-    """Descriptor that can be placed on instance methods to translate
+    """A descriptor property that is only evaluated once..
+
+    This caching descriptor can be placed on instance methods to translate
     those methods into properties that will be cached in the instance (avoiding
-    repeated creation checking logic to do the equivalent).
+    repeated attribute checking logic to do the equivalent).
+
+    NOTE(harlowja): by default the property that will be saved will be under
+    the decorated methods name prefixed with an underscore. For example if we
+    were to attach this descriptor to an instance method 'get_thing(self)' the
+    cached property would be stored under '_get_thing' in the self object
+    after the first call to 'get_thing' occurs.
     """
     def __init__(self, fget):
         # If a name is provided (as an argument) then this will be the string
@@ -226,8 +234,10 @@ def wallclock():
 
 
 def wraps(fn):
-    """This will not be needed in python 3.2 or greater which already has this
-    built-in to its functools.wraps method.
+    """Wraps a method and ensures the __wrapped__ attribute is set.
+
+    NOTE(harlowja): This will not be needed in python 3.2 or greater which
+    already has this built-in to its functools.wraps method.
     """
 
     def wrapper(f):
@@ -239,9 +249,7 @@ def wraps(fn):
 
 
 def millis_to_datetime(milliseconds):
-    """Converts a given number of milliseconds from the epoch into a datetime
-    object.
-    """
+    """Converts number of milliseconds (from epoch) into a datetime object."""
     return datetime.datetime.fromtimestamp(float(milliseconds) / 1000)
 
 
@@ -313,9 +321,7 @@ _ASCII_WORD_SYMBOLS = frozenset(string.ascii_letters + string.digits + '_')
 
 
 def is_valid_attribute_name(name, allow_self=False, allow_hidden=False):
-    """Validates that a string name is a valid/invalid python attribute
-    name.
-    """
+    """Checks that a string is a valid/invalid python attribute name."""
     return all((
         isinstance(name, six.string_types),
         len(name) > 0,
@@ -332,8 +338,12 @@ def is_valid_attribute_name(name, allow_self=False, allow_hidden=False):
 
 
 class AttrDict(dict):
-    """Helper utility dict sub-class to create a class that can be accessed by
-    attribute name from a dictionary that contains a set of keys and values.
+    """Dictionary subclass that allows for attribute based access.
+
+    This subclass allows for accessing a dictionaries keys and values by
+    accessing those keys as regular attributes. Keys that are not valid python
+    attribute names can not of course be acccessed/set (those keys must be
+    accessed/set by the traditional dictionary indexing operators instead).
     """
     NO_ATTRS = tuple(reflection.get_member_names(dict))
 
@@ -392,9 +402,12 @@ class Timeout(object):
 
 
 class ExponentialBackoff(object):
-    """An iterable object that will yield back an exponential delay sequence
-    provided an exponent and a number of items to yield. This object may be
-    iterated over multiple times (yielding the same sequence each time).
+    """An iterable object that will yield back an exponential delay sequence.
+
+    This objects provides for a configurable exponent, count of numbers
+    to generate, and a maximum number that will be returned. This object may
+    also be iterated over multiple times (yielding the same sequence each
+    time).
     """
     def __init__(self, count, exponent=2, max_backoff=3600):
         self.count = max(0, int(count))
@@ -541,9 +554,12 @@ class StopWatch(object):
 
 
 class Notifier(object):
-    """A utility helper class that can be used to subscribe to
-    notifications of events occurring as well as allow a entity to post said
-    notifications to subscribers.
+    """A notification helper class.
+
+    It is intended to be used to subscribe to notifications of events
+    occurring as well as allow a entity to post said notifications to any
+    associated subscribers without having either entity care about how this
+    notification occurs.
     """
 
     RESERVED_KEYS = ('details',)
@@ -665,12 +681,15 @@ def are_equal_exc_info_tuples(ei1, ei2):
 
 @contextlib.contextmanager
 def capture_failure():
-    """Save current exception, and yield back the failure (or raises a
-    runtime error if no active exception is being handled).
+    """Captures the occuring exception and provides a failure back.
 
-    In some cases the exception context can be cleared, resulting in None
-    being attempted to be saved after an exception handler is run. This
-    can happen when eventlet switches greenthreads or when running an
+    This will save the current exception information and yield back a
+    failure object for the caller to use (it will raise a runtime error if
+    no active exception is being handled).
+
+    This is useful since in some cases the exception context can be cleared,
+    resulting in None being attempted to be saved after an exception handler is
+    run. This can happen when eventlet switches greenthreads or when running an
     exception handler, code raises and catches an exception. In both
     cases the exception context will be cleared.
 

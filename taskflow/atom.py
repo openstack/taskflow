@@ -78,7 +78,9 @@ def _build_rebind_dict(args, rebind_args):
 
 def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
                        ignore_list=None):
-    """Given a function, its requirements and a rebind mapping this helper
+    """Builds an input argument mapping for a given function.
+
+    Given a function, its requirements and a rebind mapping this helper
     function will build the correct argument mapping for the given function as
     well as verify that the final argument mapping does not have missing or
     extra arguments (where applicable).
