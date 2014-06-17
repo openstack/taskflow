@@ -63,7 +63,7 @@ def locked(*args, **kwargs):
     def decorator(f):
         attr_name = kwargs.get('lock', '_lock')
 
-        @misc.wraps(f)
+        @six.wraps(f)
         def wrapper(*args, **kwargs):
             lock = getattr(args[0], attr_name)
             if isinstance(lock, (tuple, list)):
