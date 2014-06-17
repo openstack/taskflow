@@ -56,7 +56,7 @@ import example_utils  # noqa
 #
 
 
-### UTILITY FUNCTIONS #########################################
+# UTILITY FUNCTIONS #########################################
 
 
 def print_wrapped(text):
@@ -82,7 +82,7 @@ def find_flow_detail(backend, lb_id, fd_id):
     return lb.find(fd_id)
 
 
-### CREATE FLOW ###############################################
+# CREATE FLOW ###############################################
 
 
 class InterruptTask(task.Task):
@@ -104,12 +104,12 @@ def flow_factory():
         TestTask(name='second'))
 
 
-### INITIALIZE PERSISTENCE ####################################
+# INITIALIZE PERSISTENCE ####################################
 
 with example_utils.get_backend() as backend:
     logbook = p_utils.temporary_log_book(backend)
 
-    ### CREATE AND RUN THE FLOW: FIRST ATTEMPT ####################
+    # CREATE AND RUN THE FLOW: FIRST ATTEMPT ####################
 
     flow = flow_factory()
     flowdetail = p_utils.create_flow_detail(flow, logbook, backend)
@@ -121,7 +121,7 @@ with example_utils.get_backend() as backend:
     engine.run()
     print_task_states(flowdetail, "After running")
 
-    ### RE-CREATE, RESUME, RUN ####################################
+    # RE-CREATE, RESUME, RUN ####################################
 
     print_wrapped("Resuming and running again")
 
