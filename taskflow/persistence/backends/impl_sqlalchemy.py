@@ -32,6 +32,7 @@ from sqlalchemy import orm as sa_orm
 from sqlalchemy import pool as sa_pool
 
 from taskflow import exceptions as exc
+from taskflow.openstack.common import strutils
 from taskflow.persistence.backends import base
 from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import models
@@ -120,6 +121,18 @@ def _is_db_connection_error(reason):
     return _in_any(reason, list(MY_SQL_CONN_ERRORS + POSTGRES_CONN_ERRORS))
 
 
+def _as_bool(value):
+    if isinstance(value, bool):
+        return value
+    # This is different than strutils, but imho is an acceptable difference.
+    if value is None:
+        return False
+    # NOTE(harlowja): prefer strictness to avoid users getting accustomed
+    # to passing bad values in and this *just working* (which imho is a bad
+    # habit to encourage).
+    return strutils.bool_from_string(value, strict=True)
+
+
 def _thread_yield(dbapi_con, con_record):
     """Ensure other greenthreads get a chance to be executed.
 
@@ -191,8 +204,8 @@ class SQLAlchemyBackend(base.Backend):
         # all the popping that will happen below.
         conf = copy.deepcopy(self._conf)
         engine_args = {
-            'echo': misc.as_bool(conf.pop('echo', False)),
-            'convert_unicode': misc.as_bool(conf.pop('convert_unicode', True)),
+            'echo': _as_bool(conf.pop('echo', False)),
+            'convert_unicode': _as_bool(conf.pop('convert_unicode', True)),
             'pool_recycle': 3600,
         }
         if 'idle_timeout' in conf:
@@ -237,13 +250,13 @@ class SQLAlchemyBackend(base.Backend):
         engine = sa.create_engine(sql_connection, **engine_args)
         checkin_yield = conf.pop('checkin_yield',
                                  eventlet_utils.EVENTLET_AVAILABLE)
-        if misc.as_bool(checkin_yield):
+        if _as_bool(checkin_yield):
             sa.event.listen(engine, 'checkin', _thread_yield)
         if 'mysql' in e_url.drivername:
-            if misc.as_bool(conf.pop('checkout_ping', True)):
+            if _as_bool(conf.pop('checkout_ping', True)):
                 sa.event.listen(engine, 'checkout', _ping_listener)
             mode = None
-            if misc.as_bool(conf.pop('mysql_traditional_mode', True)):
+            if _as_bool(conf.pop('mysql_traditional_mode', True)):
                 mode = 'TRADITIONAL'
             if 'mysql_sql_mode' in conf:
                 mode = conf.pop('mysql_sql_mode')
