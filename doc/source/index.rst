@@ -1,8 +1,8 @@
 TaskFlow
 ========
 
-*TaskFlow is a Python library for OpenStack that helps make task execution
-easy, consistent, and reliable.*
+*TaskFlow is a Python library that helps to make task execution easy,
+consistent and reliable.* [#f1]_
 
 .. note::
 
@@ -74,3 +74,7 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+.. [#f1] It should be noted that even though it is designed with OpenStack
+         integration in mind, and that is where most of its *current*
+         integration is it aims to be generally usable and useful in any
+         project.
