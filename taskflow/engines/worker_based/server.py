@@ -17,7 +17,7 @@
 import functools
 import logging
 
-from kombu import exceptions as kombu_exc
+import six
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
@@ -26,53 +26,34 @@ from taskflow.utils import misc
 LOG = logging.getLogger(__name__)
 
 
+def delayed(executor):
+    """Wraps & runs the function using a futures compatible executor."""
+
+    def decorator(f):
+
+        @six.wraps(f)
+        def wrapper(*args, **kwargs):
+            return executor.submit(f, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 class Server(object):
     """Server implementation that waits for incoming tasks requests."""
 
     def __init__(self, topic, exchange, executor, endpoints, **kwargs):
-        self._proxy = proxy.Proxy(topic, exchange, self._on_message, **kwargs)
+        handlers = {
+            pr.NOTIFY: delayed(executor)(self._process_notify),
+            pr.REQUEST: delayed(executor)(self._process_request),
+        }
+        self._proxy = proxy.Proxy(topic, exchange, handlers,
+                                  on_wait=None, **kwargs)
         self._topic = topic
         self._executor = executor
         self._endpoints = dict([(endpoint.name, endpoint)
                                 for endpoint in endpoints])
-
-    def _on_message(self, data, message):
-        """This method is called on incoming message."""
-        LOG.debug("Got message: %s", data)
-        # NOTE(skudriashev): Process all incoming messages only if proxy is
-        # running, otherwise requeue them.
-        if self._proxy.is_running:
-            # NOTE(skudriashev): Process request only if message has been
-            # acknowledged successfully.
-            try:
-                # acknowledge message before processing
-                message.ack()
-            except kombu_exc.MessageStateError:
-                LOG.exception("Failed to acknowledge AMQP message.")
-            else:
-                LOG.debug("AMQP message acknowledged.")
-                try:
-                    msg_type = message.properties['type']
-                except KeyError:
-                    LOG.warning("The 'type' message property is missing.")
-                else:
-                    if msg_type == pr.NOTIFY:
-                        handler = self._process_notify
-                    elif msg_type == pr.REQUEST:
-                        handler = self._process_request
-                    else:
-                        LOG.warning("Unexpected message type: %s", msg_type)
-                        return
-                    # spawn new thread to process request
-                    self._executor.submit(handler, data, message)
-        else:
-            try:
-                # requeue message
-                message.requeue()
-            except kombu_exc.MessageStateError:
-                LOG.exception("Failed to requeue AMQP message.")
-            else:
-                LOG.debug("AMQP message requeued.")
 
     @staticmethod
     def _parse_request(task_cls, task_name, action, arguments, result=None,

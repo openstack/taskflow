@@ -16,8 +16,6 @@
 
 import logging
 
-from kombu import exceptions as kombu_exc
-
 from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import cache
 from taskflow.engines.worker_based import protocol as pr
@@ -75,36 +73,18 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         self._topics = topics
         self._requests_cache = cache.RequestsCache()
         self._workers_cache = cache.WorkersCache()
-        self._proxy = proxy.Proxy(uuid, exchange, self._on_message,
+        handlers = {
+            pr.NOTIFY: self._process_notify,
+            pr.RESPONSE: self._process_response,
+        }
+        self._proxy = proxy.Proxy(uuid, exchange, handlers,
                                   self._on_wait, **kwargs)
         self._proxy_thread = None
         self._periodic = PeriodicWorker(tt.Timeout(pr.NOTIFY_PERIOD),
                                         [self._notify_topics])
         self._periodic_thread = None
 
-    def _on_message(self, data, message):
-        """This method is called on incoming message."""
-        LOG.debug("Got message: %s", data)
-        try:
-            # acknowledge message before processing
-            message.ack()
-        except kombu_exc.MessageStateError:
-            LOG.exception("Failed to acknowledge AMQP message.")
-        else:
-            LOG.debug("AMQP message acknowledged.")
-            try:
-                msg_type = message.properties['type']
-            except KeyError:
-                LOG.warning("The 'type' message property is missing.")
-            else:
-                if msg_type == pr.NOTIFY:
-                    self._process_notify(data)
-                elif msg_type == pr.RESPONSE:
-                    self._process_response(data, message)
-                else:
-                    LOG.warning("Unexpected message type: %s", msg_type)
-
-    def _process_notify(self, notify):
+    def _process_notify(self, notify, message):
         """Process notify message from remote side."""
         LOG.debug("Start processing notify message.")
         topic = notify['topic']

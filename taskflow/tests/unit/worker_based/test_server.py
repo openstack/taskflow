@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from kombu import exceptions as exc
 import mock
 import six
 
@@ -86,9 +85,9 @@ class TestServer(test.MockTestCase):
         # check calls
         master_mock_calls = [
             mock.call.Proxy(self.server_topic, self.server_exchange,
-                            s._on_message, url=self.broker_url)
+                            mock.ANY, url=self.broker_url, on_wait=mock.ANY)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
         self.assertEqual(len(s._endpoints), 3)
 
     def test_creation_with_endpoints(self):
@@ -97,71 +96,10 @@ class TestServer(test.MockTestCase):
         # check calls
         master_mock_calls = [
             mock.call.Proxy(self.server_topic, self.server_exchange,
-                            s._on_message, url=self.broker_url)
+                            mock.ANY, url=self.broker_url, on_wait=mock.ANY)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
         self.assertEqual(len(s._endpoints), len(self.endpoints))
-
-    def test_on_message_proxy_running_ack_success(self):
-        request = self.make_request()
-        s = self.server(reset_master_mock=True)
-        s._on_message(request, self.message_mock)
-
-        # check calls
-        master_mock_calls = [
-            mock.call.message.ack(),
-            mock.call.executor.submit(s._process_request, request,
-                                      self.message_mock)
-        ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
-
-    def test_on_message_proxy_running_ack_failure(self):
-        self.message_mock.ack.side_effect = exc.MessageStateError('Woot!')
-        s = self.server(reset_master_mock=True)
-        s._on_message({}, self.message_mock)
-
-        # check calls
-        master_mock_calls = [
-            mock.call.message.ack()
-        ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
-
-    def test_on_message_proxy_not_running_requeue_success(self):
-        self.proxy_inst_mock.is_running = False
-        s = self.server(reset_master_mock=True)
-        s._on_message({}, self.message_mock)
-
-        # check calls
-        master_mock_calls = [
-            mock.call.message.requeue()
-        ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
-
-    def test_on_message_proxy_not_running_requeue_failure(self):
-        self.message_mock.requeue.side_effect = exc.MessageStateError('Woot!')
-        self.proxy_inst_mock.is_running = False
-        s = self.server(reset_master_mock=True)
-        s._on_message({}, self.message_mock)
-
-        # check calls
-        master_mock_calls = [
-            mock.call.message.requeue()
-        ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
-
-    @mock.patch('taskflow.engines.worker_based.server.LOG.warning')
-    def test_on_message_unknown_type(self, mocked_warning):
-        self.message_mock.properties['type'] = '<unknown>'
-        s = self.server()
-        s._on_message({}, self.message_mock)
-        self.assertTrue(mocked_warning.called)
-
-    @mock.patch('taskflow.engines.worker_based.server.LOG.warning')
-    def test_on_message_no_type(self, mocked_warning):
-        self.message_mock.properties = {}
-        s = self.server()
-        s._on_message({}, self.message_mock)
-        self.assertTrue(mocked_warning.called)
 
     def test_parse_request(self):
         request = self.make_request()

@@ -18,7 +18,6 @@ import threading
 import time
 
 from concurrent import futures
-from kombu import exceptions as kombu_exc
 import mock
 
 from taskflow.engines.worker_based import executor
@@ -86,7 +85,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
         master_mock_calls = [
             mock.call.Proxy(self.executor_uuid, self.executor_exchange,
-                            ex._on_message, ex._on_wait, url=self.broker_url)
+                            mock.ANY, ex._on_wait, url=self.broker_url)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
@@ -94,21 +93,19 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         response = pr.Response(pr.RUNNING)
         ex = self.executor()
         ex._requests_cache[self.task_uuid] = self.request_inst_mock
-        ex._on_message(response.to_dict(), self.message_mock)
+        ex._process_response(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls,
                          [mock.call.set_running()])
-        self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
     def test_on_message_response_state_progress(self):
         response = pr.Response(pr.PROGRESS, progress=1.0)
         ex = self.executor()
         ex._requests_cache[self.task_uuid] = self.request_inst_mock
-        ex._on_message(response.to_dict(), self.message_mock)
+        ex._process_response(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls,
                          [mock.call.on_progress(progress=1.0)])
-        self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
     def test_on_message_response_state_failure(self):
         failure = misc.Failure.from_exception(Exception('test'))
@@ -116,75 +113,49 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         response = pr.Response(pr.FAILURE, result=failure_dict)
         ex = self.executor()
         ex._requests_cache[self.task_uuid] = self.request_inst_mock
-        ex._on_message(response.to_dict(), self.message_mock)
+        ex._process_response(response.to_dict(), self.message_mock)
 
         self.assertEqual(len(ex._requests_cache), 0)
         self.assertEqual(self.request_inst_mock.mock_calls, [
             mock.call.set_result(result=utils.FailureMatcher(failure))
         ])
-        self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
     def test_on_message_response_state_success(self):
         response = pr.Response(pr.SUCCESS, result=self.task_result,
                                event='executed')
         ex = self.executor()
         ex._requests_cache[self.task_uuid] = self.request_inst_mock
-        ex._on_message(response.to_dict(), self.message_mock)
+        ex._process_response(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls,
                          [mock.call.set_result(result=self.task_result,
                                                event='executed')])
-        self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
     def test_on_message_response_unknown_state(self):
         response = pr.Response(state='<unknown>')
         ex = self.executor()
         ex._requests_cache[self.task_uuid] = self.request_inst_mock
-        ex._on_message(response.to_dict(), self.message_mock)
+        ex._process_response(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls, [])
-        self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
     def test_on_message_response_unknown_task(self):
         self.message_mock.properties['correlation_id'] = '<unknown>'
         response = pr.Response(pr.RUNNING)
         ex = self.executor()
         ex._requests_cache[self.task_uuid] = self.request_inst_mock
-        ex._on_message(response.to_dict(), self.message_mock)
+        ex._process_response(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls, [])
-        self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
 
     def test_on_message_response_no_correlation_id(self):
         self.message_mock.properties = {'type': pr.RESPONSE}
         response = pr.Response(pr.RUNNING)
         ex = self.executor()
         ex._requests_cache[self.task_uuid] = self.request_inst_mock
-        ex._on_message(response.to_dict(), self.message_mock)
+        ex._process_response(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls, [])
-        self.assertEqual(self.message_mock.mock_calls, [mock.call.ack()])
-
-    @mock.patch('taskflow.engines.worker_based.executor.LOG.warning')
-    def test_on_message_unknown_type(self, mocked_warning):
-        self.message_mock.properties = {'correlation_id': self.task_uuid,
-                                        'type': '<unknown>'}
-        ex = self.executor()
-        ex._on_message({}, self.message_mock)
-        self.assertTrue(mocked_warning.called)
-
-    @mock.patch('taskflow.engines.worker_based.executor.LOG.warning')
-    def test_on_message_no_type(self, mocked_warning):
-        self.message_mock.properties = {'correlation_id': self.task_uuid}
-        ex = self.executor()
-        ex._on_message({}, self.message_mock)
-        self.assertTrue(mocked_warning.called)
-
-    @mock.patch('taskflow.engines.worker_based.executor.LOG.exception')
-    def test_on_message_acknowledge_raises(self, mocked_exception):
-        self.message_mock.ack.side_effect = kombu_exc.MessageStateError()
-        self.executor()._on_message({}, self.message_mock)
-        self.assertTrue(mocked_exception.called)
 
     def test_on_wait_task_not_expired(self):
         ex = self.executor()
@@ -222,7 +193,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.message_mock.properties['type'] = pr.NOTIFY
         notify = pr.Notify(topic=self.executor_topic, tasks=[self.task.name])
         ex = self.executor()
-        ex._on_message(notify.to_dict(), self.message_mock)
+        ex._process_notify(notify.to_dict(), self.message_mock)
         ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
@@ -240,7 +211,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.message_mock.properties['type'] = pr.NOTIFY
         notify = pr.Notify(topic=self.executor_topic, tasks=[self.task.name])
         ex = self.executor()
-        ex._on_message(notify.to_dict(), self.message_mock)
+        ex._process_notify(notify.to_dict(), self.message_mock)
         ex.revert_task(self.task, self.task_uuid, self.task_args,
                        self.task_result, self.task_failures)
 
@@ -273,7 +244,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.proxy_inst_mock.publish.side_effect = Exception('Woot!')
         notify = pr.Notify(topic=self.executor_topic, tasks=[self.task.name])
         ex = self.executor()
-        ex._on_message(notify.to_dict(), self.message_mock)
+        ex._process_notify(notify.to_dict(), self.message_mock)
         ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [

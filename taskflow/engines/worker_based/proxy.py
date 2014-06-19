@@ -21,6 +21,9 @@ import threading
 import kombu
 import six
 
+from taskflow.engines.worker_based import dispatcher
+
+
 LOG = logging.getLogger(__name__)
 
 # NOTE(skudriashev): A timeout of 1 is often used in environments where
@@ -31,17 +34,20 @@ DRAIN_EVENTS_PERIOD = 1
 class Proxy(object):
     """A proxy processes messages from/to the named exchange."""
 
-    def __init__(self, topic, exchange_name, on_message, on_wait=None,
+    def __init__(self, topic, exchange_name, type_handlers, on_wait=None,
                  **kwargs):
         self._topic = topic
         self._exchange_name = exchange_name
-        self._on_message = on_message
         self._on_wait = on_wait
         self._running = threading.Event()
         self._url = kwargs.get('url')
         self._transport = kwargs.get('transport')
         self._transport_opts = kwargs.get('transport_options')
-
+        self._dispatcher = dispatcher.TypeDispatcher(type_handlers)
+        self._dispatcher.add_requeue_filter(
+            # NOTE(skudriashev): Process all incoming messages only if proxy is
+            # running, otherwise requeue them.
+            lambda data, message: not self.is_running)
         self._drain_events_timeout = DRAIN_EVENTS_PERIOD
         if self._transport == 'memory' and self._transport_opts:
             polling_interval = self._transport_opts.get('polling_interval')
@@ -95,7 +101,7 @@ class Proxy(object):
         with kombu.connections[self._conn].acquire(block=True) as conn:
             queue = self._make_queue(self._topic, self._exchange, channel=conn)
             with conn.Consumer(queues=queue,
-                               callbacks=[self._on_message]):
+                               callbacks=[self._dispatcher.on_message]):
                 self._running.set()
                 while self.is_running:
                     try:
