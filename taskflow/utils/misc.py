@@ -20,7 +20,6 @@ import contextlib
 import copy
 import datetime
 import errno
-import functools
 import inspect
 import keyword
 import logging
@@ -231,21 +230,6 @@ def wallclock():
     # out if we want to alter time related functionality (for testing
     # purposes).
     return time.time()
-
-
-def wraps(fn):
-    """Wraps a method and ensures the __wrapped__ attribute is set.
-
-    NOTE(harlowja): This will not be needed in python 3.2 or greater which
-    already has this built-in to its functools.wraps method.
-    """
-
-    def wrapper(f):
-        f = functools.wraps(fn)(f)
-        f.__wrapped__ = getattr(fn, '__wrapped__', fn)
-        return f
-
-    return wrapper
 
 
 def millis_to_datetime(milliseconds):

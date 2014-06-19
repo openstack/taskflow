@@ -17,13 +17,12 @@
 import multiprocessing
 import threading
 
-import six
+from six.moves import _thread
 
-if six.PY2:
-    from thread import get_ident  # noqa
-else:
-    # In python3+ the get_ident call moved (whhhy??)
-    from threading import get_ident  # noqa
+
+def get_ident():
+    """Return the 'thread identifier' of the current thread."""
+    return _thread.get_ident()
 
 
 def get_optimal_thread_count():
