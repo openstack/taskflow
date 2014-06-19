@@ -388,7 +388,6 @@ class _InterProcessLock(object):
         try:
             self.unlock()
             self.lockfile.close()
-            # This is fixed in: https://review.openstack.org/70506
             LOG.debug('Released file lock "%s"', self.fname)
         except IOError:
             LOG.exception("Could not release the acquired lock `%s`",
@@ -396,6 +395,9 @@ class _InterProcessLock(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.release()
+
+    def exists(self):
+        return os.path.exists(self.fname)
 
     def trylock(self):
         raise NotImplementedError()
