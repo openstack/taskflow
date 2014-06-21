@@ -20,7 +20,14 @@ import mock
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
+from taskflow.openstack.common import uuidutils
 from taskflow import test
+from taskflow.tests import utils as test_utils
+from taskflow.types import latch
+
+TEST_EXCHANGE, TEST_TOPIC = ('test-exchange', 'test-topic')
+BARRIER_WAIT_TIMEOUT = 1.0
+POLLING_INTERVAL = 0.01
 
 
 class TestMessagePump(test.MockTestCase):
@@ -31,19 +38,19 @@ class TestMessagePump(test.MockTestCase):
         on_notify.side_effect = lambda *args, **kwargs: barrier.set()
 
         handlers = {pr.NOTIFY: on_notify}
-        p = proxy.Proxy("test", "test", handlers,
+        p = proxy.Proxy(TEST_TOPIC, TEST_EXCHANGE, handlers,
                         transport='memory',
                         transport_options={
-                            'polling_interval': 0.01,
+                            'polling_interval': POLLING_INTERVAL,
                         })
 
         t = threading.Thread(target=p.start)
         t.daemon = True
         t.start()
         p.wait()
-        p.publish(pr.Notify(), 'test')
+        p.publish(pr.Notify(), TEST_TOPIC)
 
-        barrier.wait(1.0)
+        barrier.wait(BARRIER_WAIT_TIMEOUT)
         self.assertTrue(barrier.is_set())
         p.stop()
         t.join()
@@ -58,10 +65,10 @@ class TestMessagePump(test.MockTestCase):
         on_response.side_effect = lambda *args, **kwargs: barrier.set()
 
         handlers = {pr.RESPONSE: on_response}
-        p = proxy.Proxy("test", "test", handlers,
+        p = proxy.Proxy(TEST_TOPIC, TEST_EXCHANGE, handlers,
                         transport='memory',
                         transport_options={
-                            'polling_interval': 0.01,
+                            'polling_interval': POLLING_INTERVAL,
                         })
 
         t = threading.Thread(target=p.start)
@@ -69,12 +76,73 @@ class TestMessagePump(test.MockTestCase):
         t.start()
         p.wait()
         resp = pr.Response(pr.RUNNING)
-        p.publish(resp, 'test')
+        p.publish(resp, TEST_TOPIC)
 
-        barrier.wait(1.0)
+        barrier.wait(BARRIER_WAIT_TIMEOUT)
         self.assertTrue(barrier.is_set())
         p.stop()
         t.join()
 
         self.assertTrue(on_response.called)
         on_response.assert_called_with(resp.to_dict(), mock.ANY)
+
+    def test_multi_message(self):
+        message_count = 30
+        barrier = latch.Latch(message_count)
+        countdown = lambda data, message: barrier.countdown()
+
+        on_notify = mock.MagicMock()
+        on_notify.side_effect = countdown
+
+        on_response = mock.MagicMock()
+        on_response.side_effect = countdown
+
+        on_request = mock.MagicMock()
+        on_request.side_effect = countdown
+
+        handlers = {
+            pr.NOTIFY: on_notify,
+            pr.RESPONSE: on_response,
+            pr.REQUEST: on_request,
+        }
+        p = proxy.Proxy(TEST_TOPIC, TEST_EXCHANGE, handlers,
+                        transport='memory',
+                        transport_options={
+                            'polling_interval': POLLING_INTERVAL,
+                        })
+
+        t = threading.Thread(target=p.start)
+        t.daemon = True
+        t.start()
+        p.wait()
+
+        for i in range(0, message_count):
+            j = i % 3
+            if j == 0:
+                p.publish(pr.Notify(), TEST_TOPIC)
+            elif j == 1:
+                p.publish(pr.Response(pr.RUNNING), TEST_TOPIC)
+            else:
+                p.publish(pr.Request(test_utils.DummyTask("dummy_%s" % i),
+                                     uuidutils.generate_uuid(),
+                                     pr.EXECUTE, [], None, None), TEST_TOPIC)
+
+        barrier.wait(BARRIER_WAIT_TIMEOUT)
+        self.assertEqual(0, barrier.needed)
+        p.stop()
+        t.join()
+
+        self.assertTrue(on_notify.called)
+        self.assertTrue(on_response.called)
+        self.assertTrue(on_request.called)
+
+        self.assertEqual(10, on_notify.call_count)
+        self.assertEqual(10, on_response.call_count)
+        self.assertEqual(10, on_request.call_count)
+
+        call_count = sum([
+            on_notify.call_count,
+            on_response.call_count,
+            on_request.call_count,
+        ])
+        self.assertEqual(message_count, call_count)

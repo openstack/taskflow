@@ -15,6 +15,7 @@
 #    under the License.
 
 import logging
+import threading
 
 from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import cache
@@ -73,6 +74,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         self._topics = topics
         self._requests_cache = cache.RequestsCache()
         self._workers_cache = cache.WorkersCache()
+        self._workers_arrival = threading.Condition()
         handlers = {
             pr.NOTIFY: self._process_notify,
             pr.RESPONSE: self._process_response,
@@ -91,7 +93,12 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         tasks = notify['tasks']
 
         # add worker info to the cache
-        self._workers_cache[topic] = tasks
+        self._workers_arrival.acquire()
+        try:
+            self._workers_cache[topic] = tasks
+            self._workers_arrival.notify_all()
+        finally:
+            self._workers_arrival.release()
 
         # publish waiting requests
         for request in self._requests_cache.get_waiting_requests(tasks):
@@ -194,6 +201,33 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
     def wait_for_any(self, fs, timeout=None):
         """Wait for futures returned by this executor to complete."""
         return async_utils.wait_for_any(fs, timeout)
+
+    def wait_for_workers(self, workers=1, timeout=None):
+        """Waits for geq workers to notify they are ready to do work.
+
+        NOTE(harlowja): if a timeout is provided this function will wait
+        until that timeout expires, if the amount of workers does not reach
+        the desired amount of workers before the timeout expires then this will
+        return how many workers are still needed, otherwise it will
+        return zero.
+        """
+        if workers <= 0:
+            raise ValueError("Worker amount must be greater than zero")
+        w = None
+        if timeout is not None:
+            w = tt.StopWatch(timeout).start()
+        self._workers_arrival.acquire()
+        try:
+            while len(self._workers_cache) < workers:
+                if w is not None and w.expired():
+                    return workers - len(self._workers_cache)
+                timeout = None
+                if w is not None:
+                    timeout = w.leftover()
+                self._workers_arrival.wait(timeout)
+            return 0
+        finally:
+            self._workers_arrival.release()
 
     def start(self):
         """Starts proxy thread and associated topic notification thread."""
