@@ -21,7 +21,7 @@ import logging
 from taskflow import exceptions as exc
 from taskflow.listeners import base
 from taskflow import states
-from taskflow.utils import misc
+from taskflow.types import time
 
 STARTING_STATES = (states.RUNNING, states.REVERTING)
 FINISHED_STATES = base.FINISH_STATES + (states.REVERTED,)
@@ -64,8 +64,7 @@ class TimingListener(base.ListenerBase):
         if state == states.PENDING:
             self._timers.pop(task_name, None)
         elif state in STARTING_STATES:
-            self._timers[task_name] = misc.StopWatch()
-            self._timers[task_name].start()
+            self._timers[task_name] = time.StopWatch().start()
         elif state in FINISHED_STATES:
             if task_name in self._timers:
                 self._record_ending(self._timers[task_name], task_name)

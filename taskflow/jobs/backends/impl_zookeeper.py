@@ -33,6 +33,7 @@ from taskflow.openstack.common import excutils
 from taskflow.openstack.common import jsonutils
 from taskflow.openstack.common import uuidutils
 from taskflow import states
+from taskflow.types import time
 from taskflow.utils import kazoo_utils
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
@@ -586,13 +587,12 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
         # Wait until timeout expires (or forever) for jobs to appear.
         watch = None
         if timeout is not None:
-            watch = misc.StopWatch(duration=float(timeout))
-            watch.start()
+            watch = time.StopWatch(duration=float(timeout)).start()
         self._job_cond.acquire()
         try:
             while True:
                 if not self._known_jobs:
-                    if watch and watch.expired():
+                    if watch is not None and watch.expired():
                         raise excp.NotFound("Expired waiting for jobs to"
                                             " arrive; waited %s seconds"
                                             % watch.elapsed())

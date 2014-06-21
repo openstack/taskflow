@@ -21,6 +21,7 @@ import six
 from concurrent import futures
 
 from taskflow.engines.action_engine import executor
+from taskflow.types import time
 from taskflow.utils import misc
 from taskflow.utils import reflection
 
@@ -103,7 +104,7 @@ class Request(Message):
         self._arguments = arguments
         self._progress_callback = progress_callback
         self._kwargs = kwargs
-        self._watch = misc.StopWatch(duration=timeout).start()
+        self._watch = time.StopWatch(duration=timeout).start()
         self._state = WAITING
         self.result = futures.Future()
 

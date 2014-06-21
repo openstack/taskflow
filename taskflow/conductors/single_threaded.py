@@ -20,8 +20,8 @@ import six
 from taskflow.conductors import base
 from taskflow import exceptions as excp
 from taskflow.listeners import logging as logging_listener
+from taskflow.types import time as tt
 from taskflow.utils import lock_utils
-from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 WAIT_TIMEOUT = 0.5
@@ -58,8 +58,8 @@ class SingleThreadedConductor(base.Conductor):
         if wait_timeout is None:
             wait_timeout = WAIT_TIMEOUT
         if isinstance(wait_timeout, (int, float) + six.string_types):
-            self._wait_timeout = misc.Timeout(float(wait_timeout))
-        elif isinstance(wait_timeout, misc.Timeout):
+            self._wait_timeout = tt.Timeout(float(wait_timeout))
+        elif isinstance(wait_timeout, tt.Timeout):
             self._wait_timeout = wait_timeout
         else:
             raise ValueError("Invalid timeout literal: %s" % (wait_timeout))
