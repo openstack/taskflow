@@ -15,7 +15,6 @@
 #    under the License.
 
 import collections
-import functools
 import inspect
 import random
 import threading
@@ -24,7 +23,6 @@ import time
 import six
 import testtools
 
-from taskflow import states
 from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.types import failure
@@ -190,88 +188,6 @@ class GetCallableNameTestExtended(test.TestCase):
                                   'GetCallableNameTestExtended',
                                   'InnerCallableClass'))
         self.assertEqual(expected_name, name)
-
-
-class NotifierTest(test.TestCase):
-
-    def test_notify_called(self):
-        call_collector = []
-
-        def call_me(state, details):
-            call_collector.append((state, details))
-
-        notifier = misc.Notifier()
-        notifier.register(misc.Notifier.ANY, call_me)
-        notifier.notify(states.SUCCESS, {})
-        notifier.notify(states.SUCCESS, {})
-
-        self.assertEqual(2, len(call_collector))
-        self.assertEqual(1, len(notifier))
-
-    def test_notify_register_deregister(self):
-
-        def call_me(state, details):
-            pass
-
-        class A(object):
-            def call_me_too(self, state, details):
-                pass
-
-        notifier = misc.Notifier()
-        notifier.register(misc.Notifier.ANY, call_me)
-        a = A()
-        notifier.register(misc.Notifier.ANY, a.call_me_too)
-
-        self.assertEqual(2, len(notifier))
-        notifier.deregister(misc.Notifier.ANY, call_me)
-        notifier.deregister(misc.Notifier.ANY, a.call_me_too)
-        self.assertEqual(0, len(notifier))
-
-    def test_notify_reset(self):
-
-        def call_me(state, details):
-            pass
-
-        notifier = misc.Notifier()
-        notifier.register(misc.Notifier.ANY, call_me)
-        self.assertEqual(1, len(notifier))
-
-        notifier.reset()
-        self.assertEqual(0, len(notifier))
-
-    def test_bad_notify(self):
-
-        def call_me(state, details):
-            pass
-
-        notifier = misc.Notifier()
-        self.assertRaises(KeyError, notifier.register,
-                          misc.Notifier.ANY, call_me,
-                          kwargs={'details': 5})
-
-    def test_selective_notify(self):
-        call_counts = collections.defaultdict(list)
-
-        def call_me_on(registered_state, state, details):
-            call_counts[registered_state].append((state, details))
-
-        notifier = misc.Notifier()
-        notifier.register(states.SUCCESS,
-                          functools.partial(call_me_on, states.SUCCESS))
-        notifier.register(misc.Notifier.ANY,
-                          functools.partial(call_me_on,
-                                            misc.Notifier.ANY))
-
-        self.assertEqual(2, len(notifier))
-        notifier.notify(states.SUCCESS, {})
-
-        self.assertEqual(1, len(call_counts[misc.Notifier.ANY]))
-        self.assertEqual(1, len(call_counts[states.SUCCESS]))
-
-        notifier.notify(states.FAILURE, {})
-        self.assertEqual(2, len(call_counts[misc.Notifier.ANY]))
-        self.assertEqual(1, len(call_counts[states.SUCCESS]))
-        self.assertEqual(2, len(call_counts))
 
 
 class GetCallableArgsTest(test.TestCase):
