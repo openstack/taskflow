@@ -54,6 +54,21 @@ class ExpiringCache(object):
         with self._lock:
             del self._data[key]
 
+    def clear(self, on_cleared_callback=None):
+        """Removes all keys & values from the cache."""
+        cleared_items = []
+        with self._lock:
+            if on_cleared_callback is not None:
+                cleared_items.extend(six.iteritems(self._data))
+            self._data.clear()
+        if on_cleared_callback is not None:
+            arg_c = len(reflection.get_callable_args(on_cleared_callback))
+            for (k, v) in cleared_items:
+                if arg_c == 2:
+                    on_cleared_callback(k, v)
+                else:
+                    on_cleared_callback(v)
+
     def cleanup(self, on_expired_callback=None):
         """Delete out-dated keys & values from the cache."""
         with self._lock:

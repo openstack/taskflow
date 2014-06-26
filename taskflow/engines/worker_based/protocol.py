@@ -221,7 +221,6 @@ class Request(Message):
 
     def __init__(self, task, uuid, action, arguments, timeout, **kwargs):
         self._task = task
-        self._task_cls = reflection.get_class_name(task)
         self._uuid = uuid
         self._action = action
         self._event = ACTION_TO_EVENT[action]
@@ -248,8 +247,8 @@ class Request(Message):
         return self._uuid
 
     @property
-    def task_cls(self):
-        return self._task_cls
+    def task(self):
+        return self._task
 
     @property
     def state(self):
@@ -281,9 +280,13 @@ class Request(Message):
         convert all `failure.Failure` objects into dictionaries (which will
         then be reconstituted by the receiver).
         """
-        request = dict(task_cls=self._task_cls, task_name=self._task.name,
-                       task_version=self._task.version, action=self._action,
-                       arguments=self._arguments)
+        request = {
+            'task_cls': reflection.get_class_name(self._task),
+            'task_name': self._task.name,
+            'task_version': self._task.version,
+            'action': self._action,
+            'arguments': self._arguments,
+        }
         if 'result' in self._kwargs:
             result = self._kwargs['result']
             if isinstance(result, ft.Failure):

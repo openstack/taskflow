@@ -136,7 +136,7 @@ class TestProtocol(test.TestCase):
     def test_creation(self):
         request = self.request()
         self.assertEqual(request.uuid, self.task_uuid)
-        self.assertEqual(request.task_cls, self.task.name)
+        self.assertEqual(request.task, self.task)
         self.assertIsInstance(request.result, futures.Future)
         self.assertFalse(request.result.done())
 
