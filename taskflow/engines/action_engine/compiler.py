@@ -110,8 +110,18 @@ class _Flattener(object):
         elif isinstance(item, task.BaseTask):
             return self._flatten_task
         elif isinstance(item, retry.Retry):
-            raise TypeError("Retry controller %s (%s) is used not as a flow "
-                            "parameter" % (item, type(item)))
+            if len(self._history) == 1:
+                raise TypeError("Retry controller: %s (%s) must only be used"
+                                " as a flow constructor parameter and not as a"
+                                " root component" % (item, type(item)))
+            else:
+                # TODO(harlowja): we should raise this type error earlier
+                # instead of later since we should do this same check on add()
+                # calls, this makes the error more visible (instead of waiting
+                # until compile time).
+                raise TypeError("Retry controller: %s (%s) must only be used"
+                                " as a flow constructor parameter and not as a"
+                                " flow added component" % (item, type(item)))
         else:
             return None
 

@@ -46,7 +46,7 @@ class PatternCompileTest(test.TestCase):
 
     def test_retry(self):
         r = retry.AlwaysRevert('r1')
-        msg_regex = "^Retry controller .* is used not as a flow parameter"
+        msg_regex = "^Retry controller: .* must only be used .*"
         self.assertRaisesRegexp(TypeError, msg_regex,
                                 compiler.PatternCompiler().compile, r)
 
