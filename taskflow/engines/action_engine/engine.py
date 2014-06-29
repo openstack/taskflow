@@ -144,20 +144,12 @@ class ActionEngine(base.EngineBase):
             if not states.check_flow_transition(old_state, state):
                 return
             self.storage.set_flow_state(state)
-        try:
-            flow_uuid = self._flow.uuid
-        except AttributeError:
-            # NOTE(harlowja): if the flow was just a single task, then it
-            # will not itself have a uuid, but the constructed flow_detail
-            # will.
-            if self._flow_detail is not None:
-                flow_uuid = self._flow_detail.uuid
-            else:
-                flow_uuid = None
-        details = dict(engine=self,
-                       flow_name=self._flow.name,
-                       flow_uuid=flow_uuid,
-                       old_state=old_state)
+        details = {
+            'engine': self,
+            'flow_name': self.storage.flow_name,
+            'flow_uuid': self.storage.flow_uuid,
+            'old_state': old_state,
+        }
         self.notifier.notify(state, details)
 
     def _ensure_storage(self):
