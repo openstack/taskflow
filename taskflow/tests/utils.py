@@ -70,6 +70,16 @@ def zookeeper_available(min_version, timeout=3):
         kazoo_utils.finalize_client(client)
 
 
+class NoopRetry(retry.AlwaysRevert):
+    pass
+
+
+class NoopTask(task.Task):
+
+    def execute(self):
+        pass
+
+
 class DummyTask(task.Task):
 
     def execute(self, context, *args, **kwargs):
