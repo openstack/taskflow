@@ -1,0 +1,11 @@
+Running simple flow:
+Fetching number for Josh.
+Calling Josh 777.
+
+Calling many people using prefixed factory:
+Fetching number for Jim.
+Calling Jim 444.
+Fetching number for Joe.
+Calling Joe 555.
+Fetching number for Josh.
+Calling Josh 777.
