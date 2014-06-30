@@ -27,13 +27,16 @@ from taskflow.types import time
 from taskflow.utils import misc
 from taskflow.utils import reflection
 
-# NOTE(skudriashev): This is protocol events, not related to the task states.
+# NOTE(skudriashev): This is protocol states and events, which are not
+# related to task states.
 WAITING = 'WAITING'
 PENDING = 'PENDING'
 RUNNING = 'RUNNING'
 SUCCESS = 'SUCCESS'
 FAILURE = 'FAILURE'
 PROGRESS = 'PROGRESS'
+
+_ALL_STATES = (WAITING, PENDING, RUNNING, SUCCESS, FAILURE, PROGRESS)
 
 # Remote task actions.
 EXECUTE = 'execute'
@@ -222,6 +225,53 @@ class Request(Message):
 class Response(Message):
     """Represents response message type."""
     TYPE = RESPONSE
+    _SCHEMA = {
+        "type": "object",
+        'properties': {
+            'state': {
+                "type": "string",
+                "enum": list(_ALL_STATES),
+            },
+            'data': {
+                "anyOf": [
+                    {
+                        "$ref": "#/definitions/progress",
+                    },
+                    {
+                        "$ref": "#/definitions/completion",
+                    },
+                ],
+            },
+        },
+        "required": ["state", 'data'],
+        "additionalProperties": False,
+        "definitions": {
+            "progress": {
+                "type": "object",
+                "properties": {
+                    'progress': {
+                        'type': 'number',
+                    },
+                    'event_data': {
+                        'type': 'object',
+                    },
+                },
+                "required": ["progress", 'event_data'],
+                "additionalProperties": False,
+            },
+            "completion": {
+                "type": "object",
+                "properties": {
+                    # This can be any arbitrary type that a task returns, so
+                    # thats why we can't be strict about what type it is since
+                    # any of the json serializable types are allowed.
+                    "result": {},
+                },
+                "required": ["result"],
+                "additionalProperties": False,
+            },
+        },
+    }
 
     def __init__(self, state, **data):
         self._state = state
@@ -245,3 +295,12 @@ class Response(Message):
 
     def to_dict(self):
         return dict(state=self._state, data=self._data)
+
+    @classmethod
+    def validate(cls, data):
+        try:
+            jsonschema.validate(data, cls._SCHEMA)
+        except schema_exc.ValidationError as e:
+            raise excp.InvalidFormat("%s message response data not of the"
+                                     " expected format: %s"
+                                     % (cls.TYPE, e.message), e)

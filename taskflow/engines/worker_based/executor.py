@@ -79,7 +79,10 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                 self._process_notify,
                 functools.partial(pr.Notify.validate, response=True),
             ],
-            pr.RESPONSE: self._process_response,
+            pr.RESPONSE: [
+                self._process_response,
+                pr.Response.validate,
+            ],
         }
         self._proxy = proxy.Proxy(uuid, exchange, handlers,
                                   self._on_wait, **kwargs)
