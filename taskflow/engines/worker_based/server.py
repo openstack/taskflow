@@ -45,7 +45,10 @@ class Server(object):
 
     def __init__(self, topic, exchange, executor, endpoints, **kwargs):
         handlers = {
-            pr.NOTIFY: delayed(executor)(self._process_notify),
+            pr.NOTIFY: [
+                delayed(executor)(self._process_notify),
+                functools.partial(pr.Notify.validate, response=False),
+            ],
             pr.REQUEST: delayed(executor)(self._process_request),
         }
         self._proxy = proxy.Proxy(topic, exchange, handlers,
