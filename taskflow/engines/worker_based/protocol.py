@@ -67,6 +67,12 @@ NOTIFY = 'NOTIFY'
 REQUEST = 'REQUEST'
 RESPONSE = 'RESPONSE'
 
+# Special jsonschema validation types/adjustments.
+_SCHEMA_TYPES = {
+    # See: https://github.com/Julian/jsonschema/issues/148
+    'array': (list, tuple),
+}
+
 
 @six.add_metaclass(abc.ABCMeta)
 class Message(object):
@@ -121,7 +127,7 @@ class Notify(Message):
         else:
             schema = cls._SENDER_SCHEMA
         try:
-            jsonschema.validate(data, schema)
+            jsonschema.validate(data, schema, types=_SCHEMA_TYPES)
         except schema_exc.ValidationError as e:
             if response:
                 raise excp.InvalidFormat("%s message response data not of the"
@@ -140,6 +146,43 @@ class Request(Message):
     given timeout.
     """
     TYPE = REQUEST
+    _SCHEMA = {
+        "type": "object",
+        'properties': {
+            # These two are typically only sent on revert actions (that is
+            # why are are not including them in the required section).
+            'result': {},
+            'failures': {
+                "type": "object",
+            },
+            'task_cls': {
+                'type': 'string',
+            },
+            'task_name': {
+                'type': 'string',
+            },
+            'task_version': {
+                "oneOf": [
+                    {
+                        "type": "string",
+                    },
+                    {
+                        "type": "array",
+                    },
+                ],
+            },
+            'action': {
+                "type": "string",
+                "enum": list(six.iterkeys(ACTION_TO_EVENT)),
+            },
+            # Keyword arguments that end up in the revert() or execute()
+            # method of the remote task.
+            'arguments': {
+                "type": "object",
+            },
+        },
+        'required': ['task_cls', 'task_name', 'task_version', 'action'],
+    }
 
     def __init__(self, task, uuid, action, arguments, progress_callback,
                  timeout, **kwargs):
@@ -221,6 +264,15 @@ class Request(Message):
     def on_progress(self, event_data, progress):
         self._progress_callback(self._task, event_data, progress)
 
+    @classmethod
+    def validate(cls, data):
+        try:
+            jsonschema.validate(data, cls._SCHEMA, types=_SCHEMA_TYPES)
+        except schema_exc.ValidationError as e:
+            raise excp.InvalidFormat("%s message response data not of the"
+                                     " expected format: %s"
+                                     % (cls.TYPE, e.message), e)
+
 
 class Response(Message):
     """Represents response message type."""
@@ -299,7 +351,7 @@ class Response(Message):
     @classmethod
     def validate(cls, data):
         try:
-            jsonschema.validate(data, cls._SCHEMA)
+            jsonschema.validate(data, cls._SCHEMA, types=_SCHEMA_TYPES)
         except schema_exc.ValidationError as e:
             raise excp.InvalidFormat("%s message response data not of the"
                                      " expected format: %s"
