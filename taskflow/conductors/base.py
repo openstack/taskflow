@@ -108,9 +108,10 @@ class Conductor(object):
         """Dispatches a claimed job for work completion.
 
         Accepts a single (already claimed) job and causes it to be run in
-        an engine. Returns a boolean that signifies whether the job should
-        be consumed. The job is consumed upon completion (unless False is
-        returned which will signify the job should be abandoned instead).
+        an engine. Returns a future object that represented the work to be
+        completed sometime in the future. The future should return a single
+        boolean from its result() method. This boolean determines whether the
+        job will be consumed (true) or whether it should be abandoned (false).
 
         :param job: A job instance that has already been claimed by the
                     jobboard.
