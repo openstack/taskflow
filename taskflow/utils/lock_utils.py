@@ -57,19 +57,26 @@ def locked(*args, **kwargs):
     automatically releasing that lock on exit.
 
     NOTE(harlowja): if no attribute is provided then by default the attribute
-    named '_lock' is looked for.
+    named '_lock' is looked for in the instance object this decorator is
+    attached to.
+
+    NOTE(harlowja): when we get the wrapt module approved we can address the
+    correctness of this decorator with regards to classmethods, to keep sanity
+    and correctness it is recommended to avoid using this on classmethods, once
+    https://review.openstack.org/#/c/94754/ is merged this will be refactored
+    and that use-case can be provided in a correct manner.
     """
 
     def decorator(f):
         attr_name = kwargs.get('lock', '_lock')
 
         @six.wraps(f)
-        def wrapper(*args, **kwargs):
-            lock = getattr(args[0], attr_name)
+        def wrapper(self, *args, **kwargs):
+            lock = getattr(self, attr_name)
             if isinstance(lock, (tuple, list)):
                 lock = MultiLock(locks=list(lock))
             with lock:
-                return f(*args, **kwargs)
+                return f(self, *args, **kwargs)
 
         return wrapper
 
