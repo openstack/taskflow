@@ -93,7 +93,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
     def test_on_message_response_state_running(self):
         response = pr.Response(pr.RUNNING)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
         ex._on_message(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls,
@@ -103,7 +103,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
     def test_on_message_response_state_progress(self):
         response = pr.Response(pr.PROGRESS, progress=1.0)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
         ex._on_message(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls,
@@ -115,10 +115,10 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         failure_dict = failure.to_dict()
         response = pr.Response(pr.FAILURE, result=failure_dict)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
         ex._on_message(response.to_dict(), self.message_mock)
 
-        self.assertEqual(len(ex._requests_cache._data), 0)
+        self.assertEqual(len(ex._requests_cache), 0)
         self.assertEqual(self.request_inst_mock.mock_calls, [
             mock.call.set_result(result=utils.FailureMatcher(failure))
         ])
@@ -128,7 +128,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         response = pr.Response(pr.SUCCESS, result=self.task_result,
                                event='executed')
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
         ex._on_message(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls,
@@ -139,7 +139,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
     def test_on_message_response_unknown_state(self):
         response = pr.Response(state='<unknown>')
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
         ex._on_message(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls, [])
@@ -149,7 +149,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.message_mock.properties['correlation_id'] = '<unknown>'
         response = pr.Response(pr.RUNNING)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
         ex._on_message(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls, [])
@@ -159,7 +159,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.message_mock.properties = {'type': pr.RESPONSE}
         response = pr.Response(pr.RUNNING)
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
         ex._on_message(response.to_dict(), self.message_mock)
 
         self.assertEqual(self.request_inst_mock.mock_calls, [])
@@ -188,32 +188,35 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
     def test_on_wait_task_not_expired(self):
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
 
-        self.assertEqual(len(ex._requests_cache._data), 1)
+        self.assertEqual(len(ex._requests_cache), 1)
         ex._on_wait()
-        self.assertEqual(len(ex._requests_cache._data), 1)
+        self.assertEqual(len(ex._requests_cache), 1)
 
     def test_on_wait_task_expired(self):
         self.request_inst_mock.expired = True
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
 
-        self.assertEqual(len(ex._requests_cache._data), 1)
+        self.assertEqual(len(ex._requests_cache), 1)
         ex._on_wait()
-        self.assertEqual(len(ex._requests_cache._data), 0)
+        self.assertEqual(len(ex._requests_cache), 0)
 
     def test_remove_task_non_existent(self):
         ex = self.executor()
-        ex._requests_cache.set(self.task_uuid, self.request_inst_mock)
+        ex._requests_cache[self.task_uuid] = self.request_inst_mock
 
-        self.assertEqual(len(ex._requests_cache._data), 1)
-        ex._requests_cache.delete(self.task_uuid)
-        self.assertEqual(len(ex._requests_cache._data), 0)
+        self.assertEqual(len(ex._requests_cache), 1)
+        del ex._requests_cache[self.task_uuid]
+        self.assertEqual(len(ex._requests_cache), 0)
 
         # delete non-existent
-        ex._requests_cache.delete(self.task_uuid)
-        self.assertEqual(len(ex._requests_cache._data), 0)
+        try:
+            del ex._requests_cache[self.task_uuid]
+        except KeyError:
+            pass
+        self.assertEqual(len(ex._requests_cache), 0)
 
     def test_execute_task(self):
         self.message_mock.properties['type'] = pr.NOTIFY

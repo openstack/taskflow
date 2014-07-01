@@ -14,54 +14,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
 import random
 
 import six
 
 from taskflow.engines.worker_based import protocol as pr
-from taskflow.utils import lock_utils as lu
-
-LOG = logging.getLogger(__name__)
+from taskflow.types import cache as base
 
 
-class Cache(object):
-    """Represents thread-safe cache."""
-
-    def __init__(self):
-        self._data = {}
-        self._lock = lu.ReaderWriterLock()
-
-    def get(self, key):
-        """Retrieve a value from the cache."""
-        with self._lock.read_lock():
-            return self._data.get(key)
-
-    def set(self, key, value):
-        """Set a value in the cache."""
-        with self._lock.write_lock():
-            self._data[key] = value
-            LOG.debug("Cache updated. Capacity: %s", len(self._data))
-
-    def delete(self, key):
-        """Delete a value from the cache."""
-        with self._lock.write_lock():
-            self._data.pop(key, None)
-
-    def cleanup(self, on_expired_callback=None):
-        """Delete out-dated values from the cache."""
-        with self._lock.write_lock():
-            expired_values = [(k, v) for k, v in six.iteritems(self._data)
-                              if v.expired]
-            for (k, _v) in expired_values:
-                self._data.pop(k, None)
-        if on_expired_callback:
-            for (_k, v) in expired_values:
-                on_expired_callback(v)
-
-
-class RequestsCache(Cache):
-    """Represents thread-safe requests cache."""
+class RequestsCache(base.ExpiringCache):
+    """Represents a thread-safe requests cache."""
 
     def get_waiting_requests(self, tasks):
         """Get list of waiting requests by tasks."""
@@ -73,8 +35,8 @@ class RequestsCache(Cache):
         return waiting_requests
 
 
-class WorkersCache(Cache):
-    """Represents thread-safe workers cache."""
+class WorkersCache(base.ExpiringCache):
+    """Represents a thread-safe workers cache."""
 
     def get_topic_by_task(self, task):
         """Get topic for a given task."""
