@@ -18,12 +18,10 @@ import collections
 import functools
 import inspect
 import sys
-import time
 
 from taskflow import states
 from taskflow import test
 from taskflow.tests import utils as test_utils
-from taskflow.types import time as tt
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -493,47 +491,6 @@ class IsValidAttributeNameTestCase(test.TestCase):
 
     def test_no_unicode_please(self):
         self.assertFalse(misc.is_valid_attribute_name('mañana'))
-
-
-class StopWatchUtilsTest(test.TestCase):
-    def test_no_states(self):
-        watch = tt.StopWatch()
-        self.assertRaises(RuntimeError, watch.stop)
-        self.assertRaises(RuntimeError, watch.resume)
-
-    def test_expiry(self):
-        watch = tt.StopWatch(0.1)
-        watch.start()
-        time.sleep(0.2)
-        self.assertTrue(watch.expired())
-
-    def test_no_expiry(self):
-        watch = tt.StopWatch(0.1)
-        watch.start()
-        self.assertFalse(watch.expired())
-
-    def test_elapsed(self):
-        watch = tt.StopWatch()
-        watch.start()
-        time.sleep(0.2)
-        # NOTE(harlowja): Allow for a slight variation by using 0.19.
-        self.assertGreaterEqual(0.19, watch.elapsed())
-
-    def test_pause_resume(self):
-        watch = tt.StopWatch()
-        watch.start()
-        time.sleep(0.05)
-        watch.stop()
-        elapsed = watch.elapsed()
-        time.sleep(0.05)
-        self.assertAlmostEqual(elapsed, watch.elapsed())
-        watch.resume()
-        self.assertNotEqual(elapsed, watch.elapsed())
-
-    def test_context_manager(self):
-        with tt.StopWatch() as watch:
-            time.sleep(0.05)
-        self.assertGreater(0.01, watch.elapsed())
 
 
 class UriParseTest(test.TestCase):
