@@ -23,6 +23,7 @@ from taskflow.engines.worker_based import cache
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow import exceptions as exc
+from taskflow.types import time as tt
 from taskflow.utils import async_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -77,7 +78,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         self._proxy = proxy.Proxy(uuid, exchange, self._on_message,
                                   self._on_wait, **kwargs)
         self._proxy_thread = None
-        self._periodic = PeriodicWorker(misc.Timeout(pr.NOTIFY_PERIOD),
+        self._periodic = PeriodicWorker(tt.Timeout(pr.NOTIFY_PERIOD),
                                         [self._notify_topics])
         self._periodic_thread = None
 
