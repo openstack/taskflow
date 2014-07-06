@@ -411,7 +411,7 @@ class TaskDetail(AtomDetail):
 
     def merge(self, other, deep_copy=False):
         if not isinstance(other, TaskDetail):
-            raise NotImplemented("Can only merge with other task details")
+            raise NotImplementedError("Can only merge with other task details")
         if other is self:
             return self
         super(TaskDetail, self).merge(other, deep_copy=deep_copy)
@@ -496,7 +496,8 @@ class RetryDetail(AtomDetail):
 
     def merge(self, other, deep_copy=False):
         if not isinstance(other, RetryDetail):
-            raise NotImplemented("Can only merge with other retry details")
+            raise NotImplementedError("Can only merge with other retry "
+                                      "details")
         if other is self:
             return self
         super(RetryDetail, self).merge(other, deep_copy=deep_copy)
