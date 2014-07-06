@@ -17,7 +17,6 @@
 import logging
 
 from taskflow.engines.action_engine import executor as ex
-from taskflow import exceptions
 from taskflow import states
 from taskflow.utils import async_utils
 from taskflow.utils import misc
@@ -39,27 +38,25 @@ class RetryAction(object):
         return kwargs
 
     def change_state(self, retry, state, result=None):
-        old_state = self._storage.get_atom_state(retry.name)
-        if old_state == state:
-            return state != states.PENDING
         if state in SAVE_RESULT_STATES:
             self._storage.save(retry.name, result, state)
         elif state == states.REVERTED:
             self._storage.cleanup_retry_history(retry.name, state)
         else:
+            old_state = self._storage.get_atom_state(retry.name)
+            if state == old_state:
+                # NOTE(imelnikov): nothing really changed, so we should not
+                # write anything to storage and run notifications
+                return
             self._storage.set_atom_state(retry.name, state)
         retry_uuid = self._storage.get_atom_uuid(retry.name)
         details = dict(retry_name=retry.name,
                        retry_uuid=retry_uuid,
                        result=result)
         self._notifier.notify(state, details)
-        return True
 
     def execute(self, retry):
-        if not self.change_state(retry, states.RUNNING):
-            raise exceptions.InvalidState("Retry controller %s is in invalid "
-                                          "state and can't be executed" %
-                                          retry.name)
+        self.change_state(retry, states.RUNNING)
         kwargs = self._get_retry_args(retry)
         try:
             result = retry.execute(**kwargs)
@@ -71,10 +68,7 @@ class RetryAction(object):
         return async_utils.make_completed_future((retry, ex.EXECUTED, result))
 
     def revert(self, retry):
-        if not self.change_state(retry, states.REVERTING):
-            raise exceptions.InvalidState("Retry controller %s is in invalid "
-                                          "state and can't be reverted" %
-                                          retry.name)
+        self.change_state(retry, states.REVERTING)
         kwargs = self._get_retry_args(retry)
         kwargs['flow_failures'] = self._storage.get_failures()
         try:
