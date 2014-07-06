@@ -34,6 +34,31 @@ Contents
 
    workers
 
+Examples
+--------
+
+While developing TaskFlow the team has worked *hard* to make sure the various
+concepts are explained by *relevant* examples. Here are a few selected examples
+to get started (ordered by *perceived* complexity):
+
+.. toctree::
+   :maxdepth: 2
+
+   examples
+
+To explore more of these examples please check out the `examples`_ directory
+in the TaskFlow `source tree`_.
+
+.. note::
+
+    If the examples provided are not satisfactory (or up to your
+    standards) contributions are welcome and very much appreciated to help
+    improve them. The higher the quality and the clearer the examples are the
+    better and more useful they are for everyone.
+
+.. _examples: http://git.openstack.org/cgit/openstack/taskflow/tree/taskflow/examples
+.. _source tree: http://git.openstack.org/cgit/openstack/taskflow/
+
 Considerations
 --------------
 
@@ -66,7 +91,6 @@ Miscellaneous
 
    exceptions
    states
-   examples
 
 Indices and tables
 ==================
