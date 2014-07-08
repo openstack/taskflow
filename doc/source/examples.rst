@@ -34,6 +34,18 @@ Building a car
     :linenos:
     :lines: 16-
 
+Watching execution timing
+=========================
+
+.. note::
+
+    Full source located at :example:`timing_listener`.
+
+.. literalinclude:: ../../taskflow/examples/timing_listener.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Linear equation solver (explicit dependencies)
 ==============================================
 
