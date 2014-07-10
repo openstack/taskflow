@@ -17,8 +17,11 @@
 import time
 
 import networkx as nx
+import six
 
+from taskflow import exceptions as excp
 from taskflow import test
+from taskflow.types import fsm
 from taskflow.types import graph
 from taskflow.types import timing as tt
 from taskflow.types import tree
@@ -117,7 +120,7 @@ class TreeTest(test.TestCase):
                               'primate', 'monkey', 'human']), set(things))
 
 
-class StopWatchUtilsTest(test.TestCase):
+class StopWatchTest(test.TestCase):
     def test_no_states(self):
         watch = tt.StopWatch()
         self.assertRaises(RuntimeError, watch.stop)
@@ -156,3 +159,148 @@ class StopWatchUtilsTest(test.TestCase):
         with tt.StopWatch() as watch:
             time.sleep(0.05)
         self.assertGreater(0.01, watch.elapsed())
+
+
+class FSMTest(test.TestCase):
+    def setUp(self):
+        super(FSMTest, self).setUp()
+        # NOTE(harlowja): this state machine will never stop if run() is used.
+        self.jumper = fsm.FSM("down")
+        self.jumper.add_state('up')
+        self.jumper.add_state('down')
+        self.jumper.add_transition('down', 'up', 'jump')
+        self.jumper.add_transition('up', 'down', 'fall')
+        self.jumper.add_reaction('up', 'jump', lambda *args: 'fall')
+        self.jumper.add_reaction('down', 'fall', lambda *args: 'jump')
+
+    def test_bad_start_state(self):
+        m = fsm.FSM('unknown')
+        self.assertRaises(excp.NotFound, m.run, 'unknown')
+
+    def test_contains(self):
+        m = fsm.FSM('unknown')
+        self.assertNotIn('unknown', m)
+        m.add_state('unknown')
+        self.assertIn('unknown', m)
+
+    def test_duplicate_state(self):
+        m = fsm.FSM('unknown')
+        m.add_state('unknown')
+        self.assertRaises(excp.Duplicate, m.add_state, 'unknown')
+
+    def test_duplicate_reaction(self):
+        self.assertRaises(
+            # Currently duplicate reactions are not allowed...
+            excp.Duplicate,
+            self.jumper.add_reaction, 'down', 'fall', lambda *args: 'skate')
+
+    def test_bad_transition(self):
+        m = fsm.FSM('unknown')
+        m.add_state('unknown')
+        m.add_state('fire')
+        self.assertRaises(excp.NotFound, m.add_transition,
+                          'unknown', 'something', 'boom')
+        self.assertRaises(excp.NotFound, m.add_transition,
+                          'something', 'unknown', 'boom')
+
+    def test_bad_reaction(self):
+        m = fsm.FSM('unknown')
+        m.add_state('unknown')
+        self.assertRaises(excp.NotFound, m.add_reaction, 'something', 'boom',
+                          lambda *args: 'cough')
+
+    def test_run(self):
+        m = fsm.FSM('down')
+        m.add_state('down')
+        m.add_state('up')
+        m.add_state('broken', terminal=True)
+        m.add_transition('down', 'up', 'jump')
+        m.add_transition('up', 'broken', 'hit-wall')
+        m.add_reaction('up', 'jump', lambda *args: 'hit-wall')
+        self.assertEqual(['broken', 'down', 'up'], sorted(m.states))
+        self.assertEqual(2, m.events)
+        m.initialize()
+        self.assertEqual('down', m.current_state)
+        self.assertFalse(m.terminated)
+        m.run('jump')
+        self.assertTrue(m.terminated)
+        self.assertEqual('broken', m.current_state)
+        self.assertRaises(excp.InvalidState, m.run, 'jump', initialize=False)
+
+    def test_on_enter_on_exit(self):
+        enter_transitions = []
+        exit_transitions = []
+
+        def on_exit(state, event):
+            exit_transitions.append((state, event))
+
+        def on_enter(state, event):
+            enter_transitions.append((state, event))
+
+        m = fsm.FSM('start')
+        m.add_state('start', on_exit=on_exit)
+        m.add_state('down', on_enter=on_enter, on_exit=on_exit)
+        m.add_state('up', on_enter=on_enter, on_exit=on_exit)
+        m.add_transition('start', 'down', 'beat')
+        m.add_transition('down', 'up', 'jump')
+        m.add_transition('up', 'down', 'fall')
+
+        m.initialize()
+        m.process_event('beat')
+        m.process_event('jump')
+        m.process_event('fall')
+        self.assertEqual([('down', 'beat'),
+                          ('up', 'jump'), ('down', 'fall')], enter_transitions)
+        self.assertEqual([('down', 'jump'), ('up', 'fall')], exit_transitions)
+
+    def test_run_iter(self):
+        up_downs = []
+        for (old_state, new_state) in self.jumper.run_iter('jump'):
+            up_downs.append((old_state, new_state))
+            if len(up_downs) >= 3:
+                break
+        self.assertEqual([('down', 'up'), ('up', 'down'), ('down', 'up')],
+                         up_downs)
+        self.assertFalse(self.jumper.terminated)
+        self.assertEqual('up', self.jumper.current_state)
+        self.jumper.process_event('fall')
+        self.assertEqual('down', self.jumper.current_state)
+
+    def test_run_send(self):
+        up_downs = []
+        it = self.jumper.run_iter('jump')
+        while True:
+            up_downs.append(it.send(None))
+            if len(up_downs) >= 3:
+                it.close()
+                break
+        self.assertEqual('up', self.jumper.current_state)
+        self.assertFalse(self.jumper.terminated)
+        self.assertEqual([('down', 'up'), ('up', 'down'), ('down', 'up')],
+                         up_downs)
+        self.assertRaises(StopIteration, six.next, it)
+
+    def test_run_send_fail(self):
+        up_downs = []
+        it = self.jumper.run_iter('jump')
+        up_downs.append(six.next(it))
+        self.assertRaises(excp.NotFound, it.send, 'fail')
+        it.close()
+        self.assertEqual([('down', 'up')], up_downs)
+
+    def test_not_initialized(self):
+        self.assertRaises(fsm.NotInitialized,
+                          self.jumper.process_event, 'jump')
+
+    def test_iter(self):
+        transitions = list(self.jumper)
+        self.assertEqual(2, len(transitions))
+        self.assertIn(('up', 'fall', 'down'), transitions)
+        self.assertIn(('down', 'jump', 'up'), transitions)
+
+    def test_invalid_callbacks(self):
+        m = fsm.FSM('working')
+        m.add_state('working')
+        m.add_state('broken')
+        self.assertRaises(AssertionError, m.add_state, 'b', on_enter=2)
+        self.assertRaises(AssertionError, m.add_state, 'b', on_exit=2)
