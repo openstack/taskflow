@@ -23,7 +23,7 @@ from taskflow.engines.worker_based import cache
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow import exceptions as exc
-from taskflow.types import time as tt
+from taskflow.types import timing as tt
 from taskflow.utils import async_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
