@@ -151,3 +151,15 @@ Controlling retries using a retry controller
     :language: python
     :linenos:
     :lines: 16-
+
+Distributed execution (simple)
+==============================
+
+.. note::
+
+    Full source located at :example:`wbe_simple_linear`
+
+.. literalinclude:: ../../taskflow/examples/wbe_simple_linear.py
+    :language: python
+    :linenos:
+    :lines: 16-

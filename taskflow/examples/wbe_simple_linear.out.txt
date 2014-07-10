@@ -1,0 +1,5 @@
+Running 2 workers.
+Executing some work.
+Execution finished.
+Result = {"result1": 1, "result2": 666, "x": 111, "y": 222, "z": 333}
+Stopping workers.
