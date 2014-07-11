@@ -36,6 +36,8 @@ from taskflow import task
 from taskflow.tests import utils
 from taskflow.utils import misc
 
+import example_utils as eu  # noqa
+
 # INTRO: In this example we create two tasks which can trigger exceptions
 # based on various inputs to show how to analyze the thrown exceptions for
 # which types were thrown and handle the different types in different ways.
@@ -52,12 +54,6 @@ from taskflow.utils import misc
 # exceptions being thrown, but at the end of that rollback the engine will
 # rethrow these exceptions to the code that called the run() method; allowing
 # that code to do further cleanups (if desired).
-
-
-def print_wrapped(text):
-    print("-" * (len(text)))
-    print(text)
-    print("-" * (len(text)))
 
 
 class FirstException(Exception):
@@ -112,18 +108,18 @@ def run(**store):
         misc.Failure.reraise_if_any(unknown_failures)
 
 
-print_wrapped("Raise and catch first exception only")
+eu.print_wrapped("Raise and catch first exception only")
 run(sleep1=0.0, raise1=True,
     sleep2=0.0, raise2=False)
 
 # NOTE(imelnikov): in general, sleeping does not guarantee that we'll have both
 # task running before one of them fails, but with current implementation this
 # works most of times, which is enough for our purposes here (as an example).
-print_wrapped("Raise and catch both exceptions")
+eu.print_wrapped("Raise and catch both exceptions")
 run(sleep1=1.0, raise1=True,
     sleep2=1.0, raise2=True)
 
-print_wrapped("Handle one exception, and re-raise another")
+eu.print_wrapped("Handle one exception, and re-raise another")
 try:
     run(sleep1=1.0, raise1=True,
         sleep2=1.0, raise2='boom')

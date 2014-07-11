@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
+    'sphinx.ext.extlinks',
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
@@ -37,6 +38,7 @@ exclude_patterns = ['_build']
 # General information about the project.
 project = u'TaskFlow'
 copyright = u'2013-2014, OpenStack Foundation'
+source_tree = 'http://git.openstack.org/cgit/openstack/taskflow/tree'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -51,6 +53,10 @@ pygments_style = 'sphinx'
 # Prefixes that are ignored for sorting the Python module index
 modindex_common_prefix = ['taskflow.']
 
+# Shortened external links.
+extlinks = {
+    'example': (source_tree + '/taskflow/examples/%s.py', ''),
+}
 
 # -- Options for HTML output --------------------------------------------------
 

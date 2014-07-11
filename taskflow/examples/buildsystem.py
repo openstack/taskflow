@@ -29,8 +29,11 @@ import taskflow.engines
 from taskflow.patterns import graph_flow as gf
 from taskflow import task
 
+import example_utils as eu  # noqa
 
-# In this example we demonstrate use of TargetedFlow to make oversimplified
+
+# In this example we demonstrate use of a target flow (a flow that only
+# executes up to a specified target) to make an *oversimplified* pseudo
 # build system. It pretends to compile all sources to object files and
 # link them into an executable. It also can build docs, but this can be
 # "switched off" via targeted flow special power -- ability to ignore
@@ -75,7 +78,7 @@ class BuildDocsTask(task.Task):
 
 
 def make_flow_and_store(source_files, executable_only=False):
-    flow = gf.TargetedFlow('build flow')
+    flow = gf.TargetedFlow('build-flow')
     object_targets = []
     store = {}
     for source in source_files:
@@ -97,12 +100,12 @@ def make_flow_and_store(source_files, executable_only=False):
     return flow, store
 
 
-SOURCE_FILES = ['first.c', 'second.cpp', 'main.cpp']
+if __name__ == "__main__":
+    SOURCE_FILES = ['first.c', 'second.cpp', 'main.cpp']
+    eu.print_wrapped('Running all tasks:')
+    flow, store = make_flow_and_store(SOURCE_FILES)
+    taskflow.engines.run(flow, store=store)
 
-print('Running all tasks:')
-flow, store = make_flow_and_store(SOURCE_FILES)
-taskflow.engines.run(flow, store=store)
-
-print('\nBuilding executable, no docs:')
-flow, store = make_flow_and_store(SOURCE_FILES, executable_only=True)
-taskflow.engines.run(flow, store=store)
+    eu.print_wrapped('Building executable, no docs:')
+    flow, store = make_flow_and_store(SOURCE_FILES, executable_only=True)
+    taskflow.engines.run(flow, store=store)

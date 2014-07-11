@@ -70,7 +70,7 @@ class UrlCaller(object):
 
 # Since engines save the output of tasks to a optional persistent storage
 # backend resources have to be dealt with in a slightly different manner since
-# resources are transient and can not be persisted (or serialized). For tasks
+# resources are transient and can *not* be persisted (or serialized). For tasks
 # that require access to a set of resources it is a common pattern to provide
 # a object (in this case this object) on construction of those tasks via the
 # task constructor.
@@ -149,9 +149,9 @@ class DeclareSuccess(task.Task):
         print("All data processed and sent to %s" % (sent_to))
 
 
-# Resources (db handles and similar) of course can't be persisted so we need
-# to make sure that we pass this resource fetcher to the tasks constructor so
-# that the tasks have access to any needed resources (the resources are
+# Resources (db handles and similar) of course can *not* be persisted so we
+# need to make sure that we pass this resource fetcher to the tasks constructor
+# so that the tasks have access to any needed resources (the resources are
 # lazily loaded so that they are only created when they are used).
 resources = ResourceFetcher()
 flow = lf.Flow("initialize-me")

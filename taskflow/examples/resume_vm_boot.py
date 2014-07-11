@@ -43,7 +43,7 @@ from taskflow import task
 from taskflow.utils import eventlet_utils as e_utils
 from taskflow.utils import persistence_utils as p_utils
 
-import example_utils  # noqa
+import example_utils as eu  # noqa
 
 # INTRO: This examples shows how a hierarchy of flows can be used to create a
 # vm in a reliable & resumable manner using taskflow + a miniature version of
@@ -61,12 +61,6 @@ def slow_down(how_long=0.5):
             time.sleep(how_long)
 
 
-def print_wrapped(text):
-    print("-" * (len(text)))
-    print(text)
-    print("-" * (len(text)))
-
-
 class PrintText(task.Task):
     """Just inserts some text print outs in a workflow."""
     def __init__(self, print_what, no_slow=False):
@@ -77,10 +71,10 @@ class PrintText(task.Task):
 
     def execute(self):
         if self._no_slow:
-            print_wrapped(self._text)
+            eu.print_wrapped(self._text)
         else:
             with slow_down():
-                print_wrapped(self._text)
+                eu.print_wrapped(self._text)
 
 
 class DefineVMSpec(task.Task):
@@ -229,10 +223,10 @@ def create_flow():
         PrintText("Instance is running!", no_slow=True))
     return flow
 
-print_wrapped("Initializing")
+eu.print_wrapped("Initializing")
 
 # Setup the persistence & resumption layer.
-with example_utils.get_backend() as backend:
+with eu.get_backend() as backend:
     try:
         book_id, flow_id = sys.argv[2].split("+", 1)
         if not uuidutils.is_uuid_like(book_id):
@@ -275,7 +269,7 @@ with example_utils.get_backend() as backend:
                                           engine_conf=engine_conf)
 
     # Make me my vm please!
-    print_wrapped('Running')
+    eu.print_wrapped('Running')
     engine.run()
 
 # How to use.

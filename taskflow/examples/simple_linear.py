@@ -36,12 +36,13 @@ from taskflow import task
 # sequence (the flow) and then passing the work off to an engine, with some
 # initial data to be ran in a reliable manner.
 #
-# This example shows a basic usage of the taskflow structures without involving
-# the complexity of persistence. Using the structures that taskflow provides
-# via tasks and flows makes it possible for you to easily at a later time
-# hook in a persistence layer (and then gain the functionality that offers)
-# when you decide the complexity of adding that layer in is 'worth it' for your
-# applications usage pattern (which some applications may not need).
+# NOTE(harlowja): This example shows a basic usage of the taskflow structures
+# without involving the complexity of persistence. Using the structures that
+# taskflow provides via tasks and flows makes it possible for you to easily at
+# a later time hook in a persistence layer (and then gain the functionality
+# that offers) when you decide the complexity of adding that layer in
+# is 'worth it' for your applications usage pattern (which certain applications
+# may not need).
 
 
 class CallJim(task.Task):
