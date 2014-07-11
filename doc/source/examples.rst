@@ -163,3 +163,26 @@ Distributed execution (simple)
     :language: python
     :linenos:
     :lines: 16-
+
+Distributed mandelbrot (complex)
+================================
+
+.. note::
+
+    Full source located at :example:`wbe_mandelbrot`
+
+Output
+------
+
+.. image:: img/mandelbrot.png
+   :height: 128px
+   :align: right
+   :alt: Generated mandelbrot fractal
+
+Code
+----
+
+.. literalinclude:: ../../taskflow/examples/wbe_mandelbrot.py
+    :language: python
+    :linenos:
+    :lines: 16-
