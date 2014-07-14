@@ -19,6 +19,9 @@ import functools
 import inspect
 import sys
 
+import six
+import testtools
+
 from taskflow import states
 from taskflow import test
 from taskflow.tests import utils as test_utils
@@ -111,17 +114,22 @@ class GetCallableNameTest(test.TestCase):
 
     def test_method(self):
         name = reflection.get_callable_name(Class.method)
-        self.assertEqual(name, '.'.join((__name__, 'method')))
+        self.assertEqual(name, '.'.join((__name__, 'Class', 'method')))
 
     def test_instance_method(self):
         name = reflection.get_callable_name(Class().method)
         self.assertEqual(name, '.'.join((__name__, 'Class', 'method')))
 
     def test_static_method(self):
-        # NOTE(imelnikov): static method are just functions, class name
-        # is not recorded anywhere in them.
         name = reflection.get_callable_name(Class.static_method)
-        self.assertEqual(name, '.'.join((__name__, 'static_method')))
+        if six.PY3:
+            self.assertEqual(name,
+                             '.'.join((__name__, 'Class', 'static_method')))
+        else:
+            # NOTE(imelnikov): static method are just functions, class name
+            # is not recorded anywhere in them.
+            self.assertEqual(name,
+                             '.'.join((__name__, 'static_method')))
 
     def test_class_method(self):
         name = reflection.get_callable_name(Class.class_method)
@@ -139,6 +147,46 @@ class GetCallableNameTest(test.TestCase):
         name = reflection.get_callable_name(CallableClass().__call__)
         self.assertEqual(name, '.'.join((__name__, 'CallableClass',
                                          '__call__')))
+
+
+# These extended/special case tests only work on python 3, due to python 2
+# being broken/incorrect with regard to these special cases...
+@testtools.skipIf(not six.PY3, 'python 3.x is not currently available')
+class GetCallableNameTestExtended(test.TestCase):
+    # Tests items in http://legacy.python.org/dev/peps/pep-3155/
+
+    class InnerCallableClass(object):
+        def __call__(self):
+            pass
+
+    def test_inner_callable_class(self):
+        obj = self.InnerCallableClass()
+        name = reflection.get_callable_name(obj.__call__)
+        expected_name = '.'.join((__name__, 'GetCallableNameTestExtended',
+                                  'InnerCallableClass', '__call__'))
+        self.assertEqual(expected_name, name)
+
+    def test_inner_callable_function(self):
+        def a():
+
+            def b():
+                pass
+
+            return b
+
+        name = reflection.get_callable_name(a())
+        expected_name = '.'.join((__name__, 'GetCallableNameTestExtended',
+                                  'test_inner_callable_function', '<locals>',
+                                  'a', '<locals>', 'b'))
+        self.assertEqual(expected_name, name)
+
+    def test_inner_class(self):
+        obj = self.InnerCallableClass()
+        name = reflection.get_callable_name(obj)
+        expected_name = '.'.join((__name__,
+                                  'GetCallableNameTestExtended',
+                                  'InnerCallableClass'))
+        self.assertEqual(expected_name, name)
 
 
 class NotifierTest(test.TestCase):
