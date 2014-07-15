@@ -432,7 +432,7 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
                     else:
                         child_proc(request)
 
-    def post(self, name, book, details=None):
+    def post(self, name, book=None, details=None):
 
         def format_posting(job_uuid):
             posting = {
