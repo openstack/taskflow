@@ -22,6 +22,9 @@ import six
 class FrozenNode(Exception):
     """Exception raised when a frozen node is modified."""
 
+    def __init__(self):
+        super(FrozenNode, self).__init__("Frozen node(s) can't be modified")
+
 
 class _DFSIter(object):
     """Depth first iterator (non-recursive) over the child nodes."""
@@ -53,20 +56,22 @@ class Node(object):
         self.item = item
         self.parent = None
         self.metadata = dict(kwargs)
+        self.frozen = False
         self._children = []
-        self._frozen = False
-
-    def _frozen_add(self, child):
-        raise FrozenNode("Frozen node(s) can't be modified")
 
     def freeze(self):
-        if not self._frozen:
+        if not self.frozen:
+            # This will DFS until all children are frozen as well, only
+            # after that works do we freeze ourselves (this makes it so
+            # that we don't become frozen if a child node fails to perform
+            # the freeze operation).
             for n in self:
                 n.freeze()
-            self.add = self._frozen_add
-            self._frozen = True
+            self.frozen = True
 
     def add(self, child):
+        if self.frozen:
+            raise FrozenNode()
         child.parent = self
         self._children.append(child)
 
