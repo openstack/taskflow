@@ -77,10 +77,13 @@ class ZookeeperJob(base_job.Job):
         if all((self._book, self._book_data)):
             raise ValueError("Only one of 'book_data' or 'book'"
                              " can be provided")
-        self._path = path
+        self._path = k_paths.normpath(path)
         self._lock_path = path + LOCK_POSTFIX
         self._created_on = created_on
         self._node_not_found = False
+        basename = k_paths.basename(self._path)
+        self._root = self._path[0:-len(basename)]
+        self._sequence = int(basename[len(JOB_PREFIX):])
 
     @property
     def lock_path(self):
@@ -89,6 +92,14 @@ class ZookeeperJob(base_job.Job):
     @property
     def path(self):
         return self._path
+
+    @property
+    def sequence(self):
+        return self._sequence
+
+    @property
+    def root(self):
+        return self._root
 
     def _get_node_attr(self, path, attr_name, trans_func=None):
         try:
@@ -186,8 +197,11 @@ class ZookeeperJob(base_job.Job):
             return states.UNCLAIMED
         return states.CLAIMED
 
-    def __cmp__(self, other):
-        return cmp(self.path, other.path)
+    def __lt__(self, other):
+        if self.root == other.root:
+            return self.sequence < other.sequence
+        else:
+            return self.root < other.root
 
     def __hash__(self):
         return hash(self.path)
