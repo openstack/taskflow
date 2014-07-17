@@ -26,7 +26,6 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
-
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task

@@ -14,9 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import testtools
-
 from concurrent import futures
+import testtools
 
 from taskflow import test
 from taskflow.utils import async_utils as au

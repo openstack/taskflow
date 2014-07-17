@@ -15,28 +15,25 @@
 #    under the License.
 
 import contextlib
-import testtools
 import threading
 
 from concurrent import futures
-
-from taskflow.patterns import graph_flow as gf
-from taskflow.patterns import linear_flow as lf
-from taskflow.patterns import unordered_flow as uf
+import testtools
 
 import taskflow.engines
-
 from taskflow.engines.action_engine import engine as eng
 from taskflow.engines.worker_based import engine as w_eng
 from taskflow.engines.worker_based import worker as wkr
 from taskflow import exceptions as exc
+from taskflow.patterns import graph_flow as gf
+from taskflow.patterns import linear_flow as lf
+from taskflow.patterns import unordered_flow as uf
 from taskflow.persistence import logbook
 from taskflow import states
 from taskflow import task
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.types import graph as gr
-
 from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils

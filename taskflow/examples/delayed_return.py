@@ -35,7 +35,6 @@ sys.path.insert(0, self_dir)
 # while the function will have returned.
 
 import taskflow.engines
-
 from taskflow.listeners import base
 from taskflow.patterns import linear_flow as lf
 from taskflow import states

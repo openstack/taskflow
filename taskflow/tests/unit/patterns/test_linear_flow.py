@@ -17,7 +17,6 @@
 from taskflow import exceptions as exc
 from taskflow.patterns import linear_flow as lf
 from taskflow import retry
-
 from taskflow import test
 from taskflow.tests import utils
 

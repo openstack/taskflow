@@ -30,7 +30,6 @@ sys.path.insert(0, example_dir)
 
 
 import taskflow.engines
-
 from taskflow import states
 
 import example_utils  # noqa

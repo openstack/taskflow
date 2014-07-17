@@ -15,7 +15,6 @@
 #    under the License.
 
 import taskflow.engines
-
 from taskflow import exceptions as exc
 from taskflow import test
 from taskflow.tests import utils

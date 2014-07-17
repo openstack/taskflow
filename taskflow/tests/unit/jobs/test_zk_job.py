@@ -16,16 +16,14 @@
 
 import six
 import testtools
-
 from zake import fake_client
 from zake import utils as zake_utils
 
 from taskflow.jobs.backends import impl_zookeeper
-from taskflow import states
-from taskflow import test
-
 from taskflow.openstack.common import jsonutils
 from taskflow.openstack.common import uuidutils
+from taskflow import states
+from taskflow import test
 from taskflow.tests.unit.jobs import base
 from taskflow.tests import utils as test_utils
 from taskflow.utils import kazoo_utils

@@ -20,6 +20,7 @@ down_revision = '84d6e888850'
 
 from alembic import op
 import sqlalchemy as sa
+
 from taskflow import states
 
 

@@ -16,9 +16,8 @@
 
 import abc
 
-import six
-
 from concurrent import futures
+import six
 
 from taskflow.engines.action_engine import executor
 from taskflow.types import time

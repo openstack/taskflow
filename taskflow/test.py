@@ -14,14 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import fixtures
 import mock
-
+import six
 from testtools import compat
 from testtools import matchers
 from testtools import testcase
-
-import fixtures
-import six
 
 from taskflow import exceptions
 from taskflow.tests import utils

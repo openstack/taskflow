@@ -17,7 +17,6 @@
 from taskflow import exceptions as exc
 from taskflow.patterns import graph_flow as gf
 from taskflow import retry
-
 from taskflow import test
 from taskflow.tests import utils
 

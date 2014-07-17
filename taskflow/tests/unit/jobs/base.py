@@ -15,11 +15,11 @@
 #    under the License.
 
 import contextlib
-import mock
 import threading
 import time
 
 from kazoo.recipe import watchers
+import mock
 
 from taskflow import exceptions as excp
 from taskflow.openstack.common import uuidutils

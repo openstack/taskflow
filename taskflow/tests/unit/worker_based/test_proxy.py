@@ -14,9 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 import socket
 import threading
+
+import mock
 
 from taskflow.engines.worker_based import proxy
 from taskflow import test

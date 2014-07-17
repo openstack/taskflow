@@ -25,7 +25,6 @@ from sqlalchemy import types as types
 from taskflow.openstack.common import jsonutils
 from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
-
 from taskflow.persistence import logbook
 from taskflow import states
 

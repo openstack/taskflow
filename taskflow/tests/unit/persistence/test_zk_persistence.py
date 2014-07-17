@@ -25,10 +25,9 @@ from taskflow.openstack.common import uuidutils
 from taskflow.persistence import backends
 from taskflow.persistence.backends import impl_zookeeper
 from taskflow import test
-from taskflow.utils import kazoo_utils
-
 from taskflow.tests.unit.persistence import base
 from taskflow.tests import utils as test_utils
+from taskflow.utils import kazoo_utils
 
 TEST_PATH_TPL = '/taskflow/persistence-test/%s'
 _ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
