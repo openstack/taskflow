@@ -476,6 +476,17 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
             return job
 
     def claim(self, job, who):
+        def _unclaimable_try_find_owner(cause):
+            try:
+                owner = self.find_owner(job)
+            except Exception:
+                owner = None
+            if owner:
+                msg = "Job %s already claimed by '%s'" % (job.uuid, owner)
+            else:
+                msg = "Job %s already claimed" % (job.uuid)
+            return excp.UnclaimableJob(msg, cause)
+
         _check_who(who)
         with self._wrap(job.uuid, job.path, "Claiming failure: %s"):
             # NOTE(harlowja): post as json which will allow for future changes
@@ -483,21 +494,33 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
             value = jsonutils.dumps({
                 'owner': who,
             })
+            # Ensure the target job is still existent (at the right version).
+            job_data, job_stat = self._client.get(job.path)
+            txn = self._client.transaction()
+            # This will abort (and not create the lock) if the job has been
+            # removed (somehow...) or updated by someone else to a different
+            # version...
+            txn.check(job.path, version=job_stat.version)
+            txn.create(job.lock_path, value=misc.binary_encode(value),
+                       ephemeral=True)
             try:
-                self._client.create(job.lock_path,
-                                    value=misc.binary_encode(value),
-                                    ephemeral=True)
-            except k_exceptions.NodeExistsException:
-                # Try to see if we can find who the owner really is...
-                try:
-                    owner = self.find_owner(job)
-                except Exception:
-                    owner = None
-                if owner:
-                    msg = "Job %s already claimed by '%s'" % (job.uuid, owner)
+                kazoo_utils.checked_commit(txn)
+            except k_exceptions.NodeExistsError as e:
+                raise _unclaimable_try_find_owner(e)
+            except kazoo_utils.KazooTransactionException as e:
+                if len(e.failures) < 2:
+                    raise
                 else:
-                    msg = "Job %s already claimed" % (job.uuid)
-                raise excp.UnclaimableJob(msg)
+                    if isinstance(e.failures[0], k_exceptions.NoNodeError):
+                        raise excp.NotFound(
+                            "Job %s not found to be claimed" % job.uuid,
+                            e.failures[0])
+                    if isinstance(e.failures[1], k_exceptions.NodeExistsError):
+                        raise _unclaimable_try_find_owner(e.failures[1])
+                    else:
+                        raise excp.UnclaimableJob(
+                            "Job %s claim failed due to transaction"
+                            " not succeeding" % (job.uuid), e)
 
     @contextlib.contextmanager
     def _wrap(self, job_uuid, job_path,
