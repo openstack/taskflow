@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow import exceptions as exc
 from taskflow.patterns import unordered_flow as uf
 from taskflow import retry
 from taskflow import test
@@ -59,7 +58,7 @@ class UnorderedFlowTest(test.TestCase):
         self.assertEqual(f.requires, set(['a', 'b']))
         self.assertEqual(f.provides, set(['c', 'd']))
 
-    def test_unordered_flow_two_independent_tasks(self):
+    def test_unordered_flow_two_tasks(self):
         task1 = _task(name='task1')
         task2 = _task(name='task2')
         f = uf.Flow('test').add(task1, task2)
@@ -68,35 +67,29 @@ class UnorderedFlowTest(test.TestCase):
         self.assertEqual(set(f), set([task1, task2]))
         self.assertEqual(list(f.iter_links()), [])
 
-    def test_unordered_flow_two_dependent_tasks(self):
-        task1 = _task(name='task1', provides=['a'])
-        task2 = _task(name='task2', requires=['a'])
-        f = uf.Flow('test')
-        self.assertRaises(exc.DependencyFailure, f.add, task1, task2)
-
-    def test_unordered_flow_two_dependent_tasks_two_different_calls(self):
+    def test_unordered_flow_two_tasks_two_different_calls(self):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = uf.Flow('test').add(task1)
-        self.assertRaises(exc.DependencyFailure, f.add, task2)
+        f.add(task2)
+        self.assertEqual(len(f), 2)
+        self.assertEqual(set(['a']), f.requires)
+        self.assertEqual(set(['a']), f.provides)
 
-    def test_unordered_flow_two_dependent_tasks_reverse_order(self):
+    def test_unordered_flow_two_tasks_reverse_order(self):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
-        f = uf.Flow('test')
-        self.assertRaises(exc.DependencyFailure, f.add, task2, task1)
-
-    def test_unordered_flow_two_dependent_tasks_reverse_order2(self):
-        task1 = _task(name='task1', provides=['a'])
-        task2 = _task(name='task2', requires=['a'])
-        f = uf.Flow('test').add(task2)
-        self.assertRaises(exc.DependencyFailure, f.add, task1)
+        f = uf.Flow('test').add(task2).add(task1)
+        self.assertEqual(len(f), 2)
+        self.assertEqual(set(['a']), f.requires)
+        self.assertEqual(set(['a']), f.provides)
 
     def test_unordered_flow_two_task_same_provide(self):
         task1 = _task(name='task1', provides=['a', 'b'])
         task2 = _task(name='task2', provides=['a', 'c'])
         f = uf.Flow('test')
-        self.assertRaises(exc.DependencyFailure, f.add, task2, task1)
+        f.add(task2, task1)
+        self.assertEqual(len(f), 2)
 
     def test_unordered_flow_with_retry(self):
         ret = retry.AlwaysRevert(requires=['a'], provides=['b'])
@@ -106,3 +99,12 @@ class UnorderedFlowTest(test.TestCase):
 
         self.assertEqual(f.requires, set(['a']))
         self.assertEqual(f.provides, set(['b']))
+
+    def test_unordered_flow_with_retry_fully_satisfies(self):
+        ret = retry.AlwaysRevert(provides=['b', 'a'])
+        f = uf.Flow('test', ret)
+        f.add(_task(name='task1', requires=['a']))
+        self.assertIs(f.retry, ret)
+        self.assertEqual(ret.name, 'test_retry')
+        self.assertEqual(f.requires, set([]))
+        self.assertEqual(f.provides, set(['b', 'a']))
