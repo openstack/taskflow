@@ -218,9 +218,8 @@ class FlowDependenciesTest(test.TestCase):
     def test_graph_flow_provides_provided_value_other_call(self):
         flow = gf.Flow('gf')
         flow.add(utils.TaskOneReturn('task1', provides='x'))
-        self.assertRaises(exceptions.DependencyFailure,
-                          flow.add,
-                          utils.TaskOneReturn('task2', provides='x'))
+        flow.add(utils.TaskOneReturn('task2', provides='x'))
+        self.assertEqual(set(['x']), flow.provides)
 
     def test_graph_flow_multi_provides_and_requires_values(self):
         flow = gf.Flow('gf').add(
@@ -367,17 +366,16 @@ class FlowDependenciesTest(test.TestCase):
         self.assertEqual(flow.requires, set(['x', 'y', 'c']))
         self.assertEqual(flow.provides, set(['a', 'b', 'z']))
 
-    def test_graph_flow_retry_and_task_dependency_conflict(self):
+    def test_graph_flow_retry_and_task_dependency_provide_require(self):
         flow = gf.Flow('gf', retry.AlwaysRevert('rt', requires=['x']))
-        self.assertRaises(exceptions.DependencyFailure,
-                          flow.add,
-                          utils.TaskOneReturn(provides=['x']))
+        flow.add(utils.TaskOneReturn(provides=['x']))
+        self.assertEqual(set(['x']), flow.provides)
+        self.assertEqual(set(['x']), flow.requires)
 
     def test_graph_flow_retry_and_task_provide_same_value(self):
         flow = gf.Flow('gf', retry.AlwaysRevert('rt', provides=['x']))
-        self.assertRaises(exceptions.DependencyFailure,
-                          flow.add,
-                          utils.TaskOneReturn('t1', provides=['x']))
+        flow.add(utils.TaskOneReturn('t1', provides=['x']))
+        self.assertEqual(set(['x']), flow.provides)
 
     def test_builtin_retry_args(self):
 

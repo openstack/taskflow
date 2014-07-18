@@ -98,6 +98,10 @@ class DependencyFailure(TaskFlowException):
     """Raised when some type of dependency problem occurs."""
 
 
+class AmbiguousDependency(DependencyFailure):
+    """Raised when some type of ambiguous dependency problem occurs."""
+
+
 class MissingDependencies(DependencyFailure):
     """Raised when a entity has dependencies that can not be satisfied."""
     MESSAGE_TPL = ("%(who)s requires %(requirements)s but no other entity"
