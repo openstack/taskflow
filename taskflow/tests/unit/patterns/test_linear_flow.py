@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow import exceptions as exc
 from taskflow.patterns import linear_flow as lf
 from taskflow import retry
 from taskflow import test
@@ -94,24 +93,6 @@ class LinearFlowTest(test.TestCase):
         self.assertEqual(list(f.iter_links()), [
             (task1, task2, {'invariant': True})
         ])
-
-    def test_linear_flow_two_dependent_tasks_reverse_order(self):
-        task1 = _task(name='task1', provides=['a'])
-        task2 = _task(name='task2', requires=['a'])
-        f = lf.Flow('test')
-        self.assertRaises(exc.DependencyFailure, f.add, task2, task1)
-
-    def test_linear_flow_two_dependent_tasks_reverse_order2(self):
-        task1 = _task(name='task1', provides=['a'])
-        task2 = _task(name='task2', requires=['a'])
-        f = lf.Flow('test').add(task2)
-        self.assertRaises(exc.DependencyFailure, f.add, task1)
-
-    def test_linear_flow_two_task_same_provide(self):
-        task1 = _task(name='task1', provides=['a', 'b'])
-        task2 = _task(name='task2', provides=['a', 'c'])
-        f = lf.Flow('test')
-        self.assertRaises(exc.DependencyFailure, f.add, task2, task1)
 
     def test_linear_flow_three_tasks(self):
         task1 = _task(name='task1')
