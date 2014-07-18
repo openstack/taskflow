@@ -92,3 +92,15 @@ class Flow(flow.Flow):
         # NOTE(imelnikov): children in unordered flow have no dependencies
         # between each other due to invariants retained during construction.
         return iter(())
+
+    @property
+    def requires(self):
+        requires = set()
+        retry_provides = set()
+        if self._retry is not None:
+            requires.update(self._retry.requires)
+            retry_provides.update(self._retry.provides)
+        for item in self:
+            item_requires = item.requires - retry_provides
+            requires.update(item_requires)
+        return frozenset(requires)

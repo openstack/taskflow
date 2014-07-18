@@ -34,10 +34,7 @@ class Flow(object):
 
     NOTE(harlowja): if a flow is placed in another flow as a subflow, a desired
     way to compose flows together, then it is valid and permissible that during
-    execution the subflow & parent flow may be flattened into a new flow. Since
-    a flow is just a 'structuring' concept this is typically a behavior that
-    should not be worried about (as it is not visible to the user), but it is
-    worth mentioning here.
+    compilation the subflow & parent flow *may* be flattened into a new flow.
     """
 
     def __init__(self, name, retry=None):
@@ -45,7 +42,7 @@ class Flow(object):
         self._retry = retry
         # NOTE(akarpinska): if retry doesn't have a name,
         # the name of its owner will be assigned
-        if self._retry and self._retry.name is None:
+        if self._retry is not None and self._retry.name is None:
             self._retry.name = self.name + "_retry"
 
     @property
@@ -93,27 +90,14 @@ class Flow(object):
 
     @property
     def provides(self):
-        """Set of result names provided by the flow.
-
-        Includes names of all the outputs provided by atoms of this flow.
-        """
+        """Set of symbol names provided by the flow."""
         provides = set()
-        if self._retry:
+        if self._retry is not None:
             provides.update(self._retry.provides)
-        for subflow in self:
-            provides.update(subflow.provides)
-        return provides
+        for item in self:
+            provides.update(item.provides)
+        return frozenset(provides)
 
-    @property
+    @abc.abstractproperty
     def requires(self):
-        """Set of argument names required by the flow.
-
-        Includes names of all the inputs required by atoms of this
-        flow, but not provided within the flow itself.
-        """
-        requires = set()
-        if self._retry:
-            requires.update(self._retry.requires)
-        for subflow in self:
-            requires.update(subflow.requires)
-        return requires - self.provides
+        """Set of *unsatisfied* symbol names required by the flow."""

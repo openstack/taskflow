@@ -74,7 +74,18 @@ class Flow(flow.Flow):
         for child in self._children:
             yield child
 
+    @property
+    def requires(self):
+        requires = set()
+        prior_provides = set()
+        if self._retry is not None:
+            requires.update(self._retry.requires)
+            prior_provides.update(self._retry.provides)
+        for item in self:
+            requires.update(item.requires - prior_provides)
+            prior_provides.update(item.provides)
+        return frozenset(requires)
+
     def iter_links(self):
-        for src, dst in zip(self._children[:-1],
-                            self._children[1:]):
+        for src, dst in zip(self._children[:-1], self._children[1:]):
             yield (src, dst, _LINK_METADATA.copy())

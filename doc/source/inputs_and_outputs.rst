@@ -49,7 +49,7 @@ For example:
    ...     MyTask(requires='b', provides='d')
    ... )
    >>> flow.requires
-   set(['a'])
+   frozenset(['a'])
    >>> sorted(flow.provides)
    ['b', 'c', 'd']
 
