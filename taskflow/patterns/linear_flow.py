@@ -17,7 +17,7 @@
 from taskflow import flow
 
 
-_LINK_METADATA = {'invariant': True}
+_LINK_METADATA = {flow.LINK_INVARIANT: True}
 
 
 class Flow(flow.Flow):
