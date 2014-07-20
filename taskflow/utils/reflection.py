@@ -77,7 +77,7 @@ def get_member_names(obj, exclude_hidden=True):
     return [name for (name, _obj) in _get_members(obj, exclude_hidden)]
 
 
-def get_class_name(obj):
+def get_class_name(obj, fully_qualified=True):
     """Get class name for object.
 
     If object is a type, fully qualified name of the type is returned.
@@ -88,7 +88,10 @@ def get_class_name(obj):
         obj = type(obj)
     if obj.__module__ in ('builtins', '__builtin__', 'exceptions'):
         return obj.__name__
-    return '.'.join((obj.__module__, obj.__name__))
+    if fully_qualified:
+        return '.'.join((obj.__module__, obj.__name__))
+    else:
+        return obj.__name__
 
 
 def get_all_class_names(obj, up_to=object):
