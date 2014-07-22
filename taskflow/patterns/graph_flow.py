@@ -161,7 +161,7 @@ class Flow(flow.Flow):
         return self._get_subgraph().number_of_nodes()
 
     def __iter__(self):
-        for n in self._get_subgraph().nodes_iter():
+        for n in self._get_subgraph().topological_sort():
             yield n
 
     def iter_links(self):

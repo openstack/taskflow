@@ -166,6 +166,11 @@ class Node(object):
         for c in self._children:
             yield c
 
+    def reverse_iter(self):
+        """Iterates over the direct children of this node (left->right)."""
+        for c in reversed(self._children):
+            yield c
+
     def index(self, item):
         """Finds the child index of a given item, searchs in added order."""
         index_at = None

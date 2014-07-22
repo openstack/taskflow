@@ -210,13 +210,13 @@ class ActionEngine(base.EngineBase):
 
     @misc.cachedproperty
     def _compiler(self):
-        return self._compiler_factory()
+        return self._compiler_factory(self._flow)
 
     @lock_utils.locked
     def compile(self):
         if self._compiled:
             return
-        self._compilation = self._compiler.compile(self._flow)
+        self._compilation = self._compiler.compile()
         self._runtime = runtime.Runtime(self._compilation,
                                         self.storage,
                                         self.task_notifier,

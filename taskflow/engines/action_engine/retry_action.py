@@ -27,13 +27,16 @@ SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 
 
 class RetryAction(object):
-    def __init__(self, storage, notifier):
+    def __init__(self, storage, notifier, walker_factory):
         self._storage = storage
         self._notifier = notifier
+        self._walker_factory = walker_factory
 
     def _get_retry_args(self, retry):
+        scope_walker = self._walker_factory(retry)
         kwargs = self._storage.fetch_mapped_args(retry.rebind,
-                                                 atom_name=retry.name)
+                                                 atom_name=retry.name,
+                                                 scope_walker=scope_walker)
         kwargs['history'] = self._storage.get_retry_history(retry.name)
         return kwargs
 
