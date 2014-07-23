@@ -20,7 +20,7 @@ Requirements
 
 Because TaskFlow has many optional (pluggable) parts like persistence
 backends and engines, we decided to split our requirements into two
-parts: - things that are absolutely required by TaskFlow (you can’t use
+parts: - things that are absolutely required by TaskFlow (you can't use
 TaskFlow without them) are put to ``requirements.txt``; - things that
 are required by some optional part of TaskFlow (you can use TaskFlow
 without them) are put to ``optional-requirements.txt``; if you want to
