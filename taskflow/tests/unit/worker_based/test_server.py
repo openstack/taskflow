@@ -14,11 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
-
-import six
-
 from kombu import exceptions as exc
+import mock
+import six
 
 from taskflow.engines.worker_based import endpoint as ep
 from taskflow.engines.worker_based import protocol as pr

@@ -14,11 +14,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import kombu
 import logging
 import socket
 import threading
 
+import kombu
 import six
 
 LOG = logging.getLogger(__name__)

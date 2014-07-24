@@ -28,7 +28,6 @@ sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
 import taskflow.engines
-
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
 from taskflow.utils import persistence_utils as p_utils

@@ -28,6 +28,7 @@ down_revision = '1c783c0c2875'
 
 from alembic import op
 import sqlalchemy as sa
+
 from taskflow.persistence import logbook
 
 

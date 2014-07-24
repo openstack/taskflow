@@ -16,13 +16,12 @@
 
 import mock
 
+import taskflow.engines
 from taskflow import exceptions as exc
 from taskflow.patterns import linear_flow
 from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.utils import persistence_utils as p_utils
-
-import taskflow.engines
 
 
 class EngineLoadingTestCase(test.TestCase):

@@ -15,7 +15,6 @@
 #    under the License.
 
 import taskflow.engines
-
 from taskflow.patterns import linear_flow
 from taskflow import task as base
 from taskflow import test

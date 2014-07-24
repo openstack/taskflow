@@ -29,7 +29,6 @@ sys.path.insert(0, top_dir)
 
 
 import taskflow.engines
-
 from taskflow import exceptions
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task

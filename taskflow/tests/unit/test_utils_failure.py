@@ -19,7 +19,6 @@ import six
 from taskflow import exceptions
 from taskflow import test
 from taskflow.tests import utils as test_utils
-
 from taskflow.utils import misc
 
 

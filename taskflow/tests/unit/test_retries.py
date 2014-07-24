@@ -14,13 +14,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import taskflow.engines
+from taskflow import exceptions as exc
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
-
-import taskflow.engines
-
-from taskflow import exceptions as exc
 from taskflow import retry
 from taskflow import states as st
 from taskflow import test
