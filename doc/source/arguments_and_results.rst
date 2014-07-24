@@ -53,8 +53,8 @@ the task.
     ...     def execute(self, spam, eggs):
     ...         return spam + eggs
     ...
-    >>> MyTask().requires
-    set(['eggs', 'spam'])
+    >>> sorted(MyTask().requires)
+    ['eggs', 'spam']
 
 Inference from the method signature is the ''simplest'' way to specify task
 arguments. Optional arguments (with default values), and special arguments like
