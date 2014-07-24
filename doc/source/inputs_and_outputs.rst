@@ -34,6 +34,7 @@ set of names of such values is available via ``provides`` property of the flow.
     from taskflow import task
     from taskflow.patterns import linear_flow
     from taskflow import engines
+    from pprint import pprint
 
 For example:
 
@@ -118,10 +119,11 @@ of the engine helpers (:py:func:`~taskflow.engines.helpers.run` or
    >>> flo = linear_flow.Flow("cat-dog")
    >>> flo.add(CatTalk(), DogTalk(provides="dog"))
    <taskflow.patterns.linear_flow.Flow object at 0x...>
-   >>> engines.run(flo, store={'meow': 'meow', 'woof': 'woof'})
+   >>> result = engines.run(flo, store={'meow': 'meow', 'woof': 'woof'})
    meow
    woof
-   {'meow': 'meow', 'woof': 'woof', 'dog': 'dog'}
+   >>> pprint(result)
+   {'dog': 'dog', 'meow': 'meow', 'woof': 'woof'}
 
 You can also directly interact with the engine storage layer to add additional
 values, note that if this route is used you can't use
@@ -154,8 +156,8 @@ For example:
    >>> eng.run()
    meow
    woof
-   >>> print(eng.storage.fetch_all())
-   {'meow': 'meow', 'woof': 'woof', 'dog': 'dog'}
+   >>> pprint(eng.storage.fetch_all())
+   {'dog': 'dog', 'meow': 'meow', 'woof': 'woof'}
    >>> print(eng.storage.fetch("dog"))
    dog
 
