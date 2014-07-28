@@ -246,3 +246,52 @@ class MixedPatternScopingTest(test.TestCase):
                 break
         self.assertGreater(first_subroot, first_root)
         self.assertEqual(scope[0][-2:], ['root.2', 'root.1'])
+
+    def test_shadow_graph(self):
+        r = gf.Flow("root")
+        customer = test_utils.ProvidesRequiresTask("customer",
+                                                   provides=['dog'],
+                                                   requires=[])
+        customer2 = test_utils.ProvidesRequiresTask("customer2",
+                                                    provides=['dog'],
+                                                    requires=[])
+        washer = test_utils.ProvidesRequiresTask("washer",
+                                                 requires=['dog'],
+                                                 provides=['wash'])
+        r.add(customer, washer)
+        r.add(customer2, resolve_requires=False)
+        r.link(customer2, washer)
+
+        c = compiler.PatternCompiler(r).compile()
+
+        # The order currently is *not* guaranteed to be 'customer' before
+        # 'customer2' or the reverse, since either can occur before the
+        # washer; since *either* is a valid topological ordering of the
+        # dependencies...
+        #
+        # This may be different after/if the following is resolved:
+        #
+        # https://github.com/networkx/networkx/issues/1181 (and a few others)
+        self.assertEqual(set(['customer', 'customer2']),
+                         set(_get_scopes(c, washer)[0]))
+        self.assertEqual([], _get_scopes(c, customer2))
+        self.assertEqual([], _get_scopes(c, customer))
+
+    def test_shadow_linear(self):
+        r = lf.Flow("root")
+
+        customer = test_utils.ProvidesRequiresTask("customer",
+                                                   provides=['dog'],
+                                                   requires=[])
+        customer2 = test_utils.ProvidesRequiresTask("customer2",
+                                                    provides=['dog'],
+                                                    requires=[])
+        washer = test_utils.ProvidesRequiresTask("washer",
+                                                 requires=['dog'],
+                                                 provides=['wash'])
+        r.add(customer, customer2, washer)
+
+        c = compiler.PatternCompiler(r).compile()
+
+        # This order is guaranteed...
+        self.assertEqual(['customer2', 'customer'], _get_scopes(c, washer)[0])
