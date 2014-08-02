@@ -96,17 +96,24 @@ class SingleThreadedConductor(base.Conductor):
                 engine.run()
             except excp.WrappedFailure as e:
                 if all((f.check(*NO_CONSUME_EXCEPTIONS) for f in e)):
-                    LOG.warn("Job execution failed (consumption being"
-                             " skipped): %s", job, exc_info=True)
                     consume = False
-                else:
-                    LOG.warn("Job execution failed: %s", job, exc_info=True)
+                if LOG.isEnabledFor(logging.WARNING):
+                    if consume:
+                        LOG.warn("Job execution failed (consumption being"
+                                 " skipped): %s [%s failures]", job, len(e))
+                    else:
+                        LOG.warn("Job execution failed (consumption"
+                                 " proceeding): %s [%s failures]", job, len(e))
+                    # Show the failure/s + traceback (if possible)...
+                    for i, f in enumerate(e):
+                        LOG.warn("%s. %s", i + 1, f.pformat(traceback=True))
             except NO_CONSUME_EXCEPTIONS:
                 LOG.warn("Job execution failed (consumption being"
                          " skipped): %s", job, exc_info=True)
                 consume = False
             except Exception:
-                LOG.warn("Job execution failed: %s", job, exc_info=True)
+                LOG.warn("Job execution failed (consumption proceeding): %s",
+                         job, exc_info=True)
             else:
                 LOG.info("Job completed successfully: %s", job)
         return consume
