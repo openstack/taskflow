@@ -16,8 +16,8 @@
 
 import contextlib
 import os
+import random
 import tempfile
-import threading
 
 import testtools
 
@@ -29,12 +29,14 @@ import testtools
 # There are also "opportunistic" tests for both mysql and postgresql in here,
 # which allows testing against all 3 databases (sqlite, mysql, postgres) in
 # a properly configured unit test environment. For the opportunistic testing
-# you need to set up a db named 'openstack_citest' with user 'openstack_citest'
-# and password 'openstack_citest' on localhost.
+# you need to set up a db user 'openstack_citest' with password
+# 'openstack_citest' that has the permissions to create databases on
+# localhost.
 
 USER = "openstack_citest"
 PASSWD = "openstack_citest"
-DATABASE = "openstack_citest"
+DATABASE = "tftest_" + ''.join(random.choice('0123456789')
+                               for _ in range(12))
 
 try:
     from taskflow.persistence.backends import impl_sqlalchemy
@@ -50,7 +52,6 @@ MYSQL_VARIANTS = ('mysqldb', 'pymysql')
 from taskflow.persistence import backends
 from taskflow import test
 from taskflow.tests.unit.persistence import base
-from taskflow.utils import lock_utils
 
 
 def _get_connect_string(backend, user, passwd, database=None, variant=None):
@@ -97,7 +98,7 @@ def _postgres_exists():
         return False
     engine = None
     try:
-        db_uri = _get_connect_string('postgres', USER, PASSWD, 'template1')
+        db_uri = _get_connect_string('postgres', USER, PASSWD, 'postgres')
         engine = sa.create_engine(db_uri)
         with contextlib.closing(engine.connect()):
             return True
@@ -137,29 +138,31 @@ class SqlitePersistenceTest(test.TestCase, base.PersistenceTestMixin):
 
 class BackendPersistenceTestMixin(base.PersistenceTestMixin):
     """Specifies a backend type and does required setup and teardown."""
-    LOCK_NAME = None
 
     def _get_connection(self):
         return self.backend.get_connection()
 
-    def _reset_database(self):
-        """Resets the database, and returns the uri to that database.
+    def _init_db(self):
+        """Sets up the database, and returns the uri to that database."""
+        raise NotImplementedError()
 
-        Called *only* after locking succeeds.
-        """
+    def _remove_db(self):
+        """Cleans up by removing the database once the tests are done."""
         raise NotImplementedError()
 
     def setUp(self):
         super(BackendPersistenceTestMixin, self).setUp()
         self.backend = None
-        self.big_lock.acquire()
-        self.addCleanup(self.big_lock.release)
         try:
+            self.db_uri = self._init_db()
+            # Since we are using random database names, we need to make sure
+            # and remove our random database when we are done testing.
+            self.addCleanup(self._remove_db)
             conf = {
-                'connection': self._reset_database(),
+                'connection': self.db_uri
             }
         except Exception as e:
-            self.skipTest("Failed to reset your database;"
+            self.skipTest("Failed to create temporary database;"
                           " testing being skipped due to: %s" % (e))
         try:
             self.backend = impl_sqlalchemy.SQLAlchemyBackend(conf)
@@ -174,25 +177,11 @@ class BackendPersistenceTestMixin(base.PersistenceTestMixin):
 @testtools.skipIf(not SQLALCHEMY_AVAILABLE, 'sqlalchemy is not available')
 @testtools.skipIf(not _mysql_exists(), 'mysql is not available')
 class MysqlPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
-    LOCK_NAME = 'mysql_persistence_test'
 
     def __init__(self, *args, **kwargs):
         test.TestCase.__init__(self, *args, **kwargs)
-        # We need to make sure that each test goes through a set of locks
-        # to ensure that multiple tests are not modifying the database,
-        # dropping it, creating it at the same time. To accomplish this we use
-        # a lock that ensures multiple parallel processes can't run at the
-        # same time as well as a in-process lock to ensure that multiple
-        # threads can't run at the same time.
-        lock_path = os.path.join(tempfile.gettempdir(),
-                                 'taskflow-%s.lock' % (self.LOCK_NAME))
-        locks = [
-            lock_utils.InterProcessLock(lock_path),
-            threading.RLock(),
-        ]
-        self.big_lock = lock_utils.MultiLock(locks)
 
-    def _reset_database(self):
+    def _init_db(self):
         working_variant = None
         for variant in MYSQL_VARIANTS:
             engine = None
@@ -201,7 +190,6 @@ class MysqlPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
                                              variant=variant)
                 engine = sa.create_engine(db_uri)
                 with contextlib.closing(engine.connect()) as conn:
-                    conn.execute("DROP DATABASE IF EXISTS %s" % DATABASE)
                     conn.execute("CREATE DATABASE %s" % DATABASE)
                     working_variant = variant
             except Exception:
@@ -216,60 +204,82 @@ class MysqlPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
                 break
         if not working_variant:
             variants = ", ".join(MYSQL_VARIANTS)
-            self.skipTest("Failed to find a mysql variant"
-                          " (tried %s) that works; mysql testing"
-                          " being skipped" % (variants))
+            raise Exception("Failed to initialize MySQL db."
+                            "  Tried these variants:  %s; MySQL testing"
+                            " being skipped" % (variants))
         else:
             return _get_connect_string('mysql', USER, PASSWD,
                                        database=DATABASE,
                                        variant=working_variant)
 
-
-@testtools.skipIf(not SQLALCHEMY_AVAILABLE, 'sqlalchemy is not available')
-@testtools.skipIf(not _postgres_exists(), 'postgres is not available')
-class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
-    LOCK_NAME = 'postgres_persistence_test'
-
-    def __init__(self, *args, **kwargs):
-        test.TestCase.__init__(self, *args, **kwargs)
-        # We need to make sure that each test goes through a set of locks
-        # to ensure that multiple tests are not modifying the database,
-        # dropping it, creating it at the same time. To accomplish this we use
-        # a lock that ensures multiple parallel processes can't run at the
-        # same time as well as a in-process lock to ensure that multiple
-        # threads can't run at the same time.
-        lock_path = os.path.join(tempfile.gettempdir(),
-                                 'taskflow-%s.lock' % (self.LOCK_NAME))
-        locks = [
-            lock_utils.InterProcessLock(lock_path),
-            threading.RLock(),
-        ]
-        self.big_lock = lock_utils.MultiLock(locks)
-
-    def _reset_database(self):
+    def _remove_db(self):
         engine = None
         try:
-            # Postgres can't operate on the database it's connected to, that's
-            # why we connect to the default template database 'template1' and
-            # then drop and create the desired database.
-            db_uri = _get_connect_string('postgres', USER, PASSWD,
-                                         database='template1')
-            engine = sa.create_engine(db_uri)
+            engine = sa.create_engine(self.db_uri)
             with contextlib.closing(engine.connect()) as conn:
-                conn.connection.set_isolation_level(0)
                 conn.execute("DROP DATABASE IF EXISTS %s" % DATABASE)
-                conn.connection.set_isolation_level(1)
-            with contextlib.closing(engine.connect()) as conn:
-                conn.connection.set_isolation_level(0)
-                conn.execute("CREATE DATABASE %s" % DATABASE)
-                conn.connection.set_isolation_level(1)
+        except Exception as e:
+            raise Exception('Failed to remove temporary database: %s' % (e))
         finally:
             if engine is not None:
                 try:
                     engine.dispose()
                 except Exception:
                     pass
-        return _get_connect_string('postgres', USER, PASSWD, database=DATABASE)
+
+
+@testtools.skipIf(not SQLALCHEMY_AVAILABLE, 'sqlalchemy is not available')
+@testtools.skipIf(not _postgres_exists(), 'postgres is not available')
+class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
+
+    def __init__(self, *args, **kwargs):
+        test.TestCase.__init__(self, *args, **kwargs)
+
+    def _init_db(self):
+        engine = None
+        try:
+            # Postgres can't operate on the database it's connected to, that's
+            # why we connect to the database 'postgres' and then create the
+            # desired database.
+            db_uri = _get_connect_string('postgres', USER, PASSWD,
+                                         database='postgres')
+            engine = sa.create_engine(db_uri)
+            with contextlib.closing(engine.connect()) as conn:
+                conn.connection.set_isolation_level(0)
+                conn.execute("CREATE DATABASE %s" % DATABASE)
+                conn.connection.set_isolation_level(1)
+        except Exception as e:
+            raise Exception('Failed to initialize PostgreSQL db: %s' % (e))
+        finally:
+            if engine is not None:
+                try:
+                    engine.dispose()
+                except Exception:
+                    pass
+        return _get_connect_string('postgres', USER, PASSWD,
+                                   database=DATABASE)
+
+    def _remove_db(self):
+        engine = None
+        try:
+            # Postgres can't operate on the database it's connected to, that's
+            # why we connect to the 'postgres' database and then drop the
+            # database.
+            db_uri = _get_connect_string('postgres', USER, PASSWD,
+                                         database='postgres')
+            engine = sa.create_engine(db_uri)
+            with contextlib.closing(engine.connect()) as conn:
+                conn.connection.set_isolation_level(0)
+                conn.execute("DROP DATABASE IF EXISTS %s" % DATABASE)
+                conn.connection.set_isolation_level(1)
+        except Exception as e:
+            raise Exception('Failed to remove temporary database: %s' % (e))
+        finally:
+            if engine is not None:
+                try:
+                    engine.dispose()
+                except Exception:
+                    pass
 
 
 @testtools.skipIf(not SQLALCHEMY_AVAILABLE, 'sqlalchemy is not available')
