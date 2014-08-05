@@ -167,7 +167,10 @@ class ZkConnection(base.Connection):
             ad_data, _zstat = self._client.get(ad_path)
         except k_exc.NoNodeError:
             # Not-existent: create or raise exception.
-            raise exc.NotFound("No atom details found with id: %s" % ad.uuid)
+            if create_missing:
+                self._client.create(ad_path)
+            else:
+                raise exc.NotFound("No atom details found with id: %s" % ad.uuid)
         else:
             # Existent: read it out.
             try:
