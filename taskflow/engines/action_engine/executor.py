@@ -31,11 +31,14 @@ REVERTED = 'reverted'
 def _execute_task(task, arguments, progress_callback):
     with task.autobind('update_progress', progress_callback):
         try:
+            task.pre_execute()
             result = task.execute(**arguments)
         except Exception:
             # NOTE(imelnikov): wrap current exception with Failure
             # object and return it.
             result = misc.Failure()
+        finally:
+            task.post_execute()
     return (task, EXECUTED, result)
 
 
@@ -45,11 +48,14 @@ def _revert_task(task, arguments, result, failures, progress_callback):
     kwargs['flow_failures'] = failures
     with task.autobind('update_progress', progress_callback):
         try:
+            task.pre_revert()
             result = task.revert(**kwargs)
         except Exception:
             # NOTE(imelnikov): wrap current exception with Failure
             # object and return it.
             result = misc.Failure()
+        finally:
+            task.post_revert()
     return (task, REVERTED, result)
 
 

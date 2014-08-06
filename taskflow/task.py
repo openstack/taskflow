@@ -47,6 +47,15 @@ class BaseTask(atom.Atom):
         # Map of events => lists of callbacks to invoke on task events.
         self._events_listeners = collections.defaultdict(list)
 
+    def pre_execute(self):
+        """Code to be run prior to executing the task.
+
+        A common pattern for initializing the state of the system prior to
+        running tasks is to define some code in a base class that all your
+        tasks inherit from.  In that class, you can define a pre_execute
+        method and it will always be invoked just prior to your tasks running.
+        """
+
     @abc.abstractmethod
     def execute(self, *args, **kwargs):
         """Activate a given task which will perform some operation and return.
@@ -65,6 +74,25 @@ class BaseTask(atom.Atom):
         or remote).
         """
 
+    def post_execute(self):
+        """Code to be run after executing the task.
+
+        A common pattern for cleaning up global state of the system after the
+        execution of tasks is to define some code in a base class that all your
+        tasks inherit from.  In that class, you can define a post_execute
+        method and it will always be invoked just after your tasks execute,
+        regardless of whether they succeded or not.
+
+        This pattern is useful if you have global shared database sessions
+        that need to be cleaned up, for example.
+        """
+
+    def pre_revert(self):
+        """Code to be run prior to reverting the task.
+
+        This works the same as pre_execute, but for the revert phase.
+        """
+
     def revert(self, *args, **kwargs):
         """Revert this task.
 
@@ -77,6 +105,12 @@ class BaseTask(atom.Atom):
         ``**kwargs`` key ``'result'`` will contain the :py:meth:`execute`
         result (if any) and the ``**kwargs`` key ``'flow_failures'`` will
         contain the failure information.
+        """
+
+    def post_revert(self):
+        """Code to be run after reverting the task.
+
+        This works the same as post_execute, but for the revert phase.
         """
 
     def update_progress(self, progress, **kwargs):
