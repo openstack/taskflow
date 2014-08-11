@@ -129,6 +129,10 @@ class MultipleChoices(TaskFlowException):
     """Raised when some decision can't be made due to many possible choices."""
 
 
+class InvalidFormat(TaskFlowException):
+    """Raised when some object/entity is not in the expected format."""
+
+
 # Others.
 
 class WrappedFailure(Exception):
