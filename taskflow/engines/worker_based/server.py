@@ -49,7 +49,10 @@ class Server(object):
                 delayed(executor)(self._process_notify),
                 functools.partial(pr.Notify.validate, response=False),
             ],
-            pr.REQUEST: delayed(executor)(self._process_request),
+            pr.REQUEST: [
+                delayed(executor)(self._process_request),
+                pr.Request.validate,
+            ],
         }
         self._proxy = proxy.Proxy(topic, exchange, handlers,
                                   on_wait=None, **kwargs)
