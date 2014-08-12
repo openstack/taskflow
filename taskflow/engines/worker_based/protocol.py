@@ -17,9 +17,12 @@
 import abc
 
 from concurrent import futures
+import jsonschema
+from jsonschema import exceptions as schema_exc
 import six
 
 from taskflow.engines.action_engine import executor
+from taskflow import exceptions as excp
 from taskflow.types import time
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -78,11 +81,53 @@ class Notify(Message):
     """Represents notify message type."""
     TYPE = NOTIFY
 
+    # NOTE(harlowja): the executor (the entity who initially requests a worker
+    # to send back a notification response) schema is different than the
+    # worker response schema (that's why there are two schemas here).
+    _RESPONSE_SCHEMA = {
+        "type": "object",
+        'properties': {
+            'topic': {
+                "type": "string",
+            },
+            'tasks': {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                },
+            }
+        },
+        "required": ["topic", 'tasks'],
+        "additionalProperties": False,
+    }
+    _SENDER_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+    }
+
     def __init__(self, **data):
         self._data = data
 
     def to_dict(self):
         return self._data
+
+    @classmethod
+    def validate(cls, data, response):
+        if response:
+            schema = cls._RESPONSE_SCHEMA
+        else:
+            schema = cls._SENDER_SCHEMA
+        try:
+            jsonschema.validate(data, schema)
+        except schema_exc.ValidationError as e:
+            if response:
+                raise excp.InvalidFormat("%s message response data not of the"
+                                         " expected format: %s"
+                                         % (cls.TYPE, e.message), e)
+            else:
+                raise excp.InvalidFormat("%s message sender data not of the"
+                                         " expected format: %s"
+                                         % (cls.TYPE, e.message), e)
 
 
 class Request(Message):

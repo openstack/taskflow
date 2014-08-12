@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
 import logging
 import threading
 
@@ -76,7 +77,10 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         self._workers_cache = cache.WorkersCache()
         self._workers_arrival = threading.Condition()
         handlers = {
-            pr.NOTIFY: self._process_notify,
+            pr.NOTIFY: [
+                self._process_notify,
+                functools.partial(pr.Notify.validate, response=True),
+            ],
             pr.RESPONSE: self._process_response,
         }
         self._proxy = proxy.Proxy(uuid, exchange, handlers,
