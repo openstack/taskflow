@@ -105,26 +105,15 @@ def parse_uri(uri, query_duplicates=False):
             query_params = tmp_query_params
     else:
         query_params = {}
-    uri_pieces = {
-        'scheme': parsed.scheme,
-        'username': parsed.username,
-        'password': parsed.password,
-        'fragment': parsed.fragment,
-        'path': parsed.path,
-        'params': query_params,
-    }
-    for k in ('hostname', 'port'):
-        try:
-            uri_pieces[k] = getattr(parsed, k)
-        except (IndexError, ValueError):
-            # The underlying network_utils throws when the host string is empty
-            # which it may be in cases where it is not provided.
-            #
-            # NOTE(harlowja): when https://review.openstack.org/#/c/86921/ gets
-            # merged we can just remove this since that error will no longer
-            # occur.
-            uri_pieces[k] = None
-    return AttrDict(**uri_pieces)
+    return AttrDict(
+        scheme=parsed.scheme,
+        username=parsed.username,
+        password=parsed.password,
+        fragment=parsed.fragment,
+        path=parsed.path,
+        params=query_params,
+        hostname=parsed.hostname,
+        port=parsed.port)
 
 
 def binary_encode(text, encoding='utf-8'):
