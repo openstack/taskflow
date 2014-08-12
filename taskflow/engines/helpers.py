@@ -31,15 +31,23 @@ from taskflow.utils import reflection
 ENGINES_NAMESPACE = 'taskflow.engines'
 
 
+def _fetch_factory(factory_name):
+    try:
+        return importutils.import_class(factory_name)
+    except (ImportError, ValueError) as e:
+        raise ImportError("Could not import factory %r: %s"
+                          % (factory_name, e))
+
+
 def _fetch_validate_factory(flow_factory):
     if isinstance(flow_factory, six.string_types):
-        factory_fun = importutils.import_class(flow_factory)
+        factory_fun = _fetch_factory(flow_factory)
         factory_name = flow_factory
     else:
         factory_fun = flow_factory
         factory_name = reflection.get_callable_name(flow_factory)
         try:
-            reimported = importutils.import_class(factory_name)
+            reimported = _fetch_factory(factory_name)
             assert reimported == factory_fun
         except (ImportError, AssertionError):
             raise ValueError('Flow factory %r is not reimportable by name %s'
@@ -242,7 +250,7 @@ def flow_from_detail(flow_detail):
                          % (flow_detail.name, flow_detail.uuid))
 
     try:
-        factory_fun = importutils.import_class(factory_data['name'])
+        factory_fun = _fetch_factory(factory_data['name'])
     except (KeyError, ImportError):
         raise ImportError('Could not import factory for flow %s %s'
                           % (flow_detail.name, flow_detail.uuid))
