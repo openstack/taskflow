@@ -546,7 +546,7 @@ def are_equal_exc_info_tuples(ei1, ei2):
 
 @contextlib.contextmanager
 def capture_failure():
-    """Captures the occuring exception and provides a failure back.
+    """Captures the occurring exception and provides a failure object back.
 
     This will save the current exception information and yield back a
     failure object for the caller to use (it will raise a runtime error if
@@ -579,8 +579,53 @@ def capture_failure():
 class Failure(object):
     """Object that represents failure.
 
-    Failure objects encapsulate exception information so that
-    it can be re-used later to re-raise or inspect.
+    Failure objects encapsulate exception information so that they can be
+    re-used later to re-raise, inspect, examine, log, print, serialize,
+    deserialize...
+
+    One example where they are dependened upon is in the WBE engine. When a
+    remote worker throws an exception, the WBE based engine will receive that
+    exception and desire to reraise it to the user/caller of the WBE based
+    engine for appropriate handling (this matches the behavior of non-remote
+    engines). To accomplish this a failure object (or a to_dict() form) would
+    be sent over the WBE channel and the WBE based engine would deserialize it
+    and use this objects reraise() method to cause an exception that contains
+    similar/equivalent information as the original exception to be reraised,
+    allowing the user (or the WBE engine itself) to then handle the worker
+    failure/exception as they desire.
+
+    For those who are curious, here are a few reasons why the original
+    exception itself *may* not be reraised and instead a reraised wrapped
+    failure exception object will be instead. These explanations are *only*
+    applicable when a failure object is serialized and deserialized (when it is
+    retained inside the python process that the exception was created in the
+    the original exception can be reraised correctly without issue).
+
+    * Traceback objects are not serializable/recreatable, since they contain
+      references to stack frames at the location where the exception was
+      raised. When a failure object is serialized and sent across a channel
+      and recreated it is *not* possible to restore the original traceback and
+      originating stack frames.
+    * The original exception *type* can not be guaranteed to be found, workers
+      can run code that is not accessible/available when the failure is being
+      deserialized. Even if it was possible to use pickle safely it would not
+      be possible to find the originating exception or associated code in this
+      situation.
+    * The original exception *type* can not be guaranteed to be constructed in
+      a *correct* manner. At the time of failure object creation the exception
+      has already been created and the failure object can not assume it has
+      knowledge (or the ability) to recreate the original type of the captured
+      exception (this is especially hard if the original exception was created
+      via a complex process via some custom exception constructor).
+    * The original exception *type* can not be guaranteed to be constructed in
+      a *safe* manner. Importing *foreign* exception types dynamically can be
+      problematic when not done correctly and in a safe manner; since failure
+      objects can capture any exception it would be *unsafe* to try to import
+      those exception types namespaces and modules on the receiver side
+      dynamically (this would create similar issues as the ``pickle`` module in
+      python has where foreign modules can be imported, causing those modules
+      to have code ran when this happens, and this can cause issues and
+      side-effects that the receiver would not have intended to have caused).
     """
     DICT_VERSION = 1
 

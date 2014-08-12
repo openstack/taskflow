@@ -132,12 +132,17 @@ class MultipleChoices(TaskFlowException):
 # Others.
 
 class WrappedFailure(Exception):
-    """Wraps one or several failures.
+    """Wraps one or several failure objects.
 
-    When exception cannot be re-raised (for example, because
-    the value and traceback is lost in serialization) or
-    there are several exceptions, we wrap corresponding Failure
-    objects into this exception class.
+    When exception/s cannot be re-raised (for example, because the value and
+    traceback are lost in serialization) or there are several exceptions active
+    at the same time (due to more than one thread raising exceptions), we will
+    wrap the corresponding failure objects into this exception class and
+    *may* reraise this exception type to allow users to handle the contained
+    failures/causes as they see fit...
+
+    See the failure class documentation for a more comprehensive set of reasons
+    why this object *may* be reraised instead of the original exception.
     """
 
     def __init__(self, causes):
