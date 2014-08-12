@@ -16,7 +16,7 @@
 
 import threading
 
-from taskflow.types import time as tt
+from taskflow.types import timing as tt
 
 
 class Latch(object):

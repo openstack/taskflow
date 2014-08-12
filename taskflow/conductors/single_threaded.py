@@ -20,7 +20,7 @@ import six
 from taskflow.conductors import base
 from taskflow import exceptions as excp
 from taskflow.listeners import logging as logging_listener
-from taskflow.types import time as tt
+from taskflow.types import timing as tt
 from taskflow.utils import lock_utils
 
 LOG = logging.getLogger(__name__)

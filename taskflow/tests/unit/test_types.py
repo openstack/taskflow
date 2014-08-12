@@ -20,7 +20,7 @@ import networkx as nx
 
 from taskflow import test
 from taskflow.types import graph
-from taskflow.types import time as tt
+from taskflow.types import timing as tt
 from taskflow.types import tree
 
 
