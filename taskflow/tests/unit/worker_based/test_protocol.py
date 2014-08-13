@@ -115,21 +115,24 @@ class TestProtocol(test.TestCase):
         to_dict.update(kwargs)
         return to_dict
 
+    def test_request_transitions(self):
+        request = self.request()
+        self.assertEqual(pr.WAITING, request.state)
+        self.assertIn(request.state, pr.WAITING_STATES)
+        self.assertRaises(excp.InvalidState, request.transition, pr.SUCCESS)
+        self.assertFalse(request.transition(pr.WAITING))
+        self.assertTrue(request.transition(pr.PENDING))
+        self.assertTrue(request.transition(pr.RUNNING))
+        self.assertTrue(request.transition(pr.SUCCESS))
+        for s in (pr.PENDING, pr.WAITING):
+            self.assertRaises(excp.InvalidState, request.transition, s)
+
     def test_creation(self):
         request = self.request()
         self.assertEqual(request.uuid, self.task_uuid)
         self.assertEqual(request.task_cls, self.task.name)
         self.assertIsInstance(request.result, futures.Future)
         self.assertFalse(request.result.done())
-
-    def test_str(self):
-        request = self.request()
-        self.assertEqual(str(request),
-                         "<REQUEST> %s" % self.request_to_dict())
-
-    def test_repr(self):
-        expected = '%s:%s' % (self.task.name, self.task_action)
-        self.assertEqual(repr(self.request()), expected)
 
     def test_to_dict_default(self):
         self.assertEqual(self.request().to_dict(), self.request_to_dict())
@@ -156,19 +159,20 @@ class TestProtocol(test.TestCase):
 
     @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')
     def test_pending_not_expired(self, mocked_wallclock):
-        mocked_wallclock.side_effect = [1, self.timeout]
+        mocked_wallclock.side_effect = [0, self.timeout - 1]
         self.assertFalse(self.request().expired)
 
     @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')
     def test_pending_expired(self, mocked_wallclock):
-        mocked_wallclock.side_effect = [1, self.timeout + 2]
+        mocked_wallclock.side_effect = [0, self.timeout + 2]
         self.assertTrue(self.request().expired)
 
     @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')
     def test_running_not_expired(self, mocked_wallclock):
-        mocked_wallclock.side_effect = [1, self.timeout + 2]
+        mocked_wallclock.side_effect = [0, self.timeout + 2]
         request = self.request()
-        request.set_running()
+        request.transition(pr.PENDING)
+        request.transition(pr.RUNNING)
         self.assertFalse(request.expired)
 
     def test_set_result(self):
