@@ -118,14 +118,14 @@ class JobBoard(object):
         """
 
     @abc.abstractmethod
-    def post(self, name, book, details=None):
+    def post(self, name, book=None, details=None):
         """Atomically creates and posts a job to the jobboard.
 
         This posting allowing others to attempt to claim that job (and
-        subsequently work on that job). The contents of the provided logbook
-        must provide *enough* information for others to reference to
-        construct & work on the desired entries that are contained in that
-        logbook.
+        subsequently work on that job). The contents of the provided logbook,
+        details dictionary, or name (or a mix of these) must provide *enough*
+        information for consumers to reference to construct and perform that
+        jobs contained work (whatever it may be).
 
         Once a job has been posted it can only be removed by consuming that
         job (after that job is claimed). Any entity can post/propose jobs
