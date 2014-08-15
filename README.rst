@@ -21,12 +21,13 @@ Requirements
 Because TaskFlow has many optional (pluggable) parts like persistence
 backends and engines, we decided to split our requirements into two
 parts: - things that are absolutely required by TaskFlow (you can't use
-TaskFlow without them) are put to ``requirements.txt``; - things that
-are required by some optional part of TaskFlow (you can use TaskFlow
-without them) are put to ``optional-requirements.txt``; if you want to
-use the feature in question, you should add that requirements to your
-project or environment; - as usual, things that required only for
-running tests are put to ``test-requirements.txt``.
+TaskFlow without them) are put into ``requirements-pyN.txt`` (``N`` being the
+Python *major* version number used to install the package); - things that are
+required by some optional part of TaskFlow (you can use TaskFlow without
+them) are put into ``optional-requirements.txt``; if you want to use the
+feature in question, you should add that requirements to your project or
+environment; - as usual, things that required only for running tests are
+put into ``test-requirements.txt``.
 
 Tox.ini
 ~~~~~~~

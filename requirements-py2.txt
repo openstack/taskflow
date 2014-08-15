@@ -10,4 +10,5 @@ Babel>=1.3
 stevedore>=0.14
 # Backport for concurrent.futures which exists in 3.2+
 futures>=2.1.3
+# Used for structured input validation
 jsonschema>=2.0.0,<3.0.0
