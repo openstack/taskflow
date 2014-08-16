@@ -30,11 +30,11 @@ from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
 
-# INTRO: In this example linear_flow is used to group four tasks to calculate
+# INTRO: In this example a linear flow is used to group four tasks to calculate
 # a value. A single added task is used twice, showing how this can be done
 # and the twice added task takes in different bound values. In the first case
 # it uses default parameters ('x' and 'y') and in the second case arguments
-# are bound with ('z', 'd') keys from the engines storage mechanism.
+# are bound with ('z', 'd') keys from the engines internal storage mechanism.
 #
 # A multiplier task uses a binding that another task also provides, but this
 # example explicitly shows that 'z' parameter is bound with 'a' key
@@ -47,10 +47,10 @@ from taskflow import task
 # useful when you want to provide values from a static set to other tasks that
 # depend on those values existing before those tasks can run.
 #
-# This method is *depreciated* in favor of a simpler mechanism that just
-# provides those values on engine running by prepopulating the storage backend
-# before your tasks are ran (which accomplishes a similar goal in a more
-# uniform manner).
+# NOTE(harlowja): this usage is *depreciated* in favor of a simpler mechanism
+# that just provides those values on engine running by prepopulating the
+# storage backend before your tasks are ran (which accomplishes a similar goal
+# in a more uniform manner).
 class Provider(task.Task):
 
     def __init__(self, name, *args, **kwargs):
@@ -89,8 +89,8 @@ class Multiplier(task.Task):
 
 # Note here that the ordering is established so that the correct sequences
 # of operations occurs where the adding and multiplying is done according
-# to the expected and typical mathematical model. A graph_flow could also be
-# used here to automatically ensure the correct ordering.
+# to the expected and typical mathematical model. A graph flow could also be
+# used here to automatically infer & ensure the correct ordering.
 flow = lf.Flow('root').add(
     # Provide the initial values for other tasks to depend on.
     #

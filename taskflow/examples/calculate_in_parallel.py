@@ -30,20 +30,20 @@ from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 
-# INTRO: This examples shows how linear_flow and unordered_flow can be used
-# together to execute calculations in parallel and then use the
-# result for the next task. Adder task is used for all calculations
-# and arguments' bindings are used to set correct parameters to the task.
+# INTRO: This examples shows how a linear flow and a unordered flow can be
+# used together to execute calculations in parallel and then use the
+# result for the next task/s. The adder task is used for all calculations
+# and argument bindings are used to set correct parameters for each task.
 
 
 # This task provides some values from as a result of execution, this can be
 # useful when you want to provide values from a static set to other tasks that
 # depend on those values existing before those tasks can run.
 #
-# This method is *depreciated* in favor of a simpler mechanism that just
-# provides those values on engine running by prepopulating the storage backend
-# before your tasks are ran (which accomplishes a similar goal in a more
-# uniform manner).
+# NOTE(harlowja): this usage is *depreciated* in favor of a simpler mechanism
+# that provides those values on engine running by prepopulating the storage
+# backend before your tasks are ran (which accomplishes a similar goal in a
+# more uniform manner).
 class Provider(task.Task):
     def __init__(self, name, *args, **kwargs):
         super(Provider, self).__init__(name=name, **kwargs)

@@ -35,7 +35,7 @@ from taskflow.persistence import logbook
 from taskflow import task
 from taskflow.utils import persistence_utils as p_utils
 
-import example_utils  # noqa
+import example_utils as eu  # noqa
 
 # INTRO: In this example we create two tasks, one that will say hi and one
 # that will say bye with optional capability to raise an error while
@@ -47,12 +47,6 @@ import example_utils  # noqa
 # persistence allows for you to examine what is stored (using a sqlite client)
 # as well as shows you what happens during reversion and what happens to
 # the database during both of these modes (failing or not failing).
-
-
-def print_wrapped(text):
-    print("-" * (len(text)))
-    print(text)
-    print("-" * (len(text)))
 
 
 class HiTask(task.Task):
@@ -84,7 +78,7 @@ def make_flow(blowup=False):
 # Persist the flow and task state here, if the file/dir exists already blowup
 # if not don't blowup, this allows a user to see both the modes and to see
 # what is stored in each case.
-if example_utils.SQLALCHEMY_AVAILABLE:
+if eu.SQLALCHEMY_AVAILABLE:
     persist_path = os.path.join(tempfile.gettempdir(), "persisting.db")
     backend_uri = "sqlite:///%s" % (persist_path)
 else:
@@ -96,7 +90,7 @@ if os.path.exists(persist_path):
 else:
     blowup = True
 
-with example_utils.get_backend(backend_uri) as backend:
+with eu.get_backend(backend_uri) as backend:
     # Now we can run.
     engine_config = {
         'backend': backend,
@@ -108,17 +102,17 @@ with example_utils.get_backend(backend_uri) as backend:
     # did exist, assume we won't blowup (and therefore this shows the undo
     # and redo that a flow will go through).
     flow = make_flow(blowup=blowup)
-    print_wrapped("Running")
+    eu.print_wrapped("Running")
     try:
         eng = engines.load(flow, **engine_config)
         eng.run()
         if not blowup:
-            example_utils.rm_path(persist_path)
+            eu.rm_path(persist_path)
     except Exception:
         # NOTE(harlowja): don't exit with non-zero status code, so that we can
         # print the book contents, as well as avoiding exiting also makes the
         # unit tests (which also runs these examples) pass.
         traceback.print_exc(file=sys.stdout)
 
-    print_wrapped("Book contents")
+    eu.print_wrapped("Book contents")
     print(p_utils.pformat(engine_config['book']))

@@ -30,21 +30,15 @@ from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
 # INTRO: In this example we create three tasks, each of which ~calls~ a given
-# number (provided as a function input), one of those tasks fails calling a
+# number (provided as a function input), one of those tasks *fails* calling a
 # given number (the suzzie calling); this causes the workflow to enter the
 # reverting process, which activates the revert methods of the previous two
 # phone ~calls~.
 #
 # This simulated calling makes it appear like all three calls occur or all
 # three don't occur (transaction-like capabilities). No persistence layer is
-# used here so reverting and executing will not handle process failure.
-#
-# This example shows a basic usage of the taskflow structures without involving
-# the complexity of persistence. Using the structures that taskflow provides
-# via tasks and flows makes it possible for you to easily at a later time
-# hook in a persistence layer (and then gain the functionality that offers)
-# when you decide the complexity of adding that layer in is 'worth it' for your
-# applications usage pattern (which some applications may not need).
+# used here so reverting and executing will *not* be tolerant of process
+# failure.
 
 
 class CallJim(task.Task):
@@ -93,6 +87,6 @@ except Exception as e:
     # how to deal with multiple tasks failing while running.
     #
     # You will also note that this is not a problem in this case since no
-    # parallelism is involved; this is ensured by the usage of a linear flow,
-    # which runs serially as well as the default engine type which is 'serial'.
+    # parallelism is involved; this is ensured by the usage of a linear flow
+    # and the default engine type which is 'serial' vs being 'parallel'.
     print("Flow failed: %s" % e)

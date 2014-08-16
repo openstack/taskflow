@@ -32,7 +32,7 @@ from taskflow.patterns import linear_flow as lf
 from taskflow import task
 from taskflow.utils import persistence_utils as p_utils
 
-import example_utils  # noqa
+import example_utils as eu  # noqa
 
 # INTRO: In this example linear_flow is used to group three tasks, one which
 # will suspend the future work the engine may do. This suspend engine is then
@@ -52,20 +52,13 @@ import example_utils  # noqa
 #
 #     python taskflow/examples/resume_from_backend.py \
 #       zookeeper://127.0.0.1:2181/taskflow/resume_from_backend/
-#
 
 
 # UTILITY FUNCTIONS #########################################
 
 
-def print_wrapped(text):
-    print("-" * (len(text)))
-    print(text)
-    print("-" * (len(text)))
-
-
 def print_task_states(flowdetail, msg):
-    print_wrapped(msg)
+    eu.print_wrapped(msg)
     print("Flow '%s' state: %s" % (flowdetail.name, flowdetail.state))
     # Sort by these so that our test validation doesn't get confused by the
     # order in which the items in the flow detail can be in.
@@ -105,7 +98,7 @@ def flow_factory():
 
 # INITIALIZE PERSISTENCE ####################################
 
-with example_utils.get_backend() as backend:
+with eu.get_backend() as backend:
     logbook = p_utils.temporary_log_book(backend)
 
     # CREATE AND RUN THE FLOW: FIRST ATTEMPT ####################
@@ -116,13 +109,13 @@ with example_utils.get_backend() as backend:
                                    backend=backend)
 
     print_task_states(flowdetail, "At the beginning, there is no state")
-    print_wrapped("Running")
+    eu.print_wrapped("Running")
     engine.run()
     print_task_states(flowdetail, "After running")
 
     # RE-CREATE, RESUME, RUN ####################################
 
-    print_wrapped("Resuming and running again")
+    eu.print_wrapped("Resuming and running again")
 
     # NOTE(harlowja): reload the flow detail from backend, this will allow us
     # to resume the flow from its suspended state, but first we need to search

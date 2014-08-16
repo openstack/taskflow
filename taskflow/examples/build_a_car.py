@@ -32,14 +32,16 @@ from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
+import example_utils as eu  # noqa
 
-# INTRO: This examples shows how a graph_flow and linear_flow can be used
-# together to execute non-dependent tasks by going through the steps required
-# to build a simplistic car (an assembly line if you will). It also shows
-# how raw functions can be wrapped into a task object instead of being forced
-# to use the more heavy task base class. This is useful in scenarios where
-# pre-existing code has functions that you easily want to plug-in to taskflow,
-# without requiring a large amount of code changes.
+
+# INTRO: This examples shows how a graph flow and linear flow can be used
+# together to execute dependent & non-dependent tasks by going through the
+# steps required to build a simplistic car (an assembly line if you will). It
+# also shows how raw functions can be wrapped into a task object instead of
+# being forced to use the more *heavy* task base class. This is useful in
+# scenarios where pre-existing code has functions that you easily want to
+# plug-in to taskflow, without requiring a large amount of code changes.
 
 
 def build_frame():
@@ -58,6 +60,9 @@ def build_wheels():
     return '4'
 
 
+# These just return true to indiciate success, they would in the real work
+# do more than just that.
+
 def install_engine(frame, engine):
     return True
 
@@ -75,13 +80,7 @@ def install_wheels(frame, engine, engine_installed, wheels):
 
 
 def trash(**kwargs):
-    print_wrapped("Throwing away pieces of car!")
-
-
-def print_wrapped(text):
-    print("-" * (len(text)))
-    print(text)
-    print("-" * (len(text)))
+    eu.print_wrapped("Throwing away pieces of car!")
 
 
 def startup(**kwargs):
@@ -114,6 +113,9 @@ def task_watch(state, details):
 
 flow = lf.Flow("make-auto").add(
     task.FunctorTask(startup, revert=trash, provides='ran'),
+    # A graph flow allows automatic dependency based ordering, the ordering
+    # is determined by analyzing the symbols required and provided and ordering
+    # execution based on a functioning order (if one exists).
     gf.Flow("install-parts").add(
         task.FunctorTask(build_frame, provides='frame'),
         task.FunctorTask(build_engine, provides='engine'),
@@ -141,7 +143,7 @@ flow = lf.Flow("make-auto").add(
 # the tasks should produce, in this example this specification will influence
 # what those tasks do and what output they create. Different tasks depend on
 # different information from this specification, all of which will be provided
-# automatically by the engine.
+# automatically by the engine to those tasks.
 spec = {
     "frame": 'steel',
     "engine": 'honda',
@@ -164,7 +166,7 @@ engine = taskflow.engines.load(flow, store={'spec': spec.copy()})
 engine.notifier.register('*', flow_watch)
 engine.task_notifier.register('*', task_watch)
 
-print_wrapped("Building a car")
+eu.print_wrapped("Building a car")
 engine.run()
 
 # Alter the specification and ensure that the reverting logic gets triggered
@@ -177,8 +179,8 @@ engine = taskflow.engines.load(flow, store={'spec': spec.copy()})
 engine.notifier.register('*', flow_watch)
 engine.task_notifier.register('*', task_watch)
 
-print_wrapped("Building a wrong car that doesn't match specification")
+eu.print_wrapped("Building a wrong car that doesn't match specification")
 try:
     engine.run()
 except Exception as e:
-    print_wrapped("Flow failed: %s" % e)
+    eu.print_wrapped("Flow failed: %s" % e)

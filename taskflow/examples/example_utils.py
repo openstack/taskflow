@@ -35,6 +35,12 @@ except ImportError:
     SQLALCHEMY_AVAILABLE = False
 
 
+def print_wrapped(text):
+    print("-" * (len(text)))
+    print(text)
+    print("-" * (len(text)))
+
+
 def rm_path(persist_path):
     if not os.path.exists(persist_path):
         return
