@@ -9,7 +9,6 @@ Making phone calls
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 16-29
 
 Making phone calls (automatically reverting)
 ============================================
@@ -22,7 +21,6 @@ Making phone calls (automatically reverting)
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 17-26
 
 Building a car
 ==============
@@ -35,7 +33,6 @@ Building a car
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 22-28
 
 Linear equation solver (explicit dependencies)
 ==============================================
@@ -48,7 +45,6 @@ Linear equation solver (explicit dependencies)
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 17-27
 
 Linear equation solver (inferred dependencies)
 ==============================================
@@ -59,7 +55,6 @@ Linear equation solver (inferred dependencies)
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 18-31
 
 Linear equation solver (in parallel)
 ====================================
@@ -72,7 +67,6 @@ Linear equation solver (in parallel)
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 18-21
 
 Creating a volume (in parallel)
 ===============================
@@ -85,7 +79,6 @@ Creating a volume (in parallel)
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 21-23
 
 Storing & emitting a bill
 =========================
@@ -98,7 +91,6 @@ Storing & emitting a bill
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 24-32
 
 Suspending a workflow & resuming
 ================================
@@ -111,7 +103,6 @@ Suspending a workflow & resuming
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 22-39
 
 Creating a virtual machine (resumable)
 ======================================
@@ -124,7 +115,6 @@ Creating a virtual machine (resumable)
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 32-34
 
 Creating a volume (resumable)
 =============================
@@ -137,7 +127,6 @@ Creating a volume (resumable)
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 28-30
 
 Running engines via iteration
 =============================
@@ -150,7 +139,6 @@ Running engines via iteration
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 24-27
 
 Controlling retries using a retry controller
 ============================================
@@ -163,4 +151,3 @@ Controlling retries using a retry controller
     :language: python
     :linenos:
     :lines: 16-
-    :emphasize-lines: 17-25
