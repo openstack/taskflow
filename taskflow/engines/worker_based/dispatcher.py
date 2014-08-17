@@ -93,6 +93,9 @@ class TypeDispatcher(object):
                 LOG.debug("AMQP message %r acknowledged.",
                           message.delivery_tag)
                 handler(data, message)
+            else:
+                message.reject_log_error(logger=LOG,
+                                         errors=(kombu_exc.MessageStateError,))
 
     def on_message(self, data, message):
         """This method is called on incoming messages."""
