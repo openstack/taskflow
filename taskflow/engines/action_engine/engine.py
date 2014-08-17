@@ -216,9 +216,12 @@ class MultiThreadedActionEngine(ActionEngine):
     _storage_factory = atom_storage.MultiThreadedStorage
 
     def _task_executor_factory(self):
-        return executor.ParallelTaskExecutor(self._executor)
+        return executor.ParallelTaskExecutor(executor=self._executor,
+                                             max_workers=self._max_workers)
 
-    def __init__(self, flow, flow_detail, backend, conf, **kwargs):
+    def __init__(self, flow, flow_detail, backend, conf,
+                 executor=None, max_workers=None):
         super(MultiThreadedActionEngine, self).__init__(
             flow, flow_detail, backend, conf)
-        self._executor = kwargs.get('executor')
+        self._executor = executor
+        self._max_workers = max_workers
