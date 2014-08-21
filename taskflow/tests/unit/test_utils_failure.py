@@ -42,6 +42,10 @@ class GeneralFailureObjTestsMixin(object):
         self.assertEqual(list(self.fail_obj),
                          test_utils.RUNTIME_ERROR_CLASSES[:-2])
 
+    def test_pformat_no_traceback(self):
+        text = self.fail_obj.pformat()
+        self.assertNotIn("Traceback", text)
+
     def test_check_str(self):
         val = 'Exception'
         self.assertEqual(self.fail_obj.check(val), val)
@@ -91,6 +95,10 @@ class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
     def test_no_exc_info(self):
         self.assertIs(self.fail_obj.exc_info, None)
 
+    def test_pformat_traceback(self):
+        text = self.fail_obj.pformat(traceback=True)
+        self.assertIn("Traceback (most recent call last):", text)
+
     def test_reraises(self):
         exc = self.assertRaises(exceptions.WrappedFailure,
                                 self.fail_obj.reraise)
@@ -102,6 +110,10 @@ class FromExceptionTestCase(test.TestCase, GeneralFailureObjTestsMixin):
     def setUp(self):
         super(FromExceptionTestCase, self).setUp()
         self.fail_obj = misc.Failure.from_exception(RuntimeError('Woot!'))
+
+    def test_pformat_no_traceback(self):
+        text = self.fail_obj.pformat(traceback=True)
+        self.assertIn("Traceback not available", text)
 
 
 class FailureObjectTestCase(test.TestCase):
@@ -187,6 +199,17 @@ class FailureObjectTestCase(test.TestCase):
         captured = _captured_failure('Woot!')
         self.assertNotEqual(captured, None)
         self.assertFalse(captured.matches(None))
+
+    def test_pformat_traceback(self):
+        captured = _captured_failure('Woot!')
+        text = captured.pformat(traceback=True)
+        self.assertIn("Traceback (most recent call last):", text)
+
+    def test_pformat_traceback_captured_no_exc_info(self):
+        captured = _captured_failure('Woot!')
+        captured = misc.Failure.from_dict(captured.to_dict())
+        text = captured.pformat(traceback=True)
+        self.assertIn("Traceback (most recent call last):", text)
 
 
 class WrappedFailureTestCase(test.TestCase):

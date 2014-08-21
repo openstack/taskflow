@@ -696,8 +696,23 @@ class Failure(object):
         return None
 
     def __str__(self):
-        return 'Failure: %s: %s' % (self._exc_type_names[0],
-                                    self._exception_str)
+        return self.pformat()
+
+    def pformat(self, traceback=False):
+        buf = six.StringIO()
+        buf.write(
+            'Failure: %s: %s' % (self._exc_type_names[0], self._exception_str))
+        if traceback:
+            if self._traceback_str is not None:
+                traceback_str = self._traceback_str.rstrip()
+            else:
+                traceback_str = None
+            if traceback_str:
+                buf.write('\nTraceback (most recent call last):\n')
+                buf.write(traceback_str)
+            else:
+                buf.write('\nTraceback not available.')
+        return buf.getvalue()
 
     def __iter__(self):
         """Iterate over exception type names."""
