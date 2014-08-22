@@ -54,12 +54,12 @@ def _extract_engine(**kwargs):
         kind = ENGINE_DEFAULT
     # See if it's a URI and if so, extract any further options...
     try:
-        pieces = misc.parse_uri(kind)
+        uri = misc.parse_uri(kind)
     except (TypeError, ValueError):
         pass
     else:
-        kind = pieces['scheme']
-        options = misc.merge_uri(pieces, options.copy())
+        kind = uri.scheme
+        options = misc.merge_uri(uri, options.copy())
     # Merge in any leftover **kwargs into the options, this makes it so that
     # the provided **kwargs override any URI or engine_conf specific options.
     options.update(kwargs)

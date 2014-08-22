@@ -52,12 +52,12 @@ def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
     """
     backend_name = conf['connection']
     try:
-        pieces = misc.parse_uri(backend_name)
+        uri = misc.parse_uri(backend_name)
     except (TypeError, ValueError):
         pass
     else:
-        backend_name = pieces['scheme']
-        conf = misc.merge_uri(pieces, conf.copy())
+        backend_name = uri.scheme
+        conf = misc.merge_uri(uri, conf.copy())
     LOG.debug('Looking for %r backend driver in %r', backend_name, namespace)
     try:
         mgr = driver.DriverManager(namespace, backend_name,

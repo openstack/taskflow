@@ -148,6 +148,12 @@ class DeclareSuccess(task.Task):
         print("All data processed and sent to %s" % (sent_to))
 
 
+class DummyUser(object):
+    def __init__(self, user, id):
+        self.user = user
+        self.id = id
+
+
 # Resources (db handles and similar) of course can *not* be persisted so we
 # need to make sure that we pass this resource fetcher to the tasks constructor
 # so that the tasks have access to any needed resources (the resources are
@@ -168,7 +174,7 @@ flow.add(sub_flow)
 # prepopulating this allows the tasks that dependent on the 'request' variable
 # to start processing (in this case this is the ExtractInputRequest task).
 store = {
-    'request': misc.AttrDict(user="bob", id="1.35"),
+    'request': DummyUser(user="bob", id="1.35"),
 }
 eng = engines.load(flow, engine='serial', store=store)
 

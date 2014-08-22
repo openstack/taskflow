@@ -387,109 +387,6 @@ class CachedPropertyTest(test.TestCase):
         self.assertEqual('b', a.b)
 
 
-class AttrDictTest(test.TestCase):
-    def test_ok_create(self):
-        attrs = {
-            'a': 1,
-            'b': 2,
-        }
-        obj = misc.AttrDict(**attrs)
-        self.assertEqual(obj.a, 1)
-        self.assertEqual(obj.b, 2)
-
-    def test_private_create(self):
-        attrs = {
-            '_a': 1,
-        }
-        self.assertRaises(AttributeError, misc.AttrDict, **attrs)
-
-    def test_invalid_create(self):
-        attrs = {
-            # Python attributes can't start with a number.
-            '123_abc': 1,
-        }
-        self.assertRaises(AttributeError, misc.AttrDict, **attrs)
-
-    def test_no_overwrite(self):
-        attrs = {
-            # Python attributes can't start with a number.
-            'update': 1,
-        }
-        self.assertRaises(AttributeError, misc.AttrDict, **attrs)
-
-    def test_back_todict(self):
-        attrs = {
-            'a': 1,
-        }
-        obj = misc.AttrDict(**attrs)
-        self.assertEqual(obj.a, 1)
-        self.assertEqual(attrs, dict(obj))
-
-    def test_runtime_invalid_set(self):
-
-        def bad_assign(obj):
-            obj._123 = 'b'
-
-        attrs = {
-            'a': 1,
-        }
-        obj = misc.AttrDict(**attrs)
-        self.assertEqual(obj.a, 1)
-        self.assertRaises(AttributeError, bad_assign, obj)
-
-    def test_bypass_get(self):
-        attrs = {
-            'a': 1,
-        }
-        obj = misc.AttrDict(**attrs)
-        self.assertEqual(1, obj['a'])
-
-    def test_bypass_set_no_get(self):
-
-        def bad_assign(obj):
-            obj._b = 'e'
-
-        attrs = {
-            'a': 1,
-        }
-        obj = misc.AttrDict(**attrs)
-        self.assertEqual(1, obj['a'])
-        obj['_b'] = 'c'
-        self.assertRaises(AttributeError, bad_assign, obj)
-        self.assertEqual('c', obj['_b'])
-
-
-class IsValidAttributeNameTestCase(test.TestCase):
-    def test_a_is_ok(self):
-        self.assertTrue(misc.is_valid_attribute_name('a'))
-
-    def test_name_can_be_longer(self):
-        self.assertTrue(misc.is_valid_attribute_name('foobarbaz'))
-
-    def test_name_can_have_digits(self):
-        self.assertTrue(misc.is_valid_attribute_name('fo12'))
-
-    def test_name_cannot_start_with_digit(self):
-        self.assertFalse(misc.is_valid_attribute_name('1z'))
-
-    def test_hidden_names_are_forbidden(self):
-        self.assertFalse(misc.is_valid_attribute_name('_z'))
-
-    def test_hidden_names_can_be_allowed(self):
-        self.assertTrue(
-            misc.is_valid_attribute_name('_z', allow_hidden=True))
-
-    def test_self_is_forbidden(self):
-        self.assertFalse(misc.is_valid_attribute_name('self'))
-
-    def test_self_can_be_allowed(self):
-        self.assertTrue(
-            misc.is_valid_attribute_name('self', allow_self=True))
-
-    def test_no_unicode_please(self):
-        self.assertFalse(misc.is_valid_attribute_name('mañana'))
-
-
 class UriParseTest(test.TestCase):
     def test_parse(self):
         url = "zookeeper://192.168.0.1:2181/a/b/?c=d"
@@ -500,11 +397,6 @@ class UriParseTest(test.TestCase):
         self.assertEqual('', parsed.fragment)
         self.assertEqual('/a/b/', parsed.path)
         self.assertEqual({'c': 'd'}, parsed.params)
-
-    def test_multi_params(self):
-        url = "mysql://www.yahoo.com:3306/a/b/?c=d&c=e"
-        parsed = misc.parse_uri(url, query_duplicates=True)
-        self.assertEqual({'c': ['d', 'e']}, parsed.params)
 
     def test_port_provided(self):
         url = "rabbitmq://www.yahoo.com:5672"
