@@ -16,10 +16,10 @@
 
 import abc
 
-from concurrent import futures
 import six
 
 from taskflow import task as _task
+from taskflow.types import futures
 from taskflow.utils import async_utils
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
@@ -94,19 +94,20 @@ class TaskExecutorBase(object):
 class SerialTaskExecutor(TaskExecutorBase):
     """Execute task one after another."""
 
+    def __init__(self):
+        self._executor = futures.SynchronousExecutor()
+
     def execute_task(self, task, task_uuid, arguments, progress_callback=None):
-        return async_utils.make_completed_future(
-            _execute_task(task, arguments, progress_callback))
+        return self._executor.submit(_execute_task, task, arguments,
+                                     progress_callback)
 
     def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
-        return async_utils.make_completed_future(
-            _revert_task(task, arguments, result,
-                         failures, progress_callback))
+        return self._executor.submit(_revert_task, task, arguments, result,
+                                     failures, progress_callback)
 
     def wait_for_any(self, fs, timeout=None):
-        # NOTE(imelnikov): this executor returns only done futures.
-        return (fs, set())
+        return async_utils.wait_for_any(fs, timeout)
 
 
 class ParallelTaskExecutor(TaskExecutorBase):

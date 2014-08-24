@@ -18,7 +18,7 @@ import logging
 
 from taskflow.engines.action_engine import executor as ex
 from taskflow import states
-from taskflow.utils import async_utils
+from taskflow.types import futures
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -31,6 +31,7 @@ class RetryAction(object):
         self._storage = storage
         self._notifier = notifier
         self._walker_factory = walker_factory
+        self._executor = futures.SynchronousExecutor()
 
     def _get_retry_args(self, retry):
         scope_walker = self._walker_factory(retry)
@@ -59,29 +60,50 @@ class RetryAction(object):
         self._notifier.notify(state, details)
 
     def execute(self, retry):
+
+        def _execute_retry(kwargs):
+            try:
+                result = retry.execute(**kwargs)
+            except Exception:
+                result = misc.Failure()
+            return (retry, ex.EXECUTED, result)
+
+        def _on_done_callback(fut):
+            result = fut.result()[-1]
+            if isinstance(result, misc.Failure):
+                self.change_state(retry, states.FAILURE, result=result)
+            else:
+                self.change_state(retry, states.SUCCESS, result=result)
+
         self.change_state(retry, states.RUNNING)
-        kwargs = self._get_retry_args(retry)
-        try:
-            result = retry.execute(**kwargs)
-        except Exception:
-            result = misc.Failure()
-            self.change_state(retry, states.FAILURE, result=result)
-        else:
-            self.change_state(retry, states.SUCCESS, result=result)
-        return async_utils.make_completed_future((retry, ex.EXECUTED, result))
+        fut = self._executor.submit(_execute_retry,
+                                    self._get_retry_args(retry))
+        fut.add_done_callback(_on_done_callback)
+        return fut
 
     def revert(self, retry):
+
+        def _execute_retry(kwargs, failures):
+            kwargs['flow_failures'] = failures
+            try:
+                result = retry.revert(**kwargs)
+            except Exception:
+                result = misc.Failure()
+            return (retry, ex.REVERTED, result)
+
+        def _on_done_callback(fut):
+            result = fut.result()[-1]
+            if isinstance(result, misc.Failure):
+                self.change_state(retry, states.FAILURE)
+            else:
+                self.change_state(retry, states.REVERTED)
+
         self.change_state(retry, states.REVERTING)
-        kwargs = self._get_retry_args(retry)
-        kwargs['flow_failures'] = self._storage.get_failures()
-        try:
-            result = retry.revert(**kwargs)
-        except Exception:
-            result = misc.Failure()
-            self.change_state(retry, states.FAILURE)
-        else:
-            self.change_state(retry, states.REVERTED)
-        return async_utils.make_completed_future((retry, ex.REVERTED, result))
+        fut = self._executor.submit(_execute_retry,
+                                    self._get_retry_args(retry),
+                                    self._storage.get_failures())
+        fut.add_done_callback(_on_done_callback)
+        return fut
 
     def on_failure(self, retry, atom, last_failure):
         self._storage.save_retry_failure(retry.name, atom.name, last_failure)

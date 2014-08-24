@@ -23,7 +23,8 @@ from taskflow.patterns import linear_flow as lf
 from taskflow import states
 from taskflow import test
 from taskflow.tests import utils
-from taskflow.utils import eventlet_utils as eu
+from taskflow.types import futures
+from taskflow.utils import async_utils as au
 
 
 class SuspendingListener(lbase.ListenerBase):
@@ -181,13 +182,13 @@ class MultiThreadedEngineTest(SuspendFlowTest,
                                      executor=executor)
 
 
-@testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
+@testtools.skipIf(not au.EVENTLET_AVAILABLE, 'eventlet is not available')
 class ParallelEngineWithEventletTest(SuspendFlowTest,
                                      test.TestCase):
 
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if executor is None:
-            executor = eu.GreenExecutor()
+            executor = futures.GreenThreadPoolExecutor()
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      engine='parallel',
                                      backend=self.backend,

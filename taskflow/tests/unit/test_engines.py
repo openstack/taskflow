@@ -17,7 +17,6 @@
 import contextlib
 import threading
 
-from concurrent import futures
 import testtools
 
 import taskflow.engines
@@ -33,8 +32,9 @@ from taskflow import states
 from taskflow import task
 from taskflow import test
 from taskflow.tests import utils
+from taskflow.types import futures
 from taskflow.types import graph as gr
-from taskflow.utils import eventlet_utils as eu
+from taskflow.utils import async_utils as au
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 
@@ -590,7 +590,7 @@ class MultiThreadedEngineTest(EngineTaskTest,
             executor.shutdown(wait=True)
 
 
-@testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
+@testtools.skipIf(not au.EVENTLET_AVAILABLE, 'eventlet is not available')
 class ParallelEngineWithEventletTest(EngineTaskTest,
                                      EngineLinearFlowTest,
                                      EngineParallelFlowTest,
@@ -601,7 +601,7 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
 
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if executor is None:
-            executor = eu.GreenExecutor()
+            executor = futures.GreenThreadPoolExecutor()
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      backend=self.backend, engine='parallel',
                                      executor=executor)

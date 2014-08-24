@@ -37,7 +37,8 @@ from taskflow.openstack.common import uuidutils
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
-from taskflow.utils import eventlet_utils as e_utils
+from taskflow.types import futures
+from taskflow.utils import async_utils
 from taskflow.utils import persistence_utils as p_utils
 
 import example_utils as eu  # noqa
@@ -236,8 +237,8 @@ with eu.get_backend() as backend:
 
     # Set up how we want our engine to run, serial, parallel...
     executor = None
-    if e_utils.EVENTLET_AVAILABLE:
-        executor = e_utils.GreenExecutor(5)
+    if async_utils.EVENTLET_AVAILABLE:
+        executor = futures.GreenThreadPoolExecutor(5)
 
     # Create/fetch a logbook that will track the workflows work.
     book = None

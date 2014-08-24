@@ -17,6 +17,11 @@ FSM
 
 .. automodule:: taskflow.types.fsm
 
+Futures
+=======
+
+.. automodule:: taskflow.types.futures
+
 Graph
 =====
 

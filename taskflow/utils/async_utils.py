@@ -14,9 +14,32 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from concurrent import futures
+from concurrent import futures as _futures
+from concurrent.futures import _base
 
-from taskflow.utils import eventlet_utils as eu
+try:
+    from eventlet.green import threading as greenthreading
+    EVENTLET_AVAILABLE = True
+except ImportError:
+    EVENTLET_AVAILABLE = False
+
+from taskflow.types import futures
+
+
+_DONE_STATES = frozenset([
+    _base.CANCELLED_AND_NOTIFIED,
+    _base.FINISHED,
+])
+
+
+def make_completed_future(result, exception=False):
+    """Make a future completed with a given result."""
+    future = futures.Future()
+    if exception:
+        future.set_exception(result)
+    else:
+        future.set_result(result)
+    return future
 
 
 def wait_for_any(fs, timeout=None):
@@ -29,10 +52,10 @@ def wait_for_any(fs, timeout=None):
 
     Returns pair (done futures, not done futures).
     """
-    green_fs = sum(1 for f in fs if isinstance(f, eu.GreenFuture))
+    green_fs = sum(1 for f in fs if isinstance(f, futures.GreenFuture))
     if not green_fs:
-        return tuple(futures.wait(fs, timeout=timeout,
-                                  return_when=futures.FIRST_COMPLETED))
+        return tuple(_futures.wait(fs, timeout=timeout,
+                                   return_when=_futures.FIRST_COMPLETED))
     else:
         non_green_fs = len(fs) - green_fs
         if non_green_fs:
@@ -40,11 +63,48 @@ def wait_for_any(fs, timeout=None):
                                " non-green futures in the same `wait_for_any`"
                                " call" % (green_fs, non_green_fs))
         else:
-            return eu.wait_for_any(fs, timeout=timeout)
+            return _wait_for_any_green(fs, timeout=timeout)
 
 
-def make_completed_future(result):
-    """Make with completed with given result."""
-    future = futures.Future()
-    future.set_result(result)
-    return future
+class _GreenWaiter(object):
+    """Provides the event that wait_for_any() blocks on."""
+    def __init__(self):
+        self.event = greenthreading.Event()
+
+    def add_result(self, future):
+        self.event.set()
+
+    def add_exception(self, future):
+        self.event.set()
+
+    def add_cancelled(self, future):
+        self.event.set()
+
+
+def _wait_for_any_green(fs, timeout=None):
+    assert EVENTLET_AVAILABLE, 'eventlet is needed to wait on green futures'
+
+    def _partition_futures(fs):
+        done = set()
+        not_done = set()
+        for f in fs:
+            if f._state in _DONE_STATES:
+                done.add(f)
+            else:
+                not_done.add(f)
+        return (done, not_done)
+
+    with _base._AcquireFutures(fs):
+        (done, not_done) = _partition_futures(fs)
+        if done:
+            return (done, not_done)
+        waiter = _GreenWaiter()
+        for f in fs:
+            f._waiters.append(waiter)
+
+    waiter.event.wait(timeout)
+    for f in fs:
+        f._waiters.remove(waiter)
+
+    with _base._AcquireFutures(fs):
+        return _partition_futures(fs)
