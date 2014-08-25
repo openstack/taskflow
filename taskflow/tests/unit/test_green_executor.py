@@ -31,7 +31,7 @@ class GreenExecutorTest(test.TestCase):
             called[name] += 1
 
         for i in range(0, amount):
-            yield functools.partial(store_call, name=int(i))
+            yield functools.partial(store_call, name=i)
 
     def test_func_calls(self):
         called = collections.defaultdict(int)
@@ -44,20 +44,21 @@ class GreenExecutorTest(test.TestCase):
         self.assertEqual(1, called[1])
 
     def test_no_construction(self):
-        self.assertRaises(AssertionError, eu.GreenExecutor, 0)
-        self.assertRaises(AssertionError, eu.GreenExecutor, -1)
-        self.assertRaises(AssertionError, eu.GreenExecutor, "-1")
+        self.assertRaises(ValueError, eu.GreenExecutor, 0)
+        self.assertRaises(ValueError, eu.GreenExecutor, -1)
+        self.assertRaises(ValueError, eu.GreenExecutor, "-1")
 
     def test_result_callback(self):
         called = collections.defaultdict(int)
 
-        def call_back(future):
+        def callback(future):
             called[future] += 1
 
         funcs = list(self.make_funcs(called, 1))
         with eu.GreenExecutor(2) as e:
-            f = e.submit(funcs[0])
-            f.add_done_callback(call_back)
+            for func in funcs:
+                f = e.submit(func)
+                f.add_done_callback(callback)
 
         self.assertEqual(2, len(called))
 
@@ -86,6 +87,27 @@ class GreenExecutorTest(test.TestCase):
         for i in range(0, create_am):
             result = fs[i].result()
             self.assertEqual(i, result)
+
+    def test_called_restricted_size(self):
+        called = collections.defaultdict(int)
+
+        with eu.GreenExecutor(1) as e:
+            for f in self.make_funcs(called, 100):
+                e.submit(f)
+            self.assertEqual(99, e.amount_delayed)
+
+        self.assertFalse(e.alive)
+        self.assertEqual(100, len(called))
+        self.assertGreaterEqual(1, e.workers_created)
+        self.assertEqual(0, e.amount_delayed)
+
+    def test_shutdown_twice(self):
+        e = eu.GreenExecutor(1)
+        self.assertTrue(e.alive)
+        e.shutdown()
+        self.assertFalse(e.alive)
+        e.shutdown()
+        self.assertFalse(e.alive)
 
     def test_func_cancellation(self):
         called = collections.defaultdict(int)
