@@ -14,8 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import string
-
 from taskflow.engines.action_engine import compiler
 from taskflow import exceptions as exc
 from taskflow.patterns import graph_flow as gf
@@ -23,20 +21,12 @@ from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import retry
 from taskflow import test
-from taskflow.tests import utils as t_utils
-
-
-def _make_many(amount):
-    assert amount <= len(string.ascii_lowercase), 'Not enough letters'
-    tasks = []
-    for i in range(0, amount):
-        tasks.append(t_utils.DummyTask(name=string.ascii_lowercase[i]))
-    return tasks
+from taskflow.tests import utils as test_utils
 
 
 class PatternCompileTest(test.TestCase):
     def test_task(self):
-        task = t_utils.DummyTask(name='a')
+        task = test_utils.DummyTask(name='a')
         compilation = compiler.PatternCompiler().compile(task)
         g = compilation.execution_graph
         self.assertEqual(list(g.nodes()), [task])
@@ -54,7 +44,7 @@ class PatternCompileTest(test.TestCase):
                                 compiler.PatternCompiler().compile, 42)
 
     def test_linear(self):
-        a, b, c, d = _make_many(4)
+        a, b, c, d = test_utils.make_many(4)
         flo = lf.Flow("test")
         flo.add(a, b, c)
         sflo = lf.Flow("sub-test")
@@ -74,7 +64,7 @@ class PatternCompileTest(test.TestCase):
         self.assertEqual([a], list(g.no_predecessors_iter()))
 
     def test_invalid(self):
-        a, b, c = _make_many(3)
+        a, b, c = test_utils.make_many(3)
         flo = lf.Flow("test")
         flo.add(a, b, c)
         flo.add(flo)
@@ -82,7 +72,7 @@ class PatternCompileTest(test.TestCase):
                           compiler.PatternCompiler().compile, flo)
 
     def test_unordered(self):
-        a, b, c, d = _make_many(4)
+        a, b, c, d = test_utils.make_many(4)
         flo = uf.Flow("test")
         flo.add(a, b, c, d)
         compilation = compiler.PatternCompiler().compile(flo)
@@ -95,7 +85,7 @@ class PatternCompileTest(test.TestCase):
                          set(g.no_predecessors_iter()))
 
     def test_linear_nested(self):
-        a, b, c, d = _make_many(4)
+        a, b, c, d = test_utils.make_many(4)
         flo = lf.Flow("test")
         flo.add(a, b)
         flo2 = uf.Flow("test2")
@@ -119,7 +109,7 @@ class PatternCompileTest(test.TestCase):
         self.assertTrue(g.has_edge(b, d))
 
     def test_unordered_nested(self):
-        a, b, c, d = _make_many(4)
+        a, b, c, d = test_utils.make_many(4)
         flo = uf.Flow("test")
         flo.add(a, b)
         flo2 = lf.Flow("test2")
@@ -142,7 +132,7 @@ class PatternCompileTest(test.TestCase):
         self.assertEqual(1, lb.number_of_edges())
 
     def test_unordered_nested_in_linear(self):
-        a, b, c, d = _make_many(4)
+        a, b, c, d = test_utils.make_many(4)
         flo = lf.Flow('lt').add(
             a,
             uf.Flow('ut').add(b, c),
@@ -159,7 +149,7 @@ class PatternCompileTest(test.TestCase):
         ])
 
     def test_graph(self):
-        a, b, c, d = _make_many(4)
+        a, b, c, d = test_utils.make_many(4)
         flo = gf.Flow("test")
         flo.add(a, b, c, d)
 
@@ -169,7 +159,7 @@ class PatternCompileTest(test.TestCase):
         self.assertEqual(0, g.number_of_edges())
 
     def test_graph_nested(self):
-        a, b, c, d, e, f, g = _make_many(7)
+        a, b, c, d, e, f, g = test_utils.make_many(7)
         flo = gf.Flow("test")
         flo.add(a, b, c, d)
 
@@ -186,7 +176,7 @@ class PatternCompileTest(test.TestCase):
         ])
 
     def test_graph_nested_graph(self):
-        a, b, c, d, e, f, g = _make_many(7)
+        a, b, c, d, e, f, g = test_utils.make_many(7)
         flo = gf.Flow("test")
         flo.add(a, b, c, d)
 
@@ -200,7 +190,7 @@ class PatternCompileTest(test.TestCase):
         self.assertEqual(0, g.number_of_edges())
 
     def test_graph_links(self):
-        a, b, c, d = _make_many(4)
+        a, b, c, d = test_utils.make_many(4)
         flo = gf.Flow("test")
         flo.add(a, b, c, d)
         flo.link(a, b)
@@ -219,8 +209,8 @@ class PatternCompileTest(test.TestCase):
         self.assertItemsEqual([d], g.no_successors_iter())
 
     def test_graph_dependencies(self):
-        a = t_utils.ProvidesRequiresTask('a', provides=['x'], requires=[])
-        b = t_utils.ProvidesRequiresTask('b', provides=[], requires=['x'])
+        a = test_utils.ProvidesRequiresTask('a', provides=['x'], requires=[])
+        b = test_utils.ProvidesRequiresTask('b', provides=[], requires=['x'])
         flo = gf.Flow("test").add(a, b)
 
         compilation = compiler.PatternCompiler().compile(flo)
@@ -233,9 +223,9 @@ class PatternCompileTest(test.TestCase):
         self.assertItemsEqual([b], g.no_successors_iter())
 
     def test_graph_nested_requires(self):
-        a = t_utils.ProvidesRequiresTask('a', provides=['x'], requires=[])
-        b = t_utils.ProvidesRequiresTask('b', provides=[], requires=[])
-        c = t_utils.ProvidesRequiresTask('c', provides=[], requires=['x'])
+        a = test_utils.ProvidesRequiresTask('a', provides=['x'], requires=[])
+        b = test_utils.ProvidesRequiresTask('b', provides=[], requires=[])
+        c = test_utils.ProvidesRequiresTask('c', provides=[], requires=['x'])
         flo = gf.Flow("test").add(
             a,
             lf.Flow("test2").add(b, c)
@@ -252,9 +242,9 @@ class PatternCompileTest(test.TestCase):
         self.assertItemsEqual([c], g.no_successors_iter())
 
     def test_graph_nested_provides(self):
-        a = t_utils.ProvidesRequiresTask('a', provides=[], requires=['x'])
-        b = t_utils.ProvidesRequiresTask('b', provides=['x'], requires=[])
-        c = t_utils.ProvidesRequiresTask('c', provides=[], requires=[])
+        a = test_utils.ProvidesRequiresTask('a', provides=[], requires=['x'])
+        b = test_utils.ProvidesRequiresTask('b', provides=['x'], requires=[])
+        c = test_utils.ProvidesRequiresTask('c', provides=[], requires=[])
         flo = gf.Flow("test").add(
             a,
             lf.Flow("test2").add(b, c)
@@ -272,8 +262,8 @@ class PatternCompileTest(test.TestCase):
 
     def test_checks_for_dups(self):
         flo = gf.Flow("test").add(
-            t_utils.DummyTask(name="a"),
-            t_utils.DummyTask(name="a")
+            test_utils.DummyTask(name="a"),
+            test_utils.DummyTask(name="a")
         )
         self.assertRaisesRegexp(exc.Duplicate,
                                 '^Atoms with duplicate names',
@@ -281,8 +271,8 @@ class PatternCompileTest(test.TestCase):
 
     def test_checks_for_dups_globally(self):
         flo = gf.Flow("test").add(
-            gf.Flow("int1").add(t_utils.DummyTask(name="a")),
-            gf.Flow("int2").add(t_utils.DummyTask(name="a")))
+            gf.Flow("int1").add(test_utils.DummyTask(name="a")),
+            gf.Flow("int2").add(test_utils.DummyTask(name="a")))
         self.assertRaisesRegexp(exc.Duplicate,
                                 '^Atoms with duplicate names',
                                 compiler.PatternCompiler().compile, flo)
@@ -325,7 +315,7 @@ class PatternCompileTest(test.TestCase):
 
     def test_retry_in_linear_flow_with_tasks(self):
         c = retry.AlwaysRevert("c")
-        a, b = _make_many(2)
+        a, b = test_utils.make_many(2)
         flo = lf.Flow("test", c).add(a, b)
         compilation = compiler.PatternCompiler().compile(flo)
         g = compilation.execution_graph
@@ -343,7 +333,7 @@ class PatternCompileTest(test.TestCase):
 
     def test_retry_in_unordered_flow_with_tasks(self):
         c = retry.AlwaysRevert("c")
-        a, b = _make_many(2)
+        a, b = test_utils.make_many(2)
         flo = uf.Flow("test", c).add(a, b)
         compilation = compiler.PatternCompiler().compile(flo)
         g = compilation.execution_graph
@@ -361,7 +351,7 @@ class PatternCompileTest(test.TestCase):
 
     def test_retry_in_graph_flow_with_tasks(self):
         r = retry.AlwaysRevert("cp")
-        a, b, c = _make_many(3)
+        a, b, c = test_utils.make_many(3)
         flo = gf.Flow("test", r).add(a, b, c).link(b, c)
         compilation = compiler.PatternCompiler().compile(flo)
         g = compilation.execution_graph
@@ -382,7 +372,7 @@ class PatternCompileTest(test.TestCase):
     def test_retries_hierarchy(self):
         c1 = retry.AlwaysRevert("cp1")
         c2 = retry.AlwaysRevert("cp2")
-        a, b, c, d = _make_many(4)
+        a, b, c, d = test_utils.make_many(4)
         flo = lf.Flow("test", c1).add(
             a,
             lf.Flow("test", c2).add(b, c),
@@ -407,7 +397,7 @@ class PatternCompileTest(test.TestCase):
 
     def test_retry_subflows_hierarchy(self):
         c1 = retry.AlwaysRevert("cp1")
-        a, b, c, d = _make_many(4)
+        a, b, c, d = test_utils.make_many(4)
         flo = lf.Flow("test", c1).add(
             a,
             lf.Flow("test").add(b, c),
