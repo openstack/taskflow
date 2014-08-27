@@ -15,9 +15,11 @@
 #    under the License.
 
 from kazoo import client
+from kazoo import exceptions as k_exc
 import six
 
 from taskflow import exceptions as exc
+from taskflow.utils import reflection
 
 
 def _parse_hosts(hosts):
@@ -31,6 +33,92 @@ def _parse_hosts(hosts):
     if isinstance(hosts, (list, set, tuple)):
         return ",".join([str(h) for h in hosts])
     return hosts
+
+
+def prettify_failures(failures, limit=-1):
+    """Prettifies a checked commits failures (ignores sensitive data...).
+
+    Example input and output:
+
+    >>> from taskflow.utils import kazoo_utils
+    >>> conf = {"hosts": ['localhost:2181']}
+    >>> c = kazoo_utils.make_client(conf)
+    >>> c.start(timeout=1)
+    >>> txn = c.transaction()
+    >>> txn.create("/test")
+    >>> txn.check("/test", 2)
+    >>> txn.delete("/test")
+    >>> try:
+    ...     kazoo_utils.checked_commit(txn)
+    ... except kazoo_utils.KazooTransactionException as e:
+    ...     print(kazoo_utils.prettify_failures(e.failures, limit=1))
+    ...
+    RolledBackError@Create(path='/test') and 2 more...
+    >>> c.stop()
+    >>> c.close()
+    """
+    prettier = []
+    for (op, r) in failures:
+        pretty_op = reflection.get_class_name(op, fully_qualified=False)
+        # Pick off a few attributes that are meaningful (but one that don't
+        # show actual data, which might not be desired to show...).
+        selected_attrs = [
+            "path=%r" % op.path,
+        ]
+        try:
+            if op.version != -1:
+                selected_attrs.append("version=%s" % op.version)
+        except AttributeError:
+            pass
+        pretty_op += "(%s)" % (", ".join(selected_attrs))
+        pretty_cause = reflection.get_class_name(r, fully_qualified=False)
+        prettier.append("%s@%s" % (pretty_cause, pretty_op))
+    if limit <= 0 or len(prettier) <= limit:
+        return ", ".join(prettier)
+    else:
+        leftover = prettier[limit:]
+        prettier = prettier[0:limit]
+        return ", ".join(prettier) + " and %s more..." % len(leftover)
+
+
+class KazooTransactionException(k_exc.KazooException):
+    """Exception raised when a checked commit fails."""
+
+    def __init__(self, message, failures):
+        super(KazooTransactionException, self).__init__(message)
+        self._failures = tuple(failures)
+
+    @property
+    def failures(self):
+        return self._failures
+
+
+def checked_commit(txn):
+    # Until https://github.com/python-zk/kazoo/pull/224 is fixed we have
+    # to workaround the transaction failing silently.
+    if not txn.operations:
+        return []
+    results = txn.commit()
+    failures = []
+    for op, result in six.moves.zip(txn.operations, results):
+        if isinstance(result, k_exc.KazooException):
+            failures.append((op, result))
+    if len(results) < len(txn.operations):
+        raise KazooTransactionException(
+            "Transaction returned %s results, this is less than"
+            " the number of expected transaction operations %s"
+            % (len(results), len(txn.operations)), failures)
+    if len(results) > len(txn.operations):
+        raise KazooTransactionException(
+            "Transaction returned %s results, this is greater than"
+            " the number of expected transaction operations %s"
+            % (len(results), len(txn.operations)), failures)
+    if failures:
+        raise KazooTransactionException(
+            "Transaction with %s operations failed: %s"
+            % (len(txn.operations),
+               prettify_failures(failures, limit=1)), failures)
+    return results
 
 
 def finalize_client(client):
