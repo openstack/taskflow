@@ -47,23 +47,23 @@ class _MachineBuilder(object):
     NOTE(harlowja): the machine states that this build will for are::
 
     +--------------+-----------+------------+----------+---------+
-    |    Start     |   Event   |    End     | On Enter | On Exit |
+         Start     |   Event   |    End     | On Enter | On Exit
     +--------------+-----------+------------+----------+---------+
-    |  ANALYZING   |  finished | GAME_OVER  | on_enter | on_exit |
-    |  ANALYZING   |  schedule | SCHEDULING | on_enter | on_exit |
-    |  ANALYZING   |    wait   |  WAITING   | on_enter | on_exit |
-    |  FAILURE[$]  |           |            |          |         |
-    |  GAME_OVER   |   failed  |  FAILURE   | on_enter | on_exit |
-    |  GAME_OVER   |  reverted |  REVERTED  | on_enter | on_exit |
-    |  GAME_OVER   |  success  |  SUCCESS   | on_enter | on_exit |
-    |  GAME_OVER   | suspended | SUSPENDED  | on_enter | on_exit |
-    |   RESUMING   |  schedule | SCHEDULING | on_enter | on_exit |
-    | REVERTED[$]  |           |            |          |         |
-    |  SCHEDULING  |    wait   |  WAITING   | on_enter | on_exit |
-    |  SUCCESS[$]  |           |            |          |         |
-    | SUSPENDED[$] |           |            |          |         |
-    | UNDEFINED[^] |   start   |  RESUMING  | on_enter | on_exit |
-    |   WAITING    |  analyze  | ANALYZING  | on_enter | on_exit |
+       ANALYZING   | finished  | GAME_OVER  |          |
+       ANALYZING   | schedule  | SCHEDULING |          |
+       ANALYZING   |   wait    |  WAITING   |          |
+       FAILURE[$]  |           |            |          |
+       GAME_OVER   |  failed   |  FAILURE   |          |
+       GAME_OVER   | reverted  |  REVERTED  |          |
+       GAME_OVER   |  success  |  SUCCESS   |          |
+       GAME_OVER   | suspended | SUSPENDED  |          |
+        RESUMING   | schedule  | SCHEDULING |          |
+      REVERTED[$]  |           |            |          |
+       SCHEDULING  |   wait    |  WAITING   |          |
+       SUCCESS[$]  |           |            |          |
+      SUSPENDED[$] |           |            |          |
+      UNDEFINED[^] |   start   |  RESUMING  |          |
+        WAITING    |  analyze  | ANALYZING  |          |
     +--------------+-----------+------------+----------+---------+
 
     Between any of these yielded states (minus ``GAME_OVER`` and ``UNDEFINED``)

@@ -23,6 +23,7 @@ from taskflow import exceptions as excp
 from taskflow import test
 from taskflow.types import fsm
 from taskflow.types import graph
+from taskflow.types import table
 from taskflow.types import timing as tt
 from taskflow.types import tree
 
@@ -159,6 +160,26 @@ class StopWatchTest(test.TestCase):
         with tt.StopWatch() as watch:
             time.sleep(0.05)
         self.assertGreater(0.01, watch.elapsed())
+
+
+class TableTest(test.TestCase):
+    def test_create_valid_no_rows(self):
+        tbl = table.PleasantTable(['Name', 'City', 'State', 'Country'])
+        self.assertGreater(0, len(tbl.pformat()))
+
+    def test_create_valid_rows(self):
+        tbl = table.PleasantTable(['Name', 'City', 'State', 'Country'])
+        before_rows = tbl.pformat()
+        tbl.add_row(["Josh", "San Jose", "CA", "USA"])
+        after_rows = tbl.pformat()
+        self.assertGreater(len(before_rows), len(after_rows))
+
+    def test_create_invalid_columns(self):
+        self.assertRaises(ValueError, table.PleasantTable, [])
+
+    def test_create_invalid_rows(self):
+        tbl = table.PleasantTable(['Name', 'City', 'State', 'Country'])
+        self.assertRaises(ValueError, tbl.add_row, ['a', 'b'])
 
 
 class FSMTest(test.TestCase):
