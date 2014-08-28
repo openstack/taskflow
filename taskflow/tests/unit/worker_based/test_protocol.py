@@ -18,9 +18,72 @@ from concurrent import futures
 import mock
 
 from taskflow.engines.worker_based import protocol as pr
+from taskflow import exceptions as excp
+from taskflow.openstack.common import uuidutils
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.utils import misc
+
+
+class TestProtocolValidation(test.TestCase):
+    def test_send_notify(self):
+        msg = pr.Notify()
+        pr.Notify.validate(msg.to_dict(), False)
+
+    def test_send_notify_invalid(self):
+        msg = {
+            'all your base': 'are belong to us',
+        }
+        self.assertRaises(excp.InvalidFormat,
+                          pr.Notify.validate, msg, False)
+
+    def test_reply_notify(self):
+        msg = pr.Notify(topic="bob", tasks=['a', 'b', 'c'])
+        pr.Notify.validate(msg.to_dict(), True)
+
+    def test_reply_notify_invalid(self):
+        msg = {
+            'topic': {},
+            'tasks': 'not yours',
+        }
+        self.assertRaises(excp.InvalidFormat,
+                          pr.Notify.validate, msg, True)
+
+    def test_request(self):
+        msg = pr.Request(utils.DummyTask("hi"), uuidutils.generate_uuid(),
+                         pr.EXECUTE, {}, None, 1.0)
+        pr.Request.validate(msg.to_dict())
+
+    def test_request_invalid(self):
+        msg = {
+            'task_name': 1,
+            'task_cls': False,
+            'arguments': [],
+        }
+        self.assertRaises(excp.InvalidFormat, pr.Request.validate, msg)
+
+    def test_request_invalid_action(self):
+        msg = pr.Request(utils.DummyTask("hi"), uuidutils.generate_uuid(),
+                         pr.EXECUTE, {}, None, 1.0)
+        msg = msg.to_dict()
+        msg['action'] = 'NOTHING'
+        self.assertRaises(excp.InvalidFormat, pr.Request.validate, msg)
+
+    def test_response_progress(self):
+        msg = pr.Response(pr.PROGRESS, progress=0.5, event_data={})
+        pr.Response.validate(msg.to_dict())
+
+    def test_response_completion(self):
+        msg = pr.Response(pr.SUCCESS, result=1)
+        pr.Response.validate(msg.to_dict())
+
+    def test_response_mixed_invalid(self):
+        msg = pr.Response(pr.PROGRESS, progress=0.5, event_data={}, result=1)
+        self.assertRaises(excp.InvalidFormat, pr.Response.validate, msg)
+
+    def test_response_bad_state(self):
+        msg = pr.Response('STUFF')
+        self.assertRaises(excp.InvalidFormat, pr.Response.validate, msg)
 
 
 class TestProtocol(test.TestCase):
