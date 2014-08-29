@@ -99,16 +99,15 @@ class Proxy(object):
         """Return whether the proxy is running."""
         return self._running.is_set()
 
-    def _make_queue(self, name, exchange, **kwargs):
-        """Make named queue for the given exchange."""
-        return kombu.Queue(name="%s_%s" % (self._exchange_name, name),
-                           exchange=exchange,
-                           routing_key=name,
-                           durable=False,
-                           auto_delete=True,
-                           **kwargs)
+    def _make_queue(self, routing_key, exchange, channel=None):
+        """Make a named queue for the given exchange."""
+        queue_name = "%s_%s" % (self._exchange_name, routing_key)
+        return kombu.Queue(name=queue_name,
+                           routing_key=routing_key, durable=False,
+                           exchange=exchange, auto_delete=True,
+                           channel=channel)
 
-    def publish(self, msg, routing_key, **kwargs):
+    def publish(self, msg, routing_key, reply_to=None, correlation_id=None):
         """Publish message to the named exchange with given routing key."""
         if isinstance(routing_key, six.string_types):
             routing_keys = [routing_key]
@@ -123,7 +122,8 @@ class Proxy(object):
                                  exchange=self._exchange,
                                  declare=[queue],
                                  type=msg.TYPE,
-                                 **kwargs)
+                                 reply_to=reply_to,
+                                 correlation_id=correlation_id)
 
     def start(self):
         """Start proxy."""

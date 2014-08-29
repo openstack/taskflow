@@ -214,8 +214,8 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                               self.task_args, None, self.timeout),
             mock.call.request.transition_and_log_error(pr.PENDING,
                                                        logger=mock.ANY),
-            mock.call.proxy.publish(msg=self.request_inst_mock,
-                                    routing_key=self.executor_topic,
+            mock.call.proxy.publish(self.request_inst_mock,
+                                    self.executor_topic,
                                     reply_to=self.executor_uuid,
                                     correlation_id=self.task_uuid)
         ]
@@ -236,8 +236,8 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                               result=self.task_result),
             mock.call.request.transition_and_log_error(pr.PENDING,
                                                        logger=mock.ANY),
-            mock.call.proxy.publish(msg=self.request_inst_mock,
-                                    routing_key=self.executor_topic,
+            mock.call.proxy.publish(self.request_inst_mock,
+                                    self.executor_topic,
                                     reply_to=self.executor_uuid,
                                     correlation_id=self.task_uuid)
         ]
@@ -267,8 +267,8 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                               self.task_args, None, self.timeout),
             mock.call.request.transition_and_log_error(pr.PENDING,
                                                        logger=mock.ANY),
-            mock.call.proxy.publish(msg=self.request_inst_mock,
-                                    routing_key=self.executor_topic,
+            mock.call.proxy.publish(self.request_inst_mock,
+                                    self.executor_topic,
                                     reply_to=self.executor_uuid,
                                     correlation_id=self.task_uuid),
             mock.call.request.transition_and_log_error(pr.FAILURE,

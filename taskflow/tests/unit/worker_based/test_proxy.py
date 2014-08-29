@@ -16,10 +16,9 @@
 
 import socket
 
-from six.moves import mock
-
 from taskflow.engines.worker_based import proxy
 from taskflow import test
+from taskflow.test import mock
 from taskflow.utils import threading_utils
 
 
@@ -133,24 +132,24 @@ class TestProxy(test.MockTestCase):
         msg_mock.to_dict.return_value = msg_data
         routing_key = 'routing-key'
         task_uuid = 'task-uuid'
-        kwargs = dict(a='a', b='b')
 
         self.proxy(reset_master_mock=True).publish(
-            msg_mock, routing_key, correlation_id=task_uuid, **kwargs)
+            msg_mock, routing_key, correlation_id=task_uuid)
 
         master_mock_calls = [
             mock.call.Queue(name=self._queue_name(routing_key),
                             exchange=self.exchange_inst_mock,
                             routing_key=routing_key,
                             durable=False,
-                            auto_delete=True),
+                            auto_delete=True,
+                            channel=None),
             mock.call.producer.publish(body=msg_data,
                                        routing_key=routing_key,
                                        exchange=self.exchange_inst_mock,
                                        correlation_id=task_uuid,
                                        declare=[self.queue_inst_mock],
                                        type=msg_mock.TYPE,
-                                       **kwargs)
+                                       reply_to=None)
         ]
         self.master_mock.assert_has_calls(master_mock_calls)
 
