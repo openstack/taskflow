@@ -214,7 +214,7 @@ the engine can immediately stop doing further work. The effect that this causes
 is that when a claim is lost another engine can immediately attempt to acquire
 the claim that was previously lost and it *could* begin working on the
 unfinished tasks that the later engine may also still be executing (since that
-engine is not yet aware that it has lost the claim).
+engine is not yet aware that it has *lost* the claim).
 
 **TLDR:** not `preemptable`_, possible to become aware of losing a claim
 after the fact (at the next state change), another engine could have acquired
@@ -235,8 +235,8 @@ the claim by then, therefore both would be *working* on a job.
 
 #. Delay claiming partially completed work by adding a wait period (to allow
    the previous engine to coalesce) before working on a partially completed job
-   (combine this with the prior suggestions and dual-engine issues should be
-   avoided).
+   (combine this with the prior suggestions and *most* dual-engine issues
+   should be avoided).
 
 .. _idempotent: http://en.wikipedia.org/wiki/Idempotence
 .. _preemptable: http://en.wikipedia.org/wiki/Preemption_%28computing%29

@@ -7,8 +7,7 @@ Overview
 
 This is engine that schedules tasks to **workers** -- separate processes
 dedicated for certain atoms execution, possibly running on other machines,
-connected via `amqp`_ (or other supported `kombu
-<http://kombu.readthedocs.org/>`_ transports).
+connected via `amqp`_ (or other supported `kombu`_ transports).
 
 .. note::
 
@@ -18,6 +17,7 @@ connected via `amqp`_ (or other supported `kombu
     production ready.
 
 .. _blueprint page: https://blueprints.launchpad.net/taskflow?searchtext=wbe
+.. _kombu: http://kombu.readthedocs.org/
 
 Terminology
 -----------
