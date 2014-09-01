@@ -14,17 +14,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from pbr import version as pbr_version
+import pkg_resources
 
 TASK_VENDOR = "OpenStack Foundation"
 TASK_PRODUCT = "OpenStack TaskFlow"
 TASK_PACKAGE = None  # OS distro package version suffix
 
-version_info = pbr_version.VersionInfo('taskflow')
-
-
-def version_string():
-    return version_info.version_string()
+try:
+    from pbr import version as pbr_version
+    _version_info = pbr_version.VersionInfo('taskflow')
+    version_string = _version_info.version_string
+except ImportError:
+    _version_info = pkg_resources.get_distribution('taskflow')
+    version_string = lambda: _version_info.version
 
 
 def version_string_with_package():
