@@ -16,13 +16,13 @@
 
 import logging
 import socket
-import threading
 
 import kombu
 import six
 
 from taskflow.engines.worker_based import dispatcher
 from taskflow.utils import misc
+from taskflow.utils import threading_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class Proxy(object):
         self._topic = topic
         self._exchange_name = exchange_name
         self._on_wait = on_wait
-        self._running = threading.Event()
+        self._running = threading_utils.Event()
         self._dispatcher = dispatcher.TypeDispatcher(type_handlers)
         self._dispatcher.add_requeue_filter(
             # NOTE(skudriashev): Process all incoming messages only if proxy is

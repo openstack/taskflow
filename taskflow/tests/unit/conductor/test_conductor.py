@@ -30,6 +30,7 @@ from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as pu
+from taskflow.utils import threading_utils
 
 
 @contextlib.contextmanager
@@ -88,14 +89,15 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
         with close_many(components.conductor, components.client):
             t = make_thread(components.conductor)
             t.start()
-            self.assertTrue(components.conductor.stop(0.5))
+            self.assertTrue(
+                components.conductor.stop(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
             t.join()
 
     def test_run(self):
         components = self.make_components()
         components.conductor.connect()
-        consumed_event = threading.Event()
+        consumed_event = threading_utils.Event()
 
         def on_consume(state, details):
             consumed_event.set()
@@ -110,9 +112,8 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
                                          backend=components.persistence)
             components.board.post('poke', lb,
                                   details={'flow_uuid': fd.uuid})
-            consumed_event.wait(1.0)
-            self.assertTrue(consumed_event.is_set())
-            self.assertTrue(components.conductor.stop(1.0))
+            self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            self.assertTrue(components.conductor.stop(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
 
         persistence = components.persistence
@@ -125,8 +126,7 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
     def test_fail_run(self):
         components = self.make_components()
         components.conductor.connect()
-
-        consumed_event = threading.Event()
+        consumed_event = threading_utils.Event()
 
         def on_consume(state, details):
             consumed_event.set()
@@ -141,9 +141,8 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
                                          backend=components.persistence)
             components.board.post('poke', lb,
                                   details={'flow_uuid': fd.uuid})
-            consumed_event.wait(1.0)
-            self.assertTrue(consumed_event.is_set())
-            self.assertTrue(components.conductor.stop(1.0))
+            self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            self.assertTrue(components.conductor.stop(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
 
         persistence = components.persistence

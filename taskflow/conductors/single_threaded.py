@@ -13,7 +13,6 @@
 #    under the License.
 
 import logging
-import threading
 
 import six
 
@@ -23,6 +22,7 @@ from taskflow.listeners import logging as logging_listener
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
 from taskflow.utils import lock_utils
+from taskflow.utils import threading_utils
 
 LOG = logging.getLogger(__name__)
 WAIT_TIMEOUT = 0.5
@@ -64,7 +64,7 @@ class SingleThreadedConductor(base.Conductor):
             self._wait_timeout = wait_timeout
         else:
             raise ValueError("Invalid timeout literal: %s" % (wait_timeout))
-        self._dead = threading.Event()
+        self._dead = threading_utils.Event()
 
     @lock_utils.locked
     def stop(self, timeout=None):
@@ -81,8 +81,7 @@ class SingleThreadedConductor(base.Conductor):
         be honored in the future) and False will be returned indicating this.
         """
         self._wait_timeout.interrupt()
-        self._dead.wait(timeout)
-        return self._dead.is_set()
+        return self._dead.wait(timeout)
 
     @property
     def dispatching(self):
