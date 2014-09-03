@@ -61,6 +61,10 @@ class Server(object):
         self._endpoints = dict([(endpoint.name, endpoint)
                                 for endpoint in endpoints])
 
+    @property
+    def connection_details(self):
+        return self._proxy.connection_details
+
     @staticmethod
     def _parse_request(task_cls, task_name, action, arguments, result=None,
                        failures=None, **kwargs):
