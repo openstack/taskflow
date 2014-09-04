@@ -34,16 +34,8 @@ Tox.ini
 
 Our ``tox.ini`` file describes several test environments that allow to test
 TaskFlow with different python versions and sets of requirements installed.
-
-To generate the ``tox.ini`` file, use the ``toxgen.py`` script by first
-installing `toxgen`_ and then provide that script as input the ``tox-tmpl.ini``
-file to generate the final ``tox.ini`` file.
-
-*For example:*
-
-::
-
-    $ toxgen.py -i tox-tmpl.ini -o tox.ini
+Please refer to the `tox`_ documentation to understand how to make these test
+environments work for you.
 
 Developer documentation
 -----------------------
@@ -56,5 +48,5 @@ We also have sphinx documentation in ``docs/source``.
 
     $ python setup.py build_sphinx
 
-.. _toxgen: https://pypi.python.org/pypi/toxgen/
+.. _tox: http://testrun.org/tox/latest/
 .. _developer documentation: http://docs.openstack.org/developer/taskflow/
