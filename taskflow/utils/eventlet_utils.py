@@ -144,9 +144,7 @@ class GreenExecutor(futures.Executor):
             self._shutdown = True
         if wait:
             self._pool.waitall()
-            # NOTE(harlowja): Fixed in eventlet 0.15 (remove when able to use)
-            if not self._delayed_work.empty():
-                self._delayed_work.join()
+            self._delayed_work.join()
 
 
 class _GreenWaiter(object):
