@@ -27,6 +27,7 @@ import os
 import re
 import string
 import sys
+import threading
 import time
 import traceback
 
@@ -163,7 +164,7 @@ def decode_json(raw_data, root_types=(dict,)):
 
 
 class cachedproperty(object):
-    """A descriptor property that is only evaluated once..
+    """A *thread-safe* descriptor property that is only evaluated once.
 
     This caching descriptor can be placed on instance methods to translate
     those methods into properties that will be cached in the instance (avoiding
@@ -176,6 +177,7 @@ class cachedproperty(object):
     after the first call to 'get_thing' occurs.
     """
     def __init__(self, fget):
+        self._lock = threading.RLock()
         # If a name is provided (as an argument) then this will be the string
         # to place the cached attribute under if not then it will be the
         # function itself to be wrapped into a property.
@@ -205,12 +207,19 @@ class cachedproperty(object):
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        try:
+        # Quick check to see if this already has been made (before acquiring
+        # the lock). This is safe to do since we don't allow deletion after
+        # being created.
+        if hasattr(instance, self._attr_name):
             return getattr(instance, self._attr_name)
-        except AttributeError:
-            value = self._fget(instance)
-            setattr(instance, self._attr_name, value)
-            return value
+        else:
+            with self._lock:
+                try:
+                    return getattr(instance, self._attr_name)
+                except AttributeError:
+                    value = self._fget(instance)
+                    setattr(instance, self._attr_name, value)
+                    return value
 
 
 def wallclock():
