@@ -15,6 +15,7 @@
 #    under the License.
 
 import contextlib
+import string
 import threading
 
 import six
@@ -346,3 +347,16 @@ class WaitForOneFromTask(SaveOrderTask):
         if name not in self.wait_for or state not in self.wait_states:
             return
         self.event.set()
+
+
+def make_many(amount, task_cls=DummyTask, offset=0):
+    name_pool = string.ascii_lowercase + string.ascii_uppercase
+    tasks = []
+    while amount > 0:
+        if offset >= len(name_pool):
+            raise AssertionError('Name pool size to small (%s < %s)'
+                                 % (len(name_pool), offset + 1))
+        tasks.append(task_cls(name=name_pool[offset]))
+        offset += 1
+        amount -= 1
+    return tasks

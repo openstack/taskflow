@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import threading
 
 from taskflow.engines.action_engine import compiler
@@ -28,6 +29,16 @@ from taskflow import storage as atom_storage
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
+
+
+@contextlib.contextmanager
+def _start_stop(executor):
+    # A teenie helper context manager to safely start/stop a executor...
+    executor.start()
+    try:
+        yield executor
+    finally:
+        executor.stop()
 
 
 class ActionEngine(base.EngineBase):
@@ -110,31 +121,38 @@ class ActionEngine(base.EngineBase):
         """
         self.compile()
         self.prepare()
-        self._task_executor.start()
-        state = None
         runner = self._runtime.runner
-        try:
+        last_state = None
+        with _start_stop(self._task_executor):
             self._change_state(states.RUNNING)
-            for state in runner.run_iter(timeout=timeout):
-                try:
-                    try_suspend = yield state
-                except GeneratorExit:
-                    break
-                else:
-                    if try_suspend:
+            try:
+                closed = False
+                for (last_state, failures) in runner.run_iter(timeout=timeout):
+                    if failures:
+                        misc.Failure.reraise_if_any(failures)
+                    if closed:
+                        continue
+                    try:
+                        try_suspend = yield last_state
+                    except GeneratorExit:
+                        # The generator was closed, attempt to suspend and
+                        # continue looping until we have cleanly closed up
+                        # shop...
+                        closed = True
                         self.suspend()
-        except Exception:
-            with excutils.save_and_reraise_exception():
-                self._change_state(states.FAILURE)
-        else:
-            ignorable_states = getattr(runner, 'ignorable_states', [])
-            if state and state not in ignorable_states:
-                self._change_state(state)
-                if state != states.SUSPENDED and state != states.SUCCESS:
-                    failures = self.storage.get_failures()
-                    misc.Failure.reraise_if_any(failures.values())
-        finally:
-            self._task_executor.stop()
+                    else:
+                        if try_suspend:
+                            self.suspend()
+            except Exception:
+                with excutils.save_and_reraise_exception():
+                    self._change_state(states.FAILURE)
+            else:
+                ignorable_states = getattr(runner, 'ignorable_states', [])
+                if last_state and last_state not in ignorable_states:
+                    self._change_state(last_state)
+                    if last_state not in [states.SUSPENDED, states.SUCCESS]:
+                        failures = self.storage.get_failures()
+                        misc.Failure.reraise_if_any(failures.values())
 
     def _change_state(self, state):
         with self._state_lock:
