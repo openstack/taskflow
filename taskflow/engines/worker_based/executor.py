@@ -23,6 +23,7 @@ from taskflow.engines.worker_based import cache
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow import exceptions as exc
+from taskflow.openstack.common import timeutils
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
 from taskflow.utils import misc
@@ -109,8 +110,8 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
 
         # publish waiting requests
         for request in self._requests_cache.get_waiting_requests(tasks):
-            request.set_pending()
-            self._publish_request(request, topic)
+            if request.transition_log_error(pr.PENDING, logger=LOG):
+                self._publish_request(request, topic)
 
     def _process_response(self, response, message):
         """Process response from remote side."""
@@ -120,20 +121,23 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         except KeyError:
             LOG.warning("The 'correlation_id' message property is missing.")
         else:
-            LOG.debug("Task uuid: '%s'", task_uuid)
             request = self._requests_cache.get(task_uuid)
             if request is not None:
                 response = pr.Response.from_dict(response)
                 if response.state == pr.RUNNING:
-                    request.set_running()
+                    request.transition_log_error(pr.RUNNING, logger=LOG)
                 elif response.state == pr.PROGRESS:
                     request.on_progress(**response.data)
                 elif response.state in (pr.FAILURE, pr.SUCCESS):
-                    # NOTE(imelnikov): request should not be in cache when
-                    # another thread can see its result and schedule another
-                    # request with same uuid; so we remove it, then set result
-                    del self._requests_cache[request.uuid]
-                    request.set_result(**response.data)
+                    moved = request.transition_log_error(response.state,
+                                                         logger=LOG)
+                    if moved:
+                        # NOTE(imelnikov): request should not be in the
+                        # cache when another thread can see its result and
+                        # schedule another request with the same uuid; so
+                        # we remove it, then set the result...
+                        del self._requests_cache[request.uuid]
+                        request.set_result(**response.data)
                 else:
                     LOG.warning("Unexpected response status: '%s'",
                                 response.state)
@@ -147,10 +151,21 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         When request has expired it is removed from the requests cache and
         the `RequestTimeout` exception is set as a request result.
         """
-        LOG.debug("Request '%r' has expired.", request)
-        LOG.debug("The '%r' request has expired.", request)
-        request.set_result(misc.Failure.from_exception(
-            exc.RequestTimeout("The '%r' request has expired" % request)))
+        if request.transition_log_error(pr.FAILURE, logger=LOG):
+            # Raise an exception (and then catch it) so we get a nice
+            # traceback that the request will get instead of it getting
+            # just an exception with no traceback...
+            try:
+                request_age = timeutils.delta_seconds(request.created_on,
+                                                      timeutils.utcnow())
+                raise exc.RequestTimeout(
+                    "Request '%s' has expired after waiting for %0.2f"
+                    " seconds for it to transition out of (%s) states"
+                    % (request, request_age, ", ".join(pr.WAITING_STATES)))
+            except exc.RequestTimeout:
+                with misc.capture_failure() as fail:
+                    LOG.debug(fail.exception_str)
+                    request.set_result(fail)
 
     def _on_wait(self):
         """This function is called cyclically between draining events."""
@@ -169,9 +184,9 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
             # before putting it into the requests cache to prevent the notify
             # processing thread get list of waiting requests and publish it
             # before it is published here, so it wouldn't be published twice.
-            request.set_pending()
-            self._requests_cache[request.uuid] = request
-            self._publish_request(request, topic)
+            if request.transition_log_error(pr.PENDING, logger=LOG):
+                self._requests_cache[request.uuid] = request
+                self._publish_request(request, topic)
         else:
             self._requests_cache[request.uuid] = request
 
@@ -187,8 +202,9 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         except Exception:
             with misc.capture_failure() as failure:
                 LOG.exception("Failed to submit the '%s' request.", request)
-                del self._requests_cache[request.uuid]
-                request.set_result(failure)
+                if request.transition_log_error(pr.FAILURE, logger=LOG):
+                    del self._requests_cache[request.uuid]
+                    request.set_result(failure)
 
     def _notify_topics(self):
         """Cyclically called to publish notify message to each topic."""

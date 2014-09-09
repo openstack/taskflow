@@ -15,6 +15,8 @@
 #    under the License.
 
 import abc
+import logging
+import threading
 
 from concurrent import futures
 import jsonschema
@@ -23,7 +25,9 @@ import six
 
 from taskflow.engines.action_engine import executor
 from taskflow import exceptions as excp
+from taskflow.openstack.common import timeutils
 from taskflow.types import timing as tt
+from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
 
@@ -36,7 +40,34 @@ SUCCESS = 'SUCCESS'
 FAILURE = 'FAILURE'
 PROGRESS = 'PROGRESS'
 
+# During these states the expiry is active (once out of these states the expiry
+# no longer matters, since we have no way of knowing how long a task will run
+# for).
+WAITING_STATES = (WAITING, PENDING)
+
 _ALL_STATES = (WAITING, PENDING, RUNNING, SUCCESS, FAILURE, PROGRESS)
+_STOP_TIMER_STATES = (RUNNING, SUCCESS, FAILURE)
+
+# Transitions that a request state can go through.
+_ALLOWED_TRANSITIONS = (
+    # Used when a executor starts to publish a request to a selected worker.
+    (WAITING, PENDING),
+    # When a request expires (isn't able to be processed by any worker).
+    (WAITING, FAILURE),
+    # Worker has started executing a request.
+    (PENDING, RUNNING),
+    # Worker failed to construct/process a request to run (either the worker
+    # did not transition to RUNNING in the given timeout or the worker itself
+    # had some type of failure before RUNNING started).
+    #
+    # Also used by the executor if the request was attempted to be published
+    # but that did publishing process did not work out.
+    (PENDING, FAILURE),
+    # Execution failed due to some type of remote failure.
+    (RUNNING, FAILURE),
+    # Execution succeeded & has completed.
+    (RUNNING, SUCCESS),
+)
 
 # Remote task actions.
 EXECUTE = 'execute'
@@ -72,6 +103,8 @@ _SCHEMA_TYPES = {
     # See: https://github.com/Julian/jsonschema/issues/148
     'array': (list, tuple),
 }
+
+LOG = logging.getLogger(__name__)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -143,8 +176,10 @@ class Request(Message):
     """Represents request with execution results.
 
     Every request is created in the WAITING state and is expired within the
-    given timeout.
+    given timeout if it does not transition out of the (WAITING, PENDING)
+    states.
     """
+
     TYPE = REQUEST
     _SCHEMA = {
         "type": "object",
@@ -196,10 +231,9 @@ class Request(Message):
         self._kwargs = kwargs
         self._watch = tt.StopWatch(duration=timeout).start()
         self._state = WAITING
+        self._lock = threading.Lock()
+        self._created_on = timeutils.utcnow()
         self.result = futures.Future()
-
-    def __repr__(self):
-        return "%s:%s" % (self._task_cls, self._action)
 
     @property
     def uuid(self):
@@ -214,6 +248,10 @@ class Request(Message):
         return self._state
 
     @property
+    def created_on(self):
+        return self._created_on
+
+    @property
     def expired(self):
         """Check if request has expired.
 
@@ -224,7 +262,7 @@ class Request(Message):
         state for more then the given timeout (it is not considered to be
         expired in any other state).
         """
-        if self._state in (WAITING, PENDING):
+        if self._state in WAITING_STATES:
             return self._watch.expired()
         return False
 
@@ -254,15 +292,42 @@ class Request(Message):
     def set_result(self, result):
         self.result.set_result((self._task, self._event, result))
 
-    def set_pending(self):
-        self._state = PENDING
-
-    def set_running(self):
-        self._state = RUNNING
-        self._watch.stop()
-
     def on_progress(self, event_data, progress):
         self._progress_callback(self._task, event_data, progress)
+
+    def transition_log_error(self, new_state, logger=None):
+        if logger is None:
+            logger = LOG
+        moved = False
+        try:
+            moved = self.transition(new_state)
+        except excp.InvalidState:
+            logger.warn("Failed to transition '%s' to %s state.", self,
+                        new_state, exc_info=True)
+        return moved
+
+    @lock_utils.locked
+    def transition(self, new_state):
+        """Transitions the request to a new state.
+
+        If transition was performed, it returns True. If transition
+        should was ignored, it returns False. If transition is not
+        valid (and will not be performed), it raises an InvalidState
+        exception.
+        """
+        old_state = self._state
+        if old_state == new_state:
+            return False
+        pair = (old_state, new_state)
+        if pair not in _ALLOWED_TRANSITIONS:
+            raise excp.InvalidState("Request transition from %s to %s is"
+                                    " not allowed" % pair)
+        if new_state in _STOP_TIMER_STATES:
+            self._watch.stop()
+        self._state = new_state
+        LOG.debug("Transitioned '%s' from %s state to %s state", self,
+                  old_state, new_state)
+        return True
 
     @classmethod
     def validate(cls, data):
@@ -292,6 +357,9 @@ class Response(Message):
                     {
                         "$ref": "#/definitions/completion",
                     },
+                    {
+                        "$ref": "#/definitions/empty",
+                    },
                 ],
             },
         },
@@ -309,6 +377,12 @@ class Response(Message):
                     },
                 },
                 "required": ["progress", 'event_data'],
+                "additionalProperties": False,
+            },
+            # Used when sending *only* request state changes (and no data is
+            # expected).
+            "empty": {
+                "type": "object",
                 "additionalProperties": False,
             },
             "completion": {
