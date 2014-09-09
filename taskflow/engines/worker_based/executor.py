@@ -110,7 +110,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
 
         # publish waiting requests
         for request in self._requests_cache.get_waiting_requests(tasks):
-            if request.transition_log_error(pr.PENDING, logger=LOG):
+            if request.transition_and_log_error(pr.PENDING, logger=LOG):
                 self._publish_request(request, topic)
 
     def _process_response(self, response, message):
@@ -125,12 +125,12 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
             if request is not None:
                 response = pr.Response.from_dict(response)
                 if response.state == pr.RUNNING:
-                    request.transition_log_error(pr.RUNNING, logger=LOG)
+                    request.transition_and_log_error(pr.RUNNING, logger=LOG)
                 elif response.state == pr.PROGRESS:
                     request.on_progress(**response.data)
                 elif response.state in (pr.FAILURE, pr.SUCCESS):
-                    moved = request.transition_log_error(response.state,
-                                                         logger=LOG)
+                    moved = request.transition_and_log_error(response.state,
+                                                             logger=LOG)
                     if moved:
                         # NOTE(imelnikov): request should not be in the
                         # cache when another thread can see its result and
@@ -151,7 +151,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         When request has expired it is removed from the requests cache and
         the `RequestTimeout` exception is set as a request result.
         """
-        if request.transition_log_error(pr.FAILURE, logger=LOG):
+        if request.transition_and_log_error(pr.FAILURE, logger=LOG):
             # Raise an exception (and then catch it) so we get a nice
             # traceback that the request will get instead of it getting
             # just an exception with no traceback...
@@ -184,7 +184,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
             # before putting it into the requests cache to prevent the notify
             # processing thread get list of waiting requests and publish it
             # before it is published here, so it wouldn't be published twice.
-            if request.transition_log_error(pr.PENDING, logger=LOG):
+            if request.transition_and_log_error(pr.PENDING, logger=LOG):
                 self._requests_cache[request.uuid] = request
                 self._publish_request(request, topic)
         else:
@@ -202,7 +202,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         except Exception:
             with misc.capture_failure() as failure:
                 LOG.exception("Failed to submit the '%s' request.", request)
-                if request.transition_log_error(pr.FAILURE, logger=LOG):
+                if request.transition_and_log_error(pr.FAILURE, logger=LOG):
                     del self._requests_cache[request.uuid]
                     request.set_result(failure)
 

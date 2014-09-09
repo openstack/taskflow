@@ -295,7 +295,16 @@ class Request(Message):
     def on_progress(self, event_data, progress):
         self._progress_callback(self._task, event_data, progress)
 
-    def transition_log_error(self, new_state, logger=None):
+    def transition_and_log_error(self, new_state, logger=None):
+        """Transitions *and* logs an error if that transitioning raises.
+
+        This overlays the transition function and performs nearly the same
+        functionality but instead of raising if the transition was not valid
+        it logs a warning to the provided logger and returns False to
+        indicate that the transition was not performed (note that this
+        is *different* from the transition function where False means
+        ignored).
+        """
         if logger is None:
             logger = LOG
         moved = False
@@ -311,7 +320,7 @@ class Request(Message):
         """Transitions the request to a new state.
 
         If transition was performed, it returns True. If transition
-        should was ignored, it returns False. If transition is not
+        should was ignored, it returns False. If transition was not
         valid (and will not be performed), it raises an InvalidState
         exception.
         """
