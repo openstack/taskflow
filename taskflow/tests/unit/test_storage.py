@@ -17,8 +17,6 @@
 import contextlib
 import threading
 
-import mock
-
 from taskflow import exceptions
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import backends
@@ -26,6 +24,7 @@ from taskflow.persistence import logbook
 from taskflow import states
 from taskflow import storage
 from taskflow import test
+from taskflow.test import mock
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 

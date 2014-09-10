@@ -14,10 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
-
 from taskflow import task
 from taskflow import test
+from taskflow.test import mock
 from taskflow.utils import reflection
 
 

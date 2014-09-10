@@ -15,8 +15,15 @@
 #    under the License.
 
 import fixtures
-import mock
+from oslotest import base
 import six
+try:
+    from six.moves import mock
+except ImportError:
+    try:
+        from unittest import mock
+    except ImportError:
+        import mock
 from testtools import compat
 from testtools import matchers
 from testtools import testcase
@@ -85,7 +92,7 @@ class ItemsEqual(object):
         return None
 
 
-class TestCase(testcase.TestCase):
+class TestCase(base.BaseTestCase):
     """Test case base class for all taskflow unit tests."""
 
     def makeTmpDir(self):
@@ -182,7 +189,7 @@ class TestCase(testcase.TestCase):
         self.assertThat(seq2, matcher)
 
 
-class MockTestCase(TestCase):
+class MockTestCase(base.BaseTestCase):
 
     def setUp(self):
         super(MockTestCase, self).setUp()

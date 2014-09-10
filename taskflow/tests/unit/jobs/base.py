@@ -19,12 +19,12 @@ import threading
 import time
 
 from kazoo.recipe import watchers
-import mock
 
 from taskflow import exceptions as excp
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence.backends import impl_dir
 from taskflow import states
+from taskflow.test import mock
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 

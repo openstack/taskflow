@@ -15,10 +15,10 @@
 #    under the License.
 
 from kombu import message
-import mock
 
 from taskflow.engines.worker_based import dispatcher
 from taskflow import test
+from taskflow.test import mock
 
 
 def mock_acked_message(ack_ok=True, **kwargs):

@@ -16,12 +16,11 @@
 
 import threading
 
-import mock
-
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow.openstack.common import uuidutils
 from taskflow import test
+from taskflow.test import mock
 from taskflow.tests import utils as test_utils
 from taskflow.types import latch
 

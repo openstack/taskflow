@@ -15,12 +15,12 @@
 #    under the License.
 
 from concurrent import futures
-import mock
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import exceptions as excp
 from taskflow.openstack.common import uuidutils
 from taskflow import test
+from taskflow.test import mock
 from taskflow.tests import utils
 from taskflow.utils import misc
 

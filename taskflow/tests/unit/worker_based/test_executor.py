@@ -18,12 +18,12 @@ import threading
 import time
 
 from concurrent import futures
-import mock
 from oslo.utils import timeutils
 
 from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import test
+from taskflow.test import mock
 from taskflow.tests import utils
 from taskflow.utils import misc
 

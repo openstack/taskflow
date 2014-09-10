@@ -17,7 +17,7 @@
 import socket
 import threading
 
-import mock
+from six.moves import mock
 
 from taskflow.engines.worker_based import proxy
 from taskflow import test

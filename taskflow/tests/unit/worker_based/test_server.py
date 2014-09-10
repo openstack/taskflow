@@ -14,13 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import mock
 import six
 
 from taskflow.engines.worker_based import endpoint as ep
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import server
 from taskflow import test
+from taskflow.test import mock
 from taskflow.tests import utils
 from taskflow.utils import misc
 
