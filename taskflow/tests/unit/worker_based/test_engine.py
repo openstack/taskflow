@@ -31,7 +31,7 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
         self.topics = ['test-topic1', 'test-topic2']
 
         # patch classes
-        self.executor_mock, self.executor_inst_mock = self._patch_class(
+        self.executor_mock, self.executor_inst_mock = self.patchClass(
             engine.executor, 'WorkerTaskExecutor', attach_as='executor')
 
     def test_creation_default(self):

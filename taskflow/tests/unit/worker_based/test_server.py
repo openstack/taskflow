@@ -42,9 +42,9 @@ class TestServer(test.MockTestCase):
                           ep.Endpoint(task_cls=utils.ProgressingTask)]
 
         # patch classes
-        self.proxy_mock, self.proxy_inst_mock = self._patch_class(
+        self.proxy_mock, self.proxy_inst_mock = self.patchClass(
             server.proxy, 'Proxy')
-        self.response_mock, self.response_inst_mock = self._patch_class(
+        self.response_mock, self.response_inst_mock = self.patchClass(
             server.pr, 'Response')
 
         # other mocking
@@ -66,7 +66,7 @@ class TestServer(test.MockTestCase):
         server_kwargs.update(kwargs)
         s = server.Server(**server_kwargs)
         if reset_master_mock:
-            self._reset_master_mock()
+            self.resetMasterMock()
         return s
 
     def make_request(self, **kwargs):

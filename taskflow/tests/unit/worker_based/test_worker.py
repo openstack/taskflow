@@ -35,13 +35,13 @@ class TestWorker(test.MockTestCase):
         self.endpoint_count = 21
 
         # patch classes
-        self.executor_mock, self.executor_inst_mock = self._patch_class(
+        self.executor_mock, self.executor_inst_mock = self.patchClass(
             worker.futures, 'ThreadPoolExecutor', attach_as='executor')
-        self.server_mock, self.server_inst_mock = self._patch_class(
+        self.server_mock, self.server_inst_mock = self.patchClass(
             worker.server, 'Server')
 
         # other mocking
-        self.threads_count_mock = self._patch(
+        self.threads_count_mock = self.patch(
             'taskflow.engines.worker_based.worker.tu.get_optimal_thread_count')
         self.threads_count_mock.return_value = self.threads_count
 
@@ -53,7 +53,7 @@ class TestWorker(test.MockTestCase):
         worker_kwargs.update(kwargs)
         w = worker.Worker(**worker_kwargs)
         if reset_master_mock:
-            self._reset_master_mock()
+            self.resetMasterMock()
         return w
 
     def test_creation(self):

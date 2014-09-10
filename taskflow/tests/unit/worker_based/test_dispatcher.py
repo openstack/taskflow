@@ -34,7 +34,7 @@ def mock_acked_message(ack_ok=True, **kwargs):
     return msg
 
 
-class TestDispatcher(test.MockTestCase):
+class TestDispatcher(test.TestCase):
     def test_creation(self):
         on_hello = mock.MagicMock()
         handlers = {'hello': on_hello}

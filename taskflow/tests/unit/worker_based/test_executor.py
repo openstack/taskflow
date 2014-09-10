@@ -45,9 +45,9 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.proxy_started_event = threading.Event()
 
         # patch classes
-        self.proxy_mock, self.proxy_inst_mock = self._patch_class(
+        self.proxy_mock, self.proxy_inst_mock = self.patchClass(
             executor.proxy, 'Proxy')
-        self.request_mock, self.request_inst_mock = self._patch_class(
+        self.request_mock, self.request_inst_mock = self.patchClass(
             executor.pr, 'Request', autospec=False)
 
         # other mocking
@@ -56,7 +56,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.request_inst_mock.uuid = self.task_uuid
         self.request_inst_mock.expired = False
         self.request_inst_mock.task_cls = self.task.name
-        self.wait_for_any_mock = self._patch(
+        self.wait_for_any_mock = self.patch(
             'taskflow.engines.worker_based.executor.async_utils.wait_for_any')
         self.message_mock = mock.MagicMock(name='message')
         self.message_mock.properties = {'correlation_id': self.task_uuid,
@@ -78,7 +78,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         executor_kwargs.update(kwargs)
         ex = executor.WorkerTaskExecutor(**executor_kwargs)
         if reset_master_mock:
-            self._reset_master_mock()
+            self.resetMasterMock()
         return ex
 
     def test_creation(self):

@@ -34,13 +34,13 @@ class TestProxy(test.MockTestCase):
         self.de_period = proxy.DRAIN_EVENTS_PERIOD
 
         # patch classes
-        self.conn_mock, self.conn_inst_mock = self._patch_class(
+        self.conn_mock, self.conn_inst_mock = self.patchClass(
             proxy.kombu, 'Connection')
-        self.exchange_mock, self.exchange_inst_mock = self._patch_class(
+        self.exchange_mock, self.exchange_inst_mock = self.patchClass(
             proxy.kombu, 'Exchange')
-        self.queue_mock, self.queue_inst_mock = self._patch_class(
+        self.queue_mock, self.queue_inst_mock = self.patchClass(
             proxy.kombu, 'Queue')
-        self.producer_mock, self.producer_inst_mock = self._patch_class(
+        self.producer_mock, self.producer_inst_mock = self.patchClass(
             proxy.kombu, 'Producer')
 
         # connection mocking
@@ -48,14 +48,14 @@ class TestProxy(test.MockTestCase):
             socket.timeout, socket.timeout, KeyboardInterrupt]
 
         # connections mocking
-        self.connections_mock = self._patch(
+        self.connections_mock = self.patch(
             "taskflow.engines.worker_based.proxy.kombu.connections",
             attach_as='connections')
         self.connections_mock.__getitem__().acquire().__enter__.return_value =\
             self.conn_inst_mock
 
         # producers mocking
-        self.producers_mock = self._patch(
+        self.producers_mock = self.patch(
             "taskflow.engines.worker_based.proxy.kombu.producers",
             attach_as='producers')
         self.producers_mock.__getitem__().acquire().__enter__.return_value =\
@@ -70,7 +70,7 @@ class TestProxy(test.MockTestCase):
         self.master_mock.attach_mock(self.on_wait_mock, 'on_wait')
 
         # reset master mock
-        self._reset_master_mock()
+        self.resetMasterMock()
 
     def _queue_name(self, topic):
         return "%s_%s" % (self.exchange_name, topic)
@@ -99,7 +99,7 @@ class TestProxy(test.MockTestCase):
         proxy_kwargs.update(kwargs)
         p = proxy.Proxy(**proxy_kwargs)
         if reset_master_mock:
-            self._reset_master_mock()
+            self.resetMasterMock()
         return p
 
     def test_creation(self):

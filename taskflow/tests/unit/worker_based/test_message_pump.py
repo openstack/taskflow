@@ -29,7 +29,7 @@ BARRIER_WAIT_TIMEOUT = 1.0
 POLLING_INTERVAL = 0.01
 
 
-class TestMessagePump(test.MockTestCase):
+class TestMessagePump(test.TestCase):
     def test_notify(self):
         barrier = threading.Event()
 

@@ -32,7 +32,7 @@ WAIT_TIMEOUT = 1.0
 POLLING_INTERVAL = 0.01
 
 
-class TestPipeline(test.MockTestCase):
+class TestPipeline(test.TestCase):
     def _fetch_server(self, task_classes):
         endpoints = []
         for cls in task_classes:
