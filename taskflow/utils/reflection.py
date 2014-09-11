@@ -17,9 +17,8 @@
 import inspect
 import types
 
+from oslo.utils import importutils
 import six
-
-from taskflow.openstack.common import importutils
 
 try:
     _TYPE_TYPE = types.TypeType

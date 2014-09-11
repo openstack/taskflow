@@ -19,9 +19,9 @@ import logging
 
 from kazoo import exceptions as k_exc
 from kazoo.protocol import paths
+from oslo.serialization import jsonutils
 
 from taskflow import exceptions as exc
-from taskflow.openstack.common import jsonutils
 from taskflow.persistence.backends import base
 from taskflow.persistence import logbook
 from taskflow.utils import kazoo_utils as k_utils

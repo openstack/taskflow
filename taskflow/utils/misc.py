@@ -30,12 +30,12 @@ import sys
 import time
 import traceback
 
+from oslo.serialization import jsonutils
+from oslo.utils import netutils
 import six
 from six.moves.urllib import parse as urlparse
 
 from taskflow import exceptions as exc
-from taskflow.openstack.common import jsonutils
-from taskflow.openstack.common import network_utils
 from taskflow.utils import reflection
 
 
@@ -82,7 +82,7 @@ def parse_uri(uri, query_duplicates=False):
     if not match:
         raise ValueError("Uri %r does not start with a RFC 3986 compliant"
                          " scheme" % (uri))
-    parsed = network_utils.urlsplit(uri)
+    parsed = netutils.urlsplit(uri)
     if parsed.query:
         query_params = urlparse.parse_qsl(parsed.query)
         if not query_duplicates:

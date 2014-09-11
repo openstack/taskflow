@@ -69,7 +69,7 @@ class FlowFromDetailTestCase(test.TestCase):
         _lb, flow_detail = p_utils.temporary_flow_detail()
         flow_detail.meta = dict(factory=dict(name=name))
 
-        with mock.patch('taskflow.openstack.common.importutils.import_class',
+        with mock.patch('oslo.utils.importutils.import_class',
                         return_value=lambda: 'RESULT') as mock_import:
             result = taskflow.engines.flow_from_detail(flow_detail)
             mock_import.assert_called_onec_with(name)
@@ -80,7 +80,7 @@ class FlowFromDetailTestCase(test.TestCase):
         _lb, flow_detail = p_utils.temporary_flow_detail()
         flow_detail.meta = dict(factory=dict(name=name, args=['foo']))
 
-        with mock.patch('taskflow.openstack.common.importutils.import_class',
+        with mock.patch('oslo.utils.importutils.import_class',
                         return_value=lambda x: 'RESULT %s' % x) as mock_import:
             result = taskflow.engines.flow_from_detail(flow_detail)
             mock_import.assert_called_onec_with(name)
