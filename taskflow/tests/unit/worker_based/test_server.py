@@ -145,7 +145,7 @@ class TestServer(test.MockTestCase):
                   failures=dict((i, utils.FailureMatcher(f))
                                 for i, f in six.iteritems(failures)))))
 
-    @mock.patch("taskflow.engines.worker_based.server.LOG.exception")
+    @mock.patch("taskflow.engines.worker_based.server.LOG.critical")
     def test_reply_publish_failure(self, mocked_exception):
         self.proxy_inst_mock.publish.side_effect = RuntimeError('Woot!')
 
@@ -200,7 +200,7 @@ class TestServer(test.MockTestCase):
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
-    @mock.patch("taskflow.engines.worker_based.server.LOG.exception")
+    @mock.patch("taskflow.engines.worker_based.server.LOG.warn")
     def test_process_request_parse_message_failure(self, mocked_exception):
         self.message_mock.properties = {}
         request = self.make_request()

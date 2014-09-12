@@ -217,8 +217,8 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                                 correlation_id=request.uuid)
         except Exception:
             with misc.capture_failure() as failure:
-                LOG.warn("Failed to submit '%s' (transitioning it to"
-                         " %s)", request, pr.FAILURE, exc_info=True)
+                LOG.critical("Failed to submit '%s' (transitioning it to"
+                             " %s)", request, pr.FAILURE, exc_info=True)
                 if request.transition_and_log_error(pr.FAILURE, logger=LOG):
                     del self._requests_cache[request.uuid]
                     request.set_result(failure)
