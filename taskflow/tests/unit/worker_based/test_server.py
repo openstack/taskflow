@@ -151,7 +151,7 @@ class TestServer(test.MockTestCase):
 
         # create server and process request
         s = self.server(reset_master_mock=True)
-        s._reply(self.reply_to, self.task_uuid)
+        s._reply(True, self.reply_to, self.task_uuid)
 
         self.assertEqual(self.master_mock.mock_calls, [
             mock.call.Response(pr.FAILURE),
@@ -159,6 +159,16 @@ class TestServer(test.MockTestCase):
                                     correlation_id=self.task_uuid)
         ])
         self.assertTrue(mocked_exception.called)
+
+    def test_on_run_reply_failure(self):
+        request = self.make_request(task=utils.ProgressingTask(), arguments={})
+        self.proxy_inst_mock.publish.side_effect = RuntimeError('Woot!')
+
+        # create server and process request
+        s = self.server(reset_master_mock=True)
+        s._process_request(request, self.message_mock)
+
+        self.assertEqual(1, self.proxy_inst_mock.publish.call_count)
 
     def test_on_update_progress(self):
         request = self.make_request(task=utils.ProgressingTask(), arguments={})
@@ -270,9 +280,6 @@ class TestServer(test.MockTestCase):
 
         # check calls
         master_mock_calls = [
-            mock.call.Response(pr.RUNNING),
-            mock.call.proxy.publish(self.response_inst_mock, self.reply_to,
-                                    correlation_id=self.task_uuid),
             mock.call.Response(pr.FAILURE, result=failure_dict),
             mock.call.proxy.publish(self.response_inst_mock,
                                     self.reply_to,
