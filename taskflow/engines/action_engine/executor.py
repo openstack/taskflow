@@ -75,7 +75,8 @@ class TaskExecutor(object):
     """
 
     @abc.abstractmethod
-    def execute_task(self, task, task_uuid, arguments, progress_callback=None):
+    def execute_task(self, task, task_uuid, arguments,
+                     progress_callback=None):
         """Schedules task execution."""
 
     @abc.abstractmethod
@@ -128,32 +129,69 @@ class ParallelTaskExecutor(TaskExecutor):
     def __init__(self, executor=None, max_workers=None):
         self._executor = executor
         self._max_workers = max_workers
-        self._create_executor = executor is None
+        self._own_executor = executor is None
 
-    def execute_task(self, task, task_uuid, arguments, progress_callback=None):
-        fut = self._executor.submit(_execute_task,
-                                    task, arguments,
-                                    progress_callback=progress_callback)
+    @abc.abstractmethod
+    def _create_executor(self, max_workers=None):
+        """Called when an executor has not been provided to make one."""
+
+    def _submit_task(self, func, task, *args, **kwargs):
+        fut = self._executor.submit(func, task, *args, **kwargs)
         fut.atom = task
         return fut
+
+    def execute_task(self, task, task_uuid, arguments, progress_callback=None):
+        return self._submit_task(_execute_task, task, arguments,
+                                 progress_callback=progress_callback)
 
     def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
-        fut = self._executor.submit(_revert_task,
-                                    task, arguments, result, failures,
-                                    progress_callback=progress_callback)
-        fut.atom = task
-        return fut
+        return self._submit_task(_revert_task, task, arguments, result,
+                                 failures, progress_callback=progress_callback)
 
     def start(self):
-        if self._create_executor:
+        if self._own_executor:
             if self._max_workers is not None:
                 max_workers = self._max_workers
             else:
                 max_workers = threading_utils.get_optimal_thread_count()
-            self._executor = futures.ThreadPoolExecutor(max_workers)
+            self._executor = self._create_executor(max_workers=max_workers)
 
     def stop(self):
-        if self._create_executor:
+        if self._own_executor:
             self._executor.shutdown(wait=True)
             self._executor = None
+
+
+class ParallelThreadTaskExecutor(ParallelTaskExecutor):
+    """Executes tasks in parallel using a thread pool executor."""
+
+    def _create_executor(self, max_workers=None):
+        return futures.ThreadPoolExecutor(max_workers=max_workers)
+
+
+class ParallelProcessTaskExecutor(ParallelTaskExecutor):
+    """Executes tasks in parallel using a process pool executor.
+
+    NOTE(harlowja): this executor executes tasks in external processes, so that
+    implies that tasks that are sent to that external process are pickleable
+    since this is how the multiprocessing works (sending pickled objects back
+    and forth).
+    """
+
+    def _create_executor(self, max_workers=None):
+        return futures.ProcessPoolExecutor(max_workers=max_workers)
+
+    def _submit_task(self, func, task, *args, **kwargs):
+        """Submit a function to run the given task (with given args/kwargs).
+
+        NOTE(harlowja): task callbacks/notifications will not currently
+        work (they will be removed before being sent to the target process
+        for execution).
+        """
+        kwargs.pop('progress_callback', None)
+        clone = task.copy(retain_listeners=False)
+        fut = super(ParallelProcessTaskExecutor, self)._submit_task(
+            func, clone, *args, **kwargs)
+        fut.atom = task
+        return fut

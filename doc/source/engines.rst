@@ -160,7 +160,8 @@ Parallel
 
 **Engine type**: ``'parallel'``
 
-Parallel engine schedules tasks onto different threads to run them in parallel.
+A parallel engine schedules tasks onto different threads/processes to allow for
+running non-dependent tasks simultaneously.
 
 Additional supported keyword arguments:
 
@@ -168,17 +169,24 @@ Additional supported keyword arguments:
   interface; it will be used for scheduling tasks. You can use instances of a
   `thread pool executor`_ or a :py:class:`green executor
   <taskflow.types.futures.GreenThreadPoolExecutor>` (which internally uses
-  `eventlet <http://eventlet.net/>`_ and greenthread pools).
+  `eventlet <http://eventlet.net/>`_ and greenthread pools) or a
+  `process pool executor`_.
 
 .. tip::
 
-    Sharing executor between engine instances provides better
-    scalability by reducing thread creation and teardown as well as by reusing
-    existing pools (which is a good practice in general).
+    Sharing an executor between engine instances provides better
+    scalability by reducing thread/process creation and teardown as well as by
+    reusing existing pools (which is a good practice in general).
 
 .. note::
 
-    Running tasks with a `process pool executor`_ is not currently supported.
+    Running tasks with a `process pool executor`_ is **experimentally**
+    supported. This is mainly due to the `futures backport`_ and
+    the `multiprocessing`_ module that exist in older versions of python not
+    being as up to date (with important fixes such as :pybug:`4892`,
+    :pybug:`6721`, :pybug:`9205`, :pybug:`11635`, :pybug:`16284`,
+    :pybug:`22393` and others...) as the most recent python version (which
+    themselves have a variety of ongoing/recent bugs).
 
 Worker-based
 ------------
@@ -347,8 +355,10 @@ Hierarchy
     taskflow.engines.worker_based.engine.WorkerBasedActionEngine
     :parts: 1
 
+.. _multiprocessing: https://docs.python.org/2/library/multiprocessing.html
 .. _future: https://docs.python.org/dev/library/concurrent.futures.html#future-objects
 .. _executor: https://docs.python.org/dev/library/concurrent.futures.html#concurrent.futures.Executor
 .. _networkx: https://networkx.github.io/
+.. _futures backport: https://pypi.python.org/pypi/futures
 .. _thread pool executor: https://docs.python.org/dev/library/concurrent.futures.html#threadpoolexecutor
 .. _process pool executor: https://docs.python.org/dev/library/concurrent.futures.html#processpoolexecutor

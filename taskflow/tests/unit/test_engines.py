@@ -17,6 +17,7 @@
 import contextlib
 
 import testtools
+from testtools import testcase
 
 import taskflow.engines
 from taskflow.engines.action_engine import engine as eng
@@ -602,9 +603,48 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if executor is None:
             executor = futures.GreenThreadPoolExecutor()
+            self.addCleanup(executor.shutdown)
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      backend=self.backend, engine='parallel',
                                      executor=executor)
+
+
+class ParallelEngineWithProcessTest(EngineTaskTest,
+                                    EngineLinearFlowTest,
+                                    EngineParallelFlowTest,
+                                    EngineLinearAndUnorderedExceptionsTest,
+                                    EngineGraphFlowTest,
+                                    EngineCheckingTaskTest,
+                                    test.TestCase):
+    _SKIP_TYPES = (utils.SaveOrderTask,)
+
+    def test_correct_load(self):
+        engine = self._make_engine(utils.TaskNoRequiresNoReturns)
+        self.assertIsInstance(engine, eng.ParallelActionEngine)
+
+    def _make_engine(self, flow, flow_detail=None, executor=None):
+        if executor is None:
+            executor = futures.ProcessPoolExecutor(1)
+            self.addCleanup(executor.shutdown)
+        e = taskflow.engines.load(flow, flow_detail=flow_detail,
+                                  backend=self.backend, engine='parallel',
+                                  executor=executor)
+        # FIXME(harlowja): fix this so that we can actually tests these
+        # testcases, without having task/global test state that is retained
+        # and inspected; this doesn't work in a multi-process situation since
+        # the tasks execute in another process with its own memory/heap
+        # which this process later can't view/introspect...
+        try:
+            e.compile()
+            for a in e.compilation.execution_graph:
+                if isinstance(a, self._SKIP_TYPES):
+                    baddies = [a.__name__ for a in self._SKIP_TYPES]
+                    raise testcase.TestSkipped("Process engines can not"
+                                               " run flows that contain"
+                                               " %s tasks" % baddies)
+        except (TypeError, exc.TaskFlowException):
+            pass
+        return e
 
 
 class WorkerBasedEngineTest(EngineTaskTest,
