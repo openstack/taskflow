@@ -276,6 +276,29 @@ class TaskTest(test.TestCase):
         task = MyTask()
         self.assertRaises(ValueError, task.bind, 'update_progress', 2)
 
+    def test_copy_no_listeners(self):
+        handler1 = lambda: None
+        a_task = MyTask()
+        a_task.bind(task.EVENT_UPDATE_PROGRESS, handler1)
+        b_task = a_task.copy(retain_listeners=False)
+        self.assertEqual(len(list(a_task.listeners_iter())), 1)
+        self.assertEqual(len(list(b_task.listeners_iter())), 0)
+
+    def test_copy_listeners(self):
+        handler1 = lambda: None
+        handler2 = lambda: None
+        a_task = MyTask()
+        a_task.bind(task.EVENT_UPDATE_PROGRESS, handler1)
+        b_task = a_task.copy()
+        self.assertEqual(len(list(b_task.listeners_iter())), 1)
+        self.assertTrue(a_task.unbind(task.EVENT_UPDATE_PROGRESS))
+        self.assertEqual(len(list(a_task.listeners_iter())), 0)
+        self.assertEqual(len(list(b_task.listeners_iter())), 1)
+        b_task.bind(task.EVENT_UPDATE_PROGRESS, handler2)
+        listeners = dict(list(b_task.listeners_iter()))
+        self.assertEqual(len(listeners[task.EVENT_UPDATE_PROGRESS]), 2)
+        self.assertEqual(len(list(a_task.listeners_iter())), 0)
+
 
 class FunctorTaskTest(test.TestCase):
 
