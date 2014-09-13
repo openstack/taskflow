@@ -76,7 +76,7 @@ class RetryAction(object):
                 result = retry.execute(**kwargs)
             except Exception:
                 result = failure.Failure()
-            return (retry, ex.EXECUTED, result)
+            return (ex.EXECUTED, result)
 
         def _on_done_callback(fut):
             result = fut.result()[-1]
@@ -89,6 +89,7 @@ class RetryAction(object):
         fut = self._executor.submit(_execute_retry,
                                     self._get_retry_args(retry))
         fut.add_done_callback(_on_done_callback)
+        fut.atom = retry
         return fut
 
     def revert(self, retry):
@@ -98,7 +99,7 @@ class RetryAction(object):
                 result = retry.revert(**kwargs)
             except Exception:
                 result = failure.Failure()
-            return (retry, ex.REVERTED, result)
+            return (ex.REVERTED, result)
 
         def _on_done_callback(fut):
             result = fut.result()[-1]
@@ -115,6 +116,7 @@ class RetryAction(object):
                                     self._get_retry_args(retry,
                                                          addons=arg_addons))
         fut.add_done_callback(_on_done_callback)
+        fut.atom = retry
         return fut
 
     def on_failure(self, retry, atom, last_failure):

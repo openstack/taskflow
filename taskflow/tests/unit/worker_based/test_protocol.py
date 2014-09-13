@@ -17,6 +17,7 @@
 from concurrent import futures
 from oslo.utils import timeutils
 
+from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import exceptions as excp
 from taskflow.openstack.common import uuidutils
@@ -182,7 +183,7 @@ class TestProtocol(test.TestCase):
         request = self.request()
         request.set_result(111)
         result = request.result.result()
-        self.assertEqual(result, (self.task, 'executed', 111))
+        self.assertEqual(result, (executor.EXECUTED, 111))
 
     def test_on_progress(self):
         progress_callback = mock.MagicMock(name='progress_callback')

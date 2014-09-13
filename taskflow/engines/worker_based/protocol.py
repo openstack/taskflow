@@ -234,6 +234,7 @@ class Request(Message):
         self._lock = threading.Lock()
         self._created_on = timeutils.utcnow()
         self.result = futures.Future()
+        self.result.atom = task
 
     @property
     def uuid(self):
@@ -290,7 +291,7 @@ class Request(Message):
         return request
 
     def set_result(self, result):
-        self.result.set_result((self._task, self._event, result))
+        self.result.set_result((self._event, result))
 
     def on_progress(self, event_data, progress):
         self._progress_callback(self._task, event_data, progress)
