@@ -158,6 +158,8 @@ Printing and logging listeners
 
 .. autoclass:: taskflow.listeners.logging.LoggingListener
 
+.. autoclass:: taskflow.listeners.logging.DynamicLoggingListener
+
 .. autoclass:: taskflow.listeners.printing.PrintingListener
 
 Timing listener
