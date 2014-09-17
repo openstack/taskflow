@@ -15,6 +15,7 @@
 #    under the License.
 
 import contextlib
+import warnings
 
 from oslo.utils import importutils
 import six
@@ -29,6 +30,40 @@ from taskflow.utils import reflection
 
 # NOTE(imelnikov): this is the entrypoint namespace, not the module namespace.
 ENGINES_NAMESPACE = 'taskflow.engines'
+
+# The default entrypoint engine type looked for when it is not provided.
+ENGINE_DEFAULT = 'default'
+
+
+def _extract_engine(**kwargs):
+    """Extracts the engine kind and any associated options."""
+    options = {}
+    kind = kwargs.pop('engine', None)
+    engine_conf = kwargs.pop('engine_conf', None)
+    if engine_conf is not None:
+        warnings.warn("Using the 'engine_conf' argument is"
+                      " deprecated and will be removed in a future version,"
+                      " please use the 'engine' argument instead.",
+                      DeprecationWarning)
+        if isinstance(engine_conf, six.string_types):
+            kind = engine_conf
+        else:
+            options.update(engine_conf)
+            kind = options.pop('engine', None)
+    if not kind:
+        kind = ENGINE_DEFAULT
+    # See if it's a URI and if so, extract any further options...
+    try:
+        pieces = misc.parse_uri(kind)
+    except (TypeError, ValueError):
+        pass
+    else:
+        kind = pieces['scheme']
+        options = misc.merge_uri(pieces, options.copy())
+    # Merge in any leftover **kwargs into the options, this makes it so that
+    # the provided **kwargs override any URI or engine_conf specific options.
+    options.update(kwargs)
+    return (kind, options)
 
 
 def _fetch_factory(factory_name):
@@ -56,49 +91,43 @@ def _fetch_validate_factory(flow_factory):
 
 
 def load(flow, store=None, flow_detail=None, book=None,
-         engine_conf=None, backend=None, namespace=ENGINES_NAMESPACE,
-         **kwargs):
+         engine_conf=None, backend=None,
+         namespace=ENGINES_NAMESPACE, engine=ENGINE_DEFAULT, **kwargs):
     """Load a flow into an engine.
 
-    This function creates and prepares engine to run the
-    flow. All that is left is to run the engine with 'run()' method.
+    This function creates and prepares an engine to run the provided flow. All
+    that is left after this returns is to run the engine with the
+    engines ``run()`` method.
 
-    Which engine to load is specified in 'engine_conf' parameter. It
-    can be a string that names engine type or a dictionary which holds
-    engine type (with 'engine' key) and additional engine-specific
-    configuration.
+    Which engine to load is specified via the ``engine`` parameter. It
+    can be a string that names the engine type to use, or a string that
+    is a URI with a scheme that names the engine type to use and further
+    options contained in the URI's host, port, and query parameters...
 
-    Which storage backend to use is defined by backend parameter. It
+    Which storage backend to use is defined by the backend parameter. It
     can be backend itself, or a dictionary that is passed to
-    taskflow.persistence.backends.fetch to obtain backend.
+    ``taskflow.persistence.backends.fetch()`` to obtain a viable backend.
 
     :param flow: flow to load
     :param store: dict -- data to put to storage to satisfy flow requirements
     :param flow_detail: FlowDetail that holds the state of the flow (if one is
         not provided then one will be created for you in the provided backend)
     :param book: LogBook to create flow detail in if flow_detail is None
-    :param engine_conf: engine type and configuration configuration
-    :param backend: storage backend to use or configuration
-    :param namespace: driver namespace for stevedore (default is fine
-       if you don't know what is it)
+    :param engine_conf: engine type or URI and options (**deprecated**)
+    :param backend: storage backend to use or configuration that defines it
+    :param namespace: driver namespace for stevedore (or empty for default)
+    :param engine: string engine type or URI string with scheme that contains
+                   the engine type and any URI specific components that will
+                   become part of the engine options.
+    :param kwargs: arbitrary keyword arguments passed as options (merged with
+                   any extracted ``engine`` and ``engine_conf`` options),
+                   typically used for any engine specific options that do not
+                   fit as any of the existing arguments.
     :returns: engine
     """
 
-    if engine_conf is None:
-        engine_conf = {'engine': 'default'}
-
-    # NOTE(imelnikov): this allows simpler syntax.
-    if isinstance(engine_conf, six.string_types):
-        engine_conf = {'engine': engine_conf}
-
-    engine_name = engine_conf['engine']
-    try:
-        pieces = misc.parse_uri(engine_name)
-    except (TypeError, ValueError):
-        pass
-    else:
-        engine_name = pieces['scheme']
-        engine_conf = misc.merge_uri(pieces, engine_conf.copy())
+    kind, options = _extract_engine(engine_conf=engine_conf,
+                                    engine=engine, **kwargs)
 
     if isinstance(backend, dict):
         backend = p_backends.fetch(backend)
@@ -109,13 +138,12 @@ def load(flow, store=None, flow_detail=None, book=None,
 
     try:
         mgr = stevedore.driver.DriverManager(
-            namespace, engine_name,
+            namespace, kind,
             invoke_on_load=True,
-            invoke_args=(flow, flow_detail, backend, engine_conf),
-            invoke_kwds=kwargs)
+            invoke_args=(flow, flow_detail, backend, options))
         engine = mgr.driver
     except RuntimeError as e:
-        raise exc.NotFound("Could not find engine %s" % (engine_name), e)
+        raise exc.NotFound("Could not find engine '%s'" % (kind), e)
     else:
         if store:
             engine.storage.inject(store)
@@ -123,35 +151,20 @@ def load(flow, store=None, flow_detail=None, book=None,
 
 
 def run(flow, store=None, flow_detail=None, book=None,
-        engine_conf=None, backend=None, namespace=ENGINES_NAMESPACE, **kwargs):
+        engine_conf=None, backend=None, namespace=ENGINES_NAMESPACE,
+        engine=ENGINE_DEFAULT, **kwargs):
     """Run the flow.
 
-    This function load the flow into engine (with 'load' function)
-    and runs the engine.
+    This function loads the flow into an engine (with the :func:`load() <load>`
+    function) and runs the engine.
 
-    Which engine to load is specified in 'engine_conf' parameter. It
-    can be a string that names engine type or a dictionary which holds
-    engine type (with 'engine' key) and additional engine-specific
-    configuration.
+    The arguments are interpreted as for :func:`load() <load>`.
 
-    Which storage backend to use is defined by backend parameter. It
-    can be backend itself, or a dictionary that is passed to
-    taskflow.persistence.backends.fetch to obtain backend.
-
-    :param flow: flow to run
-    :param store: dict -- data to put to storage to satisfy flow requirements
-    :param flow_detail: FlowDetail that holds the state of the flow (if one is
-        not provided then one will be created for you in the provided backend)
-    :param book: LogBook to create flow detail in if flow_detail is None
-    :param engine_conf: engine type and configuration configuration
-    :param backend: storage backend to use or configuration
-    :param namespace: driver namespace for stevedore (default is fine
-       if you don't know what is it)
-    :returns: dictionary of all named task results (see Storage.fetch_all)
+    :returns: dictionary of all named results (see ``storage.fetch_all()``)
     """
     engine = load(flow, store=store, flow_detail=flow_detail, book=book,
                   engine_conf=engine_conf, backend=backend,
-                  namespace=namespace, **kwargs)
+                  namespace=namespace, engine=engine, **kwargs)
     engine.run()
     return engine.storage.fetch_all()
 
@@ -196,23 +209,21 @@ def save_factory_details(flow_detail,
 
 def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
                       store=None, book=None, engine_conf=None, backend=None,
-                      namespace=ENGINES_NAMESPACE, **kwargs):
+                      namespace=ENGINES_NAMESPACE, engine=ENGINE_DEFAULT,
+                      **kwargs):
     """Loads a flow from a factory function into an engine.
 
     Gets flow factory function (or name of it) and creates flow with
-    it. Then, flow is loaded into engine with load(), and factory
-    function fully qualified name is saved to flow metadata so that
-    it can be later resumed with resume.
+    it. Then, the flow is loaded into an engine with the :func:`load() <load>`
+    function, and the factory function fully qualified name is saved to flow
+    metadata so that it can be later resumed.
 
     :param flow_factory: function or string: function that creates the flow
     :param factory_args: list or tuple of factory positional arguments
     :param factory_kwargs: dict of factory keyword arguments
-    :param store: dict -- data to put to storage to satisfy flow requirements
-    :param book: LogBook to create flow detail in
-    :param engine_conf: engine type and configuration configuration
-    :param backend: storage backend to use or configuration
-    :param namespace: driver namespace for stevedore (default is fine
-       if you don't know what is it)
+
+    Further arguments are interpreted as for :func:`load() <load>`.
+
     :returns: engine
     """
 
@@ -230,7 +241,7 @@ def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
                          backend=backend)
     return load(flow=flow, store=store, flow_detail=flow_detail, book=book,
                 engine_conf=engine_conf, backend=backend, namespace=namespace,
-                **kwargs)
+                engine=engine, **kwargs)
 
 
 def flow_from_detail(flow_detail):
@@ -261,21 +272,21 @@ def flow_from_detail(flow_detail):
 
 
 def load_from_detail(flow_detail, store=None, engine_conf=None, backend=None,
-                     namespace=ENGINES_NAMESPACE, **kwargs):
+                     namespace=ENGINES_NAMESPACE, engine=ENGINE_DEFAULT,
+                     **kwargs):
     """Reloads an engine previously saved.
 
-    This reloads the flow using the flow_from_detail() function and then calls
-    into the load() function to create an engine from that flow.
+    This reloads the flow using the
+    :func:`flow_from_detail() <flow_from_detail>` function and then calls
+    into the :func:`load() <load>` function to create an engine from that flow.
 
     :param flow_detail: FlowDetail that holds state of the flow to load
-    :param store: dict -- data to put to storage to satisfy flow requirements
-    :param engine_conf: engine type and configuration configuration
-    :param backend: storage backend to use or configuration
-    :param namespace: driver namespace for stevedore (default is fine
-       if you don't know what is it)
+
+    Further arguments are interpreted as for :func:`load() <load>`.
+
     :returns: engine
     """
     flow = flow_from_detail(flow_detail)
     return load(flow, flow_detail=flow_detail,
                 store=store, engine_conf=engine_conf, backend=backend,
-                namespace=namespace, **kwargs)
+                namespace=namespace, engine=engine, **kwargs)

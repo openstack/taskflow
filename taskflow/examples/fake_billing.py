@@ -170,7 +170,7 @@ flow.add(sub_flow)
 store = {
     'request': misc.AttrDict(user="bob", id="1.35"),
 }
-eng = engines.load(flow, engine_conf='serial', store=store)
+eng = engines.load(flow, engine='serial', store=store)
 
 # This context manager automatically adds (and automatically removes) a
 # helpful set of state transition notification printing helper utilities

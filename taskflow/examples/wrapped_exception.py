@@ -93,7 +93,7 @@ def run(**store):
     try:
         with utils.wrap_all_failures():
             taskflow.engines.run(flow, store=store,
-                                 engine_conf='parallel')
+                                 engine='parallel')
     except exceptions.WrappedFailure as ex:
         unknown_failures = []
         for failure in ex:

@@ -64,13 +64,9 @@ VOLUME_COUNT = 5
 # time difference that this causes.
 SERIAL = False
 if SERIAL:
-    engine_conf = {
-        'engine': 'serial',
-    }
+    engine = 'serial'
 else:
-    engine_conf = {
-        'engine': 'parallel',
-    }
+    engine = 'parallel'
 
 
 class VolumeCreator(task.Task):
@@ -106,7 +102,7 @@ for i in range(0, VOLUME_COUNT):
 
 # Show how much time the overall engine loading and running takes.
 with show_time(name=flow.name.title()):
-    eng = engines.load(flow, engine_conf=engine_conf)
+    eng = engines.load(flow, engine=engine)
     # This context manager automatically adds (and automatically removes) a
     # helpful set of state transition notification printing helper utilities
     # that show you exactly what transitions the engine is going through

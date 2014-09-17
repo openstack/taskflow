@@ -32,16 +32,21 @@ class EngineBase(object):
                          occur related to the tasks the engine contains.
     """
 
-    def __init__(self, flow, flow_detail, backend, conf):
+    def __init__(self, flow, flow_detail, backend, options):
         self._flow = flow
         self._flow_detail = flow_detail
         self._backend = backend
-        if not conf:
-            self._conf = {}
+        if not options:
+            self._options = {}
         else:
-            self._conf = dict(conf)
+            self._options = dict(options)
         self.notifier = misc.Notifier()
         self.task_notifier = misc.Notifier()
+
+    @property
+    def options(self):
+        """The options that were passed to this engine on construction."""
+        return self._options
 
     @misc.cachedproperty
     def storage(self):

@@ -17,7 +17,7 @@ import threading
 
 import six
 
-import taskflow.engines
+from taskflow import engines
 from taskflow import exceptions as excp
 from taskflow.utils import lock_utils
 
@@ -34,10 +34,15 @@ class Conductor(object):
     period of time will finish up the prior failed conductors work.
     """
 
-    def __init__(self, name, jobboard, engine_conf, persistence):
+    def __init__(self, name, jobboard, persistence,
+                 engine=None, engine_options=None):
         self._name = name
         self._jobboard = jobboard
-        self._engine_conf = engine_conf
+        self._engine = engine
+        if not engine_options:
+            self._engine_options = {}
+        else:
+            self._engine_options = engine_options.copy()
         self._persistence = persistence
         self._lock = threading.RLock()
 
@@ -83,10 +88,10 @@ class Conductor(object):
             store = dict(job.details["store"])
         else:
             store = {}
-        return taskflow.engines.load_from_detail(flow_detail,
-                                                 store=store,
-                                                 engine_conf=self._engine_conf,
-                                                 backend=self._persistence)
+        return engines.load_from_detail(flow_detail, store=store,
+                                        engine=self._engine,
+                                        backend=self._persistence,
+                                        **self._engine_options)
 
     @lock_utils.locked
     def connect(self):

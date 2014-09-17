@@ -69,19 +69,16 @@ WORKER_CONF = {
         'taskflow.tests.utils:TaskMultiArgOneReturn'
     ],
 }
-ENGINE_CONF = {
-    'engine': 'worker-based',
-}
 
 
-def run(engine_conf):
+def run(engine_options):
     flow = lf.Flow('simple-linear').add(
         utils.TaskOneArgOneReturn(provides='result1'),
         utils.TaskMultiArgOneReturn(provides='result2')
     )
     eng = engines.load(flow,
                        store=dict(x=111, y=222, z=333),
-                       engine_conf=engine_conf)
+                       engine='worker-based', **engine_options)
     eng.run()
     return eng.storage.fetch_all()
 
@@ -115,8 +112,7 @@ if __name__ == "__main__":
         })
     worker_conf = dict(WORKER_CONF)
     worker_conf.update(shared_conf)
-    engine_conf = dict(ENGINE_CONF)
-    engine_conf.update(shared_conf)
+    engine_options = dict(shared_conf)
     workers = []
     worker_topics = []
 
@@ -135,8 +131,8 @@ if __name__ == "__main__":
 
         # Now use those workers to do something.
         print('Executing some work.')
-        engine_conf['topics'] = worker_topics
-        result = run(engine_conf)
+        engine_options['topics'] = worker_topics
+        result = run(engine_options)
         print('Execution finished.')
         # This is done so that the test examples can work correctly
         # even when the keys change order (which will happen in various

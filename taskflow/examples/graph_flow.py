@@ -81,11 +81,11 @@ store = {
 }
 
 result = taskflow.engines.run(
-    flow, engine_conf='serial', store=store)
+    flow, engine='serial', store=store)
 
 print("Single threaded engine result %s" % result)
 
 result = taskflow.engines.run(
-    flow, engine_conf='parallel', store=store)
+    flow, engine='parallel', store=store)
 
 print("Multi threaded engine result %s" % result)

@@ -59,8 +59,8 @@ class ActionEngine(base.EngineBase):
     _compiler_factory = compiler.PatternCompiler
     _task_executor_factory = executor.SerialTaskExecutor
 
-    def __init__(self, flow, flow_detail, backend, conf):
-        super(ActionEngine, self).__init__(flow, flow_detail, backend, conf)
+    def __init__(self, flow, flow_detail, backend, options):
+        super(ActionEngine, self).__init__(flow, flow_detail, backend, options)
         self._runtime = None
         self._compiled = False
         self._compilation = None
@@ -230,12 +230,6 @@ class ParallelActionEngine(ActionEngine):
     _storage_factory = atom_storage.MultiThreadedStorage
 
     def _task_executor_factory(self):
-        return executor.ParallelTaskExecutor(executor=self._executor,
-                                             max_workers=self._max_workers)
-
-    def __init__(self, flow, flow_detail, backend, conf,
-                 executor=None, max_workers=None):
-        super(ParallelActionEngine, self).__init__(flow, flow_detail,
-                                                   backend, conf)
-        self._executor = executor
-        self._max_workers = max_workers
+        return executor.ParallelTaskExecutor(
+            executor=self._options.get('executor'),
+            max_workers=self._options.get('max_workers'))

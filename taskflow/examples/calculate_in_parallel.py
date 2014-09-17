@@ -93,5 +93,5 @@ flow = lf.Flow('root').add(
 # The result here will be all results (from all tasks) which is stored in an
 # in-memory storage location that backs this engine since it is not configured
 # with persistence storage.
-result = taskflow.engines.run(flow, engine_conf='parallel')
+result = taskflow.engines.run(flow, engine='parallel')
 print(result)

@@ -63,11 +63,8 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
         board = impl_zookeeper.ZookeeperJobBoard(name, {},
                                                  client=client,
                                                  persistence=persistence)
-        engine_conf = {
-            'engine': 'default',
-        }
-        conductor = stc.SingleThreadedConductor(name, board, engine_conf,
-                                                persistence, wait_timeout)
+        conductor = stc.SingleThreadedConductor(name, board, persistence,
+                                                wait_timeout=wait_timeout)
         return misc.AttrDict(board=board,
                              client=client,
                              persistence=persistence,
