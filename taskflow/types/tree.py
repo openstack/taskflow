@@ -168,7 +168,7 @@ class Node(object):
             yield c
 
     def index(self, item):
-        """Finds the child index of a given item, searchs in added order."""
+        """Finds the child index of a given item, searches in added order."""
         index_at = None
         for (i, child) in enumerate(self._children):
             if child.item == item:
