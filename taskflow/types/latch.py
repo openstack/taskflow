@@ -20,7 +20,12 @@ from taskflow.types import timing as tt
 
 
 class Latch(object):
-    """A class that ensures N-arrivals occur before unblocking."""
+    """A class that ensures N-arrivals occur before unblocking.
+
+    TODO(harlowja): replace with http://bugs.python.org/issue8777 when we no
+    longer have to support python 2.6 or 2.7 and we can only support 3.2 or
+    later.
+    """
 
     def __init__(self, count):
         count = int(count)
