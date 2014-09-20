@@ -19,10 +19,10 @@ try:
 except ImportError:
     from ordereddict import OrderedDict  # noqa
 
-import prettytable
 import six
 
 from taskflow import exceptions as excp
+from taskflow.types import table
 
 
 class _Jump(object):
@@ -252,8 +252,8 @@ class FSM(object):
             if sort:
                 return sorted(six.iterkeys(data))
             return list(six.iterkeys(data))
-        tbl = prettytable.PrettyTable(
-            ["Start", "Event", "End", "On Enter", "On Exit"])
+        tbl = table.PleasantTable(["Start", "Event", "End",
+                                   "On Enter", "On Exit"])
         for state in orderedkeys(self._states):
             prefix_markings = []
             if self.current_state == state:
@@ -287,4 +287,4 @@ class FSM(object):
                     tbl.add_row(row)
             else:
                 tbl.add_row([pretty_state, "", "", "", ""])
-        return tbl.get_string(print_empty=True)
+        return tbl.pformat()

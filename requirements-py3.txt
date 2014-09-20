@@ -14,5 +14,3 @@ Babel>=1.3
 stevedore>=1.0.0  # Apache-2.0
 # Used for structured input validation
 jsonschema>=2.0.0,<3.0.0
-# For pretty printing state-machine tables
-PrettyTable>=0.7,<0.8
