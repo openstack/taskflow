@@ -22,10 +22,16 @@ Engine
 
 **SUCCESS** - Completed successfully.
 
+**FAILURE** - Completed unsuccessfully.
+
 **REVERTED** - Reverting was induced and all atoms were **not** completed
 successfully.
 
 **SUSPENDED** - Suspended while running.
+
+**UNDEFINED** - *Internal state.*
+
+**GAME_OVER** - *Internal state.*
 
 Flow
 ====
