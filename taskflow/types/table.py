@@ -24,15 +24,15 @@ class PleasantTable(object):
 
     Creates simply formatted tables (with no special sauce)::
 
-    >>> from taskflow.types import table
-    >>> tbl = table.PleasantTable(['Name', 'City', 'State', 'Country'])
-    >>> tbl.add_row(["Josh", "San Jose", "CA", "USA"])
-    >>> print(tbl.pformat())
-    +------+----------+-------+---------+
-      Name |   City   | State | Country
-    +------+----------+-------+---------+
-      Josh | San Jose |  CA   |   USA
-    +------+----------+-------+---------+
+        >>> from taskflow.types import table
+        >>> tbl = table.PleasantTable(['Name', 'City', 'State', 'Country'])
+        >>> tbl.add_row(["Josh", "San Jose", "CA", "USA"])
+        >>> print(tbl.pformat())
+        +------+----------+-------+---------+
+          Name |   City   | State | Country
+        +------+----------+-------+---------+
+          Josh | San Jose |  CA   |   USA
+        +------+----------+-------+---------+
     """
     COLUMN_STARTING_CHAR = ' '
     COLUMN_ENDING_CHAR = ''

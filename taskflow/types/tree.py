@@ -107,21 +107,22 @@ class Node(object):
     def pformat(self):
         """Recursively formats a node into a nice string representation.
 
-        Example Input:
-         yahoo = tt.Node("CEO")
-         yahoo.add(tt.Node("Infra"))
-         yahoo[0].add(tt.Node("Boss"))
-         yahoo[0][0].add(tt.Node("Me"))
-         yahoo.add(tt.Node("Mobile"))
-         yahoo.add(tt.Node("Mail"))
+        **Example**::
 
-        Example Output:
-         CEO
-         |__Infra
-         |  |__Boss
-         |     |__Me
-         |__Mobile
-         |__Mail
+            >>> from taskflow.types import tree
+            >>> yahoo = tree.Node("CEO")
+            >>> yahoo.add(tree.Node("Infra"))
+            >>> yahoo[0].add(tree.Node("Boss"))
+            >>> yahoo[0][0].add(tree.Node("Me"))
+            >>> yahoo.add(tree.Node("Mobile"))
+            >>> yahoo.add(tree.Node("Mail"))
+            >>> print(yahoo.pformat())
+            CEO
+            |__Infra
+            |  |__Boss
+            |     |__Me
+            |__Mobile
+            |__Mail
         """
         def _inner_pformat(node, level):
             if level == 0:

@@ -91,6 +91,7 @@ Miscellaneous
 
    exceptions
    states
+   types
 
 Indices and tables
 ==================
