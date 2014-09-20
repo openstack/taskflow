@@ -19,7 +19,6 @@
 # pulls in oslo.cfg) and is reduced to only what taskflow currently wants to
 # use from that code.
 
-import abc
 import collections
 import contextlib
 import errno
@@ -91,47 +90,7 @@ def locked(*args, **kwargs):
             return decorator
 
 
-@six.add_metaclass(abc.ABCMeta)
-class _ReaderWriterLockBase(object):
-    """Base class for reader/writer lock implementations."""
-
-    @abc.abstractproperty
-    def has_pending_writers(self):
-        """Returns if there are writers waiting to become the *one* writer."""
-
-    @abc.abstractmethod
-    def is_writer(self, check_pending=True):
-        """Returns if the caller is the active writer or a pending writer."""
-
-    @abc.abstractproperty
-    def owner(self):
-        """Returns whether the lock is locked by a writer or reader."""
-
-    @abc.abstractmethod
-    def is_reader(self):
-        """Returns if the caller is one of the readers."""
-
-    @abc.abstractmethod
-    def read_lock(self):
-        """Context manager that grants a read lock.
-
-        Will wait until no active or pending writers.
-
-        Raises a RuntimeError if an active or pending writer tries to acquire
-        a read lock.
-        """
-
-    @abc.abstractmethod
-    def write_lock(self):
-        """Context manager that grants a write lock.
-
-        Will wait until no active readers. Blocks readers after acquiring.
-
-        Raises a RuntimeError if an active reader attempts to acquire a lock.
-        """
-
-
-class ReaderWriterLock(_ReaderWriterLockBase):
+class ReaderWriterLock(object):
     """A reader/writer lock.
 
     This lock allows for simultaneous readers to exist but only one writer
@@ -154,6 +113,7 @@ class ReaderWriterLock(_ReaderWriterLockBase):
 
     @property
     def has_pending_writers(self):
+        """Returns if there are writers waiting to become the *one* writer."""
         self._cond.acquire()
         try:
             return bool(self._pending_writers)
@@ -161,6 +121,7 @@ class ReaderWriterLock(_ReaderWriterLockBase):
             self._cond.release()
 
     def is_writer(self, check_pending=True):
+        """Returns if the caller is the active writer or a pending writer."""
         self._cond.acquire()
         try:
             me = tu.get_ident()
@@ -175,6 +136,7 @@ class ReaderWriterLock(_ReaderWriterLockBase):
 
     @property
     def owner(self):
+        """Returns whether the lock is locked by a writer or reader."""
         self._cond.acquire()
         try:
             if self._writer is not None:
@@ -186,6 +148,7 @@ class ReaderWriterLock(_ReaderWriterLockBase):
             self._cond.release()
 
     def is_reader(self):
+        """Returns if the caller is one of the readers."""
         self._cond.acquire()
         try:
             return tu.get_ident() in self._readers
@@ -194,6 +157,13 @@ class ReaderWriterLock(_ReaderWriterLockBase):
 
     @contextlib.contextmanager
     def read_lock(self):
+        """Context manager that grants a read lock.
+
+        Will wait until no active or pending writers.
+
+        Raises a RuntimeError if an active or pending writer tries to acquire
+        a read lock.
+        """
         me = tu.get_ident()
         if self.is_writer():
             raise RuntimeError("Writer %s can not acquire a read lock"
@@ -226,6 +196,12 @@ class ReaderWriterLock(_ReaderWriterLockBase):
 
     @contextlib.contextmanager
     def write_lock(self):
+        """Context manager that grants a write lock.
+
+        Will wait until no active readers. Blocks readers after acquiring.
+
+        Raises a RuntimeError if an active reader attempts to acquire a lock.
+        """
         me = tu.get_ident()
         if self.is_reader():
             raise RuntimeError("Reader %s to writer privilege"
@@ -257,7 +233,7 @@ class ReaderWriterLock(_ReaderWriterLockBase):
                     self._cond.release()
 
 
-class DummyReaderWriterLock(_ReaderWriterLockBase):
+class DummyReaderWriterLock(object):
     """A dummy reader/writer lock.
 
     This dummy lock doesn't lock anything but provides the same functions as a
