@@ -144,6 +144,9 @@ the following:
   ``'connection'`` and possibly type-specific backend parameters as other
   keys.
 
+Types
+=====
+
 Memory
 ------
 

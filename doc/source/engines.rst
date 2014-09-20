@@ -135,8 +135,11 @@ the ``engine_conf`` parameter any helper factory function accepts. It may be:
 * A dictionary, naming engine type with key ``'engine'`` and possibly
   type-specific engine configuration parameters.
 
-Single-Threaded
----------------
+Types
+=====
+
+Serial
+------
 
 **Engine type**: ``'serial'``
 
@@ -180,7 +183,7 @@ Additional supported keyword arguments:
 
     Running tasks with a `process pool executor`_ is not currently supported.
 
-Worker-Based
+Worker-based
 ------------
 
 **Engine type**: ``'worker-based'``
