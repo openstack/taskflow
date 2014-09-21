@@ -22,7 +22,6 @@ from __future__ import absolute_import
 import contextlib
 import copy
 import functools
-import logging
 import time
 
 from oslo.utils import strutils
@@ -33,6 +32,7 @@ from sqlalchemy import orm as sa_orm
 from sqlalchemy import pool as sa_pool
 
 from taskflow import exceptions as exc
+from taskflow import logging
 from taskflow.persistence.backends import base
 from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import models

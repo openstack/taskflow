@@ -12,13 +12,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
-
 import six
 
 from taskflow.conductors import base
 from taskflow import exceptions as excp
 from taskflow.listeners import logging as logging_listener
+from taskflow import logging
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
 from taskflow.utils import lock_utils

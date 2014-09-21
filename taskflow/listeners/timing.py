@@ -17,10 +17,10 @@
 from __future__ import absolute_import
 
 import itertools
-import logging
 
 from taskflow import exceptions as exc
 from taskflow.listeners import base
+from taskflow import logging
 from taskflow import states
 from taskflow.types import timing as tt
 

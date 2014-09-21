@@ -15,12 +15,12 @@
 #    under the License.
 
 import functools
-import logging
 
 import six
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
+from taskflow import logging
 from taskflow.types import failure as ft
 from taskflow.utils import misc
 

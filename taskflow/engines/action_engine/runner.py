@@ -14,8 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
-
+from taskflow import logging
 from taskflow import states as st
 from taskflow.types import failure
 from taskflow.types import fsm

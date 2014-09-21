@@ -19,11 +19,11 @@ import abc
 import collections
 import contextlib
 import copy
-import logging
 
 import six
 
 from taskflow import atom
+from taskflow import logging
 from taskflow.utils import reflection
 
 LOG = logging.getLogger(__name__)

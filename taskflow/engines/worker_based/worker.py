@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
 import os
 import platform
 import socket
@@ -25,6 +24,7 @@ from concurrent import futures
 
 from taskflow.engines.worker_based import endpoint
 from taskflow.engines.worker_based import server
+from taskflow import logging
 from taskflow import task as t_task
 from taskflow.utils import reflection
 from taskflow.utils import threading_utils as tu

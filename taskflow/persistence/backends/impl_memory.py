@@ -15,11 +15,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
-
 import six
 
 from taskflow import exceptions as exc
+from taskflow import logging
 from taskflow.persistence.backends import base
 from taskflow.persistence import logbook
 

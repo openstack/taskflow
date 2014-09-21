@@ -14,12 +14,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
-
 from kombu import exceptions as kombu_exc
 import six
 
 from taskflow import exceptions as excp
+from taskflow import logging
 
 LOG = logging.getLogger(__name__)
 

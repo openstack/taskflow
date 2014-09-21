@@ -14,9 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
-
 from taskflow.engines.action_engine import executor as ex
+from taskflow import logging
 from taskflow import retry as retry_atom
 from taskflow import states
 from taskflow.types import failure

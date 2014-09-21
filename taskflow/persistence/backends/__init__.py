@@ -15,11 +15,11 @@
 #    under the License.
 
 import contextlib
-import logging
 
 from stevedore import driver
 
 from taskflow import exceptions as exc
+from taskflow import logging
 from taskflow.utils import misc
 
 

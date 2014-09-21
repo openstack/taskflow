@@ -17,11 +17,11 @@
 from __future__ import absolute_import
 
 import abc
-import logging
 
 from oslo.utils import excutils
 import six
 
+from taskflow import logging
 from taskflow import states
 from taskflow.types import failure
 from taskflow.types import notifier

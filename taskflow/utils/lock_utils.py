@@ -22,13 +22,13 @@
 import collections
 import contextlib
 import errno
-import logging
 import os
 import threading
 import time
 
 import six
 
+from taskflow import logging
 from taskflow.utils import misc
 from taskflow.utils import threading_utils as tu
 

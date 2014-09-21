@@ -16,11 +16,11 @@
 
 import abc
 import contextlib
-import logging
 
 import six
 
 from taskflow import exceptions
+from taskflow import logging
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow import retry
@@ -696,20 +696,17 @@ class Storage(object):
                 injected_args = {}
             mapped_args = {}
             for (bound_name, name) in six.iteritems(args_mapping):
-                # TODO(harlowja): This logging information may be to verbose
-                # even for DEBUG mode, let's see if we can maybe in the future
-                # add a TRACE mode or something else if people complain...
-                if LOG.isEnabledFor(logging.DEBUG):
+                if LOG.isEnabledFor(logging.BLATHER):
                     if atom_name:
-                        LOG.debug("Looking for %r <= %r for atom named: %s",
-                                  bound_name, name, atom_name)
+                        LOG.blather("Looking for %r <= %r for atom named: %s",
+                                    bound_name, name, atom_name)
                     else:
-                        LOG.debug("Looking for %r <= %r", bound_name, name)
+                        LOG.blather("Looking for %r <= %r", bound_name, name)
                 if name in injected_args:
                     value = injected_args[name]
                     mapped_args[bound_name] = value
-                    LOG.debug("Matched %r <= %r to %r (from injected values)",
-                              bound_name, name, value)
+                    LOG.blather("Matched %r <= %r to %r (from injected"
+                                " values)", bound_name, name, value)
                 else:
                     try:
                         possible_providers = self._reverse_mapping[name]
@@ -727,8 +724,8 @@ class Storage(object):
                             % (bound_name, name, len(possible_providers)))
                     provider, value = _item_from_first_of(providers, name)
                     mapped_args[bound_name] = value
-                    LOG.debug("Matched %r <= %r to %r (from %s)",
-                              bound_name, name, value, provider)
+                    LOG.blather("Matched %r <= %r to %r (from %s)",
+                                bound_name, name, value, provider)
             return mapped_args
 
     def set_flow_state(self, state):

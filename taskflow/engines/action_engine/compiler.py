@@ -14,11 +14,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
 import threading
 
 from taskflow import exceptions as exc
 from taskflow import flow
+from taskflow import logging
 from taskflow import retry
 from taskflow import task
 from taskflow.types import graph as gr
@@ -190,18 +190,18 @@ class PatternCompiler(object):
                             % (self._root, type(self._root)))
         self._history.clear()
         # NOTE(harlowja): this one can be expensive to calculate (especially
-        # the cycle detection), so only do it if we know debugging is enabled
+        # the cycle detection), so only do it if we know BLATHER is enabled
         # and not under all cases.
-        if LOG.isEnabledFor(logging.DEBUG):
-            LOG.debug("Translated '%s'", self._root)
-            LOG.debug("Graph:")
+        if LOG.isEnabledFor(logging.BLATHER):
+            LOG.blather("Translated '%s'", self._root)
+            LOG.blather("Graph:")
             for line in graph.pformat().splitlines():
                 # Indent it so that it's slightly offset from the above line.
-                LOG.debug("  %s", line)
-            LOG.debug("Hierarchy:")
+                LOG.blather("  %s", line)
+            LOG.blather("Hierarchy:")
             for line in node.pformat().splitlines():
                 # Indent it so that it's slightly offset from the above line.
-                LOG.debug("  %s", line)
+                LOG.blather("  %s", line)
 
     @lock_utils.locked
     def compile(self):
