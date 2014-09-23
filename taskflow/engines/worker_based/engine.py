@@ -16,6 +16,7 @@
 
 from taskflow.engines.action_engine import engine
 from taskflow.engines.worker_based import executor
+from taskflow.engines.worker_based import protocol as pr
 from taskflow import storage as t_storage
 
 
@@ -30,8 +31,15 @@ class WorkerBasedActionEngine(engine.ActionEngine):
     :param topics: list of workers topics to communicate with (this will also
                    be learned by listening to the notifications that workers
                    emit).
-    :keyword transport: transport to be used (e.g. amqp, memory, etc.)
-    :keyword transport_options: transport specific options
+    :param transport: transport to be used (e.g. amqp, memory, etc.)
+    :param transport_options: transport specific options
+    :param transition_timeout: numeric value (or None for infinite) to wait
+                               for submitted remote requests to transition out
+                               of the (PENDING, WAITING) request states. When
+                               expired the associated task the request was made
+                               for will have its result become a
+                               `RequestTimeout` exception instead of its
+                               normally returned value (or raised exception).
     """
 
     _storage_factory = t_storage.SingleThreadedStorage
@@ -45,7 +53,9 @@ class WorkerBasedActionEngine(engine.ActionEngine):
             exchange=self._conf.get('exchange', 'default'),
             topics=self._conf.get('topics', []),
             transport=self._conf.get('transport'),
-            transport_options=self._conf.get('transport_options'))
+            transport_options=self._conf.get('transport_options'),
+            transition_timeout=self._conf.get('transition_timeout',
+                                              pr.REQUEST_TIMEOUT))
 
     def __init__(self, flow, flow_detail, backend, conf, **kwargs):
         super(WorkerBasedActionEngine, self).__init__(

@@ -71,10 +71,12 @@ class PeriodicWorker(object):
 class WorkerTaskExecutor(executor.TaskExecutorBase):
     """Executes tasks on remote workers."""
 
-    def __init__(self, uuid, exchange, topics, **kwargs):
+    def __init__(self, uuid, exchange, topics,
+                 transition_timeout=pr.REQUEST_TIMEOUT, **kwargs):
         self._uuid = uuid
         self._topics = topics
         self._requests_cache = cache.RequestsCache()
+        self._transition_timeout = transition_timeout
         self._workers_cache = cache.WorkersCache()
         self._workers_arrival = threading.Condition()
         handlers = {
@@ -172,10 +174,11 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         self._requests_cache.cleanup(self._handle_expired_request)
 
     def _submit_task(self, task, task_uuid, action, arguments,
-                     progress_callback, timeout=pr.REQUEST_TIMEOUT, **kwargs):
+                     progress_callback, **kwargs):
         """Submit task request to a worker."""
         request = pr.Request(task, task_uuid, action, arguments,
-                             progress_callback, timeout, **kwargs)
+                             progress_callback, self._transition_timeout,
+                             **kwargs)
 
         # Get task's topic and publish request if topic was found.
         topic = self._workers_cache.get_topic_by_task(request.task_cls)

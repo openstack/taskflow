@@ -46,7 +46,8 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
                                      exchange='default',
                                      topics=[],
                                      transport=None,
-                                     transport_options=None)
+                                     transport_options=None,
+                                     transition_timeout=mock.ANY)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
 
@@ -55,7 +56,7 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
         _, flow_detail = pu.temporary_flow_detail()
         config = {'url': self.broker_url, 'exchange': self.exchange,
                   'topics': self.topics, 'transport': 'memory',
-                  'transport_options': {}}
+                  'transport_options': {}, 'transition_timeout': 200}
         engine.WorkerBasedActionEngine(
             flow, flow_detail, None, config).compile()
 
@@ -65,6 +66,7 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
                                      exchange=self.exchange,
                                      topics=self.topics,
                                      transport='memory',
-                                     transport_options={})
+                                     transport_options={},
+                                     transition_timeout=200)
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
