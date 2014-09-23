@@ -36,7 +36,11 @@ class TypeDispatcher(object):
 
         The callback will be activated before the message has been acked and
         it can be used to instruct the dispatcher to requeue the message
-        instead of processing it.
+        instead of processing it. The callback, when called, will be provided
+        two positional parameters; the first being the message data and the
+        second being the message object. Using these provided parameters the
+        filter should return a truthy object if the message should be requeued
+        and a falsey object if it should not.
         """
         assert six.callable(callback), "Callback must be callable"
         self._requeue_filters.append(callback)
@@ -44,14 +48,14 @@ class TypeDispatcher(object):
     def _collect_requeue_votes(self, data, message):
         # Returns how many of the filters asked for the message to be requeued.
         requeue_votes = 0
-        for f in self._requeue_filters:
+        for i, cb in enumerate(self._requeue_filters):
             try:
-                if f(data, message):
+                if cb(data, message):
                     requeue_votes += 1
             except Exception:
-                LOG.exception("Failed calling requeue filter to determine"
-                              " if message %r should be requeued.",
-                              message.delivery_tag)
+                LOG.exception("Failed calling requeue filter %s '%s' to"
+                              " determine if message %r should be requeued.",
+                              i + 1, cb, message.delivery_tag)
         return requeue_votes
 
     def _requeue_log_error(self, message, errors):
