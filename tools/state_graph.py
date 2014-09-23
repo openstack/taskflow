@@ -57,6 +57,18 @@ def make_machine(start_state, transitions, disallowed):
     return machine
 
 
+def map_color(internal_states, state):
+    if state in internal_states:
+        return 'blue'
+    if state == states.FAILURE:
+        return 'red'
+    if state == states.REVERTED:
+        return 'darkorange'
+    if state == states.SUCCESS:
+        return 'green'
+    return None
+
+
 def main():
     parser = optparse.OptionParser()
     parser.add_option("-f", "--file", dest="filename",
@@ -119,14 +131,16 @@ def main():
     for (start_state, _on_event, end_state) in source:
         if start_state not in nodes:
             start_node_attrs = node_attrs.copy()
-            if start_state in internal_states:
-                start_node_attrs['fontcolor'] = 'blue'
+            text_color = map_color(internal_states, start_state)
+            if text_color:
+                start_node_attrs['fontcolor'] = text_color
             nodes[start_state] = pydot.Node(start_state, **start_node_attrs)
             g.add_node(nodes[start_state])
         if end_state not in nodes:
             end_node_attrs = node_attrs.copy()
-            if end_state in internal_states:
-                end_node_attrs['fontcolor'] = 'blue'
+            text_color = map_color(internal_states, end_state)
+            if text_color:
+                end_node_attrs['fontcolor'] = text_color
             nodes[end_state] = pydot.Node(end_state, **end_node_attrs)
             g.add_node(nodes[end_state])
         g.add_edge(pydot.Edge(nodes[start_state], nodes[end_state]))
