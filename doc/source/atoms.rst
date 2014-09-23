@@ -1,5 +1,5 @@
 ------------------------
-Atoms, Tasks and Retries
+Atoms, tasks and retries
 ------------------------
 
 Atom

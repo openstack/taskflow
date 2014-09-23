@@ -416,7 +416,10 @@ class Notifier(object):
     notification occurs.
     """
 
+    #: Keys that can not be used in callbacks arguments
     RESERVED_KEYS = ('details',)
+
+    #: Kleene star constant that is used to recieve all notifications
     ANY = '*'
 
     def __init__(self):
@@ -474,9 +477,9 @@ class Notifier(object):
 
         Callback will be called with provided ``args`` and ``kwargs`` and
         when event type occurs (or on any event if ``event_type`` equals to
-        ``Notifier.ANY``). It will also get additional keyword argument,
-        ``details``, that will hold event details provided to
-        :py:meth:`notify` method.
+        :attr:`.ANY`). It will also get additional keyword argument,
+        ``details``, that will hold event details provided to the
+        :meth:`.notify` method.
         """
         assert six.callable(callback), "Callback must be callable"
         if self.is_registered(event_type, callback):
@@ -576,9 +579,10 @@ class Failure(object):
     remote worker throws an exception, the WBE based engine will receive that
     exception and desire to reraise it to the user/caller of the WBE based
     engine for appropriate handling (this matches the behavior of non-remote
-    engines). To accomplish this a failure object (or a to_dict() form) would
-    be sent over the WBE channel and the WBE based engine would deserialize it
-    and use this objects reraise() method to cause an exception that contains
+    engines). To accomplish this a failure object (or a
+    :py:meth:`~misc.Failure.to_dict` form) would be sent over the WBE channel
+    and the WBE based engine would deserialize it and use this objects
+    :meth:`.reraise` method to cause an exception that contains
     similar/equivalent information as the original exception to be reraised,
     allowing the user (or the WBE engine itself) to then handle the worker
     failure/exception as they desire.
@@ -642,6 +646,7 @@ class Failure(object):
 
     @classmethod
     def from_exception(cls, exception):
+        """Creates a failure object from a exception instance."""
         return cls((type(exception), exception, None))
 
     def _matches(self, other):
@@ -652,6 +657,7 @@ class Failure(object):
                 and self.traceback_str == other.traceback_str)
 
     def matches(self, other):
+        """Checks if another object is equivalent to this object."""
         if not isinstance(other, Failure):
             return False
         if self.exc_info is None or other.exc_info is None:
@@ -706,9 +712,10 @@ class Failure(object):
         """Re-raise exceptions if argument is not empty.
 
         If argument is empty list, this method returns None. If
-        argument is list with single Failure object in it,
-        this failure is reraised. Else, WrappedFailure exception
-        is raised with failures list as causes.
+        argument is a list with a single ``Failure`` object in it,
+        that failure is reraised. Else, a
+        :class:`~taskflow.exceptions.WrappedFailure` exception
+        is raised with a failure list as causes.
         """
         failures = list(failures)
         if len(failures) == 1:
@@ -724,7 +731,7 @@ class Failure(object):
             raise exc.WrappedFailure([self])
 
     def check(self, *exc_classes):
-        """Check if any of exc_classes caused the failure.
+        """Check if any of ``exc_classes`` caused the failure.
 
         Arguments of this method can be exception types or type
         names (stings). If captured exception is instance of
@@ -744,6 +751,7 @@ class Failure(object):
         return self.pformat()
 
     def pformat(self, traceback=False):
+        """Pretty formats the failure object into a string."""
         buf = six.StringIO()
         buf.write(
             'Failure: %s: %s' % (self._exc_type_names[0], self._exception_str))
@@ -766,6 +774,7 @@ class Failure(object):
 
     @classmethod
     def from_dict(cls, data):
+        """Converts this from a dictionary to a object."""
         data = dict(data)
         version = data.pop('version', None)
         if version != cls.DICT_VERSION:
@@ -774,6 +783,7 @@ class Failure(object):
         return cls(**data)
 
     def to_dict(self):
+        """Converts this object to a dictionary."""
         return {
             'exception_str': self.exception_str,
             'traceback_str': self.traceback_str,
@@ -782,6 +792,7 @@ class Failure(object):
         }
 
     def copy(self):
+        """Copies this object."""
         return Failure(exc_info=copy_exc_info(self.exc_info),
                        exception_str=self.exception_str,
                        traceback_str=self.traceback_str,

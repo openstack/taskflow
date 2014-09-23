@@ -69,34 +69,16 @@ class Worker(object):
     :param url: broker url
     :param exchange: broker exchange name
     :param topic: topic name under which worker is stated
-    :param tasks: tasks list that worker is capable to perform
-
-        Tasks list item can be one of the following types:
-        1. String:
-
-            1.1 Python module name:
-
-                > tasks=['taskflow.tests.utils']
-
-            1.2. Task class (BaseTask subclass) name:
-
-                > tasks=['taskflow.test.utils.DummyTask']
-
-        3. Python module:
-
-            > from taskflow.tests import utils
-            > tasks=[utils]
-
-        4. Task class (BaseTask subclass):
-
-            > from taskflow.tests import utils
-            > tasks=[utils.DummyTask]
-
-    :param executor: custom executor object that is used for processing
-        requests in separate threads
-    :keyword threads_count: threads count to be passed to the default executor
-    :keyword transport: transport to be used (e.g. amqp, memory, etc.)
-    :keyword transport_options: transport specific options
+    :param tasks: task list that worker is capable of performing, items in
+        the list can be one of the following types; 1, a string naming the
+        python module name to search for tasks in or the task class name; 2, a
+        python module  to search for tasks in; 3, a task class object that
+        will be used to create tasks from.
+    :param executor: custom executor object that can used for processing
+        requests in separate threads (if not provided one will be created)
+    :param threads_count: threads count to be passed to the default executor
+    :param transport: transport to be used (e.g. amqp, memory, etc.)
+    :param transport_options: transport specific options
     """
 
     def __init__(self, exchange, topic, tasks, executor=None, **kwargs):

@@ -1,5 +1,5 @@
 ===========================
-Notifications and Listeners
+Notifications and listeners
 ===========================
 
 .. testsetup::
@@ -17,9 +17,9 @@ transitions, which is useful for monitoring, logging, metrics, debugging
 and plenty of other tasks.
 
 To receive these notifications you should register a callback with
-an instance of the the :py:class:`notifier <taskflow.utils.misc.Notifier>`
+an instance of the :py:class:`~taskflow.utils.misc.Notifier`
 class that is attached
-to :py:class:`engine <taskflow.engines.base.EngineBase>`
+to :py:class:`Engine <taskflow.engines.base.EngineBase>`
 attributes ``task_notifier`` and ``notifier``.
 
 TaskFlow also comes with a set of predefined :ref:`listeners <listeners>`, and
@@ -30,17 +30,14 @@ using raw callbacks.
 Receiving notifications with callbacks
 --------------------------------------
 
-To manage notifications instances of
-:py:class:`~taskflow.utils.misc.Notifier` are used.
-
-.. autoclass:: taskflow.utils.misc.Notifier
-
 Flow notifications
 ------------------
 
-To receive notification on flow state changes use
-:py:class:`~taskflow.utils.misc.Notifier` available as
-``notifier`` property of the engine. A basic example is:
+To receive notification on flow state changes use the
+:py:class:`~taskflow.utils.misc.Notifier` instance available as the
+``notifier`` property of an engine.
+
+A basic example is:
 
 .. doctest::
 
@@ -71,9 +68,11 @@ To receive notification on flow state changes use
 Task notifications
 ------------------
 
-To receive notification on task state changes use
-:py:class:`~taskflow.utils.misc.Notifier` available as
-``task_notifier`` property of the engine. A basic example is:
+To receive notification on task state changes use the
+:py:class:`~taskflow.utils.misc.Notifier` instance available as the
+``task_notifier`` property of an engine.
+
+A basic example is:
 
 .. doctest::
 

@@ -7,6 +7,11 @@ Cache
 
 .. automodule:: taskflow.types.cache
 
+Failure
+=======
+
+.. autoclass:: taskflow.utils.misc.Failure
+
 FSM
 ===
 
@@ -16,6 +21,11 @@ Graph
 =====
 
 .. automodule:: taskflow.types.graph
+
+Notifier
+========
+
+.. autoclass:: taskflow.utils.misc.Notifier
 
 Table
 =====

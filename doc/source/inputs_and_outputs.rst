@@ -1,11 +1,11 @@
 ==================
-Inputs and Outputs
+Inputs and outputs
 ==================
 
 In TaskFlow there are multiple ways to provide inputs for your tasks and flows
 and get information from them. This document describes one of them, that
 involves task arguments and results. There are also :doc:`notifications
-<notifications>`, which allow you to get notified when task or flow changed
+<notifications>`, which allow you to get notified when a task or flow changes
 state. You may also opt to use the :doc:`persistence <persistence>` layer
 itself directly.
 
@@ -19,15 +19,16 @@ This is the standard and recommended way to pass data from one task to another.
 Of course not every task argument needs to be provided to some other task of a
 flow, and not every task result should be consumed by every task.
 
-If some value is required by one or more tasks of a flow, but is not provided
-by any task, it is considered to be flow input, and **must** be put into the
-storage before the flow is run. A set of names required by a flow can be
-retrieved via that flow's ``requires`` property. These names can be used to
+If some value is required by one or more tasks of a flow, but it is not
+provided by any task, it is considered to be flow input, and **must** be put
+into the storage before the flow is run. A set of names required by a flow can
+be retrieved via that flow's ``requires`` property. These names can be used to
 determine what names may be applicable for placing in storage ahead of time
 and which names are not applicable.
 
 All values provided by tasks of the flow are considered to be flow outputs; the
-set of names of such values is available via ``provides`` property of the flow.
+set of names of such values is available via the ``provides`` property of the
+flow.
 
 .. testsetup::
 
@@ -59,8 +60,10 @@ As you can see, this flow does not require b, as it is provided by the fist
 task.
 
 .. note::
-   There is no difference between processing of Task and Retry inputs
-   and outputs.
+
+   There is no difference between processing of
+   :py:class:`Task <taskflow.task.BaseTask>` and
+   :py:class:`~taskflow.retry.Retry` inputs and outputs.
 
 ------------------
 Engine and storage
@@ -146,8 +149,10 @@ Outputs
 
 As you can see from examples above, the run method returns all flow outputs in
 a ``dict``. This same data can be fetched via
-:py:meth:`~taskflow.storage.Storage.fetch_all` method of the storage. You can
-also get single results using :py:meth:`~taskflow.storage.Storage.fetch`.
+:py:meth:`~taskflow.storage.Storage.fetch_all` method of the engines storage
+object. You can also get single results using the
+engines storage objects :py:meth:`~taskflow.storage.Storage.fetch` method.
+
 For example:
 
 .. doctest::
