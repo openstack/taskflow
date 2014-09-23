@@ -385,11 +385,13 @@ representation of the ``do_something`` result.
 Retry arguments
 ===============
 
-A |Retry| controller works with arguments in the same way as a |Task|. But
-it has an additional parameter ``'history'`` that is a list of tuples. Each
-tuple contains a result of the previous retry run and a table where the key
-is a failed task and the value is a
-:py:class:`~taskflow.types.failure.Failure` object.
+A |Retry| controller works with arguments in the same way as a |Task|. But it
+has an additional parameter ``'history'`` that is itself a
+:py:class:`~taskflow.retry.History` object that contains what failed over all
+the engines attempts (aka the outcomes). The history object can be
+viewed as a tuple that contains a result of the previous retrys run and a
+table/dict where each key is a failed atoms name and each value is
+a :py:class:`~taskflow.types.failure.Failure` object.
 
 Consider the following implementation::
 
@@ -398,19 +400,19 @@ Consider the following implementation::
       default_provides = 'value'
 
       def on_failure(self, history, *args, **kwargs):
-          print history
+          print(list(history))
           return RETRY
 
       def execute(self, history, *args, **kwargs):
-          print history
+          print(list(history))
           return 5
 
       def revert(self, history, *args, **kwargs):
-          print history
+          print(list(history))
 
 Imagine the above retry had returned a value ``'5'`` and then some task ``'A'``
-failed with some exception.  In this case the above retrys ``on_failure``
-method will receive the following history::
+failed with some exception.  In this case ``on_failure`` method will receive
+the following history (printed as a list)::
 
     [('5', {'A': failure.Failure()})]
 
@@ -419,12 +421,10 @@ At this point (since the implementation returned ``RETRY``) the
 history and it can then return a value that subseqent tasks can use to alter
 there behavior.
 
-If instead the |retry.execute| method raises an exception, the |retry.revert|
-method of the implementation will be called and
+If instead the |retry.execute| method itself raises an exception,
+the |retry.revert| method of the implementation will be called and
 a :py:class:`~taskflow.types.failure.Failure` object will be present in the
-history instead of the typical result::
-
-    [('5', {'A': failure.Failure()}), (failure.Failure(), {})]
+history object instead of the typical result.
 
 .. note::
 

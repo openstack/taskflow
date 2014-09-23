@@ -745,20 +745,35 @@ class Storage(object):
                 state = states.PENDING
             return state
 
+    def _translate_into_history(self, ad):
+        failure = None
+        if ad.failure is not None:
+            # NOTE(harlowja): Try to use our local cache to get a more
+            # complete failure object that has a traceback (instead of the
+            # one that is saved which will *typically* not have one)...
+            cached = self._failures.get(ad.name)
+            if ad.failure.matches(cached):
+                failure = cached
+            else:
+                failure = ad.failure
+        return retry.History(ad.results, failure=failure)
+
     def get_retry_history(self, retry_name):
-        """Fetch retry results history."""
+        """Fetch a single retrys history."""
         with self._lock.read_lock():
             ad = self._atomdetail_by_name(retry_name,
                                           expected_type=logbook.RetryDetail)
-            if ad.failure is not None:
-                cached = self._failures.get(retry_name)
-                history = list(ad.results)
-                if ad.failure.matches(cached):
-                    history.append((cached, {}))
-                else:
-                    history.append((ad.failure, {}))
-                return history
-            return ad.results
+            return self._translate_into_history(ad)
+
+    def get_retry_histories(self):
+        """Fetch all retrys histories."""
+        histories = []
+        with self._lock.read_lock():
+            for ad in self._flowdetail:
+                if isinstance(ad, logbook.RetryDetail):
+                    histories.append((ad.name,
+                                      self._translate_into_history(ad)))
+        return histories
 
 
 class MultiThreadedStorage(Storage):
