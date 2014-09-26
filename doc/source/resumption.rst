@@ -88,7 +88,7 @@ The following scenarios explain some expected structural changes and how they
 can be accommodated (and what the effect will be when resuming & running).
 
 Same atoms
-----------
+++++++++++
 
 When the factory function mentioned above returns the exact same the flow and
 atoms (no changes are performed).
@@ -98,7 +98,7 @@ atoms with :py:class:`~taskflow.persistence.logbook.AtomDetail` objects by name
 and then the engine resumes.
 
 Atom was added
---------------
+++++++++++++++
 
 When the factory function mentioned above alters the flow by adding a new atom
 in (for example for changing the runtime structure of what was previously ran
@@ -109,7 +109,7 @@ corresponding :py:class:`~taskflow.persistence.logbook.AtomDetail` does not
 exist and one will be created and associated.
 
 Atom was removed
-----------------
+++++++++++++++++
 
 When the factory function mentioned above alters the flow by removing a new
 atom in (for example for changing the runtime structure of what was previously
@@ -121,7 +121,7 @@ it was not there, and any results it returned if it was completed before will
 be ignored.
 
 Atom code was changed
----------------------
++++++++++++++++++++++
 
 When the factory function mentioned above alters the flow by deciding that a
 newer version of a previously existing atom should be ran (possibly to perform
@@ -137,8 +137,8 @@ ability to upgrade atoms before running (manual introspection & modification of
 a :py:class:`~taskflow.persistence.logbook.LogBook` can be done before engine
 loading and running to accomplish this in the meantime).
 
-Atom was split in two atoms or merged from two (or more) to one atom
---------------------------------------------------------------------
+Atom was split in two atoms or merged
++++++++++++++++++++++++++++++++++++++
 
 When the factory function mentioned above alters the flow by deciding that a
 previously existing atom should be split into N atoms or the factory function
@@ -154,7 +154,7 @@ introspection & modification of a
 loading and running to accomplish this in the meantime).
 
 Flow structure was changed
---------------------------
+++++++++++++++++++++++++++
 
 If manual links were added or removed from graph, or task requirements were
 changed, or flow was refactored (atom moved into or out of subflows, linear

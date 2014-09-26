@@ -161,6 +161,9 @@ might look like:
         time.sleep(coffee_break_time)
     ...
 
+Types
+=====
+
 Zookeeper
 ---------
 
@@ -247,6 +250,14 @@ Interfaces
 .. automodule:: taskflow.jobs.backends
 .. automodule:: taskflow.jobs.job
 .. automodule:: taskflow.jobs.jobboard
+
+Hierarchy
+=========
+
+.. inheritance-diagram::
+    taskflow.jobs.jobboard
+    taskflow.jobs.backends.impl_zookeeper
+    :parts: 1
 
 .. _paradigm shift: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts#Workflow_ownership_transfer
 .. _zookeeper: http://zookeeper.apache.org/

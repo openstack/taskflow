@@ -202,8 +202,11 @@ desirable to make those results accessible to others. To accomplish this
 the task/retry specifies names of those values via its ``provides`` constructor
 parameter or by its default provides attribute.
 
+Examples
+--------
+
 Returning one value
--------------------
++++++++++++++++++++
 
 If task returns just one value, ``provides`` should be string -- the
 name of the value.
@@ -218,7 +221,7 @@ name of the value.
     set(['the_answer'])
 
 Returning a tuple
------------------
++++++++++++++++++
 
 For a task that returns several values, one option (as usual in python) is to
 return those values via a ``tuple``.
@@ -258,7 +261,7 @@ and passed to the task |task.revert| or retry |retry.revert| method).
     :py:class:`~taskflow.exceptions.NotFound`  exception is raised.
 
 Returning a dictionary
-----------------------
+++++++++++++++++++++++
 
 Another option is to return several values as a dictionary (aka a ``dict``).
 
@@ -300,7 +303,7 @@ will be able to get elements from storage by name:
     exception is raised.
 
 Default provides
-----------------
+++++++++++++++++
 
 As mentioned above, the default base class provides nothing, which means
 results are not accessible to other tasks/retrys in the flow.

@@ -94,8 +94,8 @@ subclasses are provided:
   :py:class:`~taskflow.retry.ForEach` but extracts values from storage
   instead of the :py:class:`~taskflow.retry.ForEach` constructor.
 
-Usage
------
+Examples
+--------
 
 .. testsetup::
 
