@@ -19,9 +19,9 @@ from __future__ import absolute_import
 import abc
 import logging
 
+from oslo.utils import excutils
 import six
 
-from taskflow.openstack.common import excutils
 from taskflow import states
 from taskflow.utils import misc
 

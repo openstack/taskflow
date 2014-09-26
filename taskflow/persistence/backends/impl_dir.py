@@ -20,10 +20,10 @@ import logging
 import os
 import shutil
 
+from oslo.serialization import jsonutils
 import six
 
 from taskflow import exceptions as exc
-from taskflow.openstack.common import jsonutils
 from taskflow.persistence.backends import base
 from taskflow.persistence import logbook
 from taskflow.utils import lock_utils

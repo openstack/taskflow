@@ -24,13 +24,13 @@ from concurrent import futures
 from kazoo import exceptions as k_exceptions
 from kazoo.protocol import paths as k_paths
 from kazoo.recipe import watchers
+from oslo.serialization import jsonutils
+from oslo.utils import excutils
 import six
 
 from taskflow import exceptions as excp
 from taskflow.jobs import job as base_job
 from taskflow.jobs import jobboard
-from taskflow.openstack.common import excutils
-from taskflow.openstack.common import jsonutils
 from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow.types import timing as tt

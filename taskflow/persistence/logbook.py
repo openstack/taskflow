@@ -19,10 +19,10 @@ import abc
 import copy
 import logging
 
+from oslo.utils import timeutils
 import six
 
 from taskflow import exceptions as exc
-from taskflow.openstack.common import timeutils
 from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow.utils import misc

@@ -21,11 +21,11 @@ import threading
 from concurrent import futures
 import jsonschema
 from jsonschema import exceptions as schema_exc
+from oslo.utils import timeutils
 import six
 
 from taskflow.engines.action_engine import executor
 from taskflow import exceptions as excp
-from taskflow.openstack.common import timeutils
 from taskflow.types import timing as tt
 from taskflow.utils import lock_utils
 from taskflow.utils import misc

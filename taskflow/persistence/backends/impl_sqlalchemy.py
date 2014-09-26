@@ -25,6 +25,7 @@ import functools
 import logging
 import time
 
+from oslo.utils import strutils
 import six
 import sqlalchemy as sa
 from sqlalchemy import exc as sa_exc
@@ -32,7 +33,6 @@ from sqlalchemy import orm as sa_orm
 from sqlalchemy import pool as sa_pool
 
 from taskflow import exceptions as exc
-from taskflow.openstack.common import strutils
 from taskflow.persistence.backends import base
 from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import models

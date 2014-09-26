@@ -16,11 +16,11 @@
 
 import contextlib
 
+from oslo.utils import importutils
 import six
 import stevedore.driver
 
 from taskflow import exceptions as exc
-from taskflow.openstack.common import importutils
 from taskflow.persistence import backends as p_backends
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils

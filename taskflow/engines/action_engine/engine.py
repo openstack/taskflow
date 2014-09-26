@@ -17,12 +17,13 @@
 import contextlib
 import threading
 
+from oslo.utils import excutils
+
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
 from taskflow.engines.action_engine import runtime
 from taskflow.engines import base
 from taskflow import exceptions as exc
-from taskflow.openstack.common import excutils
 from taskflow import retry
 from taskflow import states
 from taskflow import storage as atom_storage
