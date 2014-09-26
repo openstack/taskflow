@@ -74,7 +74,7 @@ def _are_equal_exc_info_tuples(ei1, ei2):
 
 
 class Failure(object):
-    """Object that represents failure.
+    """An immutable object that represents failure.
 
     Failure objects encapsulate exception information so that they can be
     re-used later to re-raise, inspect, examine, log, print, serialize,

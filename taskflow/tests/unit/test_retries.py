@@ -559,7 +559,7 @@ class RetryTest(utils.EngineTestBase):
         # we execute retry
         engine.storage.save('flow-1_retry', 1)
         # task fails
-        fail = failure.Failure.from_exception(RuntimeError('foo')),
+        fail = failure.Failure.from_exception(RuntimeError('foo'))
         engine.storage.save('task1', fail, state=st.FAILURE)
         if when == 'task fails':
             return engine
