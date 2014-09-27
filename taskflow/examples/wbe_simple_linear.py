@@ -53,7 +53,12 @@ USE_FILESYSTEM = False
 BASE_SHARED_CONF = {
     'exchange': 'taskflow',
 }
-WORKERS = 2
+
+# Until https://github.com/celery/kombu/issues/398 is resolved it is not
+# recommended to run many worker threads in this example due to the types
+# of errors mentioned in that issue.
+MEMORY_WORKERS = 2
+FILE_WORKERS = 1
 WORKER_CONF = {
     # These are the tasks the worker can execute, they *must* be importable,
     # typically this list is used to restrict what workers may execute to
@@ -90,6 +95,7 @@ if __name__ == "__main__":
 
     tmp_path = None
     if USE_FILESYSTEM:
+        worker_count = FILE_WORKERS
         tmp_path = tempfile.mkdtemp(prefix='wbe-example-')
         shared_conf.update({
             'transport': 'filesystem',
@@ -100,6 +106,7 @@ if __name__ == "__main__":
             },
         })
     else:
+        worker_count = MEMORY_WORKERS
         shared_conf.update({
             'transport': 'memory',
             'transport_options': {
@@ -115,8 +122,8 @@ if __name__ == "__main__":
 
     try:
         # Create a set of workers to simulate actual remote workers.
-        print('Running %s workers.' % (WORKERS))
-        for i in range(0, WORKERS):
+        print('Running %s workers.' % (worker_count))
+        for i in range(0, worker_count):
             worker_conf['topic'] = 'worker-%s' % (i + 1)
             worker_topics.append(worker_conf['topic'])
             w = worker.Worker(**worker_conf)
