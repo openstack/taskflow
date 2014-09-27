@@ -6,16 +6,22 @@
 
 # Only needed on python 2.6
 ordereddict
+
 # Python 2->3 compatibility library.
 six>=1.7.0
+
 # Very nice graph library
 networkx>=1.8
+
 # Used for backend storage engine loading.
 stevedore>=1.0.0  # Apache-2.0
+
 # Backport for concurrent.futures which exists in 3.2+
 futures>=2.1.6
+
 # Used for structured input validation
 jsonschema>=2.0.0,<3.0.0
+
 # For common utilities
 oslo.utils>=0.3.0
 oslo.serialization>=0.1.0
