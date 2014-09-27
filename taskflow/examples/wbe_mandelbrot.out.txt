@@ -1,0 +1,6 @@
+Calculating your mandelbrot fractal of size 512x512.
+Running 2 workers.
+Execution finished.
+Stopping workers.
+Writing image...
+Gathered 262144 results that represents a mandelbrot image (using 8 chunks that are computed jointly by 2 workers).
