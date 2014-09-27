@@ -1,3 +1,15 @@
+Passing values from and to tasks
+================================
+
+.. note::
+
+    Full source located at :example:`simple_linear_pass`.
+
+.. literalinclude:: ../../taskflow/examples/simple_linear_pass.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Making phone calls
 ==================
 
