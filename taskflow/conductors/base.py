@@ -24,7 +24,7 @@ from taskflow.utils import lock_utils
 
 @six.add_metaclass(abc.ABCMeta)
 class Conductor(object):
-    """Conductors conduct jobs & assist in associated runtime interactions.
+    """Base for all conductor implementations.
 
     Conductors act as entities which extract jobs from a jobboard, assign
     there work to some engine (using some desired configuration) and then wait
@@ -34,8 +34,8 @@ class Conductor(object):
     period of time will finish up the prior failed conductors work.
     """
 
-    def __init__(self, name, jobboard, persistence,
-                 engine=None, engine_options=None):
+    def __init__(self, name, jobboard,
+                 persistence=None, engine=None, engine_options=None):
         self._name = name
         self._jobboard = jobboard
         self._engine = engine
@@ -101,7 +101,7 @@ class Conductor(object):
 
     @lock_utils.locked
     def close(self):
-        """Closes the jobboard, disallowing further use."""
+        """Closes the contained jobboard, disallowing further use."""
         self._jobboard.close()
 
     @abc.abstractmethod

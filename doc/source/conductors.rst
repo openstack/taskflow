@@ -67,14 +67,15 @@ Interfaces
 Implementations
 ===============
 
-.. automodule:: taskflow.conductors.single_threaded
+.. automodule:: taskflow.conductors.backends
+.. automodule:: taskflow.conductors.backends.impl_blocking
 
 Hierarchy
 =========
 
 .. inheritance-diagram::
     taskflow.conductors.base
-    taskflow.conductors.single_threaded
+    taskflow.conductors.backends.impl_blocking
     :parts: 1
 
 .. _railroad conductors: http://en.wikipedia.org/wiki/Conductor_%28transportation%29

@@ -118,8 +118,8 @@ class MovedClassProxy(object):
             type(self).__name__, id(self), wrapped, id(wrapped))
 
 
-def _generate_moved_message(prefix, postfix=None, message=None,
-                            version=None, removal_version=None):
+def _generate_message(prefix, postfix=None, message=None,
+                      version=None, removal_version=None):
     message_components = [prefix]
     if version:
         message_components.append(" in version '%s'" % version)
@@ -143,9 +143,9 @@ def renamed_kwarg(old_name, new_name, message=None,
 
     prefix = _KWARG_MOVED_PREFIX_TPL % old_name
     postfix = _KWARG_MOVED_POSTFIX_TPL % new_name
-    out_message = _generate_moved_message(prefix, postfix=postfix,
-                                          message=message, version=version,
-                                          removal_version=removal_version)
+    out_message = _generate_message(prefix, postfix=postfix,
+                                    message=message, version=version,
+                                    removal_version=removal_version)
 
     def decorator(f):
 
@@ -165,9 +165,9 @@ def removed_kwarg(old_name, message=None,
     """Decorates a kwarg accepting function to deprecate a removed kwarg."""
 
     prefix = _KWARG_MOVED_PREFIX_TPL % old_name
-    out_message = _generate_moved_message(prefix, postfix=None,
-                                          message=message, version=version,
-                                          removal_version=removal_version)
+    out_message = _generate_message(prefix, postfix=None,
+                                    message=message, version=version,
+                                    removal_version=removal_version)
 
     def decorator(f):
 
@@ -204,7 +204,7 @@ def _moved_decorator(kind, new_attribute_name, message=None,
                 old_name = ".".join((base_name, old_attribute_name))
             new_name = ".".join((base_name, new_attribute_name))
             prefix = _KIND_MOVED_PREFIX_TPL % (kind, old_name, new_name)
-            out_message = _generate_moved_message(
+            out_message = _generate_message(
                 prefix, message=message,
                 version=version, removal_version=removal_version)
             deprecation(out_message, stacklevel=stacklevel)
@@ -213,6 +213,20 @@ def _moved_decorator(kind, new_attribute_name, message=None,
         return wrapper
 
     return decorator
+
+
+def removed_module(module_name, replacement_name=None, message=None,
+                   version=None, removal_version=None, stacklevel=4):
+    prefix = "The '%s' module usage is deprecated" % module_name
+    if replacement_name:
+        postfix = ", please use %s instead" % replacement_name
+    else:
+        postfix = None
+    out_message = _generate_message(prefix,
+                                    postfix=postfix, message=message,
+                                    version=version,
+                                    removal_version=removal_version)
+    deprecation(out_message, stacklevel=stacklevel)
 
 
 def moved_property(new_attribute_name, message=None,
@@ -240,9 +254,9 @@ def moved_inheritable_class(new_class, old_class_name, old_module_name,
     old_name = ".".join((old_module_name, old_class_name))
     new_name = reflection.get_class_name(new_class)
     prefix = _CLASS_MOVED_PREFIX_TPL % (old_name, new_name)
-    out_message = _generate_moved_message(prefix,
-                                          message=message, version=version,
-                                          removal_version=removal_version)
+    out_message = _generate_message(prefix,
+                                    message=message, version=version,
+                                    removal_version=removal_version)
 
     def decorator(f):
 
@@ -273,7 +287,7 @@ def moved_class(new_class, old_class_name, old_module_name, message=None,
     old_name = ".".join((old_module_name, old_class_name))
     new_name = reflection.get_class_name(new_class)
     prefix = _CLASS_MOVED_PREFIX_TPL % (old_name, new_name)
-    out_message = _generate_moved_message(prefix,
-                                          message=message, version=version,
-                                          removal_version=removal_version)
+    out_message = _generate_message(prefix,
+                                    message=message, version=version,
+                                    removal_version=removal_version)
     return MovedClassProxy(new_class, out_message, stacklevel=stacklevel)
