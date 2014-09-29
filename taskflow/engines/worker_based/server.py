@@ -100,7 +100,6 @@ class Server(object):
             except KeyError:
                 raise ValueError("The '%s' message property is missing" %
                                  prop)
-
         return properties
 
     def _reply(self, reply_to, task_uuid, state=pr.FAILURE, **kwargs):
@@ -109,7 +108,9 @@ class Server(object):
         try:
             self._proxy.publish(response, reply_to, correlation_id=task_uuid)
         except Exception:
-            LOG.exception("Failed to send reply")
+            LOG.critical("Failed to send reply to '%s' for task '%s' with"
+                         " response %s", reply_to, task_uuid, response,
+                         exc_info=True)
 
     def _on_update_progress(self, reply_to, task_uuid, task, event_data,
                             progress):
@@ -119,11 +120,13 @@ class Server(object):
 
     def _process_notify(self, notify, message):
         """Process notify message and reply back."""
-        LOG.debug("Start processing notify message.")
+        LOG.debug("Started processing notify message %r", message.delivery_tag)
         try:
             reply_to = message.properties['reply_to']
-        except Exception:
-            LOG.exception("The 'reply_to' message property is missing.")
+        except KeyError:
+            LOG.warn("The 'reply_to' message property is missing"
+                     " in received notify message %r", message.delivery_tag,
+                     exc_info=True)
         else:
             self._proxy.publish(
                 msg=pr.Notify(topic=self._topic, tasks=self._endpoints.keys()),
@@ -132,13 +135,17 @@ class Server(object):
 
     def _process_request(self, request, message):
         """Process request message and reply back."""
-        # NOTE(skudriashev): parse broker message first to get the `reply_to`
-        # and the `task_uuid` parameters to have possibility to reply back.
-        LOG.debug("Start processing request message.")
+        LOG.debug("Started processing request message %r",
+                  message.delivery_tag)
         try:
+            # NOTE(skudriashev): parse broker message first to get
+            # the `reply_to` and the `task_uuid` parameters to have
+            # possibility to reply back (if we can't parse, we can't respond
+            # in the first place...).
             reply_to, task_uuid = self._parse_message(message)
         except ValueError:
-            LOG.exception("Failed to parse broker message")
+            LOG.warn("Failed to parse request attributes from message %r",
+                     message.delivery_tag, exc_info=True)
             return
         else:
             # prepare task progress callback
@@ -155,7 +162,8 @@ class Server(object):
                                progress_callback=progress_callback)
         except ValueError:
             with misc.capture_failure() as failure:
-                LOG.exception("Failed to parse request")
+                LOG.warn("Failed to parse request contents from message %r",
+                         message.delivery_tag, exc_info=True)
                 reply_callback(result=failure.to_dict())
                 return
 
@@ -164,8 +172,9 @@ class Server(object):
             endpoint = self._endpoints[task_cls]
         except KeyError:
             with misc.capture_failure() as failure:
-                LOG.exception("The '%s' task endpoint does not exist",
-                              task_cls)
+                LOG.warn("The '%s' task endpoint does not exist, unable"
+                         " to continue processing request message %r",
+                         task_cls, message.delivery_tag, exc_info=True)
                 reply_callback(result=failure.to_dict())
                 return
         else:
@@ -176,7 +185,9 @@ class Server(object):
             result = getattr(endpoint, action)(**action_args)
         except Exception:
             with misc.capture_failure() as failure:
-                LOG.exception("The %s task execution failed", endpoint)
+                LOG.warn("The '%s' endpoint '%s' execution for request"
+                         " message %r failed", endpoint, action,
+                         message.delivery_tag, exc_info=True)
                 reply_callback(result=failure.to_dict())
         else:
             if isinstance(result, misc.Failure):
