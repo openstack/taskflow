@@ -14,7 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from kombu import message
+try:
+    from kombu import message  # noqa
+except ImportError:
+    from kombu.transport import base as message
 
 from taskflow.engines.worker_based import dispatcher
 from taskflow import test
