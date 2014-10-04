@@ -198,3 +198,15 @@ Code
     :language: python
     :linenos:
     :lines: 16-
+
+Jobboard producer/consumer (simple)
+===================================
+
+.. note::
+
+    Full source located at :example:`jobboard_produce_consume_colors`
+
+.. literalinclude:: ../../taskflow/examples/jobboard_produce_consume_colors.py
+    :language: python
+    :linenos:
+    :lines: 16-
