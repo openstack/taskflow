@@ -30,7 +30,7 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-import six
+from six.moves import range as compat_range
 from zake import fake_client
 
 from taskflow import exceptions as excp
@@ -137,7 +137,7 @@ def producer(ident, client):
     name = "P-%s" % (ident)
     safe_print(name, "started")
     with backends.backend(name, SHARED_CONF.copy(), client=client) as board:
-        for i in six.moves.xrange(0, PRODUCER_UNITS):
+        for i in compat_range(0, PRODUCER_UNITS):
             job_name = "%s-%s" % (name, i)
             details = {
                 'color': random.choice(['red', 'blue']),
@@ -151,13 +151,13 @@ def producer(ident, client):
 def main():
     with contextlib.closing(fake_client.FakeClient()) as c:
         created = []
-        for i in range(0, PRODUCERS):
+        for i in compat_range(0, PRODUCERS):
             p = threading.Thread(target=producer, args=(i + 1, c))
             p.daemon = True
             created.append(p)
             p.start()
         consumed = collections.deque()
-        for i in range(0, WORKERS):
+        for i in compat_range(0, WORKERS):
             w = threading.Thread(target=worker, args=(i + 1, c, consumed))
             w.daemon = True
             created.append(w)

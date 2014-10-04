@@ -17,6 +17,7 @@
 from kazoo import client
 from kazoo import exceptions as k_exc
 import six
+from six.moves import zip as compat_zip
 
 from taskflow import exceptions as exc
 from taskflow.utils import reflection
@@ -100,7 +101,7 @@ def checked_commit(txn):
         return []
     results = txn.commit()
     failures = []
-    for op, result in six.moves.zip(txn.operations, results):
+    for op, result in compat_zip(txn.operations, results):
         if isinstance(result, k_exc.KazooException):
             failures.append((op, result))
     if len(results) < len(txn.operations):

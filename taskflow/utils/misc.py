@@ -34,6 +34,8 @@ import traceback
 from oslo.serialization import jsonutils
 from oslo.utils import netutils
 import six
+from six.moves import map as compat_map
+from six.moves import range as compat_range
 from six.moves.urllib import parse as urlparse
 
 from taskflow import exceptions as exc
@@ -286,7 +288,7 @@ def item_from(container, index, name=None):
 
 def get_duplicate_keys(iterable, key=None):
     if key is not None:
-        iterable = six.moves.map(key, iterable)
+        iterable = compat_map(key, iterable)
     keys = set()
     duplicates = set()
     for item in iterable:
@@ -373,7 +375,7 @@ class ExponentialBackoff(object):
     def __iter__(self):
         if self.count <= 0:
             raise StopIteration()
-        for i in six.moves.range(0, self.count):
+        for i in compat_range(0, self.count):
             yield min(self.exponent ** i, self.max_backoff)
 
     def __str__(self):
