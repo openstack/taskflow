@@ -31,6 +31,7 @@ import logging
 from alembic import op
 import sqlalchemy as sa
 
+from taskflow.persistence.backends.sqlalchemy import tables
 
 LOG = logging.getLogger(__name__)
 
@@ -87,35 +88,44 @@ def upgrade():
                     sa.Column('created_at', sa.DateTime),
                     sa.Column('updated_at', sa.DateTime),
                     sa.Column('meta', sa.Text(), nullable=True),
-                    sa.Column('name', sa.String(length=255), nullable=True),
-                    sa.Column('uuid', sa.String(length=64), primary_key=True,
-                              nullable=False),
+                    sa.Column('name', sa.String(length=tables.NAME_LENGTH),
+                              nullable=True),
+                    sa.Column('uuid', sa.String(length=tables.UUID_LENGTH),
+                              primary_key=True, nullable=False),
                     mysql_engine='InnoDB',
                     mysql_charset='utf8')
     op.create_table('flowdetails',
                     sa.Column('created_at', sa.DateTime),
                     sa.Column('updated_at', sa.DateTime),
-                    sa.Column('parent_uuid', sa.String(length=64)),
+                    sa.Column('parent_uuid',
+                              sa.String(length=tables.UUID_LENGTH)),
                     sa.Column('meta', sa.Text(), nullable=True),
-                    sa.Column('state', sa.String(length=255), nullable=True),
-                    sa.Column('name', sa.String(length=255), nullable=True),
-                    sa.Column('uuid', sa.String(length=64), primary_key=True,
-                              nullable=False),
+                    sa.Column('state', sa.String(length=tables.STATE_LENGTH),
+                              nullable=True),
+                    sa.Column('name', sa.String(length=tables.NAME_LENGTH),
+                              nullable=True),
+                    sa.Column('uuid', sa.String(length=tables.UUID_LENGTH),
+                              primary_key=True, nullable=False),
                     mysql_engine='InnoDB',
                     mysql_charset='utf8')
     op.create_table('taskdetails',
                     sa.Column('created_at', sa.DateTime),
                     sa.Column('updated_at', sa.DateTime),
-                    sa.Column('parent_uuid', sa.String(length=64)),
+                    sa.Column('parent_uuid',
+                              sa.String(length=tables.UUID_LENGTH)),
                     sa.Column('meta', sa.Text(), nullable=True),
-                    sa.Column('name', sa.String(length=255), nullable=True),
+                    sa.Column('name', sa.String(length=tables.NAME_LENGTH),
+                              nullable=True),
                     sa.Column('results', sa.Text(), nullable=True),
-                    sa.Column('version', sa.String(length=64), nullable=True),
+                    sa.Column('version',
+                              sa.String(length=tables.VERSION_LENGTH),
+                              nullable=True),
                     sa.Column('stacktrace', sa.Text(), nullable=True),
                     sa.Column('exception', sa.Text(), nullable=True),
-                    sa.Column('state', sa.String(length=255), nullable=True),
-                    sa.Column('uuid', sa.String(length=64), primary_key=True,
-                              nullable=False),
+                    sa.Column('state', sa.String(length=tables.STATE_LENGTH),
+                              nullable=True),
+                    sa.Column('uuid', sa.String(length=tables.UUID_LENGTH),
+                              primary_key=True, nullable=False),
                     mysql_engine='InnoDB',
                     mysql_charset='utf8')
     try:
