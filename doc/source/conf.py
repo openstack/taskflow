@@ -13,7 +13,6 @@ extensions = [
     'sphinx.ext.doctest',
     'sphinx.ext.extlinks',
     'sphinx.ext.inheritance_diagram',
-    'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
     'oslosphinx'
 ]
@@ -81,9 +80,6 @@ latex_documents = [
      '%s Documentation' % project,
      'OpenStack Foundation', 'manual'),
 ]
-
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None}
 
 # -- Options for autoddoc ----------------------------------------------------
 
