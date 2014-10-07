@@ -225,12 +225,12 @@ class ActionEngine(base.EngineBase):
         self._compiled = True
 
 
-class SingleThreadedActionEngine(ActionEngine):
+class SerialActionEngine(ActionEngine):
     """Engine that runs tasks in serial manner."""
     _storage_factory = atom_storage.SingleThreadedStorage
 
 
-class MultiThreadedActionEngine(ActionEngine):
+class ParallelActionEngine(ActionEngine):
     """Engine that runs tasks in parallel manner."""
     _storage_factory = atom_storage.MultiThreadedStorage
 
@@ -240,7 +240,7 @@ class MultiThreadedActionEngine(ActionEngine):
 
     def __init__(self, flow, flow_detail, backend, conf,
                  executor=None, max_workers=None):
-        super(MultiThreadedActionEngine, self).__init__(
-            flow, flow_detail, backend, conf)
+        super(ParallelActionEngine, self).__init__(flow, flow_detail,
+                                                   backend, conf)
         self._executor = executor
         self._max_workers = max_workers

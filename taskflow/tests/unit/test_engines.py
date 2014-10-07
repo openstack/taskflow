@@ -555,11 +555,11 @@ class SingleThreadedEngineTest(EngineTaskTest,
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
-        self.assertIsInstance(engine, eng.SingleThreadedActionEngine)
+        self.assertIsInstance(engine, eng.SerialActionEngine)
 
     def test_singlethreaded_is_the_default(self):
         engine = taskflow.engines.load(utils.TaskNoRequiresNoReturns)
-        self.assertIsInstance(engine, eng.SingleThreadedActionEngine)
+        self.assertIsInstance(engine, eng.SerialActionEngine)
 
 
 class MultiThreadedEngineTest(EngineTaskTest,
@@ -578,7 +578,7 @@ class MultiThreadedEngineTest(EngineTaskTest,
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
-        self.assertIsInstance(engine, eng.MultiThreadedActionEngine)
+        self.assertIsInstance(engine, eng.ParallelActionEngine)
         self.assertIs(engine._executor, None)
 
     def test_using_common_executor(self):
