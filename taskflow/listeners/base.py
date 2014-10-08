@@ -124,12 +124,12 @@ class LoggingBase(ListenerBase):
     backend.
 
     To implement your own logging listener derive form this class and
-    override ``_log`` method.
+    override the ``_log`` method.
     """
 
     @abc.abstractmethod
     def _log(self, message, *args, **kwargs):
-        raise NotImplementedError()
+        """Logs the provided *templated* message to some output."""
 
     def _flow_receiver(self, state, details):
         self._log("%s has moved flow '%s' (%s) into state '%s'",

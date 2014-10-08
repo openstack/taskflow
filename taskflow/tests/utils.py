@@ -285,7 +285,9 @@ class EngineTestBase(object):
         super(EngineTestBase, self).tearDown()
 
     def _make_engine(self, flow, **kwargs):
-        raise NotImplementedError()
+        raise exceptions.NotImplementedError("_make_engine() must be"
+                                             " overridden if an engine is"
+                                             " desired")
 
 
 class FailureMatcher(object):

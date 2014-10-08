@@ -14,11 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
 import contextlib
 import os
 import random
 import tempfile
 
+import six
 import testtools
 
 
@@ -136,19 +138,20 @@ class SqlitePersistenceTest(test.TestCase, base.PersistenceTestMixin):
             self.db_location = None
 
 
+@six.add_metaclass(abc.ABCMeta)
 class BackendPersistenceTestMixin(base.PersistenceTestMixin):
     """Specifies a backend type and does required setup and teardown."""
 
     def _get_connection(self):
         return self.backend.get_connection()
 
+    @abc.abstractmethod
     def _init_db(self):
         """Sets up the database, and returns the uri to that database."""
-        raise NotImplementedError()
 
+    @abc.abstractmethod
     def _remove_db(self):
         """Cleans up by removing the database once the tests are done."""
-        raise NotImplementedError()
 
     def setUp(self):
         super(BackendPersistenceTestMixin, self).setUp()

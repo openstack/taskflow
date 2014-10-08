@@ -135,6 +135,15 @@ class InvalidFormat(TaskFlowException):
 
 # Others.
 
+class NotImplementedError(NotImplementedError):
+    """Exception for when some functionality really isn't implemented.
+
+    This is typically useful when the library itself needs to distinguish
+    internal features not being made available from users features not being
+    made available/implemented (and to avoid misinterpreting the two).
+    """
+
+
 class WrappedFailure(Exception):
     """Wraps one or several failure objects.
 
