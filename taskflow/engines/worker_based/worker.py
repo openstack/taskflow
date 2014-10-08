@@ -143,11 +143,15 @@ class Worker(object):
         return BANNER_TEMPLATE.substitute(BANNER_TEMPLATE.defaults,
                                           **tpl_params)
 
-    def run(self, display_banner=True):
+    def run(self, display_banner=True, banner_writer=None):
         """Runs the worker."""
         if display_banner:
-            for line in self._generate_banner().splitlines():
-                LOG.info(line)
+            banner = self._generate_banner()
+            if banner_writer is None:
+                for line in banner.splitlines():
+                    LOG.info(line)
+            else:
+                banner_writer(banner)
         self._server.start()
 
     def wait(self):
