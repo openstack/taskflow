@@ -19,7 +19,6 @@ import logging
 import os
 import sys
 import tempfile
-import threading
 
 top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir,
@@ -30,6 +29,7 @@ from taskflow import engines
 from taskflow.engines.worker_based import worker
 from taskflow.patterns import linear_flow as lf
 from taskflow.tests import utils
+from taskflow.utils import threading_utils
 
 import example_utils  # noqa
 
@@ -123,8 +123,7 @@ if __name__ == "__main__":
             worker_conf['topic'] = 'worker-%s' % (i + 1)
             worker_topics.append(worker_conf['topic'])
             w = worker.Worker(**worker_conf)
-            runner = threading.Thread(target=w.run)
-            runner.daemon = True
+            runner = threading_utils.daemon_thread(w.run)
             runner.start()
             w.wait()
             workers.append((runner, w.stop))

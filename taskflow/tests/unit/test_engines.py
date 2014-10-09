@@ -644,7 +644,7 @@ class WorkerBasedEngineTest(EngineTaskTest,
             'topics': tuple([worker_conf['topic']]),
         })
         self.worker = wkr.Worker(**worker_conf)
-        self.worker_thread = tu.daemon_thread(target=self.worker.run)
+        self.worker_thread = tu.daemon_thread(self.worker.run)
         self.worker_thread.start()
 
         # Make sure the worker is started before we can continue...

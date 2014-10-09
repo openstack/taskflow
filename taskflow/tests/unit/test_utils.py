@@ -17,7 +17,6 @@
 import collections
 import inspect
 import random
-import threading
 import time
 
 import six
@@ -29,6 +28,7 @@ from taskflow.types import failure
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
+from taskflow.utils import threading_utils
 
 
 def mere_function(a, b):
@@ -373,8 +373,7 @@ class CachedPropertyTest(test.TestCase):
         threads = []
         try:
             for _i in range(0, 20):
-                t = threading.Thread(target=lambda: a.b)
-                t.daemon = True
+                t = threading_utils.daemon_thread(lambda: a.b)
                 threads.append(t)
             for t in threads:
                 t.start()

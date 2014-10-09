@@ -18,7 +18,6 @@ import logging
 import math
 import os
 import sys
-import threading
 
 top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir,
@@ -31,6 +30,7 @@ from taskflow import engines
 from taskflow.engines.worker_based import worker
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
+from taskflow.utils import threading_utils
 
 # INTRO: This example walks through a workflow that will in parallel compute
 # a mandelbrot result set (using X 'remote' workers) and then combine their
@@ -229,8 +229,7 @@ def create_fractal():
             worker_conf['topic'] = 'calculator_%s' % (i + 1)
             worker_topics.append(worker_conf['topic'])
             w = worker.Worker(**worker_conf)
-            runner = threading.Thread(target=w.run)
-            runner.daemon = True
+            runner = threading_utils.daemon_thread(w.run)
             runner.start()
             w.wait()
             workers.append((runner, w.stop))

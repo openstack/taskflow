@@ -14,8 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import threading
-
 from concurrent import futures
 
 from taskflow.engines.worker_based import endpoint
@@ -25,6 +23,7 @@ from taskflow.openstack.common import uuidutils
 from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.types import failure
+from taskflow.utils import threading_utils
 
 
 TEST_EXCHANGE, TEST_TOPIC = ('test-exchange', 'test-topic')
@@ -44,8 +43,7 @@ class TestPipeline(test.TestCase):
             transport_options={
                 'polling_interval': POLLING_INTERVAL,
             })
-        server_thread = threading.Thread(target=server.start)
-        server_thread.daemon = True
+        server_thread = threading_utils.daemon_thread(server.start)
         return (server, server_thread)
 
     def _fetch_executor(self):

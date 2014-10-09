@@ -15,12 +15,12 @@
 #    under the License.
 
 import socket
-import threading
 
 from six.moves import mock
 
 from taskflow.engines.worker_based import proxy
 from taskflow import test
+from taskflow.utils import threading_utils
 
 
 class TestProxy(test.MockTestCase):
@@ -210,8 +210,7 @@ class TestProxy(test.MockTestCase):
         self.assertFalse(pr.is_running)
 
         # start proxy in separate thread
-        t = threading.Thread(target=pr.start)
-        t.daemon = True
+        t = threading_utils.daemon_thread(pr.start)
         t.start()
 
         # make sure proxy is started

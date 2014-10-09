@@ -35,6 +35,7 @@ from zake import fake_client
 
 from taskflow import exceptions as excp
 from taskflow.jobs import backends
+from taskflow.utils import threading_utils
 
 # In this example we show how a jobboard can be used to post work for other
 # entities to work on. This example creates a set of jobs using one producer
@@ -152,14 +153,12 @@ def main():
     with contextlib.closing(fake_client.FakeClient()) as c:
         created = []
         for i in compat_range(0, PRODUCERS):
-            p = threading.Thread(target=producer, args=(i + 1, c))
-            p.daemon = True
+            p = threading_utils.daemon_thread(producer, i + 1, c)
             created.append(p)
             p.start()
         consumed = collections.deque()
         for i in compat_range(0, WORKERS):
-            w = threading.Thread(target=worker, args=(i + 1, c, consumed))
-            w.daemon = True
+            w = threading_utils.daemon_thread(worker, i + 1, c, consumed)
             created.append(w)
             w.start()
         while created:
