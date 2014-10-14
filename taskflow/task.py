@@ -203,20 +203,21 @@ class BaseTask(atom.Atom):
 
 
 class Task(BaseTask):
-    """Base class for user-defined tasks.
+    """Base class for user-defined tasks (derive from it at will!).
 
-    Adds following features to Task:
-        - auto-generates name from type of self
-        - adds all execute argument names to task requirements
-        - items provided by the task may be specified via
-          'default_provides' class attribute or property
+    Adds the following features on top of the :py:class:`.BaseTask`:
+
+    - Auto-generates a name from the class name if a name is not
+      explicitly provided.
+    - Automatically adds all :py:meth:`.BaseTask.execute` argument names to
+      the task requirements (items provided by the task may be also specified
+      via ``default_provides`` class attribute or instance property).
     """
 
     default_provides = None
 
     def __init__(self, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None, inject=None):
-        """Initialize task instance."""
         if provides is None:
             provides = self.default_provides
         super(Task, self).__init__(name, provides=provides, inject=inject)
@@ -226,7 +227,11 @@ class Task(BaseTask):
 class FunctorTask(BaseTask):
     """Adaptor to make a task from a callable.
 
-    Take any callable and make a task from it.
+    Take any callable pair and make a task from it.
+
+    NOTE(harlowja): If a name is not provided the function/method name of
+    the ``execute`` callable will be used as the name instead (the name of
+    the ``revert`` callable is not used).
     """
 
     def __init__(self, execute, name=None, provides=None,
