@@ -21,13 +21,20 @@ import fixtures
 from oslotest import base
 from oslotest import mockpatch
 import six
+
+# This is weird like this since we want to import a mock that works the best
+# and we need to try this import order, since oslotest registers a six.moves
+# module (but depending on the import order of importing oslotest we may or
+# may not see that change when trying to use it from six).
 try:
     from six.moves import mock
 except ImportError:
     try:
+        # In python 3.3+ mock got included in the standard library...
         from unittest import mock
     except ImportError:
         import mock
+
 from testtools import compat
 from testtools import matchers
 from testtools import testcase
