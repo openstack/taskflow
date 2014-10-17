@@ -19,6 +19,7 @@ import abc
 from concurrent import futures
 import six
 
+from taskflow import task as _task
 from taskflow.utils import async_utils
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
@@ -44,8 +45,8 @@ def _execute_task(task, arguments, progress_callback):
 
 def _revert_task(task, arguments, result, failures, progress_callback):
     kwargs = arguments.copy()
-    kwargs['result'] = result
-    kwargs['flow_failures'] = failures
+    kwargs[_task.REVERT_RESULT] = result
+    kwargs[_task.REVERT_FLOW_FAILURES] = failures
     with task.autobind('update_progress', progress_callback):
         try:
             task.pre_revert()
