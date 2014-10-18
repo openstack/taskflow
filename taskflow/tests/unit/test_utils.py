@@ -18,7 +18,6 @@ import collections
 import functools
 import inspect
 import random
-import sys
 import threading
 import time
 
@@ -28,6 +27,7 @@ import testtools
 from taskflow import states
 from taskflow import test
 from taskflow.tests import utils as test_utils
+from taskflow.types import failure
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -335,8 +335,8 @@ class GetClassNameTest(test.TestCase):
         self.assertEqual(name, 'RuntimeError')
 
     def test_global_class(self):
-        name = reflection.get_class_name(misc.Failure)
-        self.assertEqual(name, 'taskflow.utils.misc.Failure')
+        name = reflection.get_class_name(failure.Failure)
+        self.assertEqual(name, 'taskflow.types.failure.Failure')
 
     def test_class(self):
         name = reflection.get_class_name(Class)
@@ -617,47 +617,6 @@ class UriParseTest(test.TestCase):
         parsed = misc.parse_uri(url)
         self.assertEqual('test', parsed.username)
         self.assertEqual(None, parsed.password)
-
-
-class ExcInfoUtilsTest(test.TestCase):
-
-    def _make_ex_info(self):
-        try:
-            raise RuntimeError('Woot!')
-        except Exception:
-            return sys.exc_info()
-
-    def test_copy_none(self):
-        result = misc.copy_exc_info(None)
-        self.assertIsNone(result)
-
-    def test_copy_exc_info(self):
-        exc_info = self._make_ex_info()
-        result = misc.copy_exc_info(exc_info)
-        self.assertIsNot(result, exc_info)
-        self.assertIs(result[0], RuntimeError)
-        self.assertIsNot(result[1], exc_info[1])
-        self.assertIs(result[2], exc_info[2])
-
-    def test_none_equals(self):
-        self.assertTrue(misc.are_equal_exc_info_tuples(None, None))
-
-    def test_none_ne_tuple(self):
-        exc_info = self._make_ex_info()
-        self.assertFalse(misc.are_equal_exc_info_tuples(None, exc_info))
-
-    def test_tuple_nen_none(self):
-        exc_info = self._make_ex_info()
-        self.assertFalse(misc.are_equal_exc_info_tuples(exc_info, None))
-
-    def test_tuple_equals_itself(self):
-        exc_info = self._make_ex_info()
-        self.assertTrue(misc.are_equal_exc_info_tuples(exc_info, exc_info))
-
-    def test_typle_equals_copy(self):
-        exc_info = self._make_ex_info()
-        copied = misc.copy_exc_info(exc_info)
-        self.assertTrue(misc.are_equal_exc_info_tuples(exc_info, copied))
 
 
 class TestSequenceMinus(test.TestCase):

@@ -10,7 +10,7 @@ Cache
 Failure
 =======
 
-.. autoclass:: taskflow.utils.misc.Failure
+.. automodule:: taskflow.types.failure
 
 FSM
 ===

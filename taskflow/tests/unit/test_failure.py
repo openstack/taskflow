@@ -14,19 +14,29 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import sys
+
 import six
 
 from taskflow import exceptions
 from taskflow import test
 from taskflow.tests import utils as test_utils
+from taskflow.types import failure
 from taskflow.utils import misc
 
 
 def _captured_failure(msg):
-        try:
-            raise RuntimeError(msg)
-        except Exception:
-            return misc.Failure()
+    try:
+        raise RuntimeError(msg)
+    except Exception:
+        return failure.Failure()
+
+
+def _make_exc_info(msg):
+    try:
+        raise RuntimeError(msg)
+    except Exception:
+        return sys.exc_info()
 
 
 class GeneralFailureObjTestsMixin(object):
@@ -85,9 +95,9 @@ class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
     def setUp(self):
         super(ReCreatedFailureTestCase, self).setUp()
         fail_obj = _captured_failure('Woot!')
-        self.fail_obj = misc.Failure(exception_str=fail_obj.exception_str,
-                                     traceback_str=fail_obj.traceback_str,
-                                     exc_type_names=list(fail_obj))
+        self.fail_obj = failure.Failure(exception_str=fail_obj.exception_str,
+                                        traceback_str=fail_obj.traceback_str,
+                                        exc_type_names=list(fail_obj))
 
     def test_value_lost(self):
         self.assertIs(self.fail_obj.exception, None)
@@ -109,7 +119,7 @@ class FromExceptionTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 
     def setUp(self):
         super(FromExceptionTestCase, self).setUp()
-        self.fail_obj = misc.Failure.from_exception(RuntimeError('Woot!'))
+        self.fail_obj = failure.Failure.from_exception(RuntimeError('Woot!'))
 
     def test_pformat_no_traceback(self):
         text = self.fail_obj.pformat(traceback=True)
@@ -122,10 +132,10 @@ class FailureObjectTestCase(test.TestCase):
         try:
             raise SystemExit()
         except BaseException:
-            self.assertRaises(TypeError, misc.Failure)
+            self.assertRaises(TypeError, failure.Failure)
 
     def test_unknown_argument(self):
-        exc = self.assertRaises(TypeError, misc.Failure,
+        exc = self.assertRaises(TypeError, failure.Failure,
                                 exception_str='Woot!',
                                 traceback_str=None,
                                 exc_type_names=['Exception'],
@@ -134,12 +144,12 @@ class FailureObjectTestCase(test.TestCase):
         self.assertEqual(str(exc), expected)
 
     def test_empty_does_not_reraise(self):
-        self.assertIs(misc.Failure.reraise_if_any([]), None)
+        self.assertIs(failure.Failure.reraise_if_any([]), None)
 
     def test_reraises_one(self):
         fls = [_captured_failure('Woot!')]
         self.assertRaisesRegexp(RuntimeError, '^Woot!$',
-                                misc.Failure.reraise_if_any, fls)
+                                failure.Failure.reraise_if_any, fls)
 
     def test_reraises_several(self):
         fls = [
@@ -147,7 +157,7 @@ class FailureObjectTestCase(test.TestCase):
             _captured_failure('Oh, not again!')
         ]
         exc = self.assertRaises(exceptions.WrappedFailure,
-                                misc.Failure.reraise_if_any, fls)
+                                failure.Failure.reraise_if_any, fls)
         self.assertEqual(list(exc), fls)
 
     def test_failure_copy(self):
@@ -160,9 +170,9 @@ class FailureObjectTestCase(test.TestCase):
 
     def test_failure_copy_recaptured(self):
         captured = _captured_failure('Woot!')
-        fail_obj = misc.Failure(exception_str=captured.exception_str,
-                                traceback_str=captured.traceback_str,
-                                exc_type_names=list(captured))
+        fail_obj = failure.Failure(exception_str=captured.exception_str,
+                                   traceback_str=captured.traceback_str,
+                                   exc_type_names=list(captured))
         copied = fail_obj.copy()
         self.assertIsNot(fail_obj, copied)
         self.assertEqual(fail_obj, copied)
@@ -171,9 +181,9 @@ class FailureObjectTestCase(test.TestCase):
 
     def test_recaptured_not_eq(self):
         captured = _captured_failure('Woot!')
-        fail_obj = misc.Failure(exception_str=captured.exception_str,
-                                traceback_str=captured.traceback_str,
-                                exc_type_names=list(captured))
+        fail_obj = failure.Failure(exception_str=captured.exception_str,
+                                   traceback_str=captured.traceback_str,
+                                   exc_type_names=list(captured))
         self.assertFalse(fail_obj == captured)
         self.assertTrue(fail_obj != captured)
         self.assertTrue(fail_obj.matches(captured))
@@ -185,13 +195,13 @@ class FailureObjectTestCase(test.TestCase):
 
     def test_two_recaptured_neq(self):
         captured = _captured_failure('Woot!')
-        fail_obj = misc.Failure(exception_str=captured.exception_str,
-                                traceback_str=captured.traceback_str,
-                                exc_type_names=list(captured))
+        fail_obj = failure.Failure(exception_str=captured.exception_str,
+                                   traceback_str=captured.traceback_str,
+                                   exc_type_names=list(captured))
         new_exc_str = captured.exception_str.replace('Woot', 'w00t')
-        fail_obj2 = misc.Failure(exception_str=new_exc_str,
-                                 traceback_str=captured.traceback_str,
-                                 exc_type_names=list(captured))
+        fail_obj2 = failure.Failure(exception_str=new_exc_str,
+                                    traceback_str=captured.traceback_str,
+                                    exc_type_names=list(captured))
         self.assertNotEqual(fail_obj, fail_obj2)
         self.assertFalse(fail_obj2.matches(fail_obj))
 
@@ -242,7 +252,7 @@ class WrappedFailureTestCase(test.TestCase):
         try:
             raise exceptions.WrappedFailure([f1, f2])
         except Exception:
-            fail_obj = misc.Failure()
+            fail_obj = failure.Failure()
 
         wf = exceptions.WrappedFailure([fail_obj, f3])
         self.assertEqual(list(wf), [f1, f2, f3])
@@ -252,13 +262,13 @@ class NonAsciiExceptionsTestCase(test.TestCase):
 
     def test_exception_with_non_ascii_str(self):
         bad_string = chr(200)
-        fail = misc.Failure.from_exception(ValueError(bad_string))
+        fail = failure.Failure.from_exception(ValueError(bad_string))
         self.assertEqual(fail.exception_str, bad_string)
         self.assertEqual(str(fail), 'Failure: ValueError: %s' % bad_string)
 
     def test_exception_non_ascii_unicode(self):
         hi_ru = u'привет'
-        fail = misc.Failure.from_exception(ValueError(hi_ru))
+        fail = failure.Failure.from_exception(ValueError(hi_ru))
         self.assertEqual(fail.exception_str, hi_ru)
         self.assertIsInstance(fail.exception_str, six.text_type)
         self.assertEqual(six.text_type(fail),
@@ -268,7 +278,7 @@ class NonAsciiExceptionsTestCase(test.TestCase):
         hi_cn = u'嗨'
         fail = ValueError(hi_cn)
         self.assertEqual(hi_cn, exceptions.exception_message(fail))
-        fail = misc.Failure.from_exception(fail)
+        fail = failure.Failure.from_exception(fail)
         wrapped_fail = exceptions.WrappedFailure([fail])
         if six.PY2:
             # Python 2.x will unicode escape it, while python 3.3+ will not,
@@ -283,12 +293,46 @@ class NonAsciiExceptionsTestCase(test.TestCase):
 
     def test_failure_equality_with_non_ascii_str(self):
         bad_string = chr(200)
-        fail = misc.Failure.from_exception(ValueError(bad_string))
+        fail = failure.Failure.from_exception(ValueError(bad_string))
         copied = fail.copy()
         self.assertEqual(fail, copied)
 
     def test_failure_equality_non_ascii_unicode(self):
         hi_ru = u'привет'
-        fail = misc.Failure.from_exception(ValueError(hi_ru))
+        fail = failure.Failure.from_exception(ValueError(hi_ru))
         copied = fail.copy()
         self.assertEqual(fail, copied)
+
+
+class ExcInfoUtilsTest(test.TestCase):
+    def test_copy_none(self):
+        result = failure._copy_exc_info(None)
+        self.assertIsNone(result)
+
+    def test_copy_exc_info(self):
+        exc_info = _make_exc_info("Woot!")
+        result = failure._copy_exc_info(exc_info)
+        self.assertIsNot(result, exc_info)
+        self.assertIs(result[0], RuntimeError)
+        self.assertIsNot(result[1], exc_info[1])
+        self.assertIs(result[2], exc_info[2])
+
+    def test_none_equals(self):
+        self.assertTrue(failure._are_equal_exc_info_tuples(None, None))
+
+    def test_none_ne_tuple(self):
+        exc_info = _make_exc_info("Woot!")
+        self.assertFalse(failure._are_equal_exc_info_tuples(None, exc_info))
+
+    def test_tuple_nen_none(self):
+        exc_info = _make_exc_info("Woot!")
+        self.assertFalse(failure._are_equal_exc_info_tuples(exc_info, None))
+
+    def test_tuple_equals_itself(self):
+        exc_info = _make_exc_info("Woot!")
+        self.assertTrue(failure._are_equal_exc_info_tuples(exc_info, exc_info))
+
+    def test_typle_equals_copy(self):
+        exc_info = _make_exc_info("Woot!")
+        copied = failure._copy_exc_info(exc_info)
+        self.assertTrue(failure._are_equal_exc_info_tuples(exc_info, copied))
