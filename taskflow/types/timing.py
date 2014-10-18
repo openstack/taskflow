@@ -93,8 +93,6 @@ class StopWatch(object):
             self.stop()
         except RuntimeError:
             pass
-        # NOTE(harlowja): don't silence the exception.
-        return False
 
     def leftover(self):
         if self._duration is None:
