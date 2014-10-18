@@ -16,7 +16,7 @@
 
 import threading
 
-from taskflow.utils import misc
+from oslo.utils import timeutils
 
 
 class Timeout(object):
@@ -55,7 +55,12 @@ class StopWatch(object):
     _STOPPED = 'STOPPED'
 
     def __init__(self, duration=None):
-        self._duration = duration
+        if duration is not None:
+            if duration < 0:
+                raise ValueError("Duration must be >= 0 and not %s" % duration)
+            self._duration = duration
+        else:
+            self._duration = None
         self._started_at = None
         self._stopped_at = None
         self._state = None
@@ -63,19 +68,21 @@ class StopWatch(object):
     def start(self):
         if self._state == self._STARTED:
             return self
-        self._started_at = misc.wallclock()
+        self._started_at = timeutils.utcnow()
         self._stopped_at = None
         self._state = self._STARTED
         return self
 
     def elapsed(self):
         if self._state == self._STOPPED:
-            return float(self._stopped_at - self._started_at)
+            return max(0.0, float(timeutils.delta_seconds(self._started_at,
+                                                          self._stopped_at)))
         elif self._state == self._STARTED:
-            return float(misc.wallclock() - self._started_at)
+            return max(0.0, float(timeutils.delta_seconds(self._started_at,
+                                                          timeutils.utcnow())))
         else:
-            raise RuntimeError("Can not get the elapsed time of an invalid"
-                               " stopwatch")
+            raise RuntimeError("Can not get the elapsed time of a stopwatch"
+                               " if it has not been started/stopped")
 
     def __enter__(self):
         self.start()
@@ -96,12 +103,14 @@ class StopWatch(object):
         if self._state != self._STARTED:
             raise RuntimeError("Can not get the leftover time of a stopwatch"
                                " that has not been started")
-        end_time = self._started_at + self._duration
-        return max(0.0, end_time - misc.wallclock())
+        return max(0.0, self._duration - self.elapsed())
 
     def expired(self):
         if self._duration is None:
             return False
+        if self._state is None:
+            raise RuntimeError("Can not check if a stopwatch has expired"
+                               " if it has not been started/stopped")
         if self.elapsed() > self._duration:
             return True
         return False
@@ -120,6 +129,6 @@ class StopWatch(object):
         if self._state != self._STARTED:
             raise RuntimeError("Can not stop a stopwatch that has not been"
                                " started")
-        self._stopped_at = misc.wallclock()
+        self._stopped_at = timeutils.utcnow()
         self._state = self._STOPPED
         return self

@@ -15,6 +15,7 @@
 #    under the License.
 
 from concurrent import futures
+from oslo.utils import timeutils
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import exceptions as excp
@@ -90,6 +91,8 @@ class TestProtocol(test.TestCase):
 
     def setUp(self):
         super(TestProtocol, self).setUp()
+        timeutils.set_time_override()
+        self.addCleanup(timeutils.clear_time_override)
         self.task = utils.DummyTask()
         self.task_uuid = 'task-uuid'
         self.task_action = 'execute'
@@ -157,22 +160,21 @@ class TestProtocol(test.TestCase):
             failures={self.task.name: failure.to_dict()})
         self.assertEqual(request.to_dict(), expected)
 
-    @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')
-    def test_pending_not_expired(self, mocked_wallclock):
-        mocked_wallclock.side_effect = [0, self.timeout - 1]
-        self.assertFalse(self.request().expired)
+    def test_pending_not_expired(self):
+        req = self.request()
+        timeutils.advance_time_seconds(self.timeout - 1)
+        self.assertFalse(req.expired)
 
-    @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')
-    def test_pending_expired(self, mocked_wallclock):
-        mocked_wallclock.side_effect = [0, self.timeout + 2]
-        self.assertTrue(self.request().expired)
+    def test_pending_expired(self):
+        req = self.request()
+        timeutils.advance_time_seconds(self.timeout + 1)
+        self.assertTrue(req.expired)
 
-    @mock.patch('taskflow.engines.worker_based.protocol.misc.wallclock')
-    def test_running_not_expired(self, mocked_wallclock):
-        mocked_wallclock.side_effect = [0, self.timeout + 2]
+    def test_running_not_expired(self):
         request = self.request()
         request.transition(pr.PENDING)
         request.transition(pr.RUNNING)
+        timeutils.advance_time_seconds(self.timeout + 1)
         self.assertFalse(request.expired)
 
     def test_set_result(self):

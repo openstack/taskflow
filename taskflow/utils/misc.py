@@ -28,7 +28,6 @@ import re
 import string
 import sys
 import threading
-import time
 import traceback
 
 from oslo.serialization import jsonutils
@@ -222,13 +221,6 @@ class cachedproperty(object):
                     value = self._fget(instance)
                     setattr(instance, self._attr_name, value)
                     return value
-
-
-def wallclock():
-    # NOTE(harlowja): made into a function so that this can be easily mocked
-    # out if we want to alter time related functionality (for testing
-    # purposes).
-    return time.time()
 
 
 def millis_to_datetime(milliseconds):

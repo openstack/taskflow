@@ -14,9 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import time
-
 import networkx as nx
+from oslo.utils import timeutils
 import six
 
 from taskflow import exceptions as excp
@@ -122,43 +121,76 @@ class TreeTest(test.TestCase):
 
 
 class StopWatchTest(test.TestCase):
+    def setUp(self):
+        super(StopWatchTest, self).setUp()
+        timeutils.set_time_override()
+        self.addCleanup(timeutils.clear_time_override)
+
     def test_no_states(self):
         watch = tt.StopWatch()
         self.assertRaises(RuntimeError, watch.stop)
         self.assertRaises(RuntimeError, watch.resume)
 
+    def test_bad_expiry(self):
+        self.assertRaises(ValueError, tt.StopWatch, -1)
+
+    def test_backwards(self):
+        watch = tt.StopWatch(0.1)
+        watch.start()
+        timeutils.advance_time_seconds(0.5)
+        self.assertTrue(watch.expired())
+
+        timeutils.advance_time_seconds(-1.0)
+        self.assertFalse(watch.expired())
+        self.assertEqual(0.0, watch.elapsed())
+
     def test_expiry(self):
         watch = tt.StopWatch(0.1)
         watch.start()
-        time.sleep(0.2)
+        timeutils.advance_time_seconds(0.2)
         self.assertTrue(watch.expired())
+
+    def test_not_expired(self):
+        watch = tt.StopWatch(0.1)
+        watch.start()
+        timeutils.advance_time_seconds(0.05)
+        self.assertFalse(watch.expired())
 
     def test_no_expiry(self):
         watch = tt.StopWatch(0.1)
-        watch.start()
-        self.assertFalse(watch.expired())
+        self.assertRaises(RuntimeError, watch.expired)
 
     def test_elapsed(self):
         watch = tt.StopWatch()
         watch.start()
-        time.sleep(0.2)
+        timeutils.advance_time_seconds(0.2)
         # NOTE(harlowja): Allow for a slight variation by using 0.19.
         self.assertGreaterEqual(0.19, watch.elapsed())
+
+    def test_no_elapsed(self):
+        watch = tt.StopWatch()
+        self.assertRaises(RuntimeError, watch.elapsed)
+
+    def test_no_leftover(self):
+        watch = tt.StopWatch()
+        self.assertRaises(RuntimeError, watch.leftover)
+        watch = tt.StopWatch(1)
+        self.assertRaises(RuntimeError, watch.leftover)
 
     def test_pause_resume(self):
         watch = tt.StopWatch()
         watch.start()
-        time.sleep(0.05)
+        timeutils.advance_time_seconds(0.05)
         watch.stop()
         elapsed = watch.elapsed()
-        time.sleep(0.05)
         self.assertAlmostEqual(elapsed, watch.elapsed())
         watch.resume()
+        timeutils.advance_time_seconds(0.05)
         self.assertNotEqual(elapsed, watch.elapsed())
 
     def test_context_manager(self):
         with tt.StopWatch() as watch:
-            time.sleep(0.05)
+            timeutils.advance_time_seconds(0.05)
         self.assertGreater(0.01, watch.elapsed())
 
 
