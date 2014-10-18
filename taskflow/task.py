@@ -27,6 +27,14 @@ from taskflow.utils import reflection
 
 LOG = logging.getLogger(__name__)
 
+# Constants passed into revert kwargs.
+#
+# Contain the execute() result (if any).
+REVERT_RESULT = 'result'
+#
+# The cause of the flow failure/s
+REVERT_FLOW_FAILURES = 'flow_failures'
+
 
 @six.add_metaclass(abc.ABCMeta)
 class BaseTask(atom.Atom):
