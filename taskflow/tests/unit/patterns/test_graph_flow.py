@@ -97,7 +97,40 @@ class GraphFlowTest(test.TestCase):
         task1 = _task(name='task1', provides=['a', 'b'])
         task2 = _task(name='task2', provides=['a', 'c'])
         f = gf.Flow('test')
-        self.assertRaises(exc.DependencyFailure, f.add, task2, task1)
+        f.add(task2, task1)
+        self.assertEqual(set(['a', 'b', 'c']), f.provides)
+
+    def test_graph_flow_ambiguous_provides(self):
+        task1 = _task(name='task1', provides=['a', 'b'])
+        task2 = _task(name='task2', provides=['a'])
+        f = gf.Flow('test')
+        f.add(task1, task2)
+        self.assertEqual(set(['a', 'b']), f.provides)
+        task3 = _task(name='task3', requires=['a'])
+        self.assertRaises(exc.AmbiguousDependency, f.add, task3)
+
+    def test_graph_flow_no_resolve_requires(self):
+        task1 = _task(name='task1', provides=['a', 'b', 'c'])
+        task2 = _task(name='task2', requires=['a', 'b'])
+        f = gf.Flow('test')
+        f.add(task1, task2, resolve_requires=False)
+        self.assertEqual(set(['a', 'b']), f.requires)
+
+    def test_graph_flow_no_resolve_existing(self):
+        task1 = _task(name='task1', requires=['a', 'b'])
+        task2 = _task(name='task2', provides=['a', 'b'])
+        f = gf.Flow('test')
+        f.add(task1)
+        f.add(task2, resolve_existing=False)
+        self.assertEqual(set(['a', 'b']), f.requires)
+
+    def test_graph_flow_resolve_existing(self):
+        task1 = _task(name='task1', requires=['a', 'b'])
+        task2 = _task(name='task2', provides=['a', 'b'])
+        f = gf.Flow('test')
+        f.add(task1)
+        f.add(task2, resolve_existing=True)
+        self.assertEqual(set([]), f.requires)
 
     def test_graph_flow_with_retry(self):
         ret = retry.AlwaysRevert(requires=['a'], provides=['b'])
