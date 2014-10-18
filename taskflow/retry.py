@@ -33,43 +33,19 @@ RETRY = "RETRY"
 
 
 @six.add_metaclass(abc.ABCMeta)
-class Decider(object):
-    """A class/mixin object that can decide how to resolve execution failures.
-
-    A decider may be executed multiple times on subflow or other atom
-    failure and it is expected to make a decision about what should be done
-    to resolve the failure (retry, revert to the previous retry, revert
-    the whole flow, etc.).
-    """
-
-    @abc.abstractmethod
-    def on_failure(self, history, *args, **kwargs):
-        """On failure makes a decision about the future.
-
-        This method will typically use information about prior failures (if
-        this historical failure information is not available or was not
-        persisted this history will be empty).
-
-        Returns retry action constant:
-
-        * ``RETRY`` when subflow must be reverted and restarted again (maybe
-          with new parameters).
-        * ``REVERT`` when this subflow must be completely reverted and parent
-          subflow should make a decision about the flow execution.
-        * ``REVERT_ALL`` in a case when the whole flow must be reverted and
-          marked as ``FAILURE``.
-        """
-
-
-@six.add_metaclass(abc.ABCMeta)
-class Retry(atom.Atom, Decider):
+class Retry(atom.Atom):
     """A class that can decide how to resolve execution failures.
 
     This abstract base class is used to inherit from and provide different
     strategies that will be activated upon execution failures. Since a retry
-    object is an atom it may also provide execute and revert methods to alter
-    the inputs of connected atoms (depending on the desired strategy to be
-    used this can be quite useful).
+    object is an atom it may also provide :meth:`.execute` and
+    :meth:`.revert` methods to alter the inputs of connected atoms (depending
+    on the desired strategy to be used this can be quite useful).
+
+    NOTE(harlowja): the :meth:`.execute` and :meth:`.revert` and
+    :meth:`.on_failure` will automatically be given a ``history`` parameter,
+    which contains information about the past decisions and outcomes
+    that have occurred (if available).
     """
 
     default_provides = None
@@ -92,11 +68,11 @@ class Retry(atom.Atom, Decider):
 
     @abc.abstractmethod
     def execute(self, history, *args, **kwargs):
-        """Executes the given retry atom.
+        """Executes the given retry.
 
         This execution activates a given retry which will typically produce
         data required to start or restart a connected component using
-        previously provided values and a history of prior failures from
+        previously provided values and a ``history`` of prior failures from
         previous runs. The historical data can be analyzed to alter the
         resolution strategy that this retry controller will use.
 
@@ -105,12 +81,15 @@ class Retry(atom.Atom, Decider):
         saved to the history of the retry atom automatically, that is a list of
         tuples (result, failures) are persisted where failures is a dictionary
         of failures indexed by task names and the result is the execution
-        result returned by this retry controller during that failure resolution
+        result returned by this retry during that failure resolution
         attempt.
+
+        :param args: positional arguments that retry requires to execute.
+        :param kwargs: any keyword arguments that retry requires to execute.
         """
 
     def revert(self, history, *args, **kwargs):
-        """Reverts this retry using the given context.
+        """Reverts this retry.
 
         On revert call all results that had been provided by previous tries
         and all errors caused during reversion are provided. This method
@@ -118,6 +97,29 @@ class Retry(atom.Atom, Decider):
         retry (that is to say that the controller has ran out of resolution
         options and has either given up resolution or has failed to handle
         a execution failure).
+
+        :param args: positional arguments that the retry required to execute.
+        :param kwargs: any keyword arguments that the retry required to
+                       execute.
+        """
+
+    @abc.abstractmethod
+    def on_failure(self, history, *args, **kwargs):
+        """Makes a decision about the future.
+
+        This method will typically use information about prior failures (if
+        this historical failure information is not available or was not
+        persisted the provided history will be empty).
+
+        Returns a retry constant (one of):
+
+        * ``RETRY``: when the controlling flow must be reverted and restarted
+          again (for example with new parameters).
+        * ``REVERT``: when this controlling flow must be completely reverted
+          and the parent flow (if any) should make a decision about further
+          flow execution.
+        * ``REVERT_ALL``: when this controlling flow and the parent
+          flow (if any) must be reverted and marked as a ``FAILURE``.
         """
 
 

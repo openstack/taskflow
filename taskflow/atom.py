@@ -125,7 +125,7 @@ class Atom(object):
                    with this atom. It can be useful in resuming older versions
                    of atoms. Standard major, minor versioning concepts
                    should apply.
-    :ivar save_as: An *immutable* output ``resource`` name dict this atom
+    :ivar save_as: An *immutable* output ``resource`` name dictionary this atom
                    produces that other atoms may depend on this atom providing.
                    The format is output index (or key when a dictionary
                    is returned from the execute method) to stored argument
@@ -136,11 +136,19 @@ class Atom(object):
                   the names that this atom expects (in a way this is like
                   remapping a namespace of another atom into the namespace
                   of this atom).
-    :ivar inject: An *immutable* input_name => value dictionary which specifies
-                  any initial inputs that should be automatically injected into
-                  the atoms scope before the atom execution commences (this
-                  allows for providing atom *local* values that do not need to
-                  be provided by other atoms).
+    :param name: Meaningful name for this atom, should be something that is
+                 distinguishable and understandable for notification,
+                 debugging, storing and any other similar purposes.
+    :param provides: A set, string or list of items that
+                     this will be providing (or could provide) to others, used
+                     to correlate and associate the thing/s this atom
+                     produces, if it produces anything at all.
+    :param inject: An *immutable* input_name => value dictionary which
+                  specifies  any initial inputs that should be automatically
+                  injected into the atoms scope before the atom execution
+                  commences (this allows for providing atom *local* values that
+                  do not need to be provided by other atoms/dependents).
+    :ivar inject: See parameter ``inject``.
     """
 
     def __init__(self, name=None, provides=None, inject=None):

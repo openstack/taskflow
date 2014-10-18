@@ -52,7 +52,7 @@ class BaseTask(atom.Atom):
 
         A common pattern for initializing the state of the system prior to
         running tasks is to define some code in a base class that all your
-        tasks inherit from.  In that class, you can define a pre_execute
+        tasks inherit from.  In that class, you can define a ``pre_execute``
         method and it will always be invoked just prior to your tasks running.
         """
 
@@ -72,6 +72,9 @@ class BaseTask(atom.Atom):
         happens in a different python process or on a remote machine) and so
         that the result can be transmitted to other tasks (which may be local
         or remote).
+
+        :param args: positional arguments that task requires to execute.
+        :param kwargs: any keyword arguments that task requires to execute.
         """
 
     def post_execute(self):
@@ -79,7 +82,7 @@ class BaseTask(atom.Atom):
 
         A common pattern for cleaning up global state of the system after the
         execution of tasks is to define some code in a base class that all your
-        tasks inherit from.  In that class, you can define a post_execute
+        tasks inherit from.  In that class, you can define a ``post_execute``
         method and it will always be invoked just after your tasks execute,
         regardless of whether they succeded or not.
 
@@ -90,7 +93,7 @@ class BaseTask(atom.Atom):
     def pre_revert(self):
         """Code to be run prior to reverting the task.
 
-        This works the same as pre_execute, but for the revert phase.
+        This works the same as :meth:`.pre_execute`, but for the revert phase.
         """
 
     def revert(self, *args, **kwargs):
@@ -98,26 +101,29 @@ class BaseTask(atom.Atom):
 
         This method should undo any side-effects caused by previous execution
         of the task using the result of the :py:meth:`execute` method and
-        information on failure which triggered reversion of the flow.
+        information on the failure which triggered reversion of the flow the
+        task is contained in (if applicable).
 
-        NOTE(harlowja): The ``**kwargs`` which are passed into the
-        :py:meth:`execute` method will also be passed into this method. The
-        ``**kwargs`` key ``'result'`` will contain the :py:meth:`execute`
-        result (if any) and the ``**kwargs`` key ``'flow_failures'`` will
-        contain the failure information.
+        :param args: positional arguments that the task required to execute.
+        :param kwargs: any keyword arguments that the task required to
+                       execute; the special key ``'result'`` will contain
+                       the :py:meth:`execute` result (if any) and
+                       the ``**kwargs`` key ``'flow_failures'`` will contain
+                       any failure information.
         """
 
     def post_revert(self):
         """Code to be run after reverting the task.
 
-        This works the same as post_execute, but for the revert phase.
+        This works the same as :meth:`.post_execute`, but for the revert phase.
         """
 
     def update_progress(self, progress, **kwargs):
         """Update task progress and notify all registered listeners.
 
-        :param progress: task progress float value between 0 and 1
-        :param kwargs: task specific progress information
+        :param progress: task progress float value between 0.0 and 1.0
+        :param kwargs: any keyword arguments that are tied to the specific
+                       progress value.
         """
         if progress > 1.0:
             LOG.warn("Progress must be <= 1.0, clamping to upper bound")
