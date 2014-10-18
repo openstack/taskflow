@@ -101,6 +101,9 @@ class ReaderWriterLock(object):
     the write lock.
 
     In the future these restrictions may be relaxed.
+
+    This can be eventually removed if http://bugs.python.org/issue8800 ever
+    gets accepted into the python standard threading library...
     """
     WRITER = 'w'
     READER = 'r'
