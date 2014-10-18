@@ -166,3 +166,5 @@ Timing listener
 ---------------
 
 .. autoclass:: taskflow.listeners.timing.TimingListener
+
+.. autoclass:: taskflow.listeners.timing.PrintingTimingListener
