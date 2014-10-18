@@ -19,6 +19,11 @@ kazoo>=1.3.1
 # NOTE(harlowja): SQLAlchemy isn't listed here currently but is
 # listed in our tox.ini files so that we can test multiple varying SQLAlchemy
 # versions to ensure a wider range of compatibility.
+#
+# Explict mysql drivers are also not listed here so that we can test against
+# PyMySQL or MySQL-python depending on the python version the tests are being
+# ran in (MySQL-python is currently preferred for 2.x environments, since
+# it has been used in openstack for the longest).
 alembic>=0.6.4
 psycopg2
 
