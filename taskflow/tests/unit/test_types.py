@@ -351,6 +351,15 @@ class FSMTest(test.TestCase):
         self.assertIn(('up', 'fall', 'down'), transitions)
         self.assertIn(('down', 'jump', 'up'), transitions)
 
+    def test_freeze(self):
+        self.jumper.freeze()
+        self.assertRaises(fsm.FrozenMachine, self.jumper.add_state, 'test')
+        self.assertRaises(fsm.FrozenMachine,
+                          self.jumper.add_transition, 'test', 'test', 'test')
+        self.assertRaises(fsm.FrozenMachine,
+                          self.jumper.add_reaction,
+                          'test', 'test', lambda *args: 'test')
+
     def test_invalid_callbacks(self):
         m = fsm.FSM('working')
         m.add_state('working')

@@ -196,6 +196,7 @@ class _MachineBuilder(object):
         m.add_reaction(st.SCHEDULING, 'schedule', schedule)
         m.add_reaction(st.WAITING, 'wait', wait)
 
+        m.freeze()
         return (m, memory)
 
 

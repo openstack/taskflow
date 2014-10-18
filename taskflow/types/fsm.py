@@ -33,6 +33,12 @@ class _Jump(object):
         self.on_exit = on_exit
 
 
+class FrozenMachine(Exception):
+    """Exception raised when a frozen machine is modified."""
+    def __init__(self):
+        super(FrozenMachine, self).__init__("Frozen machine can't be modified")
+
+
 class NotInitialized(excp.TaskFlowException):
     """Error raised when an action is attempted on a not inited machine."""
 
@@ -62,6 +68,7 @@ class FSM(object):
         self._states = OrderedDict()
         self._start_state = start_state
         self._current = None
+        self.frozen = False
 
     @property
     def start_state(self):
@@ -89,6 +96,8 @@ class FSM(object):
         parameter which is the event that is being processed that caused the
         state transition.
         """
+        if self.frozen:
+            raise FrozenMachine()
         if state in self._states:
             raise excp.Duplicate("State '%s' already defined" % state)
         if on_enter is not None:
@@ -123,6 +132,8 @@ class FSM(object):
         this process typically repeats) until the state machine reaches a
         terminal state.
         """
+        if self.frozen:
+            raise FrozenMachine()
         if state not in self._states:
             raise excp.NotFound("Can not add a reaction to event '%s' for an"
                                 " undefined state '%s'" % (event, state))
@@ -135,6 +146,8 @@ class FSM(object):
 
     def add_transition(self, start, end, event):
         """Adds an allowed transition from start -> end for the given event."""
+        if self.frozen:
+            raise FrozenMachine()
         if start not in self._states:
             raise excp.NotFound("Can not add a transition on event '%s' that"
                                 " starts in a undefined state '%s'" % (event,
@@ -220,7 +233,12 @@ class FSM(object):
                 event = cb(old_state, new_state, event, *args, **kwargs)
 
     def __contains__(self, state):
+        """Returns if this state exists in the machines known states."""
         return state in self._states
+
+    def freeze(self):
+        """Freezes & stops addition of states, transitions, reactions..."""
+        self.frozen = True
 
     @property
     def states(self):
