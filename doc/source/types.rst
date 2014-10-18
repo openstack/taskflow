@@ -25,7 +25,7 @@ Graph
 Notifier
 ========
 
-.. autoclass:: taskflow.utils.misc.Notifier
+.. automodule:: taskflow.types.notifier
 
 Table
 =====
