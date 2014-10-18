@@ -21,6 +21,7 @@ from taskflow.conductors import base
 from taskflow import exceptions as excp
 from taskflow.listeners import logging as logging_listener
 from taskflow.types import timing as tt
+from taskflow.utils import async_utils
 from taskflow.utils import lock_utils
 
 LOG = logging.getLogger(__name__)
@@ -116,7 +117,7 @@ class SingleThreadedConductor(base.Conductor):
                          job, exc_info=True)
             else:
                 LOG.info("Job completed successfully: %s", job)
-        return consume
+        return async_utils.make_completed_future(consume)
 
     def run(self):
         self._dead.clear()
@@ -136,12 +137,13 @@ class SingleThreadedConductor(base.Conductor):
                         continue
                     consume = False
                     try:
-                        consume = self._dispatch_job(job)
+                        f = self._dispatch_job(job)
                     except Exception:
                         LOG.warn("Job dispatching failed: %s", job,
                                  exc_info=True)
                     else:
                         dispatched += 1
+                        consume = f.result()
                     try:
                         if consume:
                             self._jobboard.consume(job, self._name)
