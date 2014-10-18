@@ -200,6 +200,20 @@ class FSM(object):
         for transition in self.run_iter(event, initialize=initialize):
             pass
 
+    def copy(self):
+        """Copies the current state machine.
+
+        NOTE(harlowja): the copy will be left in an *uninitialized* state.
+        """
+        c = FSM(self.start_state)
+        for state, data in six.iteritems(self._states):
+            copied_data = data.copy()
+            copied_data['reactions'] = copied_data['reactions'].copy()
+            c._states[state] = copied_data
+        for state, data in six.iteritems(self._transitions):
+            c._transitions[state] = data.copy()
+        return c
+
     def run_iter(self, event, initialize=True):
         """Returns a iterator/generator that will run the state machine.
 

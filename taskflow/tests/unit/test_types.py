@@ -345,6 +345,42 @@ class FSMTest(test.TestCase):
         self.assertRaises(fsm.NotInitialized,
                           self.jumper.process_event, 'jump')
 
+    def test_copy_states(self):
+        c = fsm.FSM('down')
+        self.assertEqual(0, len(c.states))
+        d = c.copy()
+        c.add_state('up')
+        c.add_state('down')
+        self.assertEqual(2, len(c.states))
+        self.assertEqual(0, len(d.states))
+
+    def test_copy_reactions(self):
+        c = fsm.FSM('down')
+        d = c.copy()
+
+        c.add_state('down')
+        c.add_state('up')
+        c.add_reaction('down', 'jump', lambda *args: 'up')
+        c.add_transition('down', 'up', 'jump')
+
+        self.assertEqual(1, c.events)
+        self.assertEqual(0, d.events)
+        self.assertNotIn('down', d)
+        self.assertNotIn('up', d)
+        self.assertEqual([], list(d))
+        self.assertEqual([('down', 'jump', 'up')], list(c))
+
+    def test_copy_initialized(self):
+        j = self.jumper.copy()
+        self.assertIsNone(j.current_state)
+
+        for i, transition in enumerate(self.jumper.run_iter('jump')):
+            if i == 4:
+                break
+
+        self.assertIsNone(j.current_state)
+        self.assertIsNotNone(self.jumper.current_state)
+
     def test_iter(self):
         transitions = list(self.jumper)
         self.assertEqual(2, len(transitions))
