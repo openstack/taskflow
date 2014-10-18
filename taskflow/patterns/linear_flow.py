@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow import exceptions
 from taskflow import flow
 
 
@@ -22,14 +21,11 @@ _LINK_METADATA = {'invariant': True}
 
 
 class Flow(flow.Flow):
-    """Linear Flow pattern.
+    """Linear flow pattern.
 
     A linear (potentially nested) flow of *tasks/flows* that can be
     applied in order as one unit and rolled back as one unit using
     the reverse order that the *tasks/flows* have been applied in.
-
-    NOTE(imelnikov): Tasks/flows contained in this linear flow must not
-    depend on outputs (provided names/values) of tasks/flows that follow it.
     """
 
     def __init__(self, name, retry=None):
@@ -38,32 +34,7 @@ class Flow(flow.Flow):
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
-        if not items:
-            return self
-
-        # NOTE(imelnikov): we add item to the end of flow, so it should
-        # not provide anything previous items of the flow require.
-        requires = self.requires
-        provides = self.provides
-        for item in items:
-            requires |= item.requires
-            out_of_order = requires & item.provides
-            if out_of_order:
-                raise exceptions.DependencyFailure(
-                    "%(item)s provides %(oo)s that are required "
-                    "by previous item(s) of linear flow %(flow)s"
-                    % dict(item=item.name, flow=self.name,
-                           oo=sorted(out_of_order)))
-            same_provides = provides & item.provides
-            if same_provides:
-                raise exceptions.DependencyFailure(
-                    "%(item)s provides %(value)s but is already being"
-                    " provided by %(flow)s and duplicate producers"
-                    " are disallowed"
-                    % dict(item=item.name, flow=self.name,
-                           value=sorted(same_provides)))
-            provides |= item.provides
-
+        items = [i for i in items if i not in self._children]
         self._children.extend(items)
         return self
 
