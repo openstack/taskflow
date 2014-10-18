@@ -38,7 +38,7 @@ class _RunnerTestMixin(object):
         store = storage.SingleThreadedStorage(flow_detail)
         # This ensures the tasks exist in storage...
         for task in compilation.execution_graph:
-            store.ensure_task(task.name)
+            store.ensure_atom(task)
         if initial_state:
             store.set_flow_state(initial_state)
         task_notifier = misc.Notifier()

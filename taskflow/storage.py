@@ -23,7 +23,9 @@ import six
 from taskflow import exceptions
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
+from taskflow import retry
 from taskflow import states
+from taskflow import task
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -166,8 +168,25 @@ class Storage(object):
         with contextlib.closing(self._backend.get_connection()) as conn:
             functor(conn, *args, **kwargs)
 
-    def ensure_task(self, task_name, task_version=None, result_mapping=None):
-        """Ensure that there is taskdetail that corresponds the task.
+    def ensure_atom(self, atom):
+        """Ensure that there is an atomdetail in storage for the given atom.
+
+        Returns uuid for the atomdetail that is/was created.
+        """
+        if isinstance(atom, task.BaseTask):
+            return self._ensure_task(atom.name,
+                                     misc.get_version_string(atom),
+                                     atom.save_as)
+        elif isinstance(atom, retry.Retry):
+            return self._ensure_retry(atom.name,
+                                      misc.get_version_string(atom),
+                                      atom.save_as)
+        else:
+            raise TypeError("Object of type 'atom' expected."
+                            " Got %s, %r." % (type(atom), atom))
+
+    def _ensure_task(self, task_name, task_version, result_mapping):
+        """Ensures there is a taskdetail that corresponds to the task info.
 
         If task does not exist, adds a record for it. Added task will have
         PENDING state. Sets result mapping for the task from result_mapping
@@ -194,9 +213,8 @@ class Storage(object):
             self._set_result_mapping(task_name, result_mapping)
         return task_id
 
-    def ensure_retry(self, retry_name, retry_version=None,
-                     result_mapping=None):
-        """Ensure that there is atom detail that corresponds the retry.
+    def _ensure_retry(self, retry_name, retry_version, result_mapping):
+        """Ensures there is a retrydetail that corresponds to the retry info.
 
         If retry does not exist, adds a record for it. Added retry
         will have PENDING state. Sets result mapping for the retry from

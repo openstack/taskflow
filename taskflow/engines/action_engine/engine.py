@@ -24,7 +24,6 @@ from taskflow.engines.action_engine import executor
 from taskflow.engines.action_engine import runtime
 from taskflow.engines import base
 from taskflow import exceptions as exc
-from taskflow import retry
 from taskflow import states
 from taskflow import storage as atom_storage
 from taskflow.utils import lock_utils
@@ -175,11 +174,7 @@ class ActionEngine(base.EngineBase):
         # a resuming state (and then to suspended).
         self._change_state(states.RESUMING)  # does nothing in PENDING state
         for node in self._compilation.execution_graph.nodes_iter():
-            version = misc.get_version_string(node)
-            if isinstance(node, retry.Retry):
-                self.storage.ensure_retry(node.name, version, node.save_as)
-            else:
-                self.storage.ensure_task(node.name, version, node.save_as)
+            self.storage.ensure_atom(node)
             if node.inject:
                 self.storage.inject_atom_args(node.name, node.inject)
         self._change_state(states.SUSPENDED)  # does nothing in PENDING state
