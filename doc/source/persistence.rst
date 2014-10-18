@@ -177,6 +177,54 @@ Useful when you need a higher level of durability than offered by the previous
 solutions. When using these connection types it is possible to resume a engine
 from a peer machine (this does not apply when using sqlite).
 
+Schema
+^^^^^^
+
+*Logbooks*
+
+==========  ========  =============
+Name        Type      Primary Key
+==========  ========  =============
+created_at  DATETIME  False
+updated_at  DATETIME  False
+uuid        VARCHAR   True
+name        VARCHAR   False
+meta        TEXT      False
+==========  ========  =============
+
+*Flow details*
+
+===========  ========  =============
+Name         Type      Primary Key
+===========  ========  =============
+created_at   DATETIME  False
+updated_at   DATETIME  False
+uuid         VARCHAR   True
+name         VARCHAR   False
+meta         TEXT      False
+state        VARCHAR   False
+parent_uuid  VARCHAR   False
+===========  ========  =============
+
+*Atom details*
+
+===========  ========  =============
+Name         Type      Primary Key
+===========  ========  =============
+created_at   DATETIME  False
+updated_at   DATETIME  False
+uuid         VARCHAR   True
+name         VARCHAR   False
+meta         TEXT      False
+atom_type    VARCHAR   False
+state        VARCHAR   False
+intention    VARCHAR   False
+results      TEXT      False
+failure      TEXT      False
+version      TEXT      False
+parent_uuid  VARCHAR   False
+===========  ========  =============
+
 .. _sqlalchemy: http://www.sqlalchemy.org/docs/
 .. _ACID: https://en.wikipedia.org/wiki/ACID
 
