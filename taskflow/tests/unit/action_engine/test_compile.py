@@ -27,21 +27,25 @@ from taskflow.tests import utils as test_utils
 class PatternCompileTest(test.TestCase):
     def test_task(self):
         task = test_utils.DummyTask(name='a')
-        compilation = compiler.PatternCompiler().compile(task)
+        compilation = compiler.PatternCompiler(task).compile()
         g = compilation.execution_graph
         self.assertEqual(list(g.nodes()), [task])
         self.assertEqual(list(g.edges()), [])
 
     def test_retry(self):
         r = retry.AlwaysRevert('r1')
-        msg_regex = "^Retry controller: .* must only be used .*"
+        msg_regex = "^Retry controller .* must only be used .*"
         self.assertRaisesRegexp(TypeError, msg_regex,
-                                compiler.PatternCompiler().compile, r)
+                                compiler.PatternCompiler(r).compile)
 
     def test_wrong_object(self):
-        msg_regex = '^Unknown type requested to flatten'
+        msg_regex = '^Unknown item .* requested to flatten'
         self.assertRaisesRegexp(TypeError, msg_regex,
-                                compiler.PatternCompiler().compile, 42)
+                                compiler.PatternCompiler(42).compile)
+
+    def test_empty(self):
+        flo = lf.Flow("test")
+        self.assertRaises(exc.Empty, compiler.PatternCompiler(flo).compile)
 
     def test_linear(self):
         a, b, c, d = test_utils.make_many(4)
@@ -51,7 +55,7 @@ class PatternCompileTest(test.TestCase):
         sflo.add(d)
         flo.add(sflo)
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(4, len(g))
 
@@ -69,13 +73,13 @@ class PatternCompileTest(test.TestCase):
         flo.add(a, b, c)
         flo.add(flo)
         self.assertRaises(ValueError,
-                          compiler.PatternCompiler().compile, flo)
+                          compiler.PatternCompiler(flo).compile)
 
     def test_unordered(self):
         a, b, c, d = test_utils.make_many(4)
         flo = uf.Flow("test")
         flo.add(a, b, c, d)
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(4, len(g))
         self.assertEqual(0, g.number_of_edges())
@@ -92,7 +96,7 @@ class PatternCompileTest(test.TestCase):
         flo2.add(c, d)
         flo.add(flo2)
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(4, len(g))
 
@@ -116,7 +120,7 @@ class PatternCompileTest(test.TestCase):
         flo2.add(c, d)
         flo.add(flo2)
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(4, len(g))
         for n in [a, b]:
@@ -138,7 +142,7 @@ class PatternCompileTest(test.TestCase):
             uf.Flow('ut').add(b, c),
             d)
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(4, len(g))
         self.assertItemsEqual(g.edges(), [
@@ -153,7 +157,7 @@ class PatternCompileTest(test.TestCase):
         flo = gf.Flow("test")
         flo.add(a, b, c, d)
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(4, len(g))
         self.assertEqual(0, g.number_of_edges())
@@ -167,7 +171,7 @@ class PatternCompileTest(test.TestCase):
         flo2.add(e, f, g)
         flo.add(flo2)
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         graph = compilation.execution_graph
         self.assertEqual(7, len(graph))
         self.assertItemsEqual(graph.edges(data=True), [
@@ -184,7 +188,7 @@ class PatternCompileTest(test.TestCase):
         flo2.add(e, f, g)
         flo.add(flo2)
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(7, len(g))
         self.assertEqual(0, g.number_of_edges())
@@ -197,7 +201,7 @@ class PatternCompileTest(test.TestCase):
         flo.link(b, c)
         flo.link(c, d)
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(4, len(g))
         self.assertItemsEqual(g.edges(data=True), [
@@ -213,7 +217,7 @@ class PatternCompileTest(test.TestCase):
         b = test_utils.ProvidesRequiresTask('b', provides=[], requires=['x'])
         flo = gf.Flow("test").add(a, b)
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(2, len(g))
         self.assertItemsEqual(g.edges(data=True), [
@@ -231,7 +235,7 @@ class PatternCompileTest(test.TestCase):
             lf.Flow("test2").add(b, c)
         )
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(3, len(g))
         self.assertItemsEqual(g.edges(data=True), [
@@ -250,7 +254,7 @@ class PatternCompileTest(test.TestCase):
             lf.Flow("test2").add(b, c)
         )
 
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(3, len(g))
         self.assertItemsEqual(g.edges(data=True), [
@@ -267,7 +271,7 @@ class PatternCompileTest(test.TestCase):
         )
         self.assertRaisesRegexp(exc.Duplicate,
                                 '^Atoms with duplicate names',
-                                compiler.PatternCompiler().compile, flo)
+                                compiler.PatternCompiler(flo).compile)
 
     def test_checks_for_dups_globally(self):
         flo = gf.Flow("test").add(
@@ -275,25 +279,25 @@ class PatternCompileTest(test.TestCase):
             gf.Flow("int2").add(test_utils.DummyTask(name="a")))
         self.assertRaisesRegexp(exc.Duplicate,
                                 '^Atoms with duplicate names',
-                                compiler.PatternCompiler().compile, flo)
+                                compiler.PatternCompiler(flo).compile)
 
     def test_retry_in_linear_flow(self):
         flo = lf.Flow("test", retry.AlwaysRevert("c"))
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(1, len(g))
         self.assertEqual(0, g.number_of_edges())
 
     def test_retry_in_unordered_flow(self):
         flo = uf.Flow("test", retry.AlwaysRevert("c"))
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(1, len(g))
         self.assertEqual(0, g.number_of_edges())
 
     def test_retry_in_graph_flow(self):
         flo = gf.Flow("test", retry.AlwaysRevert("c"))
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(1, len(g))
         self.assertEqual(0, g.number_of_edges())
@@ -302,7 +306,7 @@ class PatternCompileTest(test.TestCase):
         c1 = retry.AlwaysRevert("c1")
         c2 = retry.AlwaysRevert("c2")
         flo = lf.Flow("test", c1).add(lf.Flow("test2", c2))
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
 
         self.assertEqual(2, len(g))
@@ -317,7 +321,7 @@ class PatternCompileTest(test.TestCase):
         c = retry.AlwaysRevert("c")
         a, b = test_utils.make_many(2)
         flo = lf.Flow("test", c).add(a, b)
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
 
         self.assertEqual(3, len(g))
@@ -335,7 +339,7 @@ class PatternCompileTest(test.TestCase):
         c = retry.AlwaysRevert("c")
         a, b = test_utils.make_many(2)
         flo = uf.Flow("test", c).add(a, b)
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
 
         self.assertEqual(3, len(g))
@@ -353,7 +357,7 @@ class PatternCompileTest(test.TestCase):
         r = retry.AlwaysRevert("cp")
         a, b, c = test_utils.make_many(3)
         flo = gf.Flow("test", r).add(a, b, c).link(b, c)
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
         self.assertEqual(4, len(g))
 
@@ -377,7 +381,7 @@ class PatternCompileTest(test.TestCase):
             a,
             lf.Flow("test", c2).add(b, c),
             d)
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
 
         self.assertEqual(6, len(g))
@@ -402,7 +406,7 @@ class PatternCompileTest(test.TestCase):
             a,
             lf.Flow("test").add(b, c),
             d)
-        compilation = compiler.PatternCompiler().compile(flo)
+        compilation = compiler.PatternCompiler(flo).compile()
         g = compilation.execution_graph
 
         self.assertEqual(5, len(g))

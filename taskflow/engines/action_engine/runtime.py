@@ -18,6 +18,7 @@ from taskflow.engines.action_engine import analyzer as ca
 from taskflow.engines.action_engine import executor as ex
 from taskflow.engines.action_engine import retry_action as ra
 from taskflow.engines.action_engine import runner as ru
+from taskflow.engines.action_engine import scopes as sc
 from taskflow.engines.action_engine import task_action as ta
 from taskflow import exceptions as excp
 from taskflow import retry as retry_atom
@@ -66,12 +67,18 @@ class Runtime(object):
 
     @misc.cachedproperty
     def retry_action(self):
-        return ra.RetryAction(self.storage, self._task_notifier)
+        return ra.RetryAction(self._storage, self._task_notifier,
+                              lambda atom: sc.ScopeWalker(self.compilation,
+                                                          atom,
+                                                          names_only=True))
 
     @misc.cachedproperty
     def task_action(self):
-        return ta.TaskAction(self.storage, self._task_executor,
-                             self._task_notifier)
+        return ta.TaskAction(self._storage, self._task_executor,
+                             self._task_notifier,
+                             lambda atom: sc.ScopeWalker(self.compilation,
+                                                         atom,
+                                                         names_only=True))
 
     def reset_nodes(self, nodes, state=st.PENDING, intention=st.EXECUTE):
         for node in nodes:
@@ -81,7 +88,7 @@ class Runtime(object):
                 elif isinstance(node, retry_atom.Retry):
                     self.retry_action.change_state(node, state)
                 else:
-                    raise TypeError("Unknown how to reset node %s, %s"
+                    raise TypeError("Unknown how to reset atom '%s' (%s)"
                                     % (node, type(node)))
             if intention:
                 self.storage.set_atom_intention(node.name, intention)
@@ -209,7 +216,7 @@ class Scheduler(object):
         elif isinstance(node, retry_atom.Retry):
             return self._schedule_retry(node)
         else:
-            raise TypeError("Unknown how to schedule node %s, %s"
+            raise TypeError("Unknown how to schedule atom '%s' (%s)"
                             % (node, type(node)))
 
     def _schedule_retry(self, retry):

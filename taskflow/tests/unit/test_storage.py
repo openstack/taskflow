@@ -453,23 +453,6 @@ class StorageTestMixin(object):
         self.assertRaisesRegexp(exceptions.NotFound,
                                 '^Unable to find result', s.fetch, 'b')
 
-    @mock.patch.object(storage.LOG, 'warning')
-    def test_multiple_providers_are_checked(self, mocked_warning):
-        s = self._get_storage()
-        s.ensure_task('my task', result_mapping={'result': 'key'})
-        self.assertEqual(mocked_warning.mock_calls, [])
-        s.ensure_task('my other task', result_mapping={'result': 'key'})
-        mocked_warning.assert_called_once_with(
-            mock.ANY, 'result')
-
-    @mock.patch.object(storage.LOG, 'warning')
-    def test_multiple_providers_with_inject_are_checked(self, mocked_warning):
-        s = self._get_storage()
-        s.inject({'result': 'DONE'})
-        self.assertEqual(mocked_warning.mock_calls, [])
-        s.ensure_task('my other task', result_mapping={'result': 'key'})
-        mocked_warning.assert_called_once_with(mock.ANY, 'result')
-
     def test_ensure_retry(self):
         s = self._get_storage()
         s.ensure_retry('my retry')

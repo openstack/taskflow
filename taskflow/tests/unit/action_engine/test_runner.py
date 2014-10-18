@@ -33,7 +33,7 @@ from taskflow.utils import persistence_utils as pu
 
 class _RunnerTestMixin(object):
     def _make_runtime(self, flow, initial_state=None):
-        compilation = compiler.PatternCompiler().compile(flow)
+        compilation = compiler.PatternCompiler(flow).compile()
         flow_detail = pu.create_flow_detail(flow)
         store = storage.SingleThreadedStorage(flow_detail)
         # This ensures the tasks exist in storage...

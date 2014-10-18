@@ -26,10 +26,11 @@ SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 
 class TaskAction(object):
 
-    def __init__(self, storage, task_executor, notifier):
+    def __init__(self, storage, task_executor, notifier, walker_factory):
         self._storage = storage
         self._task_executor = task_executor
         self._notifier = notifier
+        self._walker_factory = walker_factory
 
     def _is_identity_transition(self, state, task, progress):
         if state in SAVE_RESULT_STATES:
@@ -81,8 +82,10 @@ class TaskAction(object):
 
     def schedule_execution(self, task):
         self.change_state(task, states.RUNNING, progress=0.0)
+        scope_walker = self._walker_factory(task)
         kwargs = self._storage.fetch_mapped_args(task.rebind,
-                                                 atom_name=task.name)
+                                                 atom_name=task.name,
+                                                 scope_walker=scope_walker)
         task_uuid = self._storage.get_atom_uuid(task.name)
         return self._task_executor.execute_task(task, task_uuid, kwargs,
                                                 self._on_update_progress)
@@ -96,8 +99,10 @@ class TaskAction(object):
 
     def schedule_reversion(self, task):
         self.change_state(task, states.REVERTING, progress=0.0)
+        scope_walker = self._walker_factory(task)
         kwargs = self._storage.fetch_mapped_args(task.rebind,
-                                                 atom_name=task.name)
+                                                 atom_name=task.name,
+                                                 scope_walker=scope_walker)
         task_uuid = self._storage.get_atom_uuid(task.name)
         task_result = self._storage.get(task.name)
         failures = self._storage.get_failures()

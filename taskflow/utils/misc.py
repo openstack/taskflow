@@ -268,24 +268,6 @@ def sequence_minus(seq1, seq2):
     return result
 
 
-def item_from(container, index, name=None):
-    """Attempts to fetch a index/key from a given container."""
-    if index is None:
-        return container
-    try:
-        return container[index]
-    except (IndexError, KeyError, ValueError, TypeError):
-        # NOTE(harlowja): Perhaps the container is a dictionary-like object
-        # and that key does not exist (key error), or the container is a
-        # tuple/list and a non-numeric key is being requested (index error),
-        # or there was no container and an attempt to index into none/other
-        # unsubscriptable type is being requested (type error).
-        if name is None:
-            name = index
-        raise exc.NotFound("Unable to find %r in container %s"
-                           % (name, container))
-
-
 def get_duplicate_keys(iterable, key=None):
     if key is not None:
         iterable = compat_map(key, iterable)
@@ -410,8 +392,8 @@ def ensure_tree(path):
     """
     try:
         os.makedirs(path)
-    except OSError as exc:
-        if exc.errno == errno.EEXIST:
+    except OSError as e:
+        if e.errno == errno.EEXIST:
             if not os.path.isdir(path):
                 raise
         else:

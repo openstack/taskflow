@@ -31,6 +31,78 @@ from taskflow.utils import reflection
 LOG = logging.getLogger(__name__)
 STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
 
+# TODO(harlowja): do this better (via a singleton or something else...)
+_TRANSIENT_PROVIDER = object()
+
+# NOTE(harlowja): Perhaps the container is a dictionary-like object and that
+# key does not exist (key error), or the container is a tuple/list and a
+# non-numeric key is being requested (index error), or there was no container
+# and an attempt to index into none/other unsubscriptable type is being
+# requested (type error).
+#
+# Overall this (along with the item_from* functions) try to handle the vast
+# majority of wrong indexing operations on the wrong/invalid types so that we
+# can fail extraction during lookup or emit warning on result reception...
+_EXTRACTION_EXCEPTIONS = (IndexError, KeyError, ValueError, TypeError)
+
+
+class _Provider(object):
+    """A named symbol provider that produces a output at the given index."""
+
+    def __init__(self, name, index):
+        self.name = name
+        self.index = index
+
+    def __repr__(self):
+        # TODO(harlowja): clean this up...
+        if self.name is _TRANSIENT_PROVIDER:
+            base = "<TransientProvider"
+        else:
+            base = "<Provider '%s'" % (self.name)
+        if self.index is None:
+            base += ">"
+        else:
+            base += " @ index %r>" % (self.index)
+        return base
+
+    def __hash__(self):
+        return hash((self.name, self.index))
+
+    def __eq__(self, other):
+        return (self.name, self.index) == (other.name, other.index)
+
+
+def _item_from(container, index):
+    """Attempts to fetch a index/key from a given container."""
+    if index is None:
+        return container
+    return container[index]
+
+
+def _item_from_single(provider, container, looking_for):
+    """Returns item from a *single* provider."""
+    try:
+        return _item_from(container, provider.index)
+    except _EXTRACTION_EXCEPTIONS:
+        raise exceptions.NotFound(
+            "Unable to find result %r, expected to be able to find it"
+            " created by %s but was unable to perform successful"
+            " extraction" % (looking_for, provider))
+
+
+def _item_from_first_of(providers, looking_for):
+    """Returns item from the *first* successful container extraction."""
+    for (provider, container) in providers:
+        try:
+            return (provider, _item_from(container, provider.index))
+        except _EXTRACTION_EXCEPTIONS:
+            pass
+    providers = [p[0] for p in providers]
+    raise exceptions.NotFound(
+        "Unable to find result %r, expected to be able to find it"
+        " created by one of %s but was unable to perform successful"
+        " extraction" % (looking_for, providers))
+
 
 @six.add_metaclass(abc.ABCMeta)
 class Storage(object):
@@ -313,7 +385,7 @@ class Storage(object):
             except KeyError:
                 return None
 
-    def _check_all_results_provided(self, atom_name, data):
+    def _check_all_results_provided(self, atom_name, container):
         """Warn if an atom did not provide some of its expected results.
 
         This may happen if atom returns shorter tuple or list or dict
@@ -325,8 +397,8 @@ class Storage(object):
             return
         for name, index in six.iteritems(result_mapping):
             try:
-                misc.item_from(data, index, name=name)
-            except exceptions.NotFound:
+                _item_from(container, index)
+            except _EXTRACTION_EXCEPTIONS:
                 LOG.warning("Atom %s did not supply result "
                             "with index %r (name %s)", atom_name, index, name)
 
@@ -464,94 +536,180 @@ class Storage(object):
 
         def save_transient():
             self._transients.update(pairs)
-            # NOTE(harlowja): none is not a valid atom name, so that means
-            # we can use it internally to reference all of our transient
-            # variables.
-            return (None, six.iterkeys(self._transients))
+            return (_TRANSIENT_PROVIDER, six.iterkeys(self._transients))
 
         with self._lock.write_lock():
             if transient:
-                (atom_name, names) = save_transient()
+                provider_name, names = save_transient()
             else:
-                (atom_name, names) = save_persistent()
-            self._set_result_mapping(atom_name,
+                provider_name, names = save_persistent()
+            self._set_result_mapping(provider_name,
                                      dict((name, name) for name in names))
 
-    def _set_result_mapping(self, atom_name, mapping):
-        """Sets the result mapping for an atom.
+    def _set_result_mapping(self, provider_name, mapping):
+        """Sets the result mapping for a given producer.
 
         The result saved with given name would be accessible by names
         defined in mapping. Mapping is a dict name => index. If index
         is None, the whole result will have this name; else, only
         part of it, result[index].
         """
-        if not mapping:
-            return
-        self._result_mappings[atom_name] = mapping
-        for name, index in six.iteritems(mapping):
-            entries = self._reverse_mapping.setdefault(name, [])
+        provider_mapping = self._result_mappings.setdefault(provider_name, {})
+        if mapping:
+            provider_mapping.update(mapping)
+            # Ensure the reverse mapping/index is updated (for faster lookups).
+            for name, index in six.iteritems(provider_mapping):
+                entries = self._reverse_mapping.setdefault(name, [])
+                provider = _Provider(provider_name, index)
+                if provider not in entries:
+                    entries.append(provider)
 
-            # NOTE(imelnikov): We support setting same result mapping for
-            # the same atom twice (e.g when we are injecting 'a' and then
-            # injecting 'a' again), so we should not log warning below in
-            # that case and we should have only one item for each pair
-            # (atom_name, index) in entries. It should be put to the end of
-            # entries list because order matters on fetching.
-            try:
-                entries.remove((atom_name, index))
-            except ValueError:
-                pass
-
-            entries.append((atom_name, index))
-            if len(entries) > 1:
-                LOG.warning("Multiple provider mappings being created for %r",
-                            name)
-
-    def fetch(self, name):
-        """Fetch a named atoms result."""
+    def fetch(self, name, many_handler=None):
+        """Fetch a named result."""
+        # By default we just return the first of many (unless provided
+        # a different callback that can translate many results into something
+        # more meaningful).
+        if many_handler is None:
+            many_handler = lambda values: values[0]
         with self._lock.read_lock():
             try:
-                indexes = self._reverse_mapping[name]
+                providers = self._reverse_mapping[name]
             except KeyError:
-                raise exceptions.NotFound("Name %r is not mapped" % name)
-            # Return the first one that is found.
-            for (atom_name, index) in reversed(indexes):
-                if not atom_name:
-                    results = self._transients
+                raise exceptions.NotFound("Name %r is not mapped as a"
+                                          " produced output by any"
+                                          " providers" % name)
+            values = []
+            for provider in providers:
+                if provider.name is _TRANSIENT_PROVIDER:
+                    values.append(_item_from_single(provider,
+                                                    self._transients, name))
                 else:
-                    results = self._get(atom_name, only_last=True)
-                try:
-                    return misc.item_from(results, index, name)
-                except exceptions.NotFound:
-                    pass
-            raise exceptions.NotFound("Unable to find result %r" % name)
+                    try:
+                        container = self._get(provider.name, only_last=True)
+                    except exceptions.NotFound:
+                        pass
+                    else:
+                        values.append(_item_from_single(provider,
+                                                        container, name))
+            if not values:
+                raise exceptions.NotFound("Unable to find result %r,"
+                                          " searched %s" % (name, providers))
+            else:
+                return many_handler(values)
 
     def fetch_all(self):
-        """Fetch all named atom results known so far.
+        """Fetch all named results known so far.
 
-        Should be used for debugging and testing purposes mostly.
+        NOTE(harlowja): should be used for debugging and testing purposes.
         """
+        def many_handler(values):
+            if len(values) > 1:
+                return values
+            return values[0]
         with self._lock.read_lock():
             results = {}
-            for name in self._reverse_mapping:
+            for name in six.iterkeys(self._reverse_mapping):
                 try:
-                    results[name] = self.fetch(name)
+                    results[name] = self.fetch(name, many_handler=many_handler)
                 except exceptions.NotFound:
                     pass
             return results
 
-    def fetch_mapped_args(self, args_mapping, atom_name=None):
-        """Fetch arguments for an atom using an atoms arguments mapping."""
+    def fetch_mapped_args(self, args_mapping,
+                          atom_name=None, scope_walker=None):
+        """Fetch arguments for an atom using an atoms argument mapping."""
+
+        def _get_results(looking_for, provider):
+            """Gets the results saved for a given provider."""
+            try:
+                return self._get(provider.name, only_last=True)
+            except exceptions.NotFound as e:
+                raise exceptions.NotFound(
+                    "Expected to be able to find output %r produced"
+                    " by %s but was unable to get at that providers"
+                    " results" % (looking_for, provider), e)
+
+        def _locate_providers(looking_for, possible_providers):
+            """Finds the accessible providers."""
+            default_providers = []
+            for p in possible_providers:
+                if p.name is _TRANSIENT_PROVIDER:
+                    default_providers.append((p, self._transients))
+                if p.name == self.injector_name:
+                    default_providers.append((p, _get_results(looking_for, p)))
+            if default_providers:
+                return default_providers
+            if scope_walker is not None:
+                scope_iter = iter(scope_walker)
+            else:
+                scope_iter = iter([])
+            for atom_names in scope_iter:
+                if not atom_names:
+                    continue
+                providers = []
+                for p in possible_providers:
+                    if p.name in atom_names:
+                        providers.append((p, _get_results(looking_for, p)))
+                if providers:
+                    return providers
+            return []
+
         with self._lock.read_lock():
-            injected_args = {}
+            if atom_name and atom_name not in self._atom_name_to_uuid:
+                raise exceptions.NotFound("Unknown atom name: %s" % atom_name)
+            if not args_mapping:
+                return {}
+            # The order of lookup is the following:
+            #
+            # 1. Injected atom specific arguments.
+            # 2. Transient injected arguments.
+            # 3. Non-transient injected arguments.
+            # 4. First scope visited group that produces the named result.
+            #    a). The first of that group that actually provided the name
+            #        result is selected (if group size is greater than one).
+            #
+            # Otherwise: blowup! (this will also happen if reading or
+            # extracting an expected result fails, since it is better to fail
+            # on lookup then provide invalid data from the wrong provider)
             if atom_name:
                 injected_args = self._injected_args.get(atom_name, {})
+            else:
+                injected_args = {}
             mapped_args = {}
-            for key, name in six.iteritems(args_mapping):
+            for (bound_name, name) in six.iteritems(args_mapping):
+                # TODO(harlowja): This logging information may be to verbose
+                # even for DEBUG mode, let's see if we can maybe in the future
+                # add a TRACE mode or something else if people complain...
+                if LOG.isEnabledFor(logging.DEBUG):
+                    if atom_name:
+                        LOG.debug("Looking for %r <= %r for atom named: %s",
+                                  bound_name, name, atom_name)
+                    else:
+                        LOG.debug("Looking for %r <= %r", bound_name, name)
                 if name in injected_args:
-                    mapped_args[key] = injected_args[name]
+                    value = injected_args[name]
+                    mapped_args[bound_name] = value
+                    LOG.debug("Matched %r <= %r to %r (from injected values)",
+                              bound_name, name, value)
                 else:
-                    mapped_args[key] = self.fetch(name)
+                    try:
+                        possible_providers = self._reverse_mapping[name]
+                    except KeyError:
+                        raise exceptions.NotFound("Name %r is not mapped as a"
+                                                  " produced output by any"
+                                                  " providers" % name)
+                    # Reduce the possible providers to one that are allowed.
+                    providers = _locate_providers(name, possible_providers)
+                    if not providers:
+                        raise exceptions.NotFound(
+                            "Mapped argument %r <= %r was not produced"
+                            " by any accessible provider (%s possible"
+                            " providers were scanned)"
+                            % (bound_name, name, len(possible_providers)))
+                    provider, value = _item_from_first_of(providers, name)
+                    mapped_args[bound_name] = value
+                    LOG.debug("Matched %r <= %r to %r (from %s)",
+                              bound_name, name, value, provider)
             return mapped_args
 
     def set_flow_state(self, state):
