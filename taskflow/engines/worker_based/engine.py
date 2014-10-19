@@ -23,7 +23,7 @@ from taskflow import storage as t_storage
 class WorkerBasedActionEngine(engine.ActionEngine):
     """Worker based action engine.
 
-    Specific backend configuration:
+    Specific backend options:
 
     :param exchange: broker exchange exchange name in which executor / worker
                      communication is performed
@@ -45,19 +45,15 @@ class WorkerBasedActionEngine(engine.ActionEngine):
     _storage_factory = t_storage.SingleThreadedStorage
 
     def _task_executor_factory(self):
-        if self._executor is not None:
-            return self._executor
-        return executor.WorkerTaskExecutor(
-            uuid=self._flow_detail.uuid,
-            url=self._conf.get('url'),
-            exchange=self._conf.get('exchange', 'default'),
-            topics=self._conf.get('topics', []),
-            transport=self._conf.get('transport'),
-            transport_options=self._conf.get('transport_options'),
-            transition_timeout=self._conf.get('transition_timeout',
-                                              pr.REQUEST_TIMEOUT))
-
-    def __init__(self, flow, flow_detail, backend, conf, **kwargs):
-        super(WorkerBasedActionEngine, self).__init__(
-            flow, flow_detail, backend, conf)
-        self._executor = kwargs.get('executor')
+        try:
+            return self._options['executor']
+        except KeyError:
+            return executor.WorkerTaskExecutor(
+                uuid=self._flow_detail.uuid,
+                url=self._options.get('url'),
+                exchange=self._options.get('exchange', 'default'),
+                topics=self._options.get('topics', []),
+                transport=self._options.get('transport'),
+                transport_options=self._options.get('transport_options'),
+                transition_timeout=self._options.get('transition_timeout',
+                                                     pr.REQUEST_TIMEOUT))

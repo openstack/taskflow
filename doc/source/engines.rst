@@ -118,9 +118,9 @@ might look like::
 
     ...
     flow = make_flow()
-    engine = engines.load(flow, engine_conf=my_conf,
-                          backend=my_persistence_conf)
-    engine.run
+    eng = engines.load(flow, engine='serial', backend=my_persistence_conf)
+    eng.run()
+    ...
 
 
 .. automodule:: taskflow.engines.helpers
@@ -129,11 +129,8 @@ Usage
 =====
 
 To select which engine to use and pass parameters to an engine you should use
-the ``engine_conf`` parameter any helper factory function accepts. It may be:
-
-* A string, naming the engine type.
-* A dictionary, naming engine type with key ``'engine'`` and possibly
-  type-specific engine configuration parameters.
+the ``engine`` parameter any engine helper function accepts and for any engine
+specific options use the ``kwargs`` parameter.
 
 Types
 =====

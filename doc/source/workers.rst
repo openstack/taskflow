@@ -273,32 +273,26 @@ For complete parameters and object usage please see
 
 .. code:: python
 
-    engine_conf = {
-        'engine': 'worker-based',
-        'url': 'amqp://guest:guest@localhost:5672//',
-        'exchange': 'test-exchange',
-        'topics': ['topic1', 'topic2'],
-    }
     flow = lf.Flow('simple-linear').add(...)
-    eng = taskflow.engines.load(flow, engine_conf=engine_conf)
+    eng = taskflow.engines.load(flow, engine='worker-based',
+                                url='amqp://guest:guest@localhost:5672//',
+                                exchange='test-exchange',
+                                topics=['topic1', 'topic2'])
     eng.run()
 
 **Example with filesystem transport:**
 
 .. code:: python
 
-    engine_conf = {
-        'engine': 'worker-based',
-        'exchange': 'test-exchange',
-        'topics': ['topic1', 'topic2'],
-        'transport': 'filesystem',
-        'transport_options': {
-            'data_folder_in': '/tmp/test',
-            'data_folder_out': '/tmp/test',
-        },
-    }
     flow = lf.Flow('simple-linear').add(...)
-    eng = taskflow.engines.load(flow, engine_conf=engine_conf)
+    eng = taskflow.engines.load(flow, engine='worker-based',
+                                exchange='test-exchange',
+                                topics=['topic1', 'topic2'],
+                                transport='filesystem',
+                                transport_options={
+                                    'data_folder_in': '/tmp/in',
+                                    'data_folder_out': '/tmp/out',
+                                })
     eng.run()
 
 Additional supported keyword arguments:

@@ -235,11 +235,9 @@ with eu.get_backend() as backend:
         flow_id = None
 
     # Set up how we want our engine to run, serial, parallel...
-    engine_conf = {
-        'engine': 'parallel',
-    }
+    executor = None
     if e_utils.EVENTLET_AVAILABLE:
-        engine_conf['executor'] = e_utils.GreenExecutor(5)
+        executor = e_utils.GreenExecutor(5)
 
     # Create/fetch a logbook that will track the workflows work.
     book = None
@@ -255,15 +253,15 @@ with eu.get_backend() as backend:
         book = p_utils.temporary_log_book(backend)
         engine = engines.load_from_factory(create_flow,
                                            backend=backend, book=book,
-                                           engine_conf=engine_conf)
+                                           engine='parallel',
+                                           executor=executor)
         print("!! Your tracking id is: '%s+%s'" % (book.uuid,
                                                    engine.storage.flow_uuid))
         print("!! Please submit this on later runs for tracking purposes")
     else:
         # Attempt to load from a previously partially completed flow.
-        engine = engines.load_from_detail(flow_detail,
-                                          backend=backend,
-                                          engine_conf=engine_conf)
+        engine = engines.load_from_detail(flow_detail, backend=backend,
+                                          engine='parallel', executor=executor)
 
     # Make me my vm please!
     eu.print_wrapped('Running')

@@ -91,20 +91,15 @@ else:
     blowup = True
 
 with eu.get_backend(backend_uri) as backend:
-    # Now we can run.
-    engine_config = {
-        'backend': backend,
-        'engine_conf': 'serial',
-        'book': logbook.LogBook("my-test"),
-    }
-
     # Make a flow that will blowup if the file doesn't exist previously, if it
     # did exist, assume we won't blowup (and therefore this shows the undo
     # and redo that a flow will go through).
+    book = logbook.LogBook("my-test")
     flow = make_flow(blowup=blowup)
     eu.print_wrapped("Running")
     try:
-        eng = engines.load(flow, **engine_config)
+        eng = engines.load(flow, engine='serial',
+                           backend=backend, book=book)
         eng.run()
         if not blowup:
             eu.rm_path(persist_path)
@@ -115,4 +110,4 @@ with eu.get_backend(backend_uri) as backend:
         traceback.print_exc(file=sys.stdout)
 
     eu.print_wrapped("Book contents")
-    print(p_utils.pformat(engine_config['book']))
+    print(p_utils.pformat(book))

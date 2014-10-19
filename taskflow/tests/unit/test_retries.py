@@ -758,7 +758,7 @@ class SingleThreadedEngineTest(RetryTest,
     def _make_engine(self, flow, flow_detail=None):
         return taskflow.engines.load(flow,
                                      flow_detail=flow_detail,
-                                     engine_conf='serial',
+                                     engine='serial',
                                      backend=self.backend)
 
 
@@ -766,8 +766,7 @@ class MultiThreadedEngineTest(RetryTest,
                               RetryParallelExecutionTest,
                               test.TestCase):
     def _make_engine(self, flow, flow_detail=None, executor=None):
-        engine_conf = dict(engine='parallel')
         return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     engine_conf=engine_conf,
+                                     engine='parallel',
                                      backend=self.backend,
                                      executor=executor)

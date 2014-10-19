@@ -51,11 +51,11 @@ class SingleThreadedConductor(base.Conductor):
     upon the jobboard capabilities to automatically abandon these jobs.
     """
 
-    def __init__(self, name, jobboard, engine_conf, persistence,
-                 wait_timeout=None):
-        super(SingleThreadedConductor, self).__init__(name, jobboard,
-                                                      engine_conf,
-                                                      persistence)
+    def __init__(self, name, jobboard, persistence,
+                 engine=None, engine_options=None, wait_timeout=None):
+        super(SingleThreadedConductor, self).__init__(
+            name, jobboard, persistence,
+            engine=engine, engine_options=engine_options)
         if wait_timeout is None:
             wait_timeout = WAIT_TIMEOUT
         if isinstance(wait_timeout, (int, float) + six.string_types):

@@ -550,7 +550,7 @@ class SingleThreadedEngineTest(EngineTaskTest,
     def _make_engine(self, flow, flow_detail=None):
         return taskflow.engines.load(flow,
                                      flow_detail=flow_detail,
-                                     engine_conf='serial',
+                                     engine='serial',
                                      backend=self.backend)
 
     def test_correct_load(self):
@@ -570,16 +570,14 @@ class MultiThreadedEngineTest(EngineTaskTest,
                               EngineCheckingTaskTest,
                               test.TestCase):
     def _make_engine(self, flow, flow_detail=None, executor=None):
-        engine_conf = dict(engine='parallel')
         return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     engine_conf=engine_conf,
                                      backend=self.backend,
-                                     executor=executor)
+                                     executor=executor,
+                                     engine='parallel')
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
         self.assertIsInstance(engine, eng.ParallelActionEngine)
-        self.assertIs(engine._executor, None)
 
     def test_using_common_executor(self):
         flow = utils.TaskNoRequiresNoReturns(name='task1')
@@ -587,7 +585,7 @@ class MultiThreadedEngineTest(EngineTaskTest,
         try:
             e1 = self._make_engine(flow, executor=executor)
             e2 = self._make_engine(flow, executor=executor)
-            self.assertIs(e1._executor, e2._executor)
+            self.assertIs(e1.options['executor'], e2.options['executor'])
         finally:
             executor.shutdown(wait=True)
 
@@ -604,11 +602,9 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if executor is None:
             executor = eu.GreenExecutor()
-        engine_conf = dict(engine='parallel',
-                           executor=executor)
         return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     engine_conf=engine_conf,
-                                     backend=self.backend)
+                                     backend=self.backend, engine='parallel',
+                                     executor=executor)
 
 
 class WorkerBasedEngineTest(EngineTaskTest,
@@ -647,15 +643,12 @@ class WorkerBasedEngineTest(EngineTaskTest,
         super(WorkerBasedEngineTest, self).tearDown()
 
     def _make_engine(self, flow, flow_detail=None):
-        engine_conf = {
-            'engine': 'worker-based',
-            'exchange': self.exchange,
-            'topics': [self.topic],
-            'transport': self.transport,
-        }
         return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     engine_conf=engine_conf,
-                                     backend=self.backend)
+                                     backend=self.backend,
+                                     engine='worker-based',
+                                     exchange=self.exchange,
+                                     topics=[self.topic],
+                                     transport=self.transport)
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)

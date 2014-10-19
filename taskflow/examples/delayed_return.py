@@ -74,7 +74,7 @@ class Bye(task.Task):
 
 def return_from_flow(pool):
     wf = lf.Flow("root").add(Hi("hi"), Bye("bye"))
-    eng = taskflow.engines.load(wf, engine_conf='serial')
+    eng = taskflow.engines.load(wf, engine='serial')
     f = futures.Future()
     watcher = PokeFutureListener(eng, f, 'hi')
     watcher.register()
