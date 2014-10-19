@@ -23,6 +23,7 @@ from oslo.utils import excutils
 import six
 
 from taskflow import states
+from taskflow.types import notifier
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -46,8 +47,8 @@ class ListenerBase(object):
     """
 
     def __init__(self, engine,
-                 task_listen_for=(misc.Notifier.ANY,),
-                 flow_listen_for=(misc.Notifier.ANY,)):
+                 task_listen_for=(notifier.Notifier.ANY,),
+                 flow_listen_for=(notifier.Notifier.ANY,)):
         if not task_listen_for:
             task_listen_for = []
         if not flow_listen_for:
