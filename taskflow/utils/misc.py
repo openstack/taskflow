@@ -392,11 +392,11 @@ def ensure_tree(path):
 
 
 Failure = deprecation.moved_class(failure.Failure, 'Failure', __name__,
-                                  version="0.5", removal_version="?")
+                                  version="0.6", removal_version="?")
 
 
 Notifier = deprecation.moved_class(notifier.Notifier, 'Notifier', __name__,
-                                   version="0.5", removal_version="?")
+                                   version="0.6", removal_version="?")
 
 
 @contextlib.contextmanager
