@@ -23,8 +23,8 @@ from oslo.utils import excutils
 import six
 
 from taskflow import states
+from taskflow.types import failure
 from taskflow.types import notifier
-from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ class LoggingBase(ListenerBase):
             result = details.get('result')
             exc_info = None
             was_failure = False
-            if isinstance(result, misc.Failure):
+            if isinstance(result, failure.Failure):
                 if result.exc_info:
                     exc_info = tuple(result.exc_info)
                 was_failure = True

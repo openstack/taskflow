@@ -178,8 +178,8 @@ class WrappedFailure(Exception):
     See the failure class documentation for a more comprehensive set of reasons
     why this object *may* be reraised instead of the original exception.
 
-    :param causes: the :py:class:`~taskflow.utils.misc.Failure` objects that
-                   caused this this exception to be raised.
+    :param causes: the :py:class:`~taskflow.types.failure.Failure` objects
+                   that caused this this exception to be raised.
     """
 
     def __init__(self, causes):

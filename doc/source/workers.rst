@@ -135,7 +135,7 @@ engine executor in the following manner:
       executes the task).
    2. If dispatched succeeded then the worker sends a confirmation response
       to the executor otherwise the worker sends a failed response along with
-      a serialized :py:class:`failure <taskflow.utils.misc.Failure>` object
+      a serialized :py:class:`failure <taskflow.types.failure.Failure>` object
       that contains what has failed (and why).
    3. The worker executes the task and once it is finished sends the result
       back to the originating executor (every time a task progress event is
@@ -152,11 +152,11 @@ engine executor in the following manner:
 
 .. note::
 
-    :py:class:`~taskflow.utils.misc.Failure` objects are not json-serializable
-    (they contain references to tracebacks which are not serializable), so they
-    are converted to dicts before sending and converted from dicts after
-    receiving on both executor & worker sides (this translation is lossy since
-    the traceback won't be fully retained).
+    :py:class:`~taskflow.types.failure.Failure` objects are not directly
+    json-serializable (they contain references to tracebacks which are not
+    serializable), so they are converted to dicts before sending and converted
+    from dicts after receiving on both executor & worker sides (this
+    translation is lossy since the traceback won't be fully retained).
 
 Executor request format
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -165,7 +165,7 @@ Executor request format
 * **action** - task action to be performed (e.g. execute, revert)
 * **arguments** - arguments the task action to be called with
 * **result** - task execution result (result or
-  :py:class:`~taskflow.utils.misc.Failure`) *[passed to revert only]*
+  :py:class:`~taskflow.types.failure.Failure`) *[passed to revert only]*
 
 Additionally, the following parameters are added to the request message:
 
@@ -222,7 +222,7 @@ When **failed:**
 
     {
         "event": <event>,
-        "result": <misc.Failure>,
+        "result": <types.failure.Failure>,
         "state": "FAILURE"
     }
 

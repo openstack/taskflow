@@ -25,7 +25,7 @@ from taskflow import states
 from taskflow import storage
 from taskflow import test
 from taskflow.tests import utils as test_utils
-from taskflow.utils import misc
+from taskflow.types import failure
 from taskflow.utils import persistence_utils as p_utils
 
 
@@ -128,46 +128,46 @@ class StorageTestMixin(object):
         self.assertEqual(s.get_atom_state('my task'), states.FAILURE)
 
     def test_save_and_get_cached_failure(self):
-        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
+        a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task'))
-        s.save('my task', failure, states.FAILURE)
-        self.assertEqual(s.get('my task'), failure)
+        s.save('my task', a_failure, states.FAILURE)
+        self.assertEqual(s.get('my task'), a_failure)
         self.assertEqual(s.get_atom_state('my task'), states.FAILURE)
         self.assertTrue(s.has_failures())
-        self.assertEqual(s.get_failures(), {'my task': failure})
+        self.assertEqual(s.get_failures(), {'my task': a_failure})
 
     def test_save_and_get_non_cached_failure(self):
-        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
+        a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task'))
-        s.save('my task', failure, states.FAILURE)
-        self.assertEqual(s.get('my task'), failure)
+        s.save('my task', a_failure, states.FAILURE)
+        self.assertEqual(s.get('my task'), a_failure)
         s._failures['my task'] = None
-        self.assertTrue(failure.matches(s.get('my task')))
+        self.assertTrue(a_failure.matches(s.get('my task')))
 
     def test_get_failure_from_reverted_task(self):
-        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
+        a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
 
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task'))
-        s.save('my task', failure, states.FAILURE)
+        s.save('my task', a_failure, states.FAILURE)
 
         s.set_atom_state('my task', states.REVERTING)
-        self.assertEqual(s.get('my task'), failure)
+        self.assertEqual(s.get('my task'), a_failure)
 
         s.set_atom_state('my task', states.REVERTED)
-        self.assertEqual(s.get('my task'), failure)
+        self.assertEqual(s.get('my task'), a_failure)
 
     def test_get_failure_after_reload(self):
-        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
+        a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task'))
-        s.save('my task', failure, states.FAILURE)
+        s.save('my task', a_failure, states.FAILURE)
         s2 = self._get_storage(s._flowdetail)
         self.assertTrue(s2.has_failures())
         self.assertEqual(1, len(s2.get_failures()))
-        self.assertTrue(failure.matches(s2.get('my task')))
+        self.assertTrue(a_failure.matches(s2.get('my task')))
         self.assertEqual(s2.get_atom_state('my task'), states.FAILURE)
 
     def test_get_non_existing_var(self):
@@ -486,15 +486,15 @@ class StorageTestMixin(object):
         self.assertEqual(s.fetch_all(), {})
 
     def test_cached_retry_failure(self):
-        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
+        a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopRetry('my retry', provides=['x']))
         s.save('my retry', 'a')
-        s.save('my retry', failure, states.FAILURE)
+        s.save('my retry', a_failure, states.FAILURE)
         history = s.get_retry_history('my retry')
-        self.assertEqual(history, [('a', {}), (failure, {})])
+        self.assertEqual(history, [('a', {}), (a_failure, {})])
         self.assertIs(s.has_failures(), True)
-        self.assertEqual(s.get_failures(), {'my retry': failure})
+        self.assertEqual(s.get_failures(), {'my retry': a_failure})
 
     def test_logbook_get_unknown_atom_type(self):
         self.assertRaisesRegexp(TypeError,

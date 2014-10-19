@@ -19,9 +19,9 @@ import abc
 import six
 
 from taskflow import task as _task
+from taskflow.types import failure
 from taskflow.types import futures
 from taskflow.utils import async_utils
-from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
 # Execution and reversion events.
@@ -37,7 +37,7 @@ def _execute_task(task, arguments, progress_callback):
         except Exception:
             # NOTE(imelnikov): wrap current exception with Failure
             # object and return it.
-            result = misc.Failure()
+            result = failure.Failure()
         finally:
             task.post_execute()
     return (task, EXECUTED, result)
@@ -54,7 +54,7 @@ def _revert_task(task, arguments, result, failures, progress_callback):
         except Exception:
             # NOTE(imelnikov): wrap current exception with Failure
             # object and return it.
-            result = misc.Failure()
+            result = failure.Failure()
         finally:
             task.post_revert()
     return (task, REVERTED, result)

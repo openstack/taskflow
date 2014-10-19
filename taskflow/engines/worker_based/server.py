@@ -21,6 +21,7 @@ import six
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
+from taskflow.types import failure as ft
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -69,20 +70,20 @@ class Server(object):
                        failures=None, **kwargs):
         """Parse request before it can be further processed.
 
-        All `misc.Failure` objects that have been converted to dict on the
-        remote side will now converted back to `misc.Failure` objects.
+        All `failure.Failure` objects that have been converted to dict on the
+        remote side will now converted back to `failure.Failure` objects.
         """
         action_args = dict(arguments=arguments, task_name=task_name)
         if result is not None:
             data_type, data = result
             if data_type == 'failure':
-                action_args['result'] = misc.Failure.from_dict(data)
+                action_args['result'] = ft.Failure.from_dict(data)
             else:
                 action_args['result'] = data
         if failures is not None:
             action_args['failures'] = {}
-            for k, v in failures.items():
-                action_args['failures'][k] = misc.Failure.from_dict(v)
+            for key, data in six.iteritems(failures):
+                action_args['failures'][key] = ft.Failure.from_dict(data)
         return task_cls, action, action_args
 
     @staticmethod
@@ -218,7 +219,7 @@ class Server(object):
                          message.delivery_tag, exc_info=True)
                 reply_callback(result=failure.to_dict())
         else:
-            if isinstance(result, misc.Failure):
+            if isinstance(result, ft.Failure):
                 reply_callback(result=result.to_dict())
             else:
                 reply_callback(state=pr.SUCCESS, result=result)

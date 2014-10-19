@@ -21,8 +21,8 @@ import sys
 
 from taskflow.listeners import base
 from taskflow import states
+from taskflow.types import failure
 from taskflow.types import notifier
-from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -92,8 +92,8 @@ class DynamicLoggingListener(base.ListenerBase):
     * ``states.RETRYING``
     * ``states.REVERTING``
 
-    When a task produces a :py:class:`~taskflow.utils.misc.Failure` object as
-    its result (typically this happens when a task raises an exception) this
+    When a task produces a :py:class:`~taskflow.types.failure.Failure` object
+    as its result (typically this happens when a task raises an exception) this
     will **always** switch the logger to use ``logging.WARNING`` (if the
     failure object contains a ``exc_info`` tuple this will also be logged to
     provide a meaningful traceback).
@@ -130,7 +130,7 @@ class DynamicLoggingListener(base.ListenerBase):
             # If the task failed, it's useful to show the exception traceback
             # and any other available exception information.
             result = details.get('result')
-            if isinstance(result, misc.Failure):
+            if isinstance(result, failure.Failure):
                 if result.exc_info:
                     exc_info = result.exc_info
                     manual_tb = ''

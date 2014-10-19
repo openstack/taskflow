@@ -23,8 +23,8 @@ from taskflow import exceptions
 from taskflow.persistence.backends import impl_memory
 from taskflow import retry
 from taskflow import task
+from taskflow.types import failure
 from taskflow.utils import kazoo_utils
-from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
 ARGS_KEY = '__args__'
@@ -50,7 +50,7 @@ def wrap_all_failures():
     try:
         yield
     except Exception:
-        raise exceptions.WrappedFailure([misc.Failure()])
+        raise exceptions.WrappedFailure([failure.Failure()])
 
 
 def zookeeper_available(min_version, timeout=3):

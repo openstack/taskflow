@@ -18,8 +18,8 @@ import logging
 
 from taskflow.engines.action_engine import executor as ex
 from taskflow import states
+from taskflow.types import failure
 from taskflow.types import futures
-from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -65,12 +65,12 @@ class RetryAction(object):
             try:
                 result = retry.execute(**kwargs)
             except Exception:
-                result = misc.Failure()
+                result = failure.Failure()
             return (retry, ex.EXECUTED, result)
 
         def _on_done_callback(fut):
             result = fut.result()[-1]
-            if isinstance(result, misc.Failure):
+            if isinstance(result, failure.Failure):
                 self.change_state(retry, states.FAILURE, result=result)
             else:
                 self.change_state(retry, states.SUCCESS, result=result)
@@ -88,12 +88,12 @@ class RetryAction(object):
             try:
                 result = retry.revert(**kwargs)
             except Exception:
-                result = misc.Failure()
+                result = failure.Failure()
             return (retry, ex.REVERTED, result)
 
         def _on_done_callback(fut):
             result = fut.result()[-1]
-            if isinstance(result, misc.Failure):
+            if isinstance(result, failure.Failure):
                 self.change_state(retry, states.FAILURE)
             else:
                 self.change_state(retry, states.REVERTED)

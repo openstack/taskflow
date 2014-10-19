@@ -22,7 +22,6 @@ from taskflow import exceptions
 from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.types import failure
-from taskflow.utils import misc
 
 
 def _captured_failure(msg):
@@ -217,7 +216,7 @@ class FailureObjectTestCase(test.TestCase):
 
     def test_pformat_traceback_captured_no_exc_info(self):
         captured = _captured_failure('Woot!')
-        captured = misc.Failure.from_dict(captured.to_dict())
+        captured = failure.Failure.from_dict(captured.to_dict())
         text = captured.pformat(traceback=True)
         self.assertIn("Traceback (most recent call last):", text)
 

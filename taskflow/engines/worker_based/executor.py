@@ -172,9 +172,9 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                     " seconds for it to transition out of (%s) states"
                     % (request, request_age, ", ".join(pr.WAITING_STATES)))
             except exc.RequestTimeout:
-                with misc.capture_failure() as fail:
-                    LOG.debug(fail.exception_str)
-                    request.set_result(fail)
+                with misc.capture_failure() as failure:
+                    LOG.debug(failure.exception_str)
+                    request.set_result(failure)
 
     def _on_wait(self):
         """This function is called cyclically between draining events."""

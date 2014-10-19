@@ -68,7 +68,7 @@ class Failure(object):
     exception and desire to reraise it to the user/caller of the WBE based
     engine for appropriate handling (this matches the behavior of non-remote
     engines). To accomplish this a failure object (or a
-    :py:meth:`~misc.Failure.to_dict` form) would be sent over the WBE channel
+    :py:meth:`~.Failure.to_dict` form) would be sent over the WBE channel
     and the WBE based engine would deserialize it and use this objects
     :meth:`.reraise` method to cause an exception that contains
     similar/equivalent information as the original exception to be reraised,

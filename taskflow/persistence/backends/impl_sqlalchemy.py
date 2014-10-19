@@ -37,6 +37,7 @@ from taskflow.persistence.backends import base
 from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import models
 from taskflow.persistence import logbook
+from taskflow.types import failure
 from taskflow.utils import async_utils
 from taskflow.utils import misc
 
@@ -328,7 +329,7 @@ class Connection(base.Connection):
                     pass
             except sa_exc.OperationalError as ex:
                 if _is_db_connection_error(six.text_type(ex.args[0])):
-                    failures.append(misc.Failure())
+                    failures.append(failure.Failure())
                     return False
             return True
 

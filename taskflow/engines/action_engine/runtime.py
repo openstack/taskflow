@@ -24,6 +24,7 @@ from taskflow import exceptions as excp
 from taskflow import retry as retry_atom
 from taskflow import states as st
 from taskflow import task as task_atom
+from taskflow.types import failure
 from taskflow.utils import misc
 
 
@@ -155,7 +156,7 @@ class Completer(object):
         """
         if isinstance(node, task_atom.BaseTask):
             self._complete_task(node, event, result)
-        if isinstance(result, misc.Failure):
+        if isinstance(result, failure.Failure):
             if event == ex.EXECUTED:
                 self._process_atom_failure(node, result)
             else:
@@ -270,5 +271,5 @@ class Scheduler(object):
                 # Immediately stop scheduling future work so that we can
                 # exit execution early (rather than later) if a single task
                 # fails to schedule correctly.
-                return (futures, [misc.Failure()])
+                return (futures, [failure.Failure()])
         return (futures, [])

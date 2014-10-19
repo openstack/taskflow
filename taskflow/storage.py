@@ -26,6 +26,7 @@ from taskflow.persistence import logbook
 from taskflow import retry
 from taskflow import states
 from taskflow import task
+from taskflow.types import failure
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -425,7 +426,7 @@ class Storage(object):
         with self._lock.write_lock():
             ad = self._atomdetail_by_name(atom_name)
             ad.put(state, data)
-            if state == states.FAILURE and isinstance(data, misc.Failure):
+            if state == states.FAILURE and isinstance(data, failure.Failure):
                 # NOTE(imelnikov): failure serialization looses information,
                 # so we cache failures here, in atom name -> failure mapping.
                 self._failures[ad.name] = data
