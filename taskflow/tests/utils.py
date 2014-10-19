@@ -16,7 +16,6 @@
 
 import contextlib
 import string
-import threading
 
 import six
 
@@ -26,15 +25,18 @@ from taskflow import retry
 from taskflow import task
 from taskflow.utils import kazoo_utils
 from taskflow.utils import misc
+from taskflow.utils import threading_utils
 
 ARGS_KEY = '__args__'
 KWARGS_KEY = '__kwargs__'
 ORDER_KEY = '__order__'
-
 ZK_TEST_CONFIG = {
     'timeout': 1.0,
     'hosts': ["localhost:2181"],
 }
+# If latches/events take longer than this to become empty/set, something is
+# usually wrong and should be debugged instead of deadlocking...
+WAIT_TIMEOUT = 300
 
 
 @contextlib.contextmanager
@@ -342,16 +344,14 @@ class WaitForOneFromTask(SaveOrderTask):
             self.wait_states = [wait_states]
         else:
             self.wait_states = wait_states
-        self.event = threading.Event()
+        self.event = threading_utils.Event()
 
     def execute(self):
-        # NOTE(imelnikov): if test was not complete within
-        # 5 minutes, something is terribly wrong
-        self.event.wait(300)
-        if not self.event.is_set():
-            raise RuntimeError('Timeout occurred while waiting '
+        if not self.event.wait(WAIT_TIMEOUT):
+            raise RuntimeError('%s second timeout occurred while waiting '
                                'for %s to change state to %s'
-                               % (self.wait_for, self.wait_states))
+                               % (WAIT_TIMEOUT, self.wait_for,
+                                  self.wait_states))
         return super(WaitForOneFromTask, self).execute()
 
     def callback(self, state, details):

@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import threading
 import time
 
 from concurrent import futures
@@ -24,15 +23,16 @@ from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import test
 from taskflow.test import mock
-from taskflow.tests import utils
+from taskflow.tests import utils as test_utils
 from taskflow.utils import misc
+from taskflow.utils import threading_utils
 
 
 class TestWorkerTaskExecutor(test.MockTestCase):
 
     def setUp(self):
         super(TestWorkerTaskExecutor, self).setUp()
-        self.task = utils.DummyTask()
+        self.task = test_utils.DummyTask()
         self.task_uuid = 'task-uuid'
         self.task_args = {'a': 'a'}
         self.task_result = 'task-result'
@@ -42,7 +42,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.executor_uuid = 'executor-uuid'
         self.executor_exchange = 'executor-exchange'
         self.executor_topic = 'test-topic1'
-        self.proxy_started_event = threading.Event()
+        self.proxy_started_event = threading_utils.Event()
 
         # patch classes
         self.proxy_mock, self.proxy_inst_mock = self.patchClass(
@@ -121,7 +121,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(len(ex._requests_cache), 0)
         expected_calls = [
             mock.call.transition_and_log_error(pr.FAILURE, logger=mock.ANY),
-            mock.call.set_result(result=utils.FailureMatcher(failure))
+            mock.call.set_result(result=test_utils.FailureMatcher(failure))
         ]
         self.assertEqual(expected_calls, self.request_inst_mock.mock_calls)
 
@@ -303,7 +303,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         ex.start()
 
         # make sure proxy thread started
-        self.proxy_started_event.wait()
+        self.assertTrue(self.proxy_started_event.wait(test_utils.WAIT_TIMEOUT))
 
         # stop executor
         ex.stop()
@@ -319,7 +319,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         ex.start()
 
         # make sure proxy thread started
-        self.proxy_started_event.wait()
+        self.assertTrue(self.proxy_started_event.wait(test_utils.WAIT_TIMEOUT))
 
         # start executor again
         ex.start()
@@ -362,14 +362,14 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         ex.start()
 
         # make sure thread started
-        self.proxy_started_event.wait()
+        self.assertTrue(self.proxy_started_event.wait(test_utils.WAIT_TIMEOUT))
 
         # restart executor
         ex.stop()
         ex.start()
 
         # make sure thread started
-        self.proxy_started_event.wait()
+        self.assertTrue(self.proxy_started_event.wait(test_utils.WAIT_TIMEOUT))
 
         # stop executor
         ex.stop()

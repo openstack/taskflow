@@ -23,15 +23,15 @@ from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils as test_utils
 from taskflow.types import latch
+from taskflow.utils import threading_utils
 
 TEST_EXCHANGE, TEST_TOPIC = ('test-exchange', 'test-topic')
-BARRIER_WAIT_TIMEOUT = 1.0
 POLLING_INTERVAL = 0.01
 
 
 class TestMessagePump(test.TestCase):
     def test_notify(self):
-        barrier = threading.Event()
+        barrier = threading_utils.Event()
 
         on_notify = mock.MagicMock()
         on_notify.side_effect = lambda *args, **kwargs: barrier.set()
@@ -49,8 +49,7 @@ class TestMessagePump(test.TestCase):
         p.wait()
         p.publish(pr.Notify(), TEST_TOPIC)
 
-        barrier.wait(BARRIER_WAIT_TIMEOUT)
-        self.assertTrue(barrier.is_set())
+        self.assertTrue(barrier.wait(test_utils.WAIT_TIMEOUT))
         p.stop()
         t.join()
 
@@ -58,7 +57,7 @@ class TestMessagePump(test.TestCase):
         on_notify.assert_called_with({}, mock.ANY)
 
     def test_response(self):
-        barrier = threading.Event()
+        barrier = threading_utils.Event()
 
         on_response = mock.MagicMock()
         on_response.side_effect = lambda *args, **kwargs: barrier.set()
@@ -77,7 +76,7 @@ class TestMessagePump(test.TestCase):
         resp = pr.Response(pr.RUNNING)
         p.publish(resp, TEST_TOPIC)
 
-        barrier.wait(BARRIER_WAIT_TIMEOUT)
+        self.assertTrue(barrier.wait(test_utils.WAIT_TIMEOUT))
         self.assertTrue(barrier.is_set())
         p.stop()
         t.join()
@@ -126,7 +125,7 @@ class TestMessagePump(test.TestCase):
                                      uuidutils.generate_uuid(),
                                      pr.EXECUTE, [], None, None), TEST_TOPIC)
 
-        barrier.wait(BARRIER_WAIT_TIMEOUT)
+        self.assertTrue(barrier.wait(test_utils.WAIT_TIMEOUT))
         self.assertEqual(0, barrier.needed)
         p.stop()
         t.join()

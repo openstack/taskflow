@@ -22,7 +22,9 @@ from concurrent import futures
 import mock
 
 from taskflow import test
+from taskflow.tests import utils as test_utils
 from taskflow.utils import lock_utils
+from taskflow.utils import threading_utils
 
 # NOTE(harlowja): Sleep a little so time.time() can not be the same (which will
 # cause false positives when our overlap detection code runs). If there are
@@ -353,7 +355,7 @@ class ReadWriteLockTest(test.TestCase):
     def test_double_reader_writer(self):
         lock = lock_utils.ReaderWriterLock()
         activated = collections.deque()
-        active = threading.Event()
+        active = threading_utils.Event()
 
         def double_reader():
             with lock.read_lock():
@@ -369,7 +371,7 @@ class ReadWriteLockTest(test.TestCase):
 
         reader = threading.Thread(target=double_reader)
         reader.start()
-        active.wait()
+        self.assertTrue(active.wait(test_utils.WAIT_TIMEOUT))
 
         writer = threading.Thread(target=happy_writer)
         writer.start()

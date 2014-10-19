@@ -25,8 +25,10 @@ from taskflow.openstack.common import uuidutils
 from taskflow.persistence.backends import impl_dir
 from taskflow import states
 from taskflow.test import mock
+from taskflow.tests import utils as test_utils
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
+from taskflow.utils import threading_utils
 
 FLUSH_PATH_TPL = '/taskflow/flush-test/%s'
 
@@ -52,8 +54,8 @@ def flush(client, path=None):
     # before this context manager exits.
     if not path:
         path = FLUSH_PATH_TPL % uuidutils.generate_uuid()
-    created = threading.Event()
-    deleted = threading.Event()
+    created = threading_utils.Event()
+    deleted = threading_utils.Event()
 
     def on_created(data, stat):
         if stat is not None:
@@ -67,13 +69,19 @@ def flush(client, path=None):
 
     watchers.DataWatch(client, path, func=on_created)
     client.create(path, makepath=True)
-    created.wait()
+    if not created.wait(test_utils.WAIT_TIMEOUT):
+        raise RuntimeError("Could not receive creation of %s in"
+                           " the alloted timeout of %s seconds"
+                           % (path, test_utils.WAIT_TIMEOUT))
     try:
         yield
     finally:
         watchers.DataWatch(client, path, func=on_deleted)
         client.delete(path, recursive=True)
-        deleted.wait()
+        if not deleted.wait(test_utils.WAIT_TIMEOUT):
+            raise RuntimeError("Could not receive deletion of %s in"
+                               " the alloted timeout of %s seconds"
+                               % (path, test_utils.WAIT_TIMEOUT))
 
 
 class BoardTestMixin(object):
@@ -119,11 +127,13 @@ class BoardTestMixin(object):
             self.assertRaises(excp.NotFound, self.board.wait, timeout=0.1)
 
     def test_wait_arrival(self):
-        ev = threading.Event()
+        ev = threading_utils.Event()
         jobs = []
 
         def poster(wait_post=0.2):
-            ev.wait()  # wait until the waiter is active
+            if not ev.wait(test_utils.WAIT_TIMEOUT):
+                raise RuntimeError("Waiter did not appear ready"
+                                   " in %s seconds" % test_utils.WAIT_TIMEOUT)
             time.sleep(wait_post)
             self.board.post('test', p_utils.temporary_log_book())
 
