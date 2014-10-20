@@ -31,6 +31,15 @@ REVERT = "REVERT"
 REVERT_ALL = "REVERT_ALL"
 RETRY = "RETRY"
 
+# Constants passed into revert/execute kwargs.
+#
+# Contains information about the past decisions and outcomes that have
+# occurred (if available).
+EXECUTE_REVERT_HISTORY = 'history'
+#
+# The cause of the flow failure/s
+REVERT_FLOW_FAILURES = 'flow_failures'
+
 
 @six.add_metaclass(abc.ABCMeta)
 class Retry(atom.Atom):
@@ -56,7 +65,7 @@ class Retry(atom.Atom):
             provides = self.default_provides
         super(Retry, self).__init__(name, provides)
         self._build_arg_mapping(self.execute, requires, rebind, auto_extract,
-                                ignore_list=['history'])
+                                ignore_list=[EXECUTE_REVERT_HISTORY])
 
     @property
     def name(self):
