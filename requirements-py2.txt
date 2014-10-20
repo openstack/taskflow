@@ -13,6 +13,9 @@ ordereddict
 # Python 2->3 compatibility library.
 six>=1.7.0
 
+# For proxying objects and making correct decorators
+wrapt>=1.7.0
+
 # Very nice graph library
 networkx>=1.8
 
