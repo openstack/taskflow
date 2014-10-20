@@ -201,9 +201,9 @@ class TaskTest(test.TestCase):
         def progress_callback(task, event_data, progress):
             result.append(progress)
 
-        task = ProgressTask()
-        with task.autobind('update_progress', progress_callback):
-            task.execute(values)
+        a_task = ProgressTask()
+        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, progress_callback):
+            a_task.execute(values)
         self.assertEqual(result, values)
 
     @mock.patch.object(task.LOG, 'warn')
@@ -213,9 +213,9 @@ class TaskTest(test.TestCase):
         def progress_callback(task, event_data, progress):
             result.append(progress)
 
-        task = ProgressTask()
-        with task.autobind('update_progress', progress_callback):
-            task.execute([-1.0, -0.5, 0.0])
+        a_task = ProgressTask()
+        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, progress_callback):
+            a_task.execute([-1.0, -0.5, 0.0])
         self.assertEqual(result, [0.0, 0.0, 0.0])
         self.assertEqual(mocked_warn.call_count, 2)
 
@@ -226,9 +226,9 @@ class TaskTest(test.TestCase):
         def progress_callback(task, event_data, progress):
             result.append(progress)
 
-        task = ProgressTask()
-        with task.autobind('update_progress', progress_callback):
-            task.execute([1.0, 1.5, 2.0])
+        a_task = ProgressTask()
+        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, progress_callback):
+            a_task.execute([1.0, 1.5, 2.0])
         self.assertEqual(result, [1.0, 1.0, 1.0])
         self.assertEqual(mocked_warn.call_count, 2)
 
@@ -237,50 +237,40 @@ class TaskTest(test.TestCase):
         def progress_callback(*args, **kwargs):
             raise Exception('Woot!')
 
-        task = ProgressTask()
-        with task.autobind('update_progress', progress_callback):
-            task.execute([0.5])
+        a_task = ProgressTask()
+        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, progress_callback):
+            a_task.execute([0.5])
         mocked_warn.assert_called_once_with(
             mock.ANY, reflection.get_callable_name(progress_callback),
-            'update_progress', exc_info=mock.ANY)
-
-    @mock.patch.object(task.LOG, 'warn')
-    def test_autobind_non_existent_event(self, mocked_warn):
-        event = 'test-event'
-        handler = lambda: None
-        task = MyTask()
-        with task.autobind(event, handler):
-            self.assertEqual(len(task._events_listeners), 0)
-            mocked_warn.assert_called_once_with(
-                mock.ANY, handler, event, task, exc_info=mock.ANY)
+            task.EVENT_UPDATE_PROGRESS, exc_info=mock.ANY)
 
     def test_autobind_handler_is_none(self):
-        task = MyTask()
-        with task.autobind('update_progress', None):
-            self.assertEqual(len(task._events_listeners), 0)
+        a_task = MyTask()
+        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, None):
+            self.assertEqual(len(list(a_task.listeners_iter())), 0)
 
     def test_unbind_any_handler(self):
-        task = MyTask()
-        self.assertEqual(len(task._events_listeners), 0)
-        task.bind('update_progress', lambda: None)
-        self.assertEqual(len(task._events_listeners), 1)
-        self.assertTrue(task.unbind('update_progress'))
-        self.assertEqual(len(task._events_listeners), 0)
+        a_task = MyTask()
+        self.assertEqual(len(list(a_task.listeners_iter())), 0)
+        a_task.bind(task.EVENT_UPDATE_PROGRESS, lambda: None)
+        self.assertEqual(len(list(a_task.listeners_iter())), 1)
+        self.assertTrue(a_task.unbind(task.EVENT_UPDATE_PROGRESS))
+        self.assertEqual(len(list(a_task.listeners_iter())), 0)
 
     def test_unbind_any_handler_empty_listeners(self):
-        task = MyTask()
-        self.assertEqual(len(task._events_listeners), 0)
-        self.assertFalse(task.unbind('update_progress'))
-        self.assertEqual(len(task._events_listeners), 0)
+        a_task = MyTask()
+        self.assertEqual(len(list(a_task.listeners_iter())), 0)
+        self.assertFalse(a_task.unbind(task.EVENT_UPDATE_PROGRESS))
+        self.assertEqual(len(list(a_task.listeners_iter())), 0)
 
     def test_unbind_non_existent_listener(self):
         handler1 = lambda: None
         handler2 = lambda: None
-        task = MyTask()
-        task.bind('update_progress', handler1)
-        self.assertEqual(len(task._events_listeners), 1)
-        self.assertFalse(task.unbind('update_progress', handler2))
-        self.assertEqual(len(task._events_listeners), 1)
+        a_task = MyTask()
+        a_task.bind(task.EVENT_UPDATE_PROGRESS, handler1)
+        self.assertEqual(len(list(a_task.listeners_iter())), 1)
+        self.assertFalse(a_task.unbind(task.EVENT_UPDATE_PROGRESS, handler2))
+        self.assertEqual(len(list(a_task.listeners_iter())), 1)
 
     def test_bind_not_callable(self):
         task = MyTask()
