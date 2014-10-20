@@ -15,7 +15,6 @@
 #    under the License.
 
 import contextlib
-import warnings
 
 from oslo.utils import importutils
 import six
@@ -23,6 +22,7 @@ import stevedore.driver
 
 from taskflow import exceptions as exc
 from taskflow.persistence import backends as p_backends
+from taskflow.utils import deprecation
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 from taskflow.utils import reflection
@@ -35,16 +35,19 @@ ENGINES_NAMESPACE = 'taskflow.engines'
 ENGINE_DEFAULT = 'default'
 
 
+@deprecation.renamed_kwarg('engine_conf', 'engine',
+                           version="0.6", removal_version="?",
+                           # This is set to none since this function is called
+                           # from 2 other functions in this module, both of
+                           # which have different stack levels, possibly we
+                           # can fix this in the future...
+                           stacklevel=None)
 def _extract_engine(**kwargs):
     """Extracts the engine kind and any associated options."""
     options = {}
     kind = kwargs.pop('engine', None)
     engine_conf = kwargs.pop('engine_conf', None)
     if engine_conf is not None:
-        warnings.warn("Using the 'engine_conf' argument is"
-                      " deprecated and will be removed in a future version,"
-                      " please use the 'engine' argument instead.",
-                      DeprecationWarning)
         if isinstance(engine_conf, six.string_types):
             kind = engine_conf
         else:
