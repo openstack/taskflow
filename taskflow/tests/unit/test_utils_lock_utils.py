@@ -19,9 +19,9 @@ import threading
 import time
 
 from concurrent import futures
-import mock
 
 from taskflow import test
+from taskflow.test import mock
 from taskflow.tests import utils as test_utils
 from taskflow.utils import lock_utils
 from taskflow.utils import threading_utils
