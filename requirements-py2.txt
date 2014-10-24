@@ -2,6 +2,8 @@
 # of appearance. Changing the order has an impact on the overall integration
 # process, which may cause wedges in the gate later.
 
+pbr>=0.6,!=0.7,<1.0
+
 # Packages needed for using this library.
 
 # Only needed on python 2.6
