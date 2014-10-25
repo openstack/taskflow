@@ -241,8 +241,11 @@ class Failure(object):
     def pformat(self, traceback=False):
         """Pretty formats the failure object into a string."""
         buf = six.StringIO()
-        buf.write(
-            'Failure: %s: %s' % (self._exc_type_names[0], self._exception_str))
+        if not self._exc_type_names:
+            buf.write('Failure: %s' % (self._exception_str))
+        else:
+            buf.write('Failure: %s: %s' % (self._exc_type_names[0],
+                                           self._exception_str))
         if traceback:
             if self._traceback_str is not None:
                 traceback_str = self._traceback_str.rstrip()

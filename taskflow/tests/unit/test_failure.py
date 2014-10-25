@@ -114,6 +114,14 @@ class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
                                 self.fail_obj.reraise)
         self.assertIs(exc.check(RuntimeError), RuntimeError)
 
+    def test_no_type_names(self):
+        fail_obj = _captured_failure('Woot!')
+        fail_obj = failure.Failure(exception_str=fail_obj.exception_str,
+                                   traceback_str=fail_obj.traceback_str,
+                                   exc_type_names=[])
+        self.assertEqual([], list(fail_obj))
+        self.assertEqual("Failure: Woot!", fail_obj.pformat())
+
 
 class FromExceptionTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 
