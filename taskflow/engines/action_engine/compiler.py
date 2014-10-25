@@ -28,6 +28,11 @@ from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
+_RETRY_EDGE_DATA = {
+    flow.LINK_RETRY: True,
+}
+_EDGE_INVARIANTS = (flow.LINK_INVARIANT, flow.LINK_MANUAL, flow.LINK_RETRY)
+
 
 class Compilation(object):
     """The result of a compilers compile() is this *immutable* object."""
@@ -43,11 +48,6 @@ class Compilation(object):
     @property
     def hierarchy(self):
         return self._hierarchy
-
-
-_RETRY_EDGE_DATA = {
-    'retry': True,
-}
 
 
 class PatternCompiler(object):
@@ -110,8 +110,8 @@ class PatternCompiler(object):
 
         # Add association for each node of graph that has no existing retry.
         for n in graph.nodes_iter():
-            if n is not retry and 'retry' not in graph.node[n]:
-                graph.node[n]['retry'] = retry
+            if n is not retry and flow.LINK_RETRY not in graph.node[n]:
+                graph.node[n][flow.LINK_RETRY] = retry
 
     def _flatten_task(self, task, parent):
         """Flattens a individual task."""
@@ -143,7 +143,7 @@ class PatternCompiler(object):
         for (u, v, attrs) in flow.iter_links():
             u_g = subgraphs[u]
             v_g = subgraphs[v]
-            if any(attrs.get(k) for k in ('invariant', 'manual', 'retry')):
+            if any(attrs.get(k) for k in _EDGE_INVARIANTS):
                 # Connect nodes with no predecessors in v to nodes with
                 # no successors in u (thus maintaining the edge dependency).
                 self._add_new_edges(graph,
@@ -151,7 +151,7 @@ class PatternCompiler(object):
                                     v_g.no_predecessors_iter(),
                                     edge_attrs=attrs)
             else:
-                # This is dependency-only edge, connect corresponding
+                # This is symbol dependency edge, connect corresponding
                 # providers and consumers.
                 for provider in u_g:
                     for consumer in v_g:

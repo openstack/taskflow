@@ -20,6 +20,19 @@ import six
 
 from taskflow.utils import reflection
 
+# Link metadata keys that have inherent/special meaning.
+#
+# This key denotes the link is an invariant that ensures the order is
+# correctly preserved.
+LINK_INVARIANT = 'invariant'
+# This key denotes the link is a manually/user-specified.
+LINK_MANUAL = 'manual'
+# This key denotes the link was created when resolving/compiling retries.
+LINK_RETRY = 'retry'
+# This key denotes the link was created due to symbol constraints and the
+# value will be a set of names that the constraint ensures are satisfied.
+LINK_REASONS = 'reasons'
+
 
 @six.add_metaclass(abc.ABCMeta)
 class Flow(object):

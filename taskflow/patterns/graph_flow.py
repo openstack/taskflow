@@ -75,11 +75,11 @@ class Flow(flow.Flow):
         if not attrs:
             attrs = {}
         if manual:
-            attrs['manual'] = True
+            attrs[flow.LINK_MANUAL] = True
         if reason is not None:
-            if 'reasons' not in attrs:
-                attrs['reasons'] = set()
-            attrs['reasons'].add(reason)
+            if flow.LINK_REASONS not in attrs:
+                attrs[flow.LINK_REASONS] = set()
+            attrs[flow.LINK_REASONS].add(reason)
         if not mutable_graph:
             graph = gr.DiGraph(graph)
         graph.add_edge(u, v, **attrs)
