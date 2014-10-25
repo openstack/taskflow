@@ -36,7 +36,7 @@ from taskflow import task
 
 
 class TaskA(task.Task):
-    default_provides = ['a']
+    default_provides = 'a'
 
     def execute(self):
         print("Executing '%s'" % (self.name))
