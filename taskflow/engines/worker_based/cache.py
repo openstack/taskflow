@@ -28,7 +28,7 @@ class RequestsCache(base.ExpiringCache):
     def get_waiting_requests(self, tasks):
         """Get list of waiting requests by tasks."""
         waiting_requests = []
-        with self._lock.read_lock():
+        with self._lock:
             for request in six.itervalues(self._data):
                 if request.state == pr.WAITING and request.task_cls in tasks:
                     waiting_requests.append(request)
@@ -41,7 +41,7 @@ class WorkersCache(base.ExpiringCache):
     def get_topic_by_task(self, task):
         """Get topic for a given task."""
         available_topics = []
-        with self._lock.read_lock():
+        with self._lock:
             for topic, tasks in six.iteritems(self._data):
                 if task in tasks:
                     available_topics.append(topic)
