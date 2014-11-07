@@ -58,6 +58,18 @@ Watching execution timing
     :linenos:
     :lines: 16-
 
+Table multiplier (in parallel)
+==============================
+
+.. note::
+
+    Full source located at :example:`parallel_table_multiply`
+
+.. literalinclude:: ../../taskflow/examples/parallel_table_multiply.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Linear equation solver (explicit dependencies)
 ==============================================
 
