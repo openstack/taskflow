@@ -248,6 +248,8 @@ class ParallelActionEngine(ActionEngine):
         # forcing everyone to use our derivatives...
         if isinstance(kwargs['executor'], futures.ProcessPoolExecutor):
             executor_cls = executor.ParallelProcessTaskExecutor
+            kwargs['dispatch_periodicity'] = self._options.get(
+                'dispatch_periodicity')
         else:
             executor_cls = executor.ParallelThreadTaskExecutor
         return executor_cls(**kwargs)
