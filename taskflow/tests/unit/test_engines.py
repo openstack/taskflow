@@ -15,7 +15,6 @@
 #    under the License.
 
 import contextlib
-import threading
 
 import testtools
 
@@ -37,6 +36,7 @@ from taskflow.types import graph as gr
 from taskflow.utils import async_utils as au
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
+from taskflow.utils import threading_utils as tu
 
 
 class EngineTaskTest(utils.EngineTestBase):
@@ -613,28 +613,41 @@ class WorkerBasedEngineTest(EngineTaskTest,
                             EngineLinearAndUnorderedExceptionsTest,
                             EngineGraphFlowTest,
                             test.TestCase):
-
     def setUp(self):
         super(WorkerBasedEngineTest, self).setUp()
-        self.exchange = 'test'
-        self.topic = 'topic'
-        self.transport = 'memory'
-        worker_conf = {
-            'exchange': self.exchange,
-            'topic': self.topic,
-            'tasks': [
-                'taskflow.tests.utils',
-            ],
-            'transport': self.transport,
+        shared_conf = {
+            'exchange': 'test',
+            'transport': 'memory',
             'transport_options': {
-                'polling_interval': 0.01
-            }
+                # NOTE(imelnikov): I run tests several times for different
+                # intervals. Reducing polling interval below 0.01 did not give
+                # considerable win in tests run time; reducing polling interval
+                # too much (AFAIR below 0.0005) affected stability -- I was
+                # seeing timeouts. So, 0.01 looks like the most balanced for
+                # local transports (for now).
+                'polling_interval': 0.01,
+            },
         }
+        worker_conf = shared_conf.copy()
+        worker_conf.update({
+            'topic': 'my-topic',
+            'tasks': [
+                # This makes it possible for the worker to run/find any atoms
+                # that are defined in the test.utils module (which are all
+                # the task/atom types that this test uses)...
+                utils.__name__,
+            ],
+        })
+        self.engine_conf = shared_conf.copy()
+        self.engine_conf.update({
+            'engine': 'worker-based',
+            'topics': tuple([worker_conf['topic']]),
+        })
         self.worker = wkr.Worker(**worker_conf)
-        self.worker_thread = threading.Thread(target=self.worker.run)
-        self.worker_thread.daemon = True
+        self.worker_thread = tu.daemon_thread(target=self.worker.run)
         self.worker_thread.start()
-        # make sure worker is started before we can continue
+
+        # Make sure the worker is started before we can continue...
         self.worker.wait()
 
     def tearDown(self):
@@ -644,11 +657,7 @@ class WorkerBasedEngineTest(EngineTaskTest,
 
     def _make_engine(self, flow, flow_detail=None):
         return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     backend=self.backend,
-                                     engine='worker-based',
-                                     exchange=self.exchange,
-                                     topics=[self.topic],
-                                     transport=self.transport)
+                                     backend=self.backend, **self.engine_conf)
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
