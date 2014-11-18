@@ -135,6 +135,10 @@ class MissingDependencies(DependencyFailure):
         self.missing_requirements = requirements
 
 
+class CompilationFailure(TaskFlowException):
+    """Raised when some type of compilation issue is found."""
+
+
 class IncompatibleVersion(TaskFlowException):
     """Raised when some type of version incompatibility is found."""
 
