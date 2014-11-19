@@ -55,12 +55,12 @@ def fetch(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
         conf = {'board': conf}
     board = conf['board']
     try:
-        pieces = misc.parse_uri(board)
+        uri = misc.parse_uri(board)
     except (TypeError, ValueError):
         pass
     else:
-        board = pieces['scheme']
-        conf = misc.merge_uri(pieces, conf.copy())
+        board = uri.scheme
+        conf = misc.merge_uri(uri, conf.copy())
     LOG.debug('Looking for %r jobboard driver in %r', board, namespace)
     try:
         mgr = driver.DriverManager(namespace, board,

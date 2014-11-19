@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import contextlib
 import threading
 
@@ -28,7 +29,6 @@ from taskflow.persistence.backends import impl_memory
 from taskflow import states as st
 from taskflow import test
 from taskflow.tests import utils as test_utils
-from taskflow.utils import misc
 from taskflow.utils import persistence_utils as pu
 from taskflow.utils import threading_utils
 
@@ -58,6 +58,10 @@ def make_thread(conductor):
 
 
 class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
+    ComponentBundle = collections.namedtuple('ComponentBundle',
+                                             ['board', 'client',
+                                              'persistence', 'conductor'])
+
     def make_components(self, name='testing', wait_timeout=0.1):
         client = fake_client.FakeClient()
         persistence = impl_memory.MemoryBackend()
@@ -66,10 +70,7 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
                                                  persistence=persistence)
         conductor = stc.SingleThreadedConductor(name, board, persistence,
                                                 wait_timeout=wait_timeout)
-        return misc.AttrDict(board=board,
-                             client=client,
-                             persistence=persistence,
-                             conductor=conductor)
+        return self.ComponentBundle(board, client, persistence, conductor)
 
     def test_connection(self):
         components = self.make_components()

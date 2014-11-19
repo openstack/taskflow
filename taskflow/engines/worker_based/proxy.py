@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import logging
 import socket
 
@@ -21,7 +22,6 @@ import kombu
 import six
 
 from taskflow.engines.worker_based import dispatcher
-from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
 LOG = logging.getLogger(__name__)
@@ -29,6 +29,16 @@ LOG = logging.getLogger(__name__)
 # NOTE(skudriashev): A timeout of 1 is often used in environments where
 # the socket can get "stuck", and is a best practice for Kombu consumers.
 DRAIN_EVENTS_PERIOD = 1
+
+# Helper objects returned when requested to get connection details, used
+# instead of returning the raw results from the kombu connection objects
+# themselves so that a person can not mutate those objects (which would be
+# bad).
+_ConnectionDetails = collections.namedtuple('_ConnectionDetails',
+                                            ['uri', 'transport'])
+_TransportDetails = collections.namedtuple('_TransportDetails',
+                                           ['options', 'driver_type',
+                                            'driver_name', 'driver_version'])
 
 
 class Proxy(object):
@@ -71,13 +81,18 @@ class Proxy(object):
         driver_version = self._conn.transport.driver_version()
         if driver_version and driver_version.lower() == 'n/a':
             driver_version = None
-        return misc.AttrDict(
+        if self._conn.transport_options:
+            transport_options = self._conn.transport_options.copy()
+        else:
+            transport_options = {}
+        transport = _TransportDetails(
+            options=transport_options,
+            driver_type=self._conn.transport.driver_type,
+            driver_name=self._conn.transport.driver_name,
+            driver_version=driver_version)
+        return _ConnectionDetails(
             uri=self._conn.as_uri(include_password=False),
-            transport=misc.AttrDict(
-                options=dict(self._conn.transport_options),
-                driver_type=self._conn.transport.driver_type,
-                driver_name=self._conn.transport.driver_name,
-                driver_version=driver_version))
+            transport=transport)
 
     @property
     def is_running(self):

@@ -19,11 +19,9 @@ import contextlib
 import datetime
 import errno
 import inspect
-import keyword
 import logging
 import os
 import re
-import string
 import sys
 import threading
 
@@ -48,7 +46,23 @@ NUMERIC_TYPES = six.integer_types + (float,)
 _SCHEME_REGEX = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
 
 
-def merge_uri(uri_pieces, conf):
+# FIXME(harlowja): This should be removed with the next version of oslo.utils
+# which now has this functionality built-in, until then we are deriving from
+# there base class and adding this functionality on...
+#
+# The change was merged @ https://review.openstack.org/#/c/118881/
+class ModifiedSplitResult(netutils._ModifiedSplitResult):
+    """A split result that exposes the query parameters as a dictionary."""
+
+    @property
+    def params(self):
+        if self.query:
+            return dict(urlparse.parse_qsl(self.query))
+        else:
+            return {}
+
+
+def merge_uri(uri, conf):
     """Merges a parsed uri into the given configuration dictionary.
 
     Merges the username, password, hostname, and query params of a uri into
@@ -57,22 +71,21 @@ def merge_uri(uri_pieces, conf):
 
     NOTE(harlowja): does not merge the path, scheme or fragment.
     """
-    for k in ('username', 'password'):
-        if not uri_pieces[k]:
+    for (k, v) in [('username', uri.username), ('password', uri.password)]:
+        if not v:
             continue
-        conf.setdefault(k, uri_pieces[k])
-    hostname = uri_pieces.get('hostname')
-    if hostname:
-        port = uri_pieces.get('port')
-        if port is not None:
-            hostname += ":%s" % (port)
+        conf.setdefault(k, v)
+    if uri.hostname:
+        hostname = uri.hostname
+        if uri.port is not None:
+            hostname += ":%s" % (uri.port)
         conf.setdefault('hostname', hostname)
-    for (k, v) in six.iteritems(uri_pieces['params']):
+    for (k, v) in six.iteritems(uri.params):
         conf.setdefault(k, v)
     return conf
 
 
-def parse_uri(uri, query_duplicates=False):
+def parse_uri(uri):
     """Parses a uri into its components."""
     # Do some basic validation before continuing...
     if not isinstance(uri, six.string_types):
@@ -83,38 +96,10 @@ def parse_uri(uri, query_duplicates=False):
     if not match:
         raise ValueError("Uri %r does not start with a RFC 3986 compliant"
                          " scheme" % (uri))
-    parsed = netutils.urlsplit(uri)
-    if parsed.query:
-        query_params = urlparse.parse_qsl(parsed.query)
-        if not query_duplicates:
-            query_params = dict(query_params)
-        else:
-            # Retain duplicates in a list for keys which have duplicates, but
-            # for items which are not duplicated, just associate the key with
-            # the value.
-            tmp_query_params = {}
-            for (k, v) in query_params:
-                if k in tmp_query_params:
-                    p_v = tmp_query_params[k]
-                    if isinstance(p_v, list):
-                        p_v.append(v)
-                    else:
-                        p_v = [p_v, v]
-                        tmp_query_params[k] = p_v
-                else:
-                    tmp_query_params[k] = v
-            query_params = tmp_query_params
-    else:
-        query_params = {}
-    return AttrDict(
-        scheme=parsed.scheme,
-        username=parsed.username,
-        password=parsed.password,
-        fragment=parsed.fragment,
-        path=parsed.path,
-        params=query_params,
-        hostname=parsed.hostname,
-        port=parsed.port)
+    split = netutils.urlsplit(uri)
+    return ModifiedSplitResult(scheme=split.scheme, fragment=split.fragment,
+                               path=split.path, netloc=split.netloc,
+                               query=split.query)
 
 
 def binary_encode(text, encoding='utf-8'):
@@ -269,67 +254,6 @@ def get_duplicate_keys(iterable, key=None):
             duplicates.add(item)
         keys.add(item)
     return duplicates
-
-
-# NOTE(imelnikov): we should not use str.isalpha or str.isdigit
-# as they are locale-dependant
-_ASCII_WORD_SYMBOLS = frozenset(string.ascii_letters + string.digits + '_')
-
-
-def is_valid_attribute_name(name, allow_self=False, allow_hidden=False):
-    """Checks that a string is a valid/invalid python attribute name."""
-    return all((
-        isinstance(name, six.string_types),
-        len(name) > 0,
-        (allow_self or not name.lower().startswith('self')),
-        (allow_hidden or not name.lower().startswith('_')),
-
-        # NOTE(imelnikov): keywords should be forbidden.
-        not keyword.iskeyword(name),
-
-        # See: http://docs.python.org/release/2.5.2/ref/grammar.txt
-        not (name[0] in string.digits),
-        all(symbol in _ASCII_WORD_SYMBOLS for symbol in name)
-    ))
-
-
-class AttrDict(dict):
-    """Dictionary subclass that allows for attribute based access.
-
-    This subclass allows for accessing a dictionaries keys and values by
-    accessing those keys as regular attributes. Keys that are not valid python
-    attribute names can not of course be acccessed/set (those keys must be
-    accessed/set by the traditional dictionary indexing operators instead).
-    """
-    NO_ATTRS = tuple(reflection.get_member_names(dict))
-
-    @classmethod
-    def _is_valid_attribute_name(cls, name):
-        if not is_valid_attribute_name(name):
-            return False
-        # Make the name just be a simple string in latin-1 encoding in python3.
-        if name in cls.NO_ATTRS:
-            return False
-        return True
-
-    def __init__(self, **kwargs):
-        for (k, v) in kwargs.items():
-            if not self._is_valid_attribute_name(k):
-                raise AttributeError("Invalid attribute name: '%s'" % (k))
-            self[k] = v
-
-    def __getattr__(self, name):
-        if not self._is_valid_attribute_name(name):
-            raise AttributeError("Invalid attribute name: '%s'" % (name))
-        try:
-            return self[name]
-        except KeyError:
-            raise AttributeError("No attributed named: '%s'" % (name))
-
-    def __setattr__(self, name, value):
-        if not self._is_valid_attribute_name(name):
-            raise AttributeError("Invalid attribute name: '%s'" % (name))
-        self[name] = value
 
 
 class ExponentialBackoff(object):
