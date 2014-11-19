@@ -19,7 +19,7 @@ import abc
 
 import six
 
-from taskflow.utils import misc
+from taskflow.types import notifier
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -203,4 +203,4 @@ class NotifyingJobBoard(JobBoard):
     """
     def __init__(self, name, conf):
         super(NotifyingJobBoard, self).__init__(name, conf)
-        self.notifier = misc.Notifier()
+        self.notifier = notifier.Notifier()

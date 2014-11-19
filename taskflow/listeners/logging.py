@@ -21,6 +21,7 @@ import sys
 
 from taskflow.listeners import base
 from taskflow import states
+from taskflow.types import notifier
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -51,8 +52,8 @@ class LoggingListener(base.LoggingBase):
     is provided.
     """
     def __init__(self, engine,
-                 task_listen_for=(misc.Notifier.ANY,),
-                 flow_listen_for=(misc.Notifier.ANY,),
+                 task_listen_for=(notifier.Notifier.ANY,),
+                 flow_listen_for=(notifier.Notifier.ANY,),
                  log=None,
                  level=logging.DEBUG):
         super(LoggingListener, self).__init__(engine,
@@ -99,8 +100,8 @@ class DynamicLoggingListener(base.ListenerBase):
     """
 
     def __init__(self, engine,
-                 task_listen_for=(misc.Notifier.ANY,),
-                 flow_listen_for=(misc.Notifier.ANY,),
+                 task_listen_for=(notifier.Notifier.ANY,),
+                 flow_listen_for=(notifier.Notifier.ANY,),
                  log=None, failure_level=logging.WARNING,
                  level=logging.DEBUG):
         super(DynamicLoggingListener, self).__init__(

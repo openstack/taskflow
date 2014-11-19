@@ -19,6 +19,7 @@ import abc
 
 import six
 
+from taskflow.types import notifier
 from taskflow.utils import misc
 
 
@@ -40,8 +41,8 @@ class EngineBase(object):
             self._options = {}
         else:
             self._options = dict(options)
-        self.notifier = misc.Notifier()
-        self.task_notifier = misc.Notifier()
+        self.notifier = notifier.Notifier()
+        self.task_notifier = notifier.Notifier()
 
     @property
     def options(self):

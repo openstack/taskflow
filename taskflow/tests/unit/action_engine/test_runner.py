@@ -27,7 +27,7 @@ from taskflow import storage
 from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.types import fsm
-from taskflow.utils import misc
+from taskflow.types import notifier
 from taskflow.utils import persistence_utils as pu
 
 
@@ -41,7 +41,7 @@ class _RunnerTestMixin(object):
             store.ensure_atom(task)
         if initial_state:
             store.set_flow_state(initial_state)
-        task_notifier = misc.Notifier()
+        task_notifier = notifier.Notifier()
         task_executor = executor.SerialTaskExecutor()
         task_executor.start()
         self.addCleanup(task_executor.stop)

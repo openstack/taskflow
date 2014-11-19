@@ -428,4 +428,4 @@ def capture_failure():
     if not any(exc_info):
         raise RuntimeError("No active exception is being handled")
     else:
-        yield Failure(exc_info=exc_info)
+        yield failure.Failure(exc_info=exc_info)
