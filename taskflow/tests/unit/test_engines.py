@@ -31,10 +31,10 @@ from taskflow import states
 from taskflow import task
 from taskflow import test
 from taskflow.tests import utils
+from taskflow.types import failure
 from taskflow.types import futures
 from taskflow.types import graph as gr
 from taskflow.utils import async_utils as au
-from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 from taskflow.utils import threading_utils as tu
 
@@ -529,7 +529,7 @@ class EngineCheckingTaskTest(utils.EngineTestBase):
                 self.assertEqual(result, 'RESULT')
                 self.assertEqual(list(flow_failures.keys()), ['fail1'])
                 fail = flow_failures['fail1']
-                self.assertIsInstance(fail, misc.Failure)
+                self.assertIsInstance(fail, failure.Failure)
                 self.assertEqual(str(fail), 'Failure: RuntimeError: Woot!')
 
         flow = lf.Flow('test').add(

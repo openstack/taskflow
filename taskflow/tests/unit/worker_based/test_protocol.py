@@ -23,7 +23,7 @@ from taskflow.openstack.common import uuidutils
 from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils
-from taskflow.utils import misc
+from taskflow.types import failure
 
 
 class TestProtocolValidation(test.TestCase):
@@ -149,15 +149,16 @@ class TestProtocol(test.TestCase):
                          self.request_to_dict(result=('success', None)))
 
     def test_to_dict_with_result_failure(self):
-        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
-        expected = self.request_to_dict(result=('failure', failure.to_dict()))
-        self.assertEqual(self.request(result=failure).to_dict(), expected)
+        a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
+        expected = self.request_to_dict(result=('failure',
+                                                a_failure.to_dict()))
+        self.assertEqual(self.request(result=a_failure).to_dict(), expected)
 
     def test_to_dict_with_failures(self):
-        failure = misc.Failure.from_exception(RuntimeError('Woot!'))
-        request = self.request(failures={self.task.name: failure})
+        a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
+        request = self.request(failures={self.task.name: a_failure})
         expected = self.request_to_dict(
-            failures={self.task.name: failure.to_dict()})
+            failures={self.task.name: a_failure.to_dict()})
         self.assertEqual(request.to_dict(), expected)
 
     def test_pending_not_expired(self):

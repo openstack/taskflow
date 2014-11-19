@@ -26,9 +26,9 @@ import six
 
 from taskflow.engines.action_engine import executor
 from taskflow import exceptions as excp
+from taskflow.types import failure as ft
 from taskflow.types import timing as tt
 from taskflow.utils import lock_utils
-from taskflow.utils import misc
 from taskflow.utils import reflection
 
 # NOTE(skudriashev): This is protocol states and events, which are not
@@ -270,15 +270,15 @@ class Request(Message):
         """Return json-serializable request.
 
         To convert requests that have failed due to some exception this will
-        convert all `misc.Failure` objects into dictionaries (which will then
-        be reconstituted by the receiver).
+        convert all `failure.Failure` objects into dictionaries (which will
+        then be reconstituted by the receiver).
         """
         request = dict(task_cls=self._task_cls, task_name=self._task.name,
                        task_version=self._task.version, action=self._action,
                        arguments=self._arguments)
         if 'result' in self._kwargs:
             result = self._kwargs['result']
-            if isinstance(result, misc.Failure):
+            if isinstance(result, ft.Failure):
                 request['result'] = ('failure', result.to_dict())
             else:
                 request['result'] = ('success', result)
@@ -417,7 +417,7 @@ class Response(Message):
         state = data['state']
         data = data['data']
         if state == FAILURE and 'result' in data:
-            data['result'] = misc.Failure.from_dict(data['result'])
+            data['result'] = ft.Failure.from_dict(data['result'])
         return cls(state, **data)
 
     @property

@@ -26,6 +26,7 @@ from taskflow.engines import base
 from taskflow import exceptions as exc
 from taskflow import states
 from taskflow import storage as atom_storage
+from taskflow.types import failure
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
@@ -129,7 +130,7 @@ class ActionEngine(base.EngineBase):
                 closed = False
                 for (last_state, failures) in runner.run_iter(timeout=timeout):
                     if failures:
-                        misc.Failure.reraise_if_any(failures)
+                        failure.Failure.reraise_if_any(failures)
                     if closed:
                         continue
                     try:
@@ -152,7 +153,7 @@ class ActionEngine(base.EngineBase):
                     self._change_state(last_state)
                     if last_state not in [states.SUSPENDED, states.SUCCESS]:
                         failures = self.storage.get_failures()
-                        misc.Failure.reraise_if_any(failures.values())
+                        failure.Failure.reraise_if_any(failures.values())
 
     def _change_state(self, state):
         with self._state_lock:

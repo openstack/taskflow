@@ -17,7 +17,7 @@
 import logging
 
 from taskflow import states
-from taskflow.utils import misc
+from taskflow.types import failure
 
 LOG = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ class TaskAction(object):
                                                 self._on_update_progress)
 
     def complete_execution(self, task, result):
-        if isinstance(result, misc.Failure):
+        if isinstance(result, failure.Failure):
             self.change_state(task, states.FAILURE, result=result)
         else:
             self.change_state(task, states.SUCCESS,
@@ -112,7 +112,7 @@ class TaskAction(object):
         return future
 
     def complete_reversion(self, task, rev_result):
-        if isinstance(rev_result, misc.Failure):
+        if isinstance(rev_result, failure.Failure):
             self.change_state(task, states.FAILURE)
         else:
             self.change_state(task, states.REVERTED, progress=1.0)

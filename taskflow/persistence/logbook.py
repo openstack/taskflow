@@ -25,7 +25,7 @@ import six
 from taskflow import exceptions as exc
 from taskflow.openstack.common import uuidutils
 from taskflow import states
-from taskflow.utils import misc
+from taskflow.types import failure as ft
 
 LOG = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ def _safe_unmarshal_time(when):
 
 
 def _was_failure(state, result):
-    return state == states.FAILURE and isinstance(result, misc.Failure)
+    return state == states.FAILURE and isinstance(result, ft.Failure)
 
 
 def _fix_meta(data):
@@ -363,7 +363,7 @@ class AtomDetail(object):
         self.meta = _fix_meta(data)
         failure = data.get('failure')
         if failure:
-            self.failure = misc.Failure.from_dict(failure)
+            self.failure = ft.Failure.from_dict(failure)
 
     @property
     def uuid(self):
@@ -467,8 +467,8 @@ class RetryDetail(AtomDetail):
             new_results = []
             for (data, failures) in results:
                 new_failures = {}
-                for (key, failure_data) in six.iteritems(failures):
-                    new_failures[key] = misc.Failure.from_dict(failure_data)
+                for (key, data) in six.iteritems(failures):
+                    new_failures[key] = ft.Failure.from_dict(data)
                 new_results.append((data, new_failures))
             return new_results
 

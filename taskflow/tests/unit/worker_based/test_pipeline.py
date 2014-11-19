@@ -24,7 +24,7 @@ from taskflow.engines.worker_based import server as worker_server
 from taskflow.openstack.common import uuidutils
 from taskflow import test
 from taskflow.tests import utils as test_utils
-from taskflow.utils import misc
+from taskflow.types import failure
 
 
 TEST_EXCHANGE, TEST_TOPIC = ('test-exchange', 'test-topic')
@@ -94,5 +94,5 @@ class TestPipeline(test.TestCase):
         executor.wait_for_any([f])
 
         _t2, _action, result = f.result()
-        self.assertIsInstance(result, misc.Failure)
+        self.assertIsInstance(result, failure.Failure)
         self.assertEqual(RuntimeError, result.check(RuntimeError))

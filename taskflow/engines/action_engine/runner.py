@@ -17,8 +17,8 @@
 import logging
 
 from taskflow import states as st
+from taskflow.types import failure
 from taskflow.types import fsm
-from taskflow.utils import misc
 
 # Waiting state timeout (in seconds).
 _WAITING_TIMEOUT = 60
@@ -132,15 +132,15 @@ class _MachineBuilder(object):
                 try:
                     node, event, result = fut.result()
                     retain = self._completer.complete(node, event, result)
-                    if retain and isinstance(result, misc.Failure):
+                    if retain and isinstance(result, failure.Failure):
                         memory.failures.append(result)
                 except Exception:
-                    memory.failures.append(misc.Failure())
+                    memory.failures.append(failure.Failure())
                 else:
                     try:
                         more_nodes = self._analyzer.get_next_nodes(node)
                     except Exception:
-                        memory.failures.append(misc.Failure())
+                        memory.failures.append(failure.Failure())
                     else:
                         next_nodes.update(more_nodes)
             if self.runnable() and next_nodes and not memory.failures:

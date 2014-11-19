@@ -33,7 +33,7 @@ from taskflow import exceptions
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 from taskflow.tests import utils
-from taskflow.utils import misc
+from taskflow.types import failure
 
 import example_utils as eu  # noqa
 
@@ -96,15 +96,15 @@ def run(**store):
                                  engine='parallel')
     except exceptions.WrappedFailure as ex:
         unknown_failures = []
-        for failure in ex:
-            if failure.check(FirstException):
-                print("Got FirstException: %s" % failure.exception_str)
-            elif failure.check(SecondException):
-                print("Got SecondException: %s" % failure.exception_str)
+        for a_failure in ex:
+            if a_failure.check(FirstException):
+                print("Got FirstException: %s" % a_failure.exception_str)
+            elif a_failure.check(SecondException):
+                print("Got SecondException: %s" % a_failure.exception_str)
             else:
-                print("Unknown failure: %s" % failure)
-                unknown_failures.append(failure)
-        misc.Failure.reraise_if_any(unknown_failures)
+                print("Unknown failure: %s" % a_failure)
+                unknown_failures.append(a_failure)
+        failure.Failure.reraise_if_any(unknown_failures)
 
 
 eu.print_wrapped("Raise and catch first exception only")
