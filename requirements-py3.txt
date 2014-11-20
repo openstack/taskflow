@@ -11,7 +11,7 @@ pbr>=0.6,!=0.7,<1.0
 six>=1.7.0
 
 # For proxying objects and making correct decorators
-wrapt>=1.7.0
+wrapt>=1.7.0 # BSD License
 
 # Very nice graph library
 networkx>=1.8
