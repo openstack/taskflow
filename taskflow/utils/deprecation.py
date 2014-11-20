@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
 import warnings
 
 import wrapt
@@ -47,6 +48,48 @@ class MovedClassProxy(wrapt.ObjectProxy):
         return issubclass(instance, self.__wrapped__)
 
 
+def _generate_moved_message(kind, old_name, new_name,
+                            message=None, version=None, removal_version=None):
+    message_components = [
+        "%s '%s' has moved to '%s'" % (kind, old_name, new_name),
+    ]
+    if version:
+        message_components.append(" in version '%s'" % version)
+    if removal_version:
+        if removal_version == "?":
+            message_components.append(" and will be removed in a future"
+                                      " version")
+        else:
+            message_components.append(" and will be removed in version"
+                                      " '%s'" % removal_version)
+    if message:
+        message_components.append(": %s" % message)
+    return ''.join(message_components)
+
+
+def _moved_decorator(kind, new_name, message=None,
+                     version=None, removal_version=None):
+    """Decorates a method/function/other that was moved to another location."""
+
+    @wrapt.decorator
+    def decorator(wrapped, instance, args, kwargs):
+        try:
+            old_name = wrapped.__qualname__
+        except AttributeError:
+            old_name = wrapped.__name__
+        out_message = _generate_moved_message(kind, old_name, new_name,
+                                              message=message, version=version,
+                                              removal_version=removal_version)
+        deprecation(out_message, 3)
+        return wrapped(*args, **kwargs)
+
+    return decorator
+
+
+"""Decorates a property that was moved to another location."""
+moved_property = functools.partial(_moved_decorator, 'Property')
+
+
 def moved_class(new_class, old_class_name, old_module_name, message=None,
                 version=None, removal_version=None):
     """Deprecates a class that was moved to another location.
@@ -56,18 +99,7 @@ def moved_class(new_class, old_class_name, old_module_name, message=None,
     """
     old_name = ".".join((old_module_name, old_class_name))
     new_name = reflection.get_class_name(new_class)
-    message_components = [
-        "Class '%s' has moved to '%s'" % (old_name, new_name),
-    ]
-    if version:
-        message_components.append(" in version '%s'" % version)
-    if removal_version:
-        if removal_version == "?":
-            message_components.append(" and will be removed in a future"
-                                      " version")
-        else:
-            message_components.append(" and will be removed in version '%s'"
-                                      % removal_version)
-    if message:
-        message_components.append(": %s" % message)
-    return MovedClassProxy(new_class, "".join(message_components), 3)
+    out_message = _generate_moved_message('Class', old_name, new_name,
+                                          message=message, version=version,
+                                          removal_version=removal_version)
+    return MovedClassProxy(new_class, out_message, 3)

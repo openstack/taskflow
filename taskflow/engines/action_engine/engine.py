@@ -217,7 +217,7 @@ class ActionEngine(base.EngineBase):
         self._compilation = self._compiler.compile()
         self._runtime = runtime.Runtime(self._compilation,
                                         self.storage,
-                                        self.task_notifier,
+                                        self.atom_notifier,
                                         self._task_executor)
         self._compiled = True
 
