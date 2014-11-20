@@ -22,6 +22,7 @@ from taskflow import exceptions
 from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.types import failure
+from taskflow.utils import misc
 
 
 def _captured_failure(msg):
@@ -36,6 +37,17 @@ def _make_exc_info(msg):
         raise RuntimeError(msg)
     except Exception:
         return sys.exc_info()
+
+
+class DeprecatedTestCase(test.TestCase):
+    def test_deprecated(self):
+        f = None
+        try:
+            raise RuntimeError("Woot!")
+        except RuntimeError:
+            f = misc.Failure()
+        self.assertIsInstance(f, failure.Failure)
+        self.assertIsInstance(f, misc.Failure)
 
 
 class GeneralFailureObjTestsMixin(object):
