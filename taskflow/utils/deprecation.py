@@ -14,10 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import functools
 import warnings
-
-import wrapt
 
 from taskflow.utils import reflection
 
@@ -27,67 +24,72 @@ def deprecation(message, stacklevel=2):
     warnings.warn(message, category=DeprecationWarning, stacklevel=stacklevel)
 
 
-class MovedClassProxy(wrapt.ObjectProxy):
-    """Acts as a proxy to a class that was moved to another location."""
+# Helper accessors for the moved proxy (since it will not have easy access
+# to its own getattr and setattr functions).
+_setattr = object.__setattr__
+_getattr = object.__getattribute__
+
+
+class MovedClassProxy(object):
+    """Acts as a proxy to a class that was moved to another location.
+
+    Partially based on:
+
+    http://code.activestate.com/recipes/496741-object-proxying/ and other
+    various examination of how to make a good enough proxy for our usage to
+    move the various types we want to move during the deprecation process.
+
+    And partially based on the wrapt object proxy (which we should just use
+    when it becomes available @ http://review.openstack.org/#/c/94754/).
+    """
+
+    __slots__ = [
+        '__wrapped__', '__message__', '__stacklevel__',
+        # Ensure weakrefs can be made,
+        # https://docs.python.org/2/reference/datamodel.html#slots
+        '__weakref__',
+    ]
 
     def __init__(self, wrapped, message, stacklevel):
-        super(MovedClassProxy, self).__init__(wrapped)
-        self._self_message = message
-        self._self_stacklevel = stacklevel
-
-    def __call__(self, *args, **kwargs):
-        deprecation(self._self_message, stacklevel=self._self_stacklevel)
-        return self.__wrapped__(*args, **kwargs)
+        # We can't assign to these directly, since we are overriding getattr
+        # and setattr and delattr so we have to do this hoop jump to ensure
+        # that we don't invoke those methods (and cause infinite recursion).
+        _setattr(self, '__wrapped__', wrapped)
+        _setattr(self, '__message__', message)
+        _setattr(self, '__stacklevel__', stacklevel)
+        try:
+            _setattr(self, '__qualname__', wrapped.__qualname__)
+        except AttributeError:
+            pass
 
     def __instancecheck__(self, instance):
-        deprecation(self._self_message, stacklevel=self._self_stacklevel)
-        return isinstance(instance, self.__wrapped__)
+        deprecation(
+            _getattr(self, '__message__'), _getattr(self, '__stacklevel__'))
+        return isinstance(instance, _getattr(self, '__wrapped__'))
 
     def __subclasscheck__(self, instance):
-        deprecation(self._self_message, stacklevel=self._self_stacklevel)
-        return issubclass(instance, self.__wrapped__)
+        deprecation(
+            _getattr(self, '__message__'), _getattr(self, '__stacklevel__'))
+        return issubclass(instance, _getattr(self, '__wrapped__'))
 
+    def __call__(self, *args, **kwargs):
+        deprecation(
+            _getattr(self, '__message__'), _getattr(self, '__stacklevel__'))
+        return _getattr(self, '__wrapped__')(*args, **kwargs)
 
-def _generate_moved_message(kind, old_name, new_name,
-                            message=None, version=None, removal_version=None):
-    message_components = [
-        "%s '%s' has moved to '%s'" % (kind, old_name, new_name),
-    ]
-    if version:
-        message_components.append(" in version '%s'" % version)
-    if removal_version:
-        if removal_version == "?":
-            message_components.append(" and will be removed in a future"
-                                      " version")
-        else:
-            message_components.append(" and will be removed in version"
-                                      " '%s'" % removal_version)
-    if message:
-        message_components.append(": %s" % message)
-    return ''.join(message_components)
+    def __getattribute__(self, name):
+        return getattr(_getattr(self, '__wrapped__'), name)
 
+    def __setattr__(self, name, value):
+        setattr(_getattr(self, '__wrapped__'), name, value)
 
-def _moved_decorator(kind, new_name, message=None,
-                     version=None, removal_version=None):
-    """Decorates a method/function/other that was moved to another location."""
+    def __delattr__(self, name):
+        delattr(_getattr(self, '__wrapped__'), name)
 
-    @wrapt.decorator
-    def decorator(wrapped, instance, args, kwargs):
-        try:
-            old_name = wrapped.__qualname__
-        except AttributeError:
-            old_name = wrapped.__name__
-        out_message = _generate_moved_message(kind, old_name, new_name,
-                                              message=message, version=version,
-                                              removal_version=removal_version)
-        deprecation(out_message, 3)
-        return wrapped(*args, **kwargs)
-
-    return decorator
-
-
-"""Decorates a property that was moved to another location."""
-moved_property = functools.partial(_moved_decorator, 'Property')
+    def __repr__(self):
+        wrapped = _getattr(self, '__wrapped__')
+        return "<%s at 0x%x for %r at 0x%x>" % (
+            type(self).__name__, id(self), wrapped, id(wrapped))
 
 
 def moved_class(new_class, old_class_name, old_module_name, message=None,
@@ -99,7 +101,18 @@ def moved_class(new_class, old_class_name, old_module_name, message=None,
     """
     old_name = ".".join((old_module_name, old_class_name))
     new_name = reflection.get_class_name(new_class)
-    out_message = _generate_moved_message('Class', old_name, new_name,
-                                          message=message, version=version,
-                                          removal_version=removal_version)
-    return MovedClassProxy(new_class, out_message, 3)
+    message_components = [
+        "Class '%s' has moved to '%s'" % (old_name, new_name),
+    ]
+    if version:
+        message_components.append(" in version '%s'" % version)
+    if removal_version:
+        if removal_version == "?":
+            message_components.append(" and will be removed in a future"
+                                      " version")
+        else:
+            message_components.append(" and will be removed in version '%s'"
+                                      % removal_version)
+    if message:
+        message_components.append(": %s" % message)
+    return MovedClassProxy(new_class, "".join(message_components), 3)

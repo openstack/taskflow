@@ -20,15 +20,6 @@ import functools
 from taskflow import states
 from taskflow import test
 from taskflow.types import notifier as nt
-from taskflow.utils import misc
-
-
-class DeprecatedTestCase(test.TestCase):
-    def test_deprecated(self):
-        notifier = misc.Notifier()
-        self.assertIsInstance(notifier, misc.Notifier)
-        self.assertIsInstance(notifier, nt.Notifier)
-        self.assertTrue(hasattr(misc.Notifier, 'ANY'))
 
 
 class NotifierTest(test.TestCase):
