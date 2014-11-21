@@ -46,21 +46,26 @@ class TaskFlowException(Exception):
         """Pretty formats a taskflow exception + any connected causes."""
         if indent < 0:
             raise ValueError("indent must be greater than or equal to zero")
+        return "\n".join(self._pformat(self, [], 0,
+                                       indent=indent, indent_text=indent_text))
 
-        def _format(excp, indent_by):
-            lines = []
-            for line in traceback.format_exception_only(type(excp), excp):
-                # We'll add our own newlines on at the end of formatting.
-                if line.endswith("\n"):
-                    line = line[0:-1]
-                lines.append((indent_text * indent_by) + line)
-            try:
-                lines.extend(_format(excp.cause, indent_by + indent))
-            except AttributeError:
-                pass
-            return lines
-
-        return "\n".join(_format(self, 0))
+    @classmethod
+    def _pformat(cls, excp, lines, current_indent, indent=2, indent_text=" "):
+        line_prefix = indent_text * current_indent
+        for line in traceback.format_exception_only(type(excp), excp):
+            # We'll add our own newlines on at the end of formatting.
+            if line.endswith("\n"):
+                line = line[0:-1]
+            lines.append(line_prefix + line)
+        try:
+            cause = excp.cause
+        except AttributeError:
+            pass
+        else:
+            if cause is not None:
+                cls._pformat(cause, lines, current_indent + indent,
+                             indent=indent, indent_text=indent_text)
+        return lines
 
 
 # Errors related to storage or operations on storage units.
