@@ -36,8 +36,8 @@ class Runtime(object):
     action engine to run to completion.
     """
 
-    def __init__(self, compilation, storage, task_notifier, task_executor):
-        self._task_notifier = task_notifier
+    def __init__(self, compilation, storage, atom_notifier, task_executor):
+        self._atom_notifier = atom_notifier
         self._task_executor = task_executor
         self._storage = storage
         self._compilation = compilation
@@ -68,7 +68,7 @@ class Runtime(object):
 
     @misc.cachedproperty
     def retry_action(self):
-        return ra.RetryAction(self._storage, self._task_notifier,
+        return ra.RetryAction(self._storage, self._atom_notifier,
                               lambda atom: sc.ScopeWalker(self.compilation,
                                                           atom,
                                                           names_only=True))
@@ -76,7 +76,7 @@ class Runtime(object):
     @misc.cachedproperty
     def task_action(self):
         return ta.TaskAction(self._storage, self._task_executor,
-                             self._task_notifier,
+                             self._atom_notifier,
                              lambda atom: sc.ScopeWalker(self.compilation,
                                                          atom,
                                                          names_only=True))
