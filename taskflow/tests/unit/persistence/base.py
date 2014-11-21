@@ -25,7 +25,48 @@ from taskflow.types import failure
 
 class PersistenceTestMixin(object):
     def _get_connection(self):
-        raise NotImplementedError()
+        raise NotImplementedError('_get_connection() implementation required')
+
+    def test_task_detail_update_not_existing(self):
+        lb_id = uuidutils.generate_uuid()
+        lb_name = 'lb-%s' % (lb_id)
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb.add(fd)
+        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        fd.add(td)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+
+        td2 = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        fd.add(td2)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.update_flow_details(fd)
+
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb.uuid)
+        fd2 = lb2.find(fd.uuid)
+        self.assertIsNotNone(fd2.find(td.uuid))
+        self.assertIsNotNone(fd2.find(td2.uuid))
+
+    def test_flow_detail_update_not_existing(self):
+        lb_id = uuidutils.generate_uuid()
+        lb_name = 'lb-%s' % (lb_id)
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb.add(fd)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+
+        fd2 = logbook.FlowDetail('test-2', uuid=uuidutils.generate_uuid())
+        lb.add(fd2)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb.uuid)
+        self.assertIsNotNone(lb2.find(fd.uuid))
+        self.assertIsNotNone(lb2.find(fd2.uuid))
 
     def test_logbook_save_retrieve(self):
         lb_id = uuidutils.generate_uuid()
