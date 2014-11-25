@@ -40,6 +40,7 @@ class Runtime(object):
         self._task_executor = task_executor
         self._storage = storage
         self._compilation = compilation
+        self._scopes = {}
 
     @property
     def compilation(self):
@@ -68,17 +69,23 @@ class Runtime(object):
     @misc.cachedproperty
     def retry_action(self):
         return ra.RetryAction(self._storage, self._atom_notifier,
-                              lambda atom: sc.ScopeWalker(self.compilation,
-                                                          atom,
-                                                          names_only=True))
+                              self._fetch_scopes_for)
 
     @misc.cachedproperty
     def task_action(self):
         return ta.TaskAction(self._storage, self._task_executor,
-                             self._atom_notifier,
-                             lambda atom: sc.ScopeWalker(self.compilation,
-                                                         atom,
-                                                         names_only=True))
+                             self._atom_notifier, self._fetch_scopes_for)
+
+    def _fetch_scopes_for(self, atom):
+        """Fetches a tuple of the visible scopes for the given atom."""
+        try:
+            return self._scopes[atom]
+        except KeyError:
+            walker = sc.ScopeWalker(self.compilation, atom,
+                                    names_only=True)
+            visible_to = tuple(walker)
+            self._scopes[atom] = visible_to
+            return visible_to
 
     # Various helper methods used by the runtime components; not for public
     # consumption...
