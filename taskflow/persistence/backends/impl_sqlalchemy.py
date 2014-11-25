@@ -257,8 +257,6 @@ class SQLAlchemyBackend(base.Backend):
             if _as_bool(conf.pop('checkout_ping', True)):
                 sa.event.listen(engine, 'checkout', _ping_listener)
             mode = None
-            if _as_bool(conf.pop('mysql_traditional_mode', True)):
-                mode = 'TRADITIONAL'
             if 'mysql_sql_mode' in conf:
                 mode = conf.pop('mysql_sql_mode')
             if mode is not None:
