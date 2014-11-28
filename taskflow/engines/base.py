@@ -20,6 +20,7 @@ import abc
 import six
 
 from taskflow.types import notifier
+from taskflow.utils import deprecation
 from taskflow.utils import misc
 
 
@@ -31,6 +32,10 @@ class EngineBase(object):
                     occur related to the flow the engine contains.
     :ivar task_notifier: A notification object that will dispatch events that
                          occur related to the tasks the engine contains.
+                         occur related to the tasks the engine
+                         contains (deprecated).
+    :ivar atom_notifier: A notification object that will dispatch events that
+                         occur related to the atoms the engine contains.
     """
 
     def __init__(self, flow, flow_detail, backend, options):
@@ -41,8 +46,25 @@ class EngineBase(object):
             self._options = {}
         else:
             self._options = dict(options)
-        self.notifier = notifier.Notifier()
-        self.task_notifier = notifier.Notifier()
+        self._notifier = notifier.Notifier()
+        self._atom_notifier = notifier.Notifier()
+
+    @property
+    def notifier(self):
+        """The flow notifier."""
+        return self._notifier
+
+    @property
+    @deprecation.moved_property('atom_notifier', version="0.6",
+                                removal_version="?")
+    def task_notifier(self):
+        """The task notifier."""
+        return self._atom_notifier
+
+    @property
+    def atom_notifier(self):
+        """The atom notifier."""
+        return self._atom_notifier
 
     @property
     def options(self):

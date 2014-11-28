@@ -14,7 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
 import warnings
+
+import six
 
 from taskflow.utils import reflection
 
@@ -92,17 +95,10 @@ class MovedClassProxy(object):
             type(self).__name__, id(self), wrapped, id(wrapped))
 
 
-def moved_class(new_class, old_class_name, old_module_name, message=None,
-                version=None, removal_version=None):
-    """Deprecates a class that was moved to another location.
-
-    This will emit warnings when the old locations class is initialized,
-    telling where the new and improved location for the old class now is.
-    """
-    old_name = ".".join((old_module_name, old_class_name))
-    new_name = reflection.get_class_name(new_class)
+def _generate_moved_message(kind, old_name, new_name,
+                            message=None, version=None, removal_version=None):
     message_components = [
-        "Class '%s' has moved to '%s'" % (old_name, new_name),
+        "%s '%s' has moved to '%s'" % (kind, old_name, new_name),
     ]
     if version:
         message_components.append(" in version '%s'" % version)
@@ -115,4 +111,54 @@ def moved_class(new_class, old_class_name, old_module_name, message=None,
                                       % removal_version)
     if message:
         message_components.append(": %s" % message)
-    return MovedClassProxy(new_class, "".join(message_components), 3)
+    return ''.join(message_components)
+
+
+def _moved_decorator(kind, new_attribute_name, message=None,
+                     version=None, removal_version=None):
+    """Decorates a method/property that was moved to another location."""
+
+    def decorator(f):
+        try:
+            old_attribute_name = f.__qualname__
+            fully_qualified = True
+        except AttributeError:
+            old_attribute_name = f.__name__
+            fully_qualified = False
+
+        @six.wraps(f)
+        def wrapper(self, *args, **kwargs):
+            base_name = reflection.get_class_name(self, fully_qualified=False)
+            if fully_qualified:
+                old_name = old_attribute_name
+            else:
+                old_name = ".".join((base_name, old_attribute_name))
+            new_name = ".".join((base_name, new_attribute_name))
+            out_message = _generate_moved_message(
+                kind, old_name=old_name, new_name=new_name, message=message,
+                version=version, removal_version=removal_version)
+            deprecation(out_message, 3)
+            return f(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+"""Decorates a *instance* property that was moved to another location."""
+moved_property = functools.partial(_moved_decorator, 'Property')
+
+
+def moved_class(new_class, old_class_name, old_module_name, message=None,
+                version=None, removal_version=None):
+    """Deprecates a class that was moved to another location.
+
+    This will emit warnings when the old locations class is initialized,
+    telling where the new and improved location for the old class now is.
+    """
+    old_name = ".".join((old_module_name, old_class_name))
+    new_name = reflection.get_class_name(new_class)
+    out_message = _generate_moved_message('Class', old_name, new_name,
+                                          message=message, version=version,
+                                          removal_version=removal_version)
+    return MovedClassProxy(new_class, out_message, 3)
