@@ -15,7 +15,6 @@
 #    under the License.
 
 import contextlib
-import threading
 import time
 
 from kazoo.recipe import watchers
@@ -143,11 +142,9 @@ class BoardTestMixin(object):
             jobs.extend(it)
 
         with connect_close(self.board):
-            t1 = threading.Thread(target=poster)
-            t1.daemon = True
+            t1 = threading_utils.daemon_thread(poster)
             t1.start()
-            t2 = threading.Thread(target=waiter)
-            t2.daemon = True
+            t2 = threading_utils.daemon_thread(waiter)
             t2.start()
             for t in (t1, t2):
                 t.join()

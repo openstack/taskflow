@@ -16,7 +16,6 @@
 
 import collections
 import contextlib
-import threading
 
 from zake import fake_client
 
@@ -51,12 +50,6 @@ def test_factory(blowup):
     return f
 
 
-def make_thread(conductor):
-    t = threading.Thread(target=conductor.run)
-    t.daemon = True
-    return t
-
-
 class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
     ComponentBundle = collections.namedtuple('ComponentBundle',
                                              ['board', 'client',
@@ -85,7 +78,7 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
         components = self.make_components()
         components.conductor.connect()
         with close_many(components.conductor, components.client):
-            t = make_thread(components.conductor)
+            t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             self.assertTrue(
                 components.conductor.stop(test_utils.WAIT_TIMEOUT))
@@ -102,7 +95,7 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
 
         components.board.notifier.register(jobboard.REMOVAL, on_consume)
         with close_many(components.conductor, components.client):
-            t = make_thread(components.conductor)
+            t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
             engines.save_factory_details(fd, test_factory,
@@ -131,7 +124,7 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
 
         components.board.notifier.register(jobboard.REMOVAL, on_consume)
         with close_many(components.conductor, components.client):
-            t = make_thread(components.conductor)
+            t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
             engines.save_factory_details(fd, test_factory,

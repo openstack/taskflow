@@ -14,8 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import threading
-
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow.openstack.common import uuidutils
@@ -43,8 +41,7 @@ class TestMessagePump(test.TestCase):
                             'polling_interval': POLLING_INTERVAL,
                         })
 
-        t = threading.Thread(target=p.start)
-        t.daemon = True
+        t = threading_utils.daemon_thread(p.start)
         t.start()
         p.wait()
         p.publish(pr.Notify(), TEST_TOPIC)
@@ -69,8 +66,7 @@ class TestMessagePump(test.TestCase):
                             'polling_interval': POLLING_INTERVAL,
                         })
 
-        t = threading.Thread(target=p.start)
-        t.daemon = True
+        t = threading_utils.daemon_thread(p.start)
         t.start()
         p.wait()
         resp = pr.Response(pr.RUNNING)
@@ -109,8 +105,7 @@ class TestMessagePump(test.TestCase):
                             'polling_interval': POLLING_INTERVAL,
                         })
 
-        t = threading.Thread(target=p.start)
-        t.daemon = True
+        t = threading_utils.daemon_thread(p.start)
         t.start()
         p.wait()
 

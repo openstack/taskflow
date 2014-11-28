@@ -195,8 +195,7 @@ class MultilockTest(test.TestCase):
 
         threads = []
         for _i in range(0, 20):
-            t = threading.Thread(target=run)
-            t.daemon = True
+            t = threading_utils.daemon_thread(run)
             threads.append(t)
             t.start()
         while threads:
@@ -234,9 +233,8 @@ class MultilockTest(test.TestCase):
                 target = run_fail
             else:
                 target = run
-            t = threading.Thread(target=target)
+            t = threading_utils.daemon_thread(target)
             threads.append(t)
-            t.daemon = True
             t.start()
         while threads:
             t = threads.pop()
@@ -287,9 +285,8 @@ class MultilockTest(test.TestCase):
 
         threads = []
         for i in range(0, 20):
-            t = threading.Thread(target=run)
+            t = threading_utils.daemon_thread(run)
             threads.append(t)
-            t.daemon = True
             t.start()
         while threads:
             t = threads.pop()
@@ -369,11 +366,11 @@ class ReadWriteLockTest(test.TestCase):
             with lock.write_lock():
                 activated.append(lock.owner)
 
-        reader = threading.Thread(target=double_reader)
+        reader = threading_utils.daemon_thread(double_reader)
         reader.start()
         self.assertTrue(active.wait(test_utils.WAIT_TIMEOUT))
 
-        writer = threading.Thread(target=happy_writer)
+        writer = threading_utils.daemon_thread(happy_writer)
         writer.start()
 
         reader.join()
