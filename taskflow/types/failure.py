@@ -25,13 +25,13 @@ from taskflow.utils import reflection
 
 
 def _copy_exc_info(exc_info):
-    """Make copy of exception info tuple, as deep as possible."""
     if exc_info is None:
         return None
     exc_type, exc_value, tb = exc_info
-    # NOTE(imelnikov): there is no need to copy type, and
-    # we can't copy traceback.
-    return (exc_type, copy.deepcopy(exc_value), tb)
+    # NOTE(imelnikov): there is no need to copy the exception type, and
+    # a shallow copy of the value is fine and we can't copy the traceback since
+    # it contains reference to the internal stack frames...
+    return (exc_type, copy.copy(exc_value), tb)
 
 
 def _are_equal_exc_info_tuples(ei1, ei2):
