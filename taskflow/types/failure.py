@@ -107,6 +107,10 @@ class Failure(object):
       python has where foreign modules can be imported, causing those modules
       to have code ran when this happens, and this can cause issues and
       side-effects that the receiver would not have intended to have caused).
+
+    TODO(harlowja): when/if http://bugs.python.org/issue17911 merges and
+    becomes available for use we should be able to use that and simplify the
+    methods and contents of this object.
     """
     DICT_VERSION = 1
 
