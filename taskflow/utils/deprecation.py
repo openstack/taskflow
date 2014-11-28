@@ -21,10 +21,34 @@ import six
 
 from taskflow.utils import reflection
 
+_CLASS_MOVED_PREFIX_TPL = "Class '%s' has moved to '%s'"
+_KIND_MOVED_PREFIX_TPL = "%s '%s' has moved to '%s'"
+_KWARG_MOVED_POSTFIX_TPL = ", please use the '%s' argument instead"
+_KWARG_MOVED_PREFIX_TPL = "Using the '%s' argument is deprecated"
 
-def deprecation(message, stacklevel=2):
-    """Warns about some type of deprecation that has been made."""
-    warnings.warn(message, category=DeprecationWarning, stacklevel=stacklevel)
+
+def deprecation(message, stacklevel=None):
+    """Warns about some type of deprecation that has been (or will be) made.
+
+    This helper function makes it easier to interact with the warnings module
+    by standardizing the arguments that the warning function recieves so that
+    it is easier to use.
+
+    This should be used to emit warnings to users (users can easily turn these
+    warnings off/on, see https://docs.python.org/2/library/warnings.html
+    as they see fit so that the messages do not fill up the users logs with
+    warnings that they do not wish to see in production) about functions,
+    methods, attributes or other code that is deprecated and will be removed
+    in a future release (this is done using these warnings to avoid breaking
+    existing users of those functions, methods, code; which a library should
+    avoid doing by always giving at *least* N + 1 release for users to address
+    the deprecation warnings).
+    """
+    if stacklevel is None:
+        warnings.warn(message, category=DeprecationWarning)
+    else:
+        warnings.warn(message,
+                      category=DeprecationWarning, stacklevel=stacklevel)
 
 
 # Helper accessors for the moved proxy (since it will not have easy access
@@ -66,18 +90,18 @@ class MovedClassProxy(object):
             pass
 
     def __instancecheck__(self, instance):
-        deprecation(
-            _getattr(self, '__message__'), _getattr(self, '__stacklevel__'))
+        deprecation(_getattr(self, '__message__'),
+                    stacklevel=_getattr(self, '__stacklevel__'))
         return isinstance(instance, _getattr(self, '__wrapped__'))
 
     def __subclasscheck__(self, instance):
-        deprecation(
-            _getattr(self, '__message__'), _getattr(self, '__stacklevel__'))
+        deprecation(_getattr(self, '__message__'),
+                    stacklevel=_getattr(self, '__stacklevel__'))
         return issubclass(instance, _getattr(self, '__wrapped__'))
 
     def __call__(self, *args, **kwargs):
-        deprecation(
-            _getattr(self, '__message__'), _getattr(self, '__stacklevel__'))
+        deprecation(_getattr(self, '__message__'),
+                    stacklevel=_getattr(self, '__stacklevel__'))
         return _getattr(self, '__wrapped__')(*args, **kwargs)
 
     def __getattribute__(self, name):
@@ -95,11 +119,9 @@ class MovedClassProxy(object):
             type(self).__name__, id(self), wrapped, id(wrapped))
 
 
-def _generate_moved_message(kind, old_name, new_name,
-                            message=None, version=None, removal_version=None):
-    message_components = [
-        "%s '%s' has moved to '%s'" % (kind, old_name, new_name),
-    ]
+def _generate_moved_message(prefix, postfix=None, message=None,
+                            version=None, removal_version=None):
+    message_components = [prefix]
     if version:
         message_components.append(" in version '%s'" % version)
     if removal_version:
@@ -109,9 +131,34 @@ def _generate_moved_message(kind, old_name, new_name,
         else:
             message_components.append(" and will be removed in version '%s'"
                                       % removal_version)
+    if postfix:
+        message_components.append(postfix)
     if message:
         message_components.append(": %s" % message)
     return ''.join(message_components)
+
+
+def renamed_kwarg(old_name, new_name, message=None,
+                  version=None, removal_version=None, stacklevel=3):
+    """Decorates a kwarg accepting function to deprecate a renamed kwarg."""
+
+    prefix = _KWARG_MOVED_PREFIX_TPL % old_name
+    postfix = _KWARG_MOVED_POSTFIX_TPL % new_name
+    out_message = _generate_moved_message(prefix, postfix=postfix,
+                                          message=message, version=version,
+                                          removal_version=removal_version)
+
+    def decorator(f):
+
+        @six.wraps(f)
+        def wrapper(*args, **kwargs):
+            if old_name in kwargs:
+                deprecation(out_message, stacklevel=stacklevel)
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def _moved_decorator(kind, new_attribute_name, message=None,
@@ -134,10 +181,11 @@ def _moved_decorator(kind, new_attribute_name, message=None,
             else:
                 old_name = ".".join((base_name, old_attribute_name))
             new_name = ".".join((base_name, new_attribute_name))
+            prefix = _KIND_MOVED_PREFIX_TPL % (kind, old_name, new_name)
             out_message = _generate_moved_message(
-                kind, old_name=old_name, new_name=new_name, message=message,
+                prefix, message=message,
                 version=version, removal_version=removal_version)
-            deprecation(out_message, 3)
+            deprecation(out_message, stacklevel=3)
             return f(self, *args, **kwargs)
 
         return wrapper
@@ -158,7 +206,8 @@ def moved_class(new_class, old_class_name, old_module_name, message=None,
     """
     old_name = ".".join((old_module_name, old_class_name))
     new_name = reflection.get_class_name(new_class)
-    out_message = _generate_moved_message('Class', old_name, new_name,
+    prefix = _CLASS_MOVED_PREFIX_TPL % (old_name, new_name)
+    out_message = _generate_moved_message(prefix,
                                           message=message, version=version,
                                           removal_version=removal_version)
-    return MovedClassProxy(new_class, out_message, 3)
+    return MovedClassProxy(new_class, out_message, stacklevel=3)
