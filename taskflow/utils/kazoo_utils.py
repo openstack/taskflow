@@ -95,8 +95,12 @@ class KazooTransactionException(k_exc.KazooException):
 
 
 def checked_commit(txn):
-    # Until https://github.com/python-zk/kazoo/pull/224 is fixed we have
-    # to workaround the transaction failing silently.
+    """Commits a kazoo transcation and validates the result.
+
+    NOTE(harlowja): Until https://github.com/python-zk/kazoo/pull/224 is fixed
+    or a similar pull request is merged we have to workaround the transaction
+    failing silently.
+    """
     if not txn.operations:
         return []
     results = txn.commit()

@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import functools
 import warnings
 
 import six
@@ -193,8 +192,12 @@ def _moved_decorator(kind, new_attribute_name, message=None,
     return decorator
 
 
-"""Decorates a *instance* property that was moved to another location."""
-moved_property = functools.partial(_moved_decorator, 'Property')
+def moved_property(new_attribute_name, message=None,
+                   version=None, removal_version=None):
+    """Decorates a *instance* property that was moved to another location."""
+
+    return _moved_decorator('Property', new_attribute_name, message=message,
+                            version=version, removal_version=removal_version)
 
 
 def moved_class(new_class, old_class_name, old_module_name, message=None,
