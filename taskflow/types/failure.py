@@ -114,8 +114,15 @@ class Failure(object):
         if not kwargs:
             if exc_info is None:
                 exc_info = sys.exc_info()
+            else:
+                # This should always be the (type, value, traceback) tuple,
+                # either from a prior sys.exc_info() call or from some other
+                # creation...
+                if len(exc_info) != 3:
+                    raise ValueError("Provided 'exc_info' must contain three"
+                                     " elements")
             self._exc_info = exc_info
-            self._exc_type_names = list(
+            self._exc_type_names = tuple(
                 reflection.get_all_class_names(exc_info[0], up_to=Exception))
             if not self._exc_type_names:
                 raise TypeError('Invalid exception type: %r' % exc_info[0])
@@ -125,7 +132,7 @@ class Failure(object):
         else:
             self._exc_info = exc_info  # may be None
             self._exception_str = kwargs.pop('exception_str')
-            self._exc_type_names = kwargs.pop('exc_type_names', [])
+            self._exc_type_names = tuple(kwargs.pop('exc_type_names', []))
             self._traceback_str = kwargs.pop('traceback_str', None)
             if kwargs:
                 raise TypeError(
