@@ -45,6 +45,13 @@ Jobboards
   service that uses TaskFlow to select a jobboard implementation that fits
   their setup (and there intended usage) best.
 
+High level architecture
+=======================
+
+.. image:: img/jobboard.png
+   :height: 350px
+   :align: right
+
 Features
 ========
 
