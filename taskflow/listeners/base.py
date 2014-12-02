@@ -32,6 +32,9 @@ LOG = logging.getLogger(__name__)
 # do not produce results.
 FINISH_STATES = (states.FAILURE, states.SUCCESS)
 
+# What is listened for by default...
+DEFAULT_LISTEN_FOR = (notifier.Notifier.ANY,)
+
 
 class ListenerBase(object):
     """Base class for listeners.
@@ -47,8 +50,8 @@ class ListenerBase(object):
     """
 
     def __init__(self, engine,
-                 task_listen_for=(notifier.Notifier.ANY,),
-                 flow_listen_for=(notifier.Notifier.ANY,)):
+                 task_listen_for=DEFAULT_LISTEN_FOR,
+                 flow_listen_for=DEFAULT_LISTEN_FOR):
         if not task_listen_for:
             task_listen_for = []
         if not flow_listen_for:
