@@ -342,11 +342,27 @@ def capture_failure():
 
     For example::
 
-      except Exception:
-        with capture_failure() as fail:
-            LOG.warn("Activating cleanup")
-            cleanup()
-            save_failure(fail)
+        >>> from taskflow.utils import misc
+        >>>
+        >>> def cleanup():
+        ...     pass
+        ...
+        >>>
+        >>> def save_failure(f):
+        ...     print("Saving %s" % f)
+        ...
+        >>>
+        >>> try:
+        ...     raise IOError("Broken")
+        ... except Exception:
+        ...     with misc.capture_failure() as fail:
+        ...         print("Activating cleanup")
+        ...         cleanup()
+        ...         save_failure(fail)
+        ...
+        Activating cleanup
+        Saving Failure: IOError: Broken
+
     """
     exc_info = sys.exc_info()
     if not any(exc_info):
