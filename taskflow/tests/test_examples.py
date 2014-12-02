@@ -28,20 +28,35 @@ examples is indeterministic (due to hash randomization for example).
 """
 
 
+import keyword
 import os
 import re
 import subprocess
 import sys
 
-import taskflow.test
+import six
+
+from taskflow import test
 
 ROOT_DIR = os.path.abspath(
     os.path.dirname(
         os.path.dirname(
             os.path.dirname(__file__))))
 
+# This is used so that any uuid like data being output is removed (since it
+# will change per test run and will invalidate the deterministic output that
+# we expect to be able to check).
 UUID_RE = re.compile('XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
                      .replace('X', '[0-9a-f]'))
+
+
+def safe_filename(filename):
+    # Translates a filename into a method name, returns falsey if not
+    # possible to perform this translation...
+    name = re.sub("[^a-zA-Z0-9_]+", "_", filename)
+    if not name or re.match(r"^[_]+$", name) or keyword.iskeyword(name):
+        return False
+    return name
 
 
 def root_path(*args):
@@ -71,7 +86,7 @@ def expected_output_path(name):
     return root_path('taskflow', 'examples', '%s.out.txt' % name)
 
 
-def list_examples():
+def iter_examples():
     examples_dir = root_path('taskflow', 'examples')
     for filename in os.listdir(examples_dir):
         path = os.path.join(examples_dir, filename)
@@ -80,38 +95,34 @@ def list_examples():
         name, ext = os.path.splitext(filename)
         if ext != ".py":
             continue
-        bad_endings = []
-        for i in ("utils", "no_test"):
-            if name.endswith(i):
-                bad_endings.append(True)
-        if not any(bad_endings):
-            yield name
+        if not any(name.endswith(i) for i in ("utils", "no_test")):
+            safe_name = safe_filename(name)
+            if safe_name:
+                yield name, safe_name
 
 
-class ExamplesTestCase(taskflow.test.TestCase):
-    @classmethod
-    def update(cls):
-        """For each example, adds on a test method.
+class ExampleAdderMeta(type):
+    """Translates examples into test cases/methods."""
 
-        This newly created test method will then be activated by the testing
-        framework when it scans for and runs tests. This makes for a elegant
-        and simple way to ensure that all of the provided examples
-        actually work.
-        """
-        def add_test_method(name, method_name):
+    def __new__(cls, name, parents, dct):
+
+        def generate_test(example_name):
             def test_example(self):
-                self._check_example(name)
-            test_example.__name__ = method_name
-            setattr(cls, method_name, test_example)
+                self._check_example(example_name)
+            return test_example
 
-        for name in list_examples():
-            safe_name = str(re.sub("[^a-zA-Z0-9_]+", "_", name))
-            if re.match(r"^[_]+$", safe_name):
-                continue
-            add_test_method(name, 'test_%s' % safe_name)
+        for example_name, safe_name in iter_examples():
+            test_name = 'test_%s' % safe_name
+            dct[test_name] = generate_test(example_name)
+
+        return type.__new__(cls, name, parents, dct)
+
+
+@six.add_metaclass(ExampleAdderMeta)
+class ExamplesTestCase(test.TestCase):
+    """Runs the examples, and checks the outputs against expected outputs."""
 
     def _check_example(self, name):
-        """Runs the example, and checks the output against expected output."""
         output = run_example(name)
         eop = expected_output_path(name)
         if os.path.isfile(eop):
@@ -123,14 +134,14 @@ class ExamplesTestCase(taskflow.test.TestCase):
             expected_output = UUID_RE.sub('<SOME UUID>', expected_output)
             self.assertEqual(output, expected_output)
 
-ExamplesTestCase.update()
-
 
 def make_output_files():
     """Generate output files for all examples."""
-    for name in list_examples():
-        output = run_example(name)
-        with open(expected_output_path(name), 'w') as f:
+    for example_name, _safe_name in iter_examples():
+        print("Running %s" % example_name)
+        print("Please wait...")
+        output = run_example(example_name)
+        with open(expected_output_path(example_name), 'w') as f:
             f.write(output)
 
 
