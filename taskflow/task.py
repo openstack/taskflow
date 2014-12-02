@@ -187,7 +187,8 @@ class BaseTask(atom.Atom):
         if event not in self.TASK_EVENTS:
             raise ValueError("Unknown task event '%s', can only bind"
                              " to events %s" % (event, self.TASK_EVENTS))
-        assert six.callable(handler), "Handler must be callable"
+        if not six.callable(handler):
+            raise ValueError("Event handler callback must be callable")
         self._events_listeners[event].append((handler, kwargs))
 
     def unbind(self, event, handler=None):
@@ -246,11 +247,13 @@ class FunctorTask(BaseTask):
     def __init__(self, execute, name=None, provides=None,
                  requires=None, auto_extract=True, rebind=None, revert=None,
                  version=None, inject=None):
-        assert six.callable(execute), ("Function to use for executing must be"
-                                       " callable")
-        if revert:
-            assert six.callable(revert), ("Function to use for reverting must"
-                                          " be callable")
+        if not six.callable(execute):
+            raise ValueError("Function to use for executing must be"
+                             " callable")
+        if revert is not None:
+            if not six.callable(revert):
+                raise ValueError("Function to use for reverting must"
+                                 " be callable")
         if name is None:
             name = reflection.get_callable_name(execute)
         super(FunctorTask, self).__init__(name, provides=provides,

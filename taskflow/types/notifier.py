@@ -99,9 +99,10 @@ class Notifier(object):
         ``details``, that will hold event details provided to the
         :meth:`.notify` method.
         """
-        assert six.callable(callback), "Callback must be callable"
+        if not six.callable(callback):
+            raise ValueError("Notification callback must be callable")
         if self.is_registered(event_type, callback):
-            raise ValueError("Callback %s already registered" % (callback))
+            raise ValueError("Notification callback already registered")
         if kwargs:
             for k in self.RESERVED_KEYS:
                 if k in kwargs:

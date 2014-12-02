@@ -282,6 +282,10 @@ class TaskTest(test.TestCase):
         self.assertFalse(task.unbind('update_progress', handler2))
         self.assertEqual(len(task._events_listeners), 1)
 
+    def test_bind_not_callable(self):
+        task = MyTask()
+        self.assertRaises(ValueError, task.bind, 'update_progress', 2)
+
 
 class FunctorTaskTest(test.TestCase):
 
@@ -289,3 +293,10 @@ class FunctorTaskTest(test.TestCase):
         version = (2, 0)
         f_task = task.FunctorTask(lambda: None, version=version)
         self.assertEqual(f_task.version, version)
+
+    def test_execute_not_callable(self):
+        self.assertRaises(ValueError, task.FunctorTask, 2)
+
+    def test_revert_not_callable(self):
+        self.assertRaises(ValueError, task.FunctorTask, lambda: None,
+                          revert=2)

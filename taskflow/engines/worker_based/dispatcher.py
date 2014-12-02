@@ -42,7 +42,8 @@ class TypeDispatcher(object):
         filter should return a truthy object if the message should be requeued
         and a falsey object if it should not.
         """
-        assert six.callable(callback), "Callback must be callable"
+        if not six.callable(callback):
+            raise ValueError("Requeue filter callback must be callable")
         self._requeue_filters.append(callback)
 
     def _collect_requeue_votes(self, data, message):

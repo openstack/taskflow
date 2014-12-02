@@ -400,5 +400,5 @@ class FSMTest(test.TestCase):
         m = fsm.FSM('working')
         m.add_state('working')
         m.add_state('broken')
-        self.assertRaises(AssertionError, m.add_state, 'b', on_enter=2)
-        self.assertRaises(AssertionError, m.add_state, 'b', on_exit=2)
+        self.assertRaises(ValueError, m.add_state, 'b', on_enter=2)
+        self.assertRaises(ValueError, m.add_state, 'b', on_exit=2)
