@@ -110,49 +110,71 @@ class DynamicLoggingListener(base.ListenerBase):
             flow_listen_for=flow_listen_for)
         self._failure_level = failure_level
         self._level = level
+        self._task_log_levels = {
+            states.FAILURE: self._failure_level,
+            states.REVERTED: self._failure_level,
+            states.RETRYING: self._failure_level,
+        }
+        self._flow_log_levels = {
+            states.FAILURE: self._failure_level,
+            states.REVERTED: self._failure_level,
+        }
         if not log:
             self._logger = LOG
         else:
             self._logger = log
 
+    @staticmethod
+    def _format_failure(fail):
+        """Returns a (exc_info, exc_details) tuple about the failure.
+
+        The ``exc_info`` tuple should be a standard three element
+        (exctype, value, traceback) tuple that will be used for further
+        logging. If a non-empty string is returned for ``exc_details`` it
+        should contain any string info about the failure (with any specific
+        details the ``exc_info`` may not have/contain). If the ``exc_info``
+        tuple is returned as ``None`` then it will cause the logging
+        system to avoid outputting any traceback information (read
+        the python documentation on the logger interaction with ``exc_info``
+        to learn more).
+        """
+        if fail.exc_info:
+            exc_info = fail.exc_info
+            exc_details = ''
+        else:
+            # When a remote failure occurs (or somehow the failure
+            # object lost its traceback), we will not have a valid
+            # exc_info that can be used but we *should* have a string
+            # version that we can use instead...
+            exc_info = None
+            exc_details = "\n%s" % fail.pformat(traceback=True)
+        return (exc_info, exc_details)
+
     def _flow_receiver(self, state, details):
-        # Gets called on flow state changes.
-        level = self._level
-        if state in (states.FAILURE, states.REVERTED):
-            level = self._failure_level
+        """Gets called on flow state changes."""
+        level = self._flow_log_levels.get(state, self._level)
         self._logger.log(level, "Flow '%s' (%s) transitioned into state '%s'"
                          " from state '%s'", details['flow_name'],
                          details['flow_uuid'], state, details.get('old_state'))
 
     def _task_receiver(self, state, details):
-        # Gets called on task state changes.
+        """Gets called on task state changes."""
         if 'result' in details and state in base.FINISH_STATES:
             # If the task failed, it's useful to show the exception traceback
             # and any other available exception information.
             result = details.get('result')
             if isinstance(result, failure.Failure):
-                if result.exc_info:
-                    exc_info = result.exc_info
-                    manual_tb = ''
-                else:
-                    # When a remote failure occurs (or somehow the failure
-                    # object lost its traceback), we will not have a valid
-                    # exc_info that can be used but we *should* have a string
-                    # version that we can use instead...
-                    exc_info = None
-                    manual_tb = "\n%s" % result.pformat(traceback=True)
+                exc_info, exc_details = self._format_failure(result)
                 self._logger.log(self._failure_level,
                                  "Task '%s' (%s) transitioned into state"
                                  " '%s'%s", details['task_name'],
-                                 details['task_uuid'], state, manual_tb,
+                                 details['task_uuid'], state, exc_details,
                                  exc_info=exc_info)
             else:
                 # Otherwise, depending on the enabled logging level/state we
                 # will show or hide results that the task may have produced
                 # during execution.
-                level = self._level
-                if state == states.FAILURE:
-                    level = self._failure_level
+                level = self._task_log_levels.get(state, self._level)
                 if (_isEnabledFor(self._logger, self._level)
                         or state == states.FAILURE):
                     self._logger.log(level, "Task '%s' (%s) transitioned into"
@@ -165,9 +187,8 @@ class DynamicLoggingListener(base.ListenerBase):
                                      " state '%s'", details['task_name'],
                                      details['task_uuid'], state)
         else:
-            level = self._level
-            if state in (states.REVERTING, states.RETRYING):
-                level = self._failure_level
+            # Just a intermediary state, carry on!
+            level = self._task_log_levels.get(state, self._level)
             self._logger.log(level, "Task '%s' (%s) transitioned into state"
                              " '%s'", details['task_name'],
                              details['task_uuid'], state)
