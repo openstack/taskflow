@@ -14,9 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import threading
+
 import six
 
-from taskflow.utils import lock_utils as lu
 from taskflow.utils import reflection
 
 
@@ -30,41 +31,38 @@ class ExpiringCache(object):
 
     def __init__(self):
         self._data = {}
-        self._lock = lu.ReaderWriterLock()
+        self._lock = threading.Lock()
 
     def __setitem__(self, key, value):
         """Set a value in the cache."""
-        with self._lock.write_lock():
+        with self._lock:
             self._data[key] = value
 
     def __len__(self):
         """Returns how many items are in this cache."""
-        with self._lock.read_lock():
-            return len(self._data)
+        return len(self._data)
 
     def get(self, key, default=None):
         """Retrieve a value from the cache (returns default if not found)."""
-        with self._lock.read_lock():
-            return self._data.get(key, default)
+        return self._data.get(key, default)
 
     def __getitem__(self, key):
         """Retrieve a value from the cache."""
-        with self._lock.read_lock():
-            return self._data[key]
+        return self._data[key]
 
     def __delitem__(self, key):
         """Delete a key & value from the cache."""
-        with self._lock.write_lock():
+        with self._lock:
             del self._data[key]
 
     def cleanup(self, on_expired_callback=None):
         """Delete out-dated keys & values from the cache."""
-        with self._lock.write_lock():
+        with self._lock:
             expired_values = [(k, v) for k, v in six.iteritems(self._data)
                               if v.expired]
             for (k, _v) in expired_values:
                 del self._data[k]
-        if on_expired_callback:
+        if on_expired_callback is not None:
             arg_c = len(reflection.get_callable_args(on_expired_callback))
             for (k, v) in expired_values:
                 if arg_c == 2:
