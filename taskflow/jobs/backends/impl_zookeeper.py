@@ -115,7 +115,7 @@ class ZookeeperJob(base_job.Job):
                                 % (attr_name, self.uuid, self.path, path), e)
         except self._client.handler.timeout_exception as e:
             raise excp.JobFailure("Can not fetch the %r attribute"
-                                  " of job %s (%s), connection timed out"
+                                  " of job %s (%s), operation timed out"
                                   % (attr_name, self.uuid, self.path), e)
         except k_exceptions.SessionExpiredError as e:
             raise excp.JobFailure("Can not fetch the %r attribute"
@@ -183,7 +183,7 @@ class ZookeeperJob(base_job.Job):
                                   " session expired" % (self.uuid), e)
         except self._client.handler.timeout_exception as e:
             raise excp.JobFailure("Can not fetch the state of %s,"
-                                  " connection timed out" % (self.uuid), e)
+                                  " operation timed out" % (self.uuid), e)
         except k_exceptions.KazooException as e:
             raise excp.JobFailure("Can not fetch the state of %s, internal"
                                   " error" % (self.uuid), e)
@@ -352,7 +352,7 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
         try:
             children = self._client.get_children(self.path)
         except self._client.handler.timeout_exception as e:
-            raise excp.JobFailure("Refreshing failure, connection timed out",
+            raise excp.JobFailure("Refreshing failure, operation timed out",
                                   e)
         except k_exceptions.SessionExpiredError as e:
             raise excp.JobFailure("Refreshing failure, session expired", e)
@@ -386,7 +386,7 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
             LOG.warn("Incorrectly formatted job data found at path: %s",
                      path, exc_info=True)
         except self._client.handler.timeout_exception:
-            LOG.warn("Connection timed out fetching job data from path: %s",
+            LOG.warn("Operation timed out fetching job data from path: %s",
                      path, exc_info=True)
         except k_exceptions.SessionExpiredError:
             LOG.warn("Session expired fetching job data from path: %s", path,
@@ -564,7 +564,7 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
         try:
             yield
         except self._client.handler.timeout_exception as e:
-            fail_msg_tpl += ", connection timed out"
+            fail_msg_tpl += ", operation timed out"
             raise excp.JobFailure(fail_msg_tpl % (job_uuid), e)
         except k_exceptions.SessionExpiredError as e:
             fail_msg_tpl += ", session expired"
