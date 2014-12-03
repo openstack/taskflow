@@ -168,3 +168,8 @@ Timing listener
 .. autoclass:: taskflow.listeners.timing.TimingListener
 
 .. autoclass:: taskflow.listeners.timing.PrintingTimingListener
+
+Claim listener
+--------------
+
+.. autoclass:: taskflow.listeners.claims.CheckingClaimListener
