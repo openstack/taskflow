@@ -20,14 +20,13 @@ import sys
 import traceback
 
 from taskflow.listeners import base
-from taskflow.types import notifier
 
 
 class PrintingListener(base.LoggingBase):
     """Writes the task and flow notifications messages to stdout or stderr."""
     def __init__(self, engine,
-                 task_listen_for=(notifier.Notifier.ANY,),
-                 flow_listen_for=(notifier.Notifier.ANY,),
+                 task_listen_for=base.DEFAULT_LISTEN_FOR,
+                 flow_listen_for=base.DEFAULT_LISTEN_FOR,
                  stderr=False):
         super(PrintingListener, self).__init__(engine,
                                                task_listen_for=task_listen_for,
