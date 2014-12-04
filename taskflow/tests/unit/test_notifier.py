@@ -79,6 +79,11 @@ class NotifierTest(test.TestCase):
                           nt.Notifier.ANY, call_me,
                           kwargs={'details': 5})
 
+    def test_not_callable(self):
+        notifier = nt.Notifier()
+        self.assertRaises(ValueError, notifier.register,
+                          nt.Notifier.ANY, 2)
+
     def test_selective_notify(self):
         call_counts = collections.defaultdict(list)
 

@@ -101,9 +101,11 @@ class FSM(object):
         if state in self._states:
             raise excp.Duplicate("State '%s' already defined" % state)
         if on_enter is not None:
-            assert six.callable(on_enter), "On enter callback must be callable"
+            if not six.callable(on_enter):
+                raise ValueError("On enter callback must be callable")
         if on_exit is not None:
-            assert six.callable(on_exit), "On exit callback must be callable"
+            if not six.callable(on_exit):
+                raise ValueError("On exit callback must be callable")
         self._states[state] = {
             'terminal': bool(terminal),
             'reactions': {},
@@ -137,7 +139,8 @@ class FSM(object):
         if state not in self._states:
             raise excp.NotFound("Can not add a reaction to event '%s' for an"
                                 " undefined state '%s'" % (event, state))
-        assert six.callable(reaction), "Reaction callback must be callable"
+        if not six.callable(reaction):
+            raise ValueError("Reaction callback must be callable")
         if event not in self._states[state]['reactions']:
             self._states[state]['reactions'][event] = (reaction, args, kwargs)
         else:
