@@ -30,6 +30,23 @@ Box () {
     echo
 }
 
+Box "Installing system packages..."
+if [ -f "/etc/redhat-release" ]; then
+    yum install -y -q mysql-devel postgresql-devel mysql-server \
+                      wget gcc make autoconf
+    mysqld="mysqld"
+    zookeeperd="zookeeper-server"
+elif [ -f "/etc/debian_version" ]; then
+    apt-get -y -qq install libmysqlclient-dev mysql-server postgresql \
+                           wget gcc make autoconf
+    mysqld="mysql"
+    zookeeperd="zookeeper"
+else
+    echo "Unknown distribution!!"
+    lsb_release -a
+    exit 1
+fi
+
 set +e
 python_27=`which python2.7`
 set -e
@@ -70,19 +87,6 @@ fi
 Box "Installing tox..."
 $pip_27 install -q 'tox>=1.6.1,<1.7.0'
 
-Box "Installing system packages..."
-if [ -f "/etc/redhat-release" ]; then
-    yum install -y -q mysql-devel postgresql-devel mysql-server
-    mysqld="mysqld"
-elif [ -f "/etc/debian_version" ]; then
-    apt-get -y -qq install libmysqlclient-dev mysql-server postgresql
-    mysqld="mysql"
-else
-    echo "Unknown distribution!!"
-    lsb_release -a
-    exit 1
-fi
-
 Box "Setting up mysql..."
 service $mysqld restart
 /usr/bin/mysql --user="root" --execute='CREATE DATABASE 'openstack_citest''
@@ -95,10 +99,13 @@ FLUSH PRIVILEGES;
 EOF
 /usr/bin/mysql --user="root" < $build_dir/mysql.sql
 
+# TODO(harlowja): configure/setup postgresql...
+
 Box "Installing zookeeper..."
-zk_file="cloudera-cdh-4-0.x86_64.rpm"
-zk_url="http://archive.cloudera.com/cdh4/one-click-install/redhat/6/x86_64/$zk_file"
 if [ -f "/etc/redhat-release" ]; then
+    # RH doesn't ship zookeeper (still...)
+    zk_file="cloudera-cdh-4-0.x86_64.rpm"
+    zk_url="http://archive.cloudera.com/cdh4/one-click-install/redhat/6/x86_64/$zk_file"
     wget $zk_url -O $build_dir/$zk_file --no-check-certificate -nv
     yum -y -q --nogpgcheck localinstall $build_dir/$zk_file
     yum -y -q install zookeeper-server java
@@ -106,10 +113,8 @@ if [ -f "/etc/redhat-release" ]; then
     service zookeeper-server init --force
     mkdir -pv /var/lib/zookeeper
     python -c "import random; print random.randint(1, 16384)" > /var/lib/zookeeper/myid
-    zookeeperd="zookeeper-server"
 elif [ -f "/etc/debian_version" ]; then
     apt-get install -y -qq zookeeperd
-    zookeeperd="zookeeper"
 else
     echo "Unknown distribution!!"
     lsb_release -a
