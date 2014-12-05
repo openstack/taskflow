@@ -14,16 +14,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from taskflow.engines.action_engine.actions import retry as ra
+from taskflow.engines.action_engine.actions import task as ta
 from taskflow.engines.action_engine import analyzer as an
 from taskflow.engines.action_engine import completer as co
-from taskflow.engines.action_engine import retry_action as ra
 from taskflow.engines.action_engine import runner as ru
 from taskflow.engines.action_engine import scheduler as sched
 from taskflow.engines.action_engine import scopes as sc
-from taskflow.engines.action_engine import task_action as ta
-from taskflow import retry as retry_atom
 from taskflow import states as st
-from taskflow import task as task_atom
 from taskflow.utils import misc
 
 
@@ -93,9 +91,10 @@ class Runtime(object):
     def reset_nodes(self, nodes, state=st.PENDING, intention=st.EXECUTE):
         for node in nodes:
             if state:
-                if isinstance(node, task_atom.BaseTask):
-                    self.task_action.change_state(node, state, progress=0.0)
-                elif isinstance(node, retry_atom.Retry):
+                if self.task_action.handles(node):
+                    self.task_action.change_state(node, state,
+                                                  progress=0.0)
+                elif self.retry_action.handles(node):
                     self.retry_action.change_state(node, state)
                 else:
                     raise TypeError("Unknown how to reset atom '%s' (%s)"
