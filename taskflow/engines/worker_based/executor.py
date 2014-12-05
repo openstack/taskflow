@@ -211,8 +211,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                   " correlation_id=%s)", request, topic, self._uuid,
                   request.uuid)
         try:
-            self._proxy.publish(msg=request,
-                                routing_key=topic,
+            self._proxy.publish(request, topic,
                                 reply_to=self._uuid,
                                 correlation_id=request.uuid)
         except Exception:
