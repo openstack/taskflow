@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
 import warnings
 
 import six
@@ -200,6 +201,45 @@ def moved_property(new_attribute_name, message=None,
     return _moved_decorator('Property', new_attribute_name, message=message,
                             version=version, removal_version=removal_version,
                             stacklevel=stacklevel)
+
+
+def moved_inheritable_class(new_class, old_class_name, old_module_name,
+                            message=None, version=None, removal_version=None):
+    """Deprecates a class that was moved to another location.
+
+    NOTE(harlowja): this creates a new-old type that can be used for a
+    deprecation period that can be inherited from, the difference between this
+    and the ``moved_class`` deprecation function is that the proxy from that
+    function can not be inherited from (thus limiting its use for a more
+    particular usecase where inheritance is not needed).
+
+    This will emit warnings when the old locations class is initialized,
+    telling where the new and improved location for the old class now is.
+    """
+    old_name = ".".join((old_module_name, old_class_name))
+    new_name = reflection.get_class_name(new_class)
+    prefix = _CLASS_MOVED_PREFIX_TPL % (old_name, new_name)
+    out_message = _generate_moved_message(prefix,
+                                          message=message, version=version,
+                                          removal_version=removal_version)
+
+    def decorator(f):
+
+        # Use the older functools until the following is available:
+        #
+        # https://bitbucket.org/gutworth/six/issue/105
+
+        @functools.wraps(f, assigned=("__name__", "__doc__"))
+        def wrapper(self, *args, **kwargs):
+            deprecation(out_message, stacklevel=3)
+            return f(self, *args, **kwargs)
+
+        return wrapper
+
+    old_class = type(old_class_name, (new_class,), {})
+    old_class.__module__ = old_module_name
+    old_class.__init__ = decorator(old_class.__init__)
+    return old_class
 
 
 def moved_class(new_class, old_class_name, old_module_name, message=None,
