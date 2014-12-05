@@ -17,7 +17,7 @@
 import logging
 
 from taskflow.engines.action_engine import executor as ex
-from taskflow import retry as rt
+from taskflow import retry as retry_atom
 from taskflow import states
 from taskflow.types import failure
 from taskflow.types import futures
@@ -28,11 +28,17 @@ SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 
 
 class RetryAction(object):
+    """An action that handles executing, state changes, ... of retry atoms."""
+
     def __init__(self, storage, notifier, walker_factory):
         self._storage = storage
         self._notifier = notifier
         self._walker_factory = walker_factory
         self._executor = futures.SynchronousExecutor()
+
+    @staticmethod
+    def handles(atom):
+        return isinstance(atom, retry_atom.Retry)
 
     def _get_retry_args(self, retry, addons=None):
         scope_walker = self._walker_factory(retry)
@@ -40,7 +46,7 @@ class RetryAction(object):
                                                  atom_name=retry.name,
                                                  scope_walker=scope_walker)
         history = self._storage.get_retry_history(retry.name)
-        kwargs[rt.EXECUTE_REVERT_HISTORY] = history
+        kwargs[retry_atom.EXECUTE_REVERT_HISTORY] = history
         if addons:
             kwargs.update(addons)
         return kwargs
@@ -103,7 +109,7 @@ class RetryAction(object):
 
         self.change_state(retry, states.REVERTING)
         arg_addons = {
-            rt.REVERT_FLOW_FAILURES: self._storage.get_failures(),
+            retry_atom.REVERT_FLOW_FAILURES: self._storage.get_failures(),
         }
         fut = self._executor.submit(_execute_retry,
                                     self._get_retry_args(retry,

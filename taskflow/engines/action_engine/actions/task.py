@@ -17,6 +17,7 @@
 import logging
 
 from taskflow import states
+from taskflow import task as task_atom
 from taskflow.types import failure
 
 LOG = logging.getLogger(__name__)
@@ -25,12 +26,17 @@ SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 
 
 class TaskAction(object):
+    """An action that handles scheduling, state changes, ... of task atoms."""
 
     def __init__(self, storage, task_executor, notifier, walker_factory):
         self._storage = storage
         self._task_executor = task_executor
         self._notifier = notifier
         self._walker_factory = walker_factory
+
+    @staticmethod
+    def handles(atom):
+        return isinstance(atom, task_atom.BaseTask)
 
     def _is_identity_transition(self, state, task, progress):
         if state in SAVE_RESULT_STATES:
