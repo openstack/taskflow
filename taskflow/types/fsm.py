@@ -209,6 +209,7 @@ class FSM(object):
         NOTE(harlowja): the copy will be left in an *uninitialized* state.
         """
         c = FSM(self.start_state)
+        c.frozen = self.frozen
         for state, data in six.iteritems(self._states):
             copied_data = data.copy()
             copied_data['reactions'] = copied_data['reactions'].copy()
