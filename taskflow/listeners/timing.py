@@ -39,7 +39,7 @@ def _printer(message):
     print(message)
 
 
-class TimingListener(base.ListenerBase):
+class TimingListener(base.Listener):
     """Listener that captures task duration.
 
     It records how long a task took to execute (or fail)

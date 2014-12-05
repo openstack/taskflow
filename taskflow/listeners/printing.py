@@ -22,7 +22,7 @@ import traceback
 from taskflow.listeners import base
 
 
-class PrintingListener(base.LoggingBase):
+class PrintingListener(base.DumpingListener):
     """Writes the task and flow notifications messages to stdout or stderr."""
     def __init__(self, engine,
                  task_listen_for=base.DEFAULT_LISTEN_FOR,
@@ -37,7 +37,7 @@ class PrintingListener(base.LoggingBase):
         else:
             self._file = sys.stdout
 
-    def _log(self, message, *args, **kwargs):
+    def _dump(self, message, *args, **kwargs):
         print(message % args, file=self._file)
         exc_info = kwargs.get('exc_info')
         if exc_info is not None:

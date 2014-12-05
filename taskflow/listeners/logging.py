@@ -41,7 +41,7 @@ def _isEnabledFor(logger, level):
     return logger.isEnabledFor(level)
 
 
-class LoggingListener(base.LoggingBase):
+class LoggingListener(base.DumpingListener):
     """Listener that logs notifications it receives.
 
     It listens for task and flow notifications and writes those notifications
@@ -65,11 +65,11 @@ class LoggingListener(base.LoggingBase):
             self._logger = log
         self._level = level
 
-    def _log(self, message, *args, **kwargs):
+    def _dump(self, message, *args, **kwargs):
         self._logger.log(self._level, message, *args, **kwargs)
 
 
-class DynamicLoggingListener(base.ListenerBase):
+class DynamicLoggingListener(base.Listener):
     """Listener that logs notifications it receives.
 
     It listens for task and flow notifications and writes those notifications

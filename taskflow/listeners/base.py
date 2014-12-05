@@ -25,6 +25,7 @@ from taskflow import logging
 from taskflow import states
 from taskflow.types import failure
 from taskflow.types import notifier
+from taskflow.utils import deprecation
 
 LOG = logging.getLogger(__name__)
 
@@ -80,7 +81,7 @@ def _bulk_register(watch_states, notifier, cb, details_filter=None):
         return registered
 
 
-class ListenerBase(object):
+class Listener(object):
     """Base class for listeners.
 
     A listener can be attached to an engine to do various actions on flow and
@@ -162,26 +163,33 @@ class ListenerBase(object):
                      self._engine, exc_info=True)
 
 
+# TODO(harlowja): remove in 0.7 or later...
+ListenerBase = deprecation.moved_inheritable_class(Listener,
+                                                   'ListenerBase', __name__,
+                                                   version="0.6",
+                                                   removal_version="?")
+
+
 @six.add_metaclass(abc.ABCMeta)
-class LoggingBase(ListenerBase):
-    """Abstract base class for logging listeners.
+class DumpingListener(Listener):
+    """Abstract base class for dumping listeners.
 
     This provides a simple listener that can be attached to an engine which can
-    be derived from to log task and/or flow state transitions to some logging
+    be derived from to dump task and/or flow state transitions to some target
     backend.
 
-    To implement your own logging listener derive form this class and
-    override the ``_log`` method.
+    To implement your own dumping listener derive from this class and
+    override the ``_dump`` method.
     """
 
     @abc.abstractmethod
-    def _log(self, message, *args, **kwargs):
-        """Logs the provided *templated* message to some output."""
+    def _dump(self, message, *args, **kwargs):
+        """Dumps the provided *templated* message to some output."""
 
     def _flow_receiver(self, state, details):
-        self._log("%s has moved flow '%s' (%s) into state '%s'",
-                  self._engine, details['flow_name'],
-                  details['flow_uuid'], state)
+        self._dump("%s has moved flow '%s' (%s) into state '%s'",
+                   self._engine, details['flow_name'],
+                   details['flow_uuid'], state)
 
     def _task_receiver(self, state, details):
         if state in FINISH_STATES:
@@ -192,12 +200,26 @@ class LoggingBase(ListenerBase):
                 if result.exc_info:
                     exc_info = tuple(result.exc_info)
                 was_failure = True
-            self._log("%s has moved task '%s' (%s) into state '%s'"
-                      " with result '%s' (failure=%s)",
-                      self._engine, details['task_name'],
-                      details['task_uuid'], state, result, was_failure,
-                      exc_info=exc_info)
+            self._dump("%s has moved task '%s' (%s) into state '%s'"
+                       " with result '%s' (failure=%s)",
+                       self._engine, details['task_name'],
+                       details['task_uuid'], state, result, was_failure,
+                       exc_info=exc_info)
         else:
-            self._log("%s has moved task '%s' (%s) into state '%s'",
-                      self._engine, details['task_name'],
-                      details['task_uuid'], state)
+            self._dump("%s has moved task '%s' (%s) into state '%s'",
+                       self._engine, details['task_name'],
+                       details['task_uuid'], state)
+
+
+# TODO(harlowja): remove in 0.7 or later...
+class LoggingBase(deprecation.moved_inheritable_class(DumpingListener,
+                                                      'LoggingBase', __name__,
+                                                      version="0.6",
+                                                      removal_version="?")):
+
+    def _dump(self, message, *args, **kwargs):
+        self._log(message, *args, **kwargs)
+
+    @abc.abstractmethod
+    def _log(self, message, *args, **kwargs):
+        """Logs the provided *templated* message to some output."""

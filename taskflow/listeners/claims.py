@@ -27,7 +27,7 @@ from taskflow import states
 LOG = logging.getLogger(__name__)
 
 
-class CheckingClaimListener(base.ListenerBase):
+class CheckingClaimListener(base.Listener):
     """Listener that interacts [engine, job, jobboard]; ensures claim is valid.
 
     This listener (or a derivative) can be associated with an engines
