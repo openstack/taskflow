@@ -53,11 +53,12 @@ class LoggingListener(base.LoggingBase):
     def __init__(self, engine,
                  task_listen_for=base.DEFAULT_LISTEN_FOR,
                  flow_listen_for=base.DEFAULT_LISTEN_FOR,
+                 retry_listen_for=base.DEFAULT_LISTEN_FOR,
                  log=None,
                  level=logging.DEBUG):
-        super(LoggingListener, self).__init__(engine,
-                                              task_listen_for=task_listen_for,
-                                              flow_listen_for=flow_listen_for)
+        super(LoggingListener, self).__init__(
+            engine, task_listen_for=task_listen_for,
+            flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
         if not log:
             self._logger = LOG
         else:
@@ -101,12 +102,12 @@ class DynamicLoggingListener(base.ListenerBase):
     def __init__(self, engine,
                  task_listen_for=base.DEFAULT_LISTEN_FOR,
                  flow_listen_for=base.DEFAULT_LISTEN_FOR,
+                 retry_listen_for=base.DEFAULT_LISTEN_FOR,
                  log=None, failure_level=logging.WARNING,
                  level=logging.DEBUG):
         super(DynamicLoggingListener, self).__init__(
-            engine,
-            task_listen_for=task_listen_for,
-            flow_listen_for=flow_listen_for)
+            engine, task_listen_for=task_listen_for,
+            flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
         self._failure_level = failure_level
         self._level = level
         self._task_log_levels = {
