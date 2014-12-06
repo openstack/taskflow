@@ -33,6 +33,7 @@ _RETRY_EDGE_DATA = {
     flow.LINK_RETRY: True,
 }
 _EDGE_INVARIANTS = (flow.LINK_INVARIANT, flow.LINK_MANUAL, flow.LINK_RETRY)
+_EDGE_REASONS = flow.LINK_REASONS
 
 
 class Compilation(object):
@@ -155,11 +156,15 @@ class Linker(object):
                         "Non-invariant link being created from '%s' ->"
                         " '%s' even though the target '%s' was found to be"
                         " decomposed into an empty graph" % (v, u, u))
-                for provider in u_g:
-                    for consumer in v_g:
-                        reasons = provider.provides & consumer.requires
-                        if reasons:
-                            graph.add_edge(provider, consumer, reasons=reasons)
+                for u in u_g.nodes_iter():
+                    for v in v_g.nodes_iter():
+                        depends_on = u.provides & v.requires
+                        if depends_on:
+                            _add_update_edges(graph,
+                                              [u], [v],
+                                              attr_dict={
+                                                  _EDGE_REASONS: depends_on,
+                                              })
             else:
                 # Connect nodes with no predecessors in v to nodes with no
                 # successors in the *first* non-empty predecessor of v (thus
