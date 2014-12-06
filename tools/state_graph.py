@@ -29,10 +29,11 @@ sys.path.insert(0, top_dir)
 # $ pip install pydot2
 import pydot
 
+from automaton import machines
+
 from taskflow.engines.action_engine import runner
 from taskflow.engines.worker_based import protocol
 from taskflow import states
-from taskflow.types import fsm
 
 
 # This is just needed to get at the runner builder object (we will not
@@ -52,7 +53,7 @@ def clean_event(name):
 
 
 def make_machine(start_state, transitions):
-    machine = fsm.FSM(start_state)
+    machine = machines.FiniteMachine()
     machine.add_state(start_state)
     for (start_state, end_state) in transitions:
         if start_state not in machine:
@@ -62,6 +63,7 @@ def make_machine(start_state, transitions):
         # Make a fake event (not used anyway)...
         event = "on_%s" % (end_state)
         machine.add_transition(start_state, end_state, event.lower())
+    machine.default_start_state = start_state
     return machine
 
 
@@ -192,7 +194,7 @@ def main():
     start = pydot.Node("__start__", shape="point", width="0.1",
                        xlabel='start', fontcolor='green', **node_attrs)
     g.add_node(start)
-    g.add_edge(pydot.Edge(start, nodes[source.start_state], style='dotted'))
+    g.add_edge(pydot.Edge(start, nodes[source.default_start_state], style='dotted'))
 
     print("*" * len(graph_name))
     print(graph_name)
