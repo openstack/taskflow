@@ -161,7 +161,8 @@ def renamed_kwarg(old_name, new_name, message=None,
 
 
 def _moved_decorator(kind, new_attribute_name, message=None,
-                     version=None, removal_version=None):
+                     version=None, removal_version=None,
+                     stacklevel=3):
     """Decorates a method/property that was moved to another location."""
 
     def decorator(f):
@@ -184,7 +185,7 @@ def _moved_decorator(kind, new_attribute_name, message=None,
             out_message = _generate_moved_message(
                 prefix, message=message,
                 version=version, removal_version=removal_version)
-            deprecation(out_message, stacklevel=3)
+            deprecation(out_message, stacklevel=stacklevel)
             return f(self, *args, **kwargs)
 
         return wrapper
@@ -193,15 +194,16 @@ def _moved_decorator(kind, new_attribute_name, message=None,
 
 
 def moved_property(new_attribute_name, message=None,
-                   version=None, removal_version=None):
+                   version=None, removal_version=None, stacklevel=3):
     """Decorates a *instance* property that was moved to another location."""
 
     return _moved_decorator('Property', new_attribute_name, message=message,
-                            version=version, removal_version=removal_version)
+                            version=version, removal_version=removal_version,
+                            stacklevel=stacklevel)
 
 
 def moved_class(new_class, old_class_name, old_module_name, message=None,
-                version=None, removal_version=None):
+                version=None, removal_version=None, stacklevel=3):
     """Deprecates a class that was moved to another location.
 
     This will emit warnings when the old locations class is initialized,
@@ -213,4 +215,4 @@ def moved_class(new_class, old_class_name, old_module_name, message=None,
     out_message = _generate_moved_message(prefix,
                                           message=message, version=version,
                                           removal_version=removal_version)
-    return MovedClassProxy(new_class, out_message, stacklevel=3)
+    return MovedClassProxy(new_class, out_message, stacklevel=stacklevel)
