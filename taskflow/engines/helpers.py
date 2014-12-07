@@ -15,6 +15,8 @@
 #    under the License.
 
 import contextlib
+import itertools
+import traceback
 
 from oslo.utils import importutils
 import six
@@ -34,39 +36,68 @@ ENGINES_NAMESPACE = 'taskflow.engines'
 # The default entrypoint engine type looked for when it is not provided.
 ENGINE_DEFAULT = 'default'
 
+# TODO(harlowja): only used during the deprecation cycle, remove it once
+# ``_extract_engine_compat`` is also gone...
+_FILE_NAMES = [__file__]
+if six.PY2:
+    # Due to a bug in py2.x the __file__ may point to the pyc file & since
+    # we are using the traceback module and that module only shows py files
+    # we have to do a slight adjustment to ensure we match correctly...
+    #
+    # This is addressed in https://www.python.org/dev/peps/pep-3147/#file
+    if __file__.endswith("pyc"):
+        _FILE_NAMES.append(__file__[0:-1])
+_FILE_NAMES = tuple(_FILE_NAMES)
 
-@deprecation.renamed_kwarg('engine_conf', 'engine',
-                           version="0.6", removal_version="?",
-                           # This is set to none since this function is called
-                           # from 2 other functions in this module, both of
-                           # which have different stack levels, possibly we
-                           # can fix this in the future...
-                           stacklevel=None)
+
 def _extract_engine(**kwargs):
     """Extracts the engine kind and any associated options."""
-    options = {}
-    kind = kwargs.pop('engine', None)
-    engine_conf = kwargs.pop('engine_conf', None)
-    if engine_conf is not None:
-        if isinstance(engine_conf, six.string_types):
-            kind = engine_conf
+
+    def _compat_extract(**kwargs):
+        options = {}
+        kind = kwargs.pop('engine', None)
+        engine_conf = kwargs.pop('engine_conf', None)
+        if engine_conf is not None:
+            if isinstance(engine_conf, six.string_types):
+                kind = engine_conf
+            else:
+                options.update(engine_conf)
+                kind = options.pop('engine', None)
+        if not kind:
+            kind = ENGINE_DEFAULT
+        # See if it's a URI and if so, extract any further options...
+        try:
+            uri = misc.parse_uri(kind)
+        except (TypeError, ValueError):
+            pass
         else:
-            options.update(engine_conf)
-            kind = options.pop('engine', None)
-    if not kind:
-        kind = ENGINE_DEFAULT
-    # See if it's a URI and if so, extract any further options...
-    try:
-        uri = misc.parse_uri(kind)
-    except (TypeError, ValueError):
-        pass
+            kind = uri.scheme
+            options = misc.merge_uri(uri, options.copy())
+        # Merge in any leftover **kwargs into the options, this makes it so
+        # that the provided **kwargs override any URI or engine_conf specific
+        # options.
+        options.update(kwargs)
+        return (kind, options)
+
+    engine_conf = kwargs.get('engine_conf', None)
+    if engine_conf is not None:
+        # Figure out where our code ends and the calling code begins (this is
+        # needed since this code is called from two functions in this module,
+        # which means the stack level will vary by one depending on that).
+        finder = itertools.takewhile(lambda frame: frame[0] in _FILE_NAMES,
+                                     reversed(traceback.extract_stack()))
+        stacklevel = sum(1 for _frame in finder)
+        decorator = deprecation.renamed_kwarg('engine_conf', 'engine',
+                                              version="0.6",
+                                              removal_version="?",
+                                              # Three is added on since the
+                                              # decorator adds three of its own
+                                              # stack levels that we need to
+                                              # hop out of...
+                                              stacklevel=stacklevel + 3)
+        return decorator(_compat_extract)(**kwargs)
     else:
-        kind = uri.scheme
-        options = misc.merge_uri(uri, options.copy())
-    # Merge in any leftover **kwargs into the options, this makes it so that
-    # the provided **kwargs override any URI or engine_conf specific options.
-    options.update(kwargs)
-    return (kind, options)
+        return _compat_extract(**kwargs)
 
 
 def _fetch_factory(factory_name):
