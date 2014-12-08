@@ -5,7 +5,10 @@ A library to do [jobs, tasks, flows] in a highly available, easy to understand
 and declarative manner (and more!) to be used with OpenStack and other
 projects.
 
-- More information can be found by referring to the `developer documentation`_.
+* Free software: Apache license
+* Documentation: http://docs.openstack.org/developer/taskflow
+* Source: http://git.openstack.org/cgit/openstack/taskflow
+* Bugs: http://bugs.launchpad.net/taskflow/
 
 Join us
 -------
