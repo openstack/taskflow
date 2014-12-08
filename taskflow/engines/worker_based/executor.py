@@ -107,12 +107,9 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         # Add worker info to the cache
         LOG.debug("Received that tasks %s can be processed by topic '%s'",
                   tasks, topic)
-        self._workers_arrival.acquire()
-        try:
+        with self._workers_arrival:
             self._workers_cache[topic] = tasks
             self._workers_arrival.notify_all()
-        finally:
-            self._workers_arrival.release()
 
         # Publish waiting requests
         for request in self._requests_cache.get_waiting_requests(tasks):
@@ -255,8 +252,7 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
         w = None
         if timeout is not None:
             w = tt.StopWatch(timeout).start()
-        self._workers_arrival.acquire()
-        try:
+        with self._workers_arrival:
             while len(self._workers_cache) < workers:
                 if w is not None and w.expired():
                     return workers - len(self._workers_cache)
@@ -265,8 +261,6 @@ class WorkerTaskExecutor(executor.TaskExecutorBase):
                     timeout = w.leftover()
                 self._workers_arrival.wait(timeout)
             return 0
-        finally:
-            self._workers_arrival.release()
 
     def start(self):
         """Starts proxy thread and associated topic notification thread."""

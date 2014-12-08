@@ -41,13 +41,10 @@ class Latch(object):
 
     def countdown(self):
         """Decrements the internal counter due to an arrival."""
-        self._cond.acquire()
-        try:
+        with self._cond:
             self._count -= 1
             if self._count <= 0:
                 self._cond.notify_all()
-        finally:
-            self._cond.release()
 
     def wait(self, timeout=None):
         """Waits until the latch is released.
@@ -60,8 +57,7 @@ class Latch(object):
         w = None
         if timeout is not None:
             w = tt.StopWatch(timeout).start()
-        self._cond.acquire()
-        try:
+        with self._cond:
             while self._count > 0:
                 if w is not None:
                     if w.expired():
@@ -70,5 +66,3 @@ class Latch(object):
                         timeout = w.leftover()
                 self._cond.wait(timeout)
             return True
-        finally:
-            self._cond.release()

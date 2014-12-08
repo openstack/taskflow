@@ -395,8 +395,7 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
             LOG.warn("Internal error fetching job data from path: %s",
                      path, exc_info=True)
         else:
-            self._job_cond.acquire()
-            try:
+            with self._job_cond:
                 # Now we can offically check if someone already placed this
                 # jobs information into the known job set (if it's already
                 # existing then just leave it alone).
@@ -409,8 +408,6 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
                                        created_on=created_on)
                     self._known_jobs[path] = job
                     self._job_cond.notify_all()
-            finally:
-                self._job_cond.release()
         if job is not None:
             self._emit(jobboard.POSTED, details={'job': job})
 
@@ -488,12 +485,9 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
                                self._persistence, job_path,
                                book=book, details=details,
                                uuid=job_uuid)
-            self._job_cond.acquire()
-            try:
+            with self._job_cond:
                 self._known_jobs[job_path] = job
                 self._job_cond.notify_all()
-            finally:
-                self._job_cond.release()
             self._emit(jobboard.POSTED, details={'job': job})
             return job
 
@@ -634,8 +628,7 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
         watch = None
         if timeout is not None:
             watch = tt.StopWatch(duration=float(timeout)).start()
-        self._job_cond.acquire()
-        try:
+        with self._job_cond:
             while True:
                 if not self._known_jobs:
                     if watch is not None and watch.expired():
@@ -656,8 +649,6 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
                     it._jobs.extend(self._fetch_jobs())
                     it._fetched = True
                     return it
-        finally:
-            self._job_cond.release()
 
     @property
     def connected(self):
