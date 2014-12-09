@@ -141,7 +141,6 @@ class BaseTask(atom.Atom):
                                  when false the listeners will be emptied, when
                                  true the listeners will be copied and retained
 
-        :rtype: task
         :return: the copied task
         """
         c = copy.copy(self)
