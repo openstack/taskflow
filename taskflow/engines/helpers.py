@@ -84,8 +84,9 @@ def _extract_engine(**kwargs):
         # Figure out where our code ends and the calling code begins (this is
         # needed since this code is called from two functions in this module,
         # which means the stack level will vary by one depending on that).
-        finder = itertools.takewhile(lambda frame: frame[0] in _FILE_NAMES,
-                                     reversed(traceback.extract_stack()))
+        finder = itertools.takewhile(
+            lambda frame: frame[0] in _FILE_NAMES,
+            reversed(traceback.extract_stack(limit=3)))
         stacklevel = sum(1 for _frame in finder)
         decorator = deprecation.renamed_kwarg('engine_conf', 'engine',
                                               version="0.6",
