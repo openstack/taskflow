@@ -16,11 +16,11 @@
 
 from concurrent import futures
 from oslo.utils import timeutils
+from oslo.utils import uuidutils
 
 from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import exceptions as excp
-from taskflow.openstack.common import uuidutils
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.types import failure

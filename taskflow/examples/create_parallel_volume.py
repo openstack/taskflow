@@ -28,11 +28,12 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
+from oslo.utils import reflection
+
 from taskflow import engines
 from taskflow.listeners import printing
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
-from taskflow.utils import reflection
 
 # INTRO: This examples shows how unordered_flow can be used to create a large
 # number of fake volumes in parallel (or serially, depending on a constant that

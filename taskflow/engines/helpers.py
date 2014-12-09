@@ -19,6 +19,7 @@ import itertools
 import traceback
 
 from oslo.utils import importutils
+from oslo.utils import reflection
 import six
 import stevedore.driver
 
@@ -28,7 +29,6 @@ from taskflow.persistence import backends as p_backends
 from taskflow.utils import deprecation
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
-from taskflow.utils import reflection
 
 LOG = logging.getLogger(__name__)
 

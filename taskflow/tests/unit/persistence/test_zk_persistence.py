@@ -17,11 +17,11 @@
 import contextlib
 
 from kazoo import exceptions as kazoo_exceptions
+from oslo.utils import uuidutils
 import testtools
 from zake import fake_client
 
 from taskflow import exceptions as exc
-from taskflow.openstack.common import uuidutils
 from taskflow.persistence import backends
 from taskflow.persistence.backends import impl_zookeeper
 from taskflow import test

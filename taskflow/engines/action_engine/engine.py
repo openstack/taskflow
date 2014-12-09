@@ -18,6 +18,7 @@ import contextlib
 import threading
 
 from oslo.utils import excutils
+from oslo.utils import reflection
 
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
@@ -29,7 +30,6 @@ from taskflow import storage as atom_storage
 from taskflow.types import failure
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
-from taskflow.utils import reflection
 
 
 @contextlib.contextmanager

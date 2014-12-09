@@ -16,11 +16,11 @@
 
 from kazoo import client
 from kazoo import exceptions as k_exc
+from oslo.utils import reflection
 import six
 from six.moves import zip as compat_zip
 
 from taskflow import exceptions as exc
-from taskflow.utils import reflection
 
 
 def _parse_hosts(hosts):

@@ -16,8 +16,9 @@
 
 import contextlib
 
+from oslo.utils import uuidutils
+
 from taskflow import exceptions as exc
-from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow import states
 from taskflow.types import failure

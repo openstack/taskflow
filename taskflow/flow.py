@@ -16,9 +16,8 @@
 
 import abc
 
+from oslo.utils import reflection
 import six
-
-from taskflow.utils import reflection
 
 # Link metadata keys that have inherent/special meaning.
 #

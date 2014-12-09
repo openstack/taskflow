@@ -17,11 +17,12 @@
 import abc
 import contextlib
 
+from oslo.utils import reflection
+from oslo.utils import uuidutils
 import six
 
 from taskflow import exceptions
 from taskflow import logging
-from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow import retry
 from taskflow import states
@@ -29,7 +30,6 @@ from taskflow import task
 from taskflow.types import failure
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
-from taskflow.utils import reflection
 
 LOG = logging.getLogger(__name__)
 STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)

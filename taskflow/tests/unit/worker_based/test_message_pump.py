@@ -14,9 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.utils import uuidutils
+
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
-from taskflow.openstack.common import uuidutils
 from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils as test_utils

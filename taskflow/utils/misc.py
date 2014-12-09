@@ -23,9 +23,12 @@ import os
 import re
 import sys
 import threading
+import types
 
 from oslo.serialization import jsonutils
+from oslo.utils import importutils
 from oslo.utils import netutils
+from oslo.utils import reflection
 import six
 from six.moves import map as compat_map
 from six.moves import range as compat_range
@@ -34,7 +37,6 @@ from six.moves.urllib import parse as urlparse
 from taskflow.types import failure
 from taskflow.types import notifier
 from taskflow.utils import deprecation
-from taskflow.utils import reflection
 
 
 NUMERIC_TYPES = six.integer_types + (float,)
@@ -81,6 +83,50 @@ def merge_uri(uri, conf):
     for (k, v) in six.iteritems(uri.params):
         conf.setdefault(k, v)
     return conf
+
+
+def find_subclasses(locations, base_cls, exclude_hidden=True):
+    """Finds subclass types in the given locations.
+
+    This will examines the given locations for types which are subclasses of
+    the base class type provided and returns the found subclasses (or fails
+    with exceptions if this introspection can not be accomplished).
+
+    If a string is provided as one of the locations it will be imported and
+    examined if it is a subclass of the base class. If a module is given,
+    all of its members will be examined for attributes which are subclasses of
+    the base class. If a type itself is given it will be examined for being a
+    subclass of the base class.
+    """
+    derived = set()
+    for item in locations:
+        module = None
+        if isinstance(item, six.string_types):
+            try:
+                pkg, cls = item.split(':')
+            except ValueError:
+                module = importutils.import_module(item)
+            else:
+                obj = importutils.import_class('%s.%s' % (pkg, cls))
+                if not reflection.is_subclass(obj, base_cls):
+                    raise TypeError("Item %s is not a %s subclass" %
+                                    (item, base_cls))
+                derived.add(obj)
+        elif isinstance(item, types.ModuleType):
+            module = item
+        elif reflection.is_subclass(item, base_cls):
+            derived.add(item)
+        else:
+            raise TypeError("Item %s unexpected type: %s" %
+                            (item, type(item)))
+        # If it's a module derive objects from it if we can.
+        if module is not None:
+            for (name, obj) in inspect.getmembers(module):
+                if name.startswith("_") and exclude_hidden:
+                    continue
+                if reflection.is_subclass(obj, base_cls):
+                    derived.add(obj)
+    return derived
 
 
 def parse_uri(uri):

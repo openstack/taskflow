@@ -17,6 +17,7 @@
 import functools
 import threading
 
+from oslo.utils import reflection
 from oslo.utils import timeutils
 
 from taskflow.engines.action_engine import executor
@@ -28,7 +29,6 @@ from taskflow import logging
 from taskflow import task as task_atom
 from taskflow.types import timing as tt
 from taskflow.utils import misc
-from taskflow.utils import reflection
 from taskflow.utils import threading_utils as tu
 
 LOG = logging.getLogger(__name__)

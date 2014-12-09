@@ -17,8 +17,9 @@
 import contextlib
 import threading
 
+from oslo.utils import uuidutils
+
 from taskflow import exceptions
-from taskflow.openstack.common import uuidutils
 from taskflow.persistence import backends
 from taskflow.persistence import logbook
 from taskflow import states

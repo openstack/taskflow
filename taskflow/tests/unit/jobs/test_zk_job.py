@@ -15,13 +15,13 @@
 #    under the License.
 
 from oslo.serialization import jsonutils
+from oslo.utils import uuidutils
 import six
 import testtools
 from zake import fake_client
 from zake import utils as zake_utils
 
 from taskflow.jobs.backends import impl_zookeeper
-from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow import test
 from taskflow.tests.unit.jobs import base

@@ -15,11 +15,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.utils import reflection
 import six
 
 from taskflow import exceptions
 from taskflow.utils import misc
-from taskflow.utils import reflection
 
 
 def _save_as_to_mapping(save_as):

@@ -14,8 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.utils import reflection
+
 from taskflow.engines.action_engine import executor
-from taskflow.utils import reflection
 
 
 class Endpoint(object):

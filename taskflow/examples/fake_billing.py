@@ -27,10 +27,10 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
+from oslo.utils import uuidutils
 
 from taskflow import engines
 from taskflow.listeners import printing
-from taskflow.openstack.common import uuidutils
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow import task

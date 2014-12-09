@@ -17,9 +17,8 @@
 import functools
 import warnings
 
+from oslo.utils import reflection
 import six
-
-from taskflow.utils import reflection
 
 _CLASS_MOVED_PREFIX_TPL = "Class '%s' has moved to '%s'"
 _KIND_MOVED_PREFIX_TPL = "%s '%s' has moved to '%s'"
