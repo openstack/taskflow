@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import datetime
 import os
 import sys
 
@@ -36,7 +37,7 @@ exclude_patterns = ['_build']
 
 # General information about the project.
 project = u'TaskFlow'
-copyright = u'2013-2014, OpenStack Foundation'
+copyright = u'%s, OpenStack Foundation' % datetime.date.today().year
 source_tree = 'http://git.openstack.org/cgit/openstack/taskflow/tree'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
