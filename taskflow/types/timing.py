@@ -73,6 +73,12 @@ class StopWatch(object):
         self._state = self._STARTED
         return self
 
+    def restart(self):
+        if self._state == self._STARTED:
+            self.stop()
+        self.start()
+        return self
+
     def elapsed(self):
         if self._state == self._STOPPED:
             return max(0.0, float(timeutils.delta_seconds(self._started_at,
