@@ -18,6 +18,7 @@
 import abc
 import collections
 import contextlib
+import copy
 import logging
 
 import six
@@ -132,6 +133,24 @@ class BaseTask(atom.Atom):
 
         This works the same as :meth:`.post_execute`, but for the revert phase.
         """
+
+    def copy(self, retain_listeners=True):
+        """Clone/copy this task.
+
+        :param retain_listeners: retain the attached listeners when cloning,
+                                 when false the listeners will be emptied, when
+                                 true the listeners will be copied and retained
+
+        :rtype: task
+        :return: the copied task
+        """
+        c = copy.copy(self)
+        c._events_listeners = c._events_listeners.copy()
+        c._events_listeners.clear()
+        if retain_listeners:
+            for event_name, listeners in six.iteritems(self._events_listeners):
+                c._events_listeners[event_name] = listeners[:]
+        return c
 
     def update_progress(self, progress, **kwargs):
         """Update task progress and notify all registered listeners.
