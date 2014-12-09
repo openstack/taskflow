@@ -40,11 +40,11 @@ class Endpoint(object):
         return self._task_cls(name=name)
 
     def execute(self, task_name, **kwargs):
-        task, event, result = self._executor.execute_task(
-            self._get_task(task_name), **kwargs).result()
+        task = self._get_task(task_name)
+        event, result = self._executor.execute_task(task, **kwargs).result()
         return result
 
     def revert(self, task_name, **kwargs):
-        task, event, result = self._executor.revert_task(
-            self._get_task(task_name), **kwargs).result()
+        task = self._get_task(task_name)
+        event, result = self._executor.revert_task(task, **kwargs).result()
         return result

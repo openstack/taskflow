@@ -16,6 +16,7 @@
 
 from concurrent import futures
 
+from taskflow.engines.action_engine import executor as base_executor
 from taskflow.engines.worker_based import endpoint
 from taskflow.engines.worker_based import executor as worker_executor
 from taskflow.engines.worker_based import server as worker_server
@@ -73,13 +74,14 @@ class TestPipeline(test.TestCase):
         self.assertEqual(0, executor.wait_for_workers(timeout=WAIT_TIMEOUT))
 
         t = test_utils.TaskOneReturn()
-        f = executor.execute_task(t, uuidutils.generate_uuid(), {})
+        progress_callback = lambda *args, **kwargs: None
+        f = executor.execute_task(t, uuidutils.generate_uuid(), {},
+                                  progress_callback=progress_callback)
         executor.wait_for_any([f])
 
-        t2, _action, result = f.result()
-
+        event, result = f.result()
         self.assertEqual(1, result)
-        self.assertEqual(t, t2)
+        self.assertEqual(base_executor.EXECUTED, event)
 
     def test_execution_failure_pipeline(self):
         task_classes = [
@@ -88,9 +90,12 @@ class TestPipeline(test.TestCase):
         executor, server = self._start_components(task_classes)
 
         t = test_utils.TaskWithFailure()
-        f = executor.execute_task(t, uuidutils.generate_uuid(), {})
+        progress_callback = lambda *args, **kwargs: None
+        f = executor.execute_task(t, uuidutils.generate_uuid(), {},
+                                  progress_callback=progress_callback)
         executor.wait_for_any([f])
 
-        _t2, _action, result = f.result()
+        action, result = f.result()
         self.assertIsInstance(result, failure.Failure)
         self.assertEqual(RuntimeError, result.check(RuntimeError))
+        self.assertEqual(base_executor.EXECUTED, action)

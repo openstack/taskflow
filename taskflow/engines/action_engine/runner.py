@@ -129,8 +129,9 @@ class _MachineBuilder(object):
             next_nodes = set()
             while memory.done:
                 fut = memory.done.pop()
+                node = fut.atom
                 try:
-                    node, event, result = fut.result()
+                    event, result = fut.result()
                     retain = self._completer.complete(node, event, result)
                     if retain and isinstance(result, failure.Failure):
                         memory.failures.append(result)

@@ -40,7 +40,7 @@ def _execute_task(task, arguments, progress_callback):
             result = failure.Failure()
         finally:
             task.post_execute()
-    return (task, EXECUTED, result)
+    return (EXECUTED, result)
 
 
 def _revert_task(task, arguments, result, failures, progress_callback):
@@ -57,7 +57,7 @@ def _revert_task(task, arguments, result, failures, progress_callback):
             result = failure.Failure()
         finally:
             task.post_revert()
-    return (task, REVERTED, result)
+    return (REVERTED, result)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -98,13 +98,17 @@ class SerialTaskExecutor(TaskExecutorBase):
         self._executor = futures.SynchronousExecutor()
 
     def execute_task(self, task, task_uuid, arguments, progress_callback=None):
-        return self._executor.submit(_execute_task, task, arguments,
-                                     progress_callback)
+        fut = self._executor.submit(_execute_task, task, arguments,
+                                    progress_callback)
+        fut.atom = task
+        return fut
 
     def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
-        return self._executor.submit(_revert_task, task, arguments, result,
-                                     failures, progress_callback)
+        fut = self._executor.submit(_revert_task, task, arguments, result,
+                                    failures, progress_callback)
+        fut.atom = task
+        return fut
 
     def wait_for_any(self, fs, timeout=None):
         return async_utils.wait_for_any(fs, timeout)
@@ -123,14 +127,17 @@ class ParallelTaskExecutor(TaskExecutorBase):
         self._create_executor = executor is None
 
     def execute_task(self, task, task_uuid, arguments, progress_callback=None):
-        return self._executor.submit(
-            _execute_task, task, arguments, progress_callback)
+        fut = self._executor.submit(_execute_task, task,
+                                    arguments, progress_callback)
+        fut.atom = task
+        return fut
 
     def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
-        return self._executor.submit(
-            _revert_task, task,
-            arguments, result, failures, progress_callback)
+        fut = self._executor.submit(_revert_task, task, arguments,
+                                    result, failures, progress_callback)
+        fut.atom = task
+        return fut
 
     def wait_for_any(self, fs, timeout=None):
         return async_utils.wait_for_any(fs, timeout)
