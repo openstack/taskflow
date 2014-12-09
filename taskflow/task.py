@@ -145,8 +145,7 @@ class BaseTask(atom.Atom):
         :return: the copied task
         """
         c = copy.copy(self)
-        c._events_listeners = c._events_listeners.copy()
-        c._events_listeners.clear()
+        c._events_listeners = collections.defaultdict(list)
         if retain_listeners:
             for event_name, listeners in six.iteritems(self._events_listeners):
                 c._events_listeners[event_name] = listeners[:]
