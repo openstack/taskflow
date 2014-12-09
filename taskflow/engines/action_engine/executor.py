@@ -30,7 +30,7 @@ REVERTED = 'reverted'
 
 
 def _execute_task(task, arguments, progress_callback):
-    with task.autobind('update_progress', progress_callback):
+    with task.autobind(_task.EVENT_UPDATE_PROGRESS, progress_callback):
         try:
             task.pre_execute()
             result = task.execute(**arguments)
@@ -47,7 +47,7 @@ def _revert_task(task, arguments, result, failures, progress_callback):
     kwargs = arguments.copy()
     kwargs[_task.REVERT_RESULT] = result
     kwargs[_task.REVERT_FLOW_FAILURES] = failures
-    with task.autobind('update_progress', progress_callback):
+    with task.autobind(_task.EVENT_UPDATE_PROGRESS, progress_callback):
         try:
             task.pre_revert()
             result = task.revert(**kwargs)
