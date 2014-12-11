@@ -428,24 +428,26 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
         # exist in the children anymore) and accumulate all paths that we
         # need to trigger population of (without holding the job lock).
         investigate_paths = []
-        removals = []
+        pending_removals = []
         with self._job_cond:
             for path in six.iterkeys(self._known_jobs):
                 if path not in child_paths:
-                    removals.append(path)
-            for path in child_paths:
-                if path in self._bad_paths:
-                    continue
-                # This pre-check will not guarantee that we will not already
-                # have the job (if it's being populated elsewhere) but it will
-                # reduce the amount of duplicated requests in general.
-                if path in self._known_jobs:
-                    continue
-                if path not in investigate_paths:
-                    investigate_paths.append(path)
-        if removals:
+                    pending_removals.append(path)
+        for path in child_paths:
+            if path in self._bad_paths:
+                continue
+            # This pre-check will *not* guarantee that we will not already
+            # have the job (if it's being populated elsewhere) but it will
+            # reduce the amount of duplicated requests in general; later when
+            # the job information has been populated we will ensure that we
+            # are not adding duplicates into the currently known jobs...
+            if path in self._known_jobs:
+                continue
+            if path not in investigate_paths:
+                investigate_paths.append(path)
+        if pending_removals:
             with self._job_cond:
-                for path in removals:
+                for path in pending_removals:
                     self._remove_job(path)
         for path in investigate_paths:
             # Fire off the request to populate this job.
