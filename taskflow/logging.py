@@ -41,7 +41,7 @@ class _BlatherLoggerAdapter(logging.LoggerAdapter):
 
     def blather(self, msg, *args, **kwargs):
         """Delegate a blather call to the underlying logger."""
-        self.logger.log(BLATHER, msg, *args, **kwargs)
+        self.log(BLATHER, msg, *args, **kwargs)
 
     def warn(self, msg, *args, **kwargs):
         """Delegate a warning call to the underlying logger."""
