@@ -25,7 +25,7 @@ from taskflow.utils import misc
 
 
 @six.add_metaclass(abc.ABCMeta)
-class EngineBase(object):
+class Engine(object):
     """Base for all engines implementations.
 
     :ivar notifier: A notification object that will dispatch events that

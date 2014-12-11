@@ -42,7 +42,7 @@ def _start_stop(executor):
         executor.stop()
 
 
-class ActionEngine(base.EngineBase):
+class ActionEngine(base.Engine):
     """Generic action-based engine.
 
     This engine compiles the flow (and any subflows) into a compilation unit
