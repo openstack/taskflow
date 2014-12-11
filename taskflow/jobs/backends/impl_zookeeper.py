@@ -17,7 +17,6 @@
 import collections
 import contextlib
 import functools
-import logging
 import threading
 
 from concurrent import futures
@@ -31,6 +30,7 @@ import six
 from taskflow import exceptions as excp
 from taskflow.jobs import job as base_job
 from taskflow.jobs import jobboard
+from taskflow import logging
 from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow.types import timing as tt

@@ -19,7 +19,6 @@ import contextlib
 import datetime
 import errno
 import inspect
-import logging
 import os
 import re
 import sys
@@ -38,7 +37,6 @@ from taskflow.utils import deprecation
 from taskflow.utils import reflection
 
 
-LOG = logging.getLogger(__name__)
 NUMERIC_TYPES = six.integer_types + (float,)
 
 # NOTE(imelnikov): regular expression to get scheme from URI,

@@ -16,10 +16,10 @@
 
 from __future__ import absolute_import
 
-import logging
 import sys
 
 from taskflow.listeners import base
+from taskflow import logging
 from taskflow import states
 from taskflow.types import failure
 

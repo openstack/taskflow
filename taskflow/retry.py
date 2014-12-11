@@ -16,15 +16,12 @@
 #    under the License.
 
 import abc
-import logging
 
 import six
 
 from taskflow import atom
 from taskflow import exceptions as exc
 from taskflow.utils import misc
-
-LOG = logging.getLogger(__name__)
 
 # Decision results.
 REVERT = "REVERT"

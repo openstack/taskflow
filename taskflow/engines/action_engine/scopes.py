@@ -14,10 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
-
 from taskflow import atom as atom_type
 from taskflow import flow as flow_type
+from taskflow import logging
 
 LOG = logging.getLogger(__name__)
 
@@ -102,18 +101,13 @@ class ScopeWalker(object):
                         visible.append(a)
                     else:
                         visible.append(a.name)
-            if LOG.isEnabledFor(logging.DEBUG):
+            if LOG.isEnabledFor(logging.BLATHER):
                 if not self._names_only:
                     visible_names = [a.name for a in visible]
                 else:
                     visible_names = visible
-                # TODO(harlowja): we should likely use a created TRACE level
-                # for this kind of *very* verbose information; otherwise the
-                # cinder and other folks are going to complain that there
-                # debug logs are full of not so useful information (it is
-                # useful to taskflow debugging...).
-                LOG.debug("Scope visible to '%s' (limited by parent '%s' index"
-                          " < %s) is: %s", self._atom, parent.item.name,
-                          last_idx, visible_names)
+                LOG.blather("Scope visible to '%s' (limited by parent '%s'"
+                            " index < %s) is: %s", self._atom,
+                            parent.item.name, last_idx, visible_names)
             yield visible
             last = parent

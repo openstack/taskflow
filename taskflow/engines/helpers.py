@@ -23,12 +23,14 @@ import six
 import stevedore.driver
 
 from taskflow import exceptions as exc
+from taskflow import logging
 from taskflow.persistence import backends as p_backends
 from taskflow.utils import deprecation
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 from taskflow.utils import reflection
 
+LOG = logging.getLogger(__name__)
 
 # NOTE(imelnikov): this is the entrypoint namespace, not the module namespace.
 ENGINES_NAMESPACE = 'taskflow.engines'
@@ -171,6 +173,7 @@ def load(flow, store=None, flow_detail=None, book=None,
         flow_detail = p_utils.create_flow_detail(flow, book=book,
                                                  backend=backend)
 
+    LOG.debug('Looking for %r engine driver in %r', kind, namespace)
     try:
         mgr = stevedore.driver.DriverManager(
             namespace, kind,

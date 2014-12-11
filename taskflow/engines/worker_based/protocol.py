@@ -15,7 +15,6 @@
 #    under the License.
 
 import abc
-import logging
 import threading
 
 from concurrent import futures
@@ -26,6 +25,7 @@ import six
 
 from taskflow.engines.action_engine import executor
 from taskflow import exceptions as excp
+from taskflow import logging
 from taskflow.types import failure as ft
 from taskflow.types import timing as tt
 from taskflow.utils import lock_utils

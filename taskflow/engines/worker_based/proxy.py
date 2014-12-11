@@ -15,13 +15,13 @@
 #    under the License.
 
 import collections
-import logging
 import socket
 
 import kombu
 import six
 
 from taskflow.engines.worker_based import dispatcher
+from taskflow import logging
 from taskflow.utils import threading_utils
 
 LOG = logging.getLogger(__name__)

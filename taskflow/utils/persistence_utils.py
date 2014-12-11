@@ -15,10 +15,10 @@
 #    under the License.
 
 import contextlib
-import logging
 
 from oslo.utils import timeutils
 
+from taskflow import logging
 from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow.utils import misc
