@@ -21,6 +21,7 @@ from oslo.utils import timeutils
 
 from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr
+from taskflow import task as task_atom
 from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils as test_utils
@@ -102,13 +103,18 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(expected_calls, self.request_inst_mock.mock_calls)
 
     def test_on_message_response_state_progress(self):
-        response = pr.Response(pr.PROGRESS, progress=1.0)
+        response = pr.Response(pr.EVENT,
+                               event_type=task_atom.EVENT_UPDATE_PROGRESS,
+                               details={'progress': 1.0})
         ex = self.executor()
         ex._requests_cache[self.task_uuid] = self.request_inst_mock
         ex._process_response(response.to_dict(), self.message_mock)
 
-        self.assertEqual(self.request_inst_mock.mock_calls,
-                         [mock.call.on_progress(progress=1.0)])
+        expected_calls = [
+            mock.call.notifier.notify(task_atom.EVENT_UPDATE_PROGRESS,
+                                      {'progress': 1.0}),
+        ]
+        self.assertEqual(expected_calls, self.request_inst_mock.mock_calls)
 
     def test_on_message_response_state_failure(self):
         a_failure = failure.Failure.from_exception(Exception('test'))
@@ -211,7 +217,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
         expected_calls = [
             mock.call.Request(self.task, self.task_uuid, 'execute',
-                              self.task_args, None, self.timeout),
+                              self.task_args, self.timeout),
             mock.call.request.transition_and_log_error(pr.PENDING,
                                                        logger=mock.ANY),
             mock.call.proxy.publish(self.request_inst_mock,
@@ -231,7 +237,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
         expected_calls = [
             mock.call.Request(self.task, self.task_uuid, 'revert',
-                              self.task_args, None, self.timeout,
+                              self.task_args, self.timeout,
                               failures=self.task_failures,
                               result=self.task_result),
             mock.call.request.transition_and_log_error(pr.PENDING,
@@ -250,7 +256,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
         expected_calls = [
             mock.call.Request(self.task, self.task_uuid, 'execute',
-                              self.task_args, None, self.timeout)
+                              self.task_args, self.timeout),
         ]
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
 
@@ -264,7 +270,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
         expected_calls = [
             mock.call.Request(self.task, self.task_uuid, 'execute',
-                              self.task_args, None, self.timeout),
+                              self.task_args, self.timeout),
             mock.call.request.transition_and_log_error(pr.PENDING,
                                                        logger=mock.ANY),
             mock.call.proxy.publish(self.request_inst_mock,

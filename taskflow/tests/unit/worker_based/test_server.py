@@ -19,6 +19,7 @@ import six
 from taskflow.engines.worker_based import endpoint as ep
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import server
+from taskflow import task as task_atom
 from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils
@@ -103,45 +104,41 @@ class TestServer(test.MockTestCase):
 
     def test_parse_request(self):
         request = self.make_request()
-        task_cls, action, task_args = server.Server._parse_request(**request)
-
-        self.assertEqual((task_cls, action, task_args),
-                         (self.task.name, self.task_action,
-                          dict(task_name=self.task.name,
-                               arguments=self.task_args)))
+        bundle = server.Server._parse_request(**request)
+        task_cls, task_name, action, task_args = bundle
+        self.assertEqual((task_cls, task_name, action, task_args),
+                         (self.task.name, self.task.name, self.task_action,
+                          dict(arguments=self.task_args)))
 
     def test_parse_request_with_success_result(self):
         request = self.make_request(action='revert', result=1)
-        task_cls, action, task_args = server.Server._parse_request(**request)
-
-        self.assertEqual((task_cls, action, task_args),
-                         (self.task.name, 'revert',
-                          dict(task_name=self.task.name,
-                               arguments=self.task_args,
+        bundle = server.Server._parse_request(**request)
+        task_cls, task_name, action, task_args = bundle
+        self.assertEqual((task_cls, task_name, action, task_args),
+                         (self.task.name, self.task.name, 'revert',
+                          dict(arguments=self.task_args,
                                result=1)))
 
     def test_parse_request_with_failure_result(self):
         a_failure = failure.Failure.from_exception(Exception('test'))
         request = self.make_request(action='revert', result=a_failure)
-        task_cls, action, task_args = server.Server._parse_request(**request)
-
-        self.assertEqual((task_cls, action, task_args),
-                         (self.task.name, 'revert',
-                          dict(task_name=self.task.name,
-                               arguments=self.task_args,
+        bundle = server.Server._parse_request(**request)
+        task_cls, task_name, action, task_args = bundle
+        self.assertEqual((task_cls, task_name, action, task_args),
+                         (self.task.name, self.task.name, 'revert',
+                          dict(arguments=self.task_args,
                                result=utils.FailureMatcher(a_failure))))
 
     def test_parse_request_with_failures(self):
         failures = {'0': failure.Failure.from_exception(Exception('test1')),
                     '1': failure.Failure.from_exception(Exception('test2'))}
         request = self.make_request(action='revert', failures=failures)
-        task_cls, action, task_args = server.Server._parse_request(**request)
-
+        bundle = server.Server._parse_request(**request)
+        task_cls, task_name, action, task_args = bundle
         self.assertEqual(
-            (task_cls, action, task_args),
-            (self.task.name, 'revert',
-             dict(task_name=self.task.name,
-                  arguments=self.task_args,
+            (task_cls, task_name, action, task_args),
+            (self.task.name, self.task.name, 'revert',
+             dict(arguments=self.task_args,
                   failures=dict((i, utils.FailureMatcher(f))
                                 for i, f in six.iteritems(failures)))))
 
@@ -182,17 +179,19 @@ class TestServer(test.MockTestCase):
             mock.call.Response(pr.RUNNING),
             mock.call.proxy.publish(self.response_inst_mock, self.reply_to,
                                     correlation_id=self.task_uuid),
-            mock.call.Response(pr.PROGRESS, progress=0.0, event_data={}),
+            mock.call.Response(pr.EVENT, details={'progress': 0.0},
+                               event_type=task_atom.EVENT_UPDATE_PROGRESS),
             mock.call.proxy.publish(self.response_inst_mock, self.reply_to,
                                     correlation_id=self.task_uuid),
-            mock.call.Response(pr.PROGRESS, progress=1.0, event_data={}),
+            mock.call.Response(pr.EVENT, details={'progress': 1.0},
+                               event_type=task_atom.EVENT_UPDATE_PROGRESS),
             mock.call.proxy.publish(self.response_inst_mock, self.reply_to,
                                     correlation_id=self.task_uuid),
             mock.call.Response(pr.SUCCESS, result=5),
             mock.call.proxy.publish(self.response_inst_mock, self.reply_to,
                                     correlation_id=self.task_uuid)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_process_request(self):
         # create server and process request

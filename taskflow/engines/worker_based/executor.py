@@ -25,6 +25,7 @@ from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow import exceptions as exc
 from taskflow import logging
+from taskflow import task as task_atom
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
 from taskflow.utils import misc
@@ -132,8 +133,11 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                           response.state, request)
                 if response.state == pr.RUNNING:
                     request.transition_and_log_error(pr.RUNNING, logger=LOG)
-                elif response.state == pr.PROGRESS:
-                    request.on_progress(**response.data)
+                elif response.state == pr.EVENT:
+                    # Proxy the event + details to the task/request notifier...
+                    event_type = response.data['event_type']
+                    details = response.data['details']
+                    request.notifier.notify(event_type, details)
                 elif response.state in (pr.FAILURE, pr.SUCCESS):
                     moved = request.transition_and_log_error(response.state,
                                                              logger=LOG)
@@ -181,8 +185,18 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                      progress_callback, **kwargs):
         """Submit task request to a worker."""
         request = pr.Request(task, task_uuid, action, arguments,
-                             progress_callback, self._transition_timeout,
-                             **kwargs)
+                             self._transition_timeout, **kwargs)
+
+        # Register the callback, so that we can proxy the progress correctly.
+        if (progress_callback is not None and
+                request.notifier.can_be_registered(
+                    task_atom.EVENT_UPDATE_PROGRESS)):
+            request.notifier.register(task_atom.EVENT_UPDATE_PROGRESS,
+                                      progress_callback)
+            cleaner = functools.partial(request.notifier.deregister,
+                                        task_atom.EVENT_UPDATE_PROGRESS,
+                                        progress_callback)
+            request.result.add_done_callback(lambda fut: cleaner())
 
         # Get task's topic and publish request if topic was found.
         topic = self._workers_cache.get_topic_by_task(request.task_cls)

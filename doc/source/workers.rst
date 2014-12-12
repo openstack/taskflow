@@ -158,10 +158,11 @@ engine executor in the following manner:
     from dicts after receiving on both executor & worker sides (this
     translation is lossy since the traceback won't be fully retained).
 
-Executor request format
+Executor execute format
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-* **task** - full task name to be performed
+* **task_name** - full task name to be performed
+* **task_cls** - full task class name to be performed
 * **action** - task action to be performed (e.g. execute, revert)
 * **arguments** - arguments the task action to be called with
 * **result** - task execution result (result or
@@ -180,9 +181,14 @@ Additionally, the following parameters are added to the request message:
     {
         "action": "execute",
         "arguments": {
-            "joe_number": 444
+            "x": 111
         },
-        "task": "tasks.CallJoe"
+        "task_cls": "taskflow.tests.utils.TaskOneArgOneReturn",
+        "task_name": "taskflow.tests.utils.TaskOneArgOneReturn",
+        "task_version": [
+            1,
+            0
+        ]
     }
 
 Worker response format
@@ -193,7 +199,8 @@ When **running:**
 .. code:: json
 
     {
-        "status": "RUNNING"
+        "data": {},
+        "state": "RUNNING"
     }
 
 When **progressing:**
@@ -201,9 +208,11 @@ When **progressing:**
 .. code:: json
 
     {
-        "event_data": <event_data>,
-        "progress": <progress>,
-        "state": "PROGRESS"
+        "details": {
+            "progress": 0.5
+        },
+        "event_type": "update_progress",
+        "state": "EVENT"
     }
 
 When **succeeded:**
@@ -211,8 +220,9 @@ When **succeeded:**
 .. code:: json
 
     {
-        "event": <event>,
-        "result": <result>,
+        "data": {
+            "result": 666
+        },
         "state": "SUCCESS"
     }
 
@@ -221,9 +231,62 @@ When **failed:**
 .. code:: json
 
     {
-        "event": <event>,
-        "result": <types.failure.Failure>,
+        "data": {
+            "result": {
+                "exc_type_names": [
+                    "RuntimeError",
+                    "StandardError",
+                    "Exception"
+                ],
+                "exception_str": "Woot!",
+                "traceback_str": "  File \"/homes/harlowja/dev/os/taskflow/taskflow/engines/action_engine/executor.py\", line 56, in _execute_task\n    result = task.execute(**arguments)\n  File \"/homes/harlowja/dev/os/taskflow/taskflow/tests/utils.py\", line 165, in execute\n    raise RuntimeError('Woot!')\n",
+                "version": 1
+            }
+        },
         "state": "FAILURE"
+    }
+
+Executor revert format
+~~~~~~~~~~~~~~~~~~~~~~
+
+When **reverting:**
+
+.. code:: json
+
+    {
+        "action": "revert",
+        "arguments": {},
+        "failures": {
+            "taskflow.tests.utils.TaskWithFailure": {
+                "exc_type_names": [
+                    "RuntimeError",
+                    "StandardError",
+                    "Exception"
+                ],
+                "exception_str": "Woot!",
+                "traceback_str": "  File \"/homes/harlowja/dev/os/taskflow/taskflow/engines/action_engine/executor.py\", line 56, in _execute_task\n    result = task.execute(**arguments)\n  File \"/homes/harlowja/dev/os/taskflow/taskflow/tests/utils.py\", line 165, in execute\n    raise RuntimeError('Woot!')\n",
+                "version": 1
+            }
+        },
+        "result": [
+            "failure",
+            {
+                "exc_type_names": [
+                    "RuntimeError",
+                    "StandardError",
+                    "Exception"
+                ],
+                "exception_str": "Woot!",
+                "traceback_str": "  File \"/homes/harlowja/dev/os/taskflow/taskflow/engines/action_engine/executor.py\", line 56, in _execute_task\n    result = task.execute(**arguments)\n  File \"/homes/harlowja/dev/os/taskflow/taskflow/tests/utils.py\", line 165, in execute\n    raise RuntimeError('Woot!')\n",
+                "version": 1
+            }
+        ],
+        "task_cls": "taskflow.tests.utils.TaskWithFailure",
+        "task_name": "taskflow.tests.utils.TaskWithFailure",
+        "task_version": [
+            1,
+            0
+        ]
     }
 
 Usage

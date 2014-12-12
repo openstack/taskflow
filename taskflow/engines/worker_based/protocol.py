@@ -38,14 +38,14 @@ PENDING = 'PENDING'
 RUNNING = 'RUNNING'
 SUCCESS = 'SUCCESS'
 FAILURE = 'FAILURE'
-PROGRESS = 'PROGRESS'
+EVENT = 'EVENT'
 
 # During these states the expiry is active (once out of these states the expiry
 # no longer matters, since we have no way of knowing how long a task will run
 # for).
 WAITING_STATES = (WAITING, PENDING)
 
-_ALL_STATES = (WAITING, PENDING, RUNNING, SUCCESS, FAILURE, PROGRESS)
+_ALL_STATES = (WAITING, PENDING, RUNNING, SUCCESS, FAILURE, EVENT)
 _STOP_TIMER_STATES = (RUNNING, SUCCESS, FAILURE)
 
 # Transitions that a request state can go through.
@@ -219,22 +219,29 @@ class Request(Message):
         'required': ['task_cls', 'task_name', 'task_version', 'action'],
     }
 
-    def __init__(self, task, uuid, action, arguments, progress_callback,
-                 timeout, **kwargs):
+    def __init__(self, task, uuid, action, arguments, timeout, **kwargs):
         self._task = task
         self._task_cls = reflection.get_class_name(task)
         self._uuid = uuid
         self._action = action
         self._event = ACTION_TO_EVENT[action]
         self._arguments = arguments
-        self._progress_callback = progress_callback
         self._kwargs = kwargs
         self._watch = tt.StopWatch(duration=timeout).start()
         self._state = WAITING
         self._lock = threading.Lock()
         self._created_on = timeutils.utcnow()
-        self.result = futures.Future()
-        self.result.atom = task
+        self._result = futures.Future()
+        self._result.atom = task
+        self._notifier = task.notifier
+
+    @property
+    def result(self):
+        return self._result
+
+    @property
+    def notifier(self):
+        return self._notifier
 
     @property
     def uuid(self):
@@ -292,9 +299,6 @@ class Request(Message):
 
     def set_result(self, result):
         self.result.set_result((self._event, result))
-
-    def on_progress(self, event_data, progress):
-        self._progress_callback(self._task, event_data, progress)
 
     def transition_and_log_error(self, new_state, logger=None):
         """Transitions *and* logs an error if that transitioning raises.
@@ -362,7 +366,7 @@ class Response(Message):
             'data': {
                 "anyOf": [
                     {
-                        "$ref": "#/definitions/progress",
+                        "$ref": "#/definitions/event",
                     },
                     {
                         "$ref": "#/definitions/completion",
@@ -376,17 +380,17 @@ class Response(Message):
         "required": ["state", 'data'],
         "additionalProperties": False,
         "definitions": {
-            "progress": {
+            "event": {
                 "type": "object",
                 "properties": {
-                    'progress': {
-                        'type': 'number',
+                    'event_type': {
+                        'type': 'string',
                     },
-                    'event_data': {
+                    'details': {
                         'type': 'object',
                     },
                 },
-                "required": ["progress", 'event_data'],
+                "required": ["event_type", 'details'],
                 "additionalProperties": False,
             },
             # Used when sending *only* request state changes (and no data is

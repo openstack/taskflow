@@ -16,14 +16,13 @@
 #    under the License.
 
 import abc
-import collections
-import contextlib
 import copy
 
 import six
 
 from taskflow import atom
 from taskflow import logging
+from taskflow.types import notifier
 from taskflow.utils import misc
 from taskflow.utils import reflection
 
@@ -51,18 +50,28 @@ class BaseTask(atom.Atom):
     same piece of work.
     """
 
-    # Known events this task can have callbacks bound to (others that are not
-    # in this set/tuple will not be able to be bound); this should be updated
-    # and/or extended in subclasses as needed to enable or disable new or
-    # existing events...
+    # Known internal events this task can have callbacks bound to (others that
+    # are not in this set/tuple will not be able to be bound); this should be
+    # updated and/or extended in subclasses as needed to enable or disable new
+    # or existing internal events...
     TASK_EVENTS = (EVENT_UPDATE_PROGRESS,)
 
     def __init__(self, name, provides=None, inject=None):
         if name is None:
             name = reflection.get_class_name(self)
         super(BaseTask, self).__init__(name, provides, inject=inject)
-        # Map of events => lists of callbacks to invoke on task events.
-        self._events_listeners = collections.defaultdict(list)
+        self._notifier = notifier.RestrictedNotifier(self.TASK_EVENTS)
+
+    @property
+    def notifier(self):
+        """Internal notification dispatcher/registry.
+
+        A notification object that will dispatch events that occur related
+        to *internal* notifications that the task internally emits to
+        listeners (for example for progress status updates, telling others
+        that a task has reached 50% completion...).
+        """
+        return self._notifier
 
     def pre_execute(self):
         """Code to be run prior to executing the task.
@@ -138,152 +147,31 @@ class BaseTask(atom.Atom):
     def copy(self, retain_listeners=True):
         """Clone/copy this task.
 
-        :param retain_listeners: retain the attached listeners when cloning,
-                                 when false the listeners will be emptied, when
-                                 true the listeners will be copied and retained
+        :param retain_listeners: retain the attached notification listeners
+                                 when cloning, when false the listeners will
+                                 be emptied, when true the listeners will be
+                                 copied and retained
 
         :return: the copied task
         """
         c = copy.copy(self)
-        c._events_listeners = collections.defaultdict(list)
-        if retain_listeners:
-            for event_name, listeners in six.iteritems(self._events_listeners):
-                c._events_listeners[event_name] = listeners[:]
+        c._notifier = self._notifier.copy()
+        if not retain_listeners:
+            c._notifier.reset()
         return c
 
-    def update_progress(self, progress, **kwargs):
+    def update_progress(self, progress):
         """Update task progress and notify all registered listeners.
 
         :param progress: task progress float value between 0.0 and 1.0
-        :param kwargs: any keyword arguments that are tied to the specific
-                       progress value.
         """
         def on_clamped():
             LOG.warn("Progress value must be greater or equal to 0.0 or less"
                      " than or equal to 1.0 instead of being '%s'", progress)
         cleaned_progress = misc.clamp(progress, 0.0, 1.0,
                                       on_clamped=on_clamped)
-        self.trigger(EVENT_UPDATE_PROGRESS, cleaned_progress, **kwargs)
-
-    def trigger(self, event_name, *args, **kwargs):
-        """Execute all callbacks registered for the given event type.
-
-        NOTE(harlowja): if a bound callback raises an exception it will be
-                        logged (at a ``WARNING`` level) and the exception
-                        will be dropped.
-
-        :param event_name: event name to trigger
-        :param args: arbitrary positional arguments passed to the triggered
-                     callbacks (if any are matched), these will be in addition
-                     to any ``kwargs`` provided on binding (these are passed
-                     as positional arguments to the callback).
-        :param kwargs: arbitrary keyword arguments passed to the triggered
-                     callbacks (if any are matched), these will be in addition
-                     to any ``kwargs`` provided on binding (these are passed
-                     as keyword arguments to the callback).
-        """
-        for (cb, event_data) in self._events_listeners.get(event_name, []):
-            try:
-                cb(self, event_data, *args, **kwargs)
-            except Exception:
-                LOG.warn("Failed calling callback `%s` on event '%s'",
-                         reflection.get_callable_name(cb), event_name,
-                         exc_info=True)
-
-    @contextlib.contextmanager
-    def autobind(self, event_name, callback, **kwargs):
-        """Binds & unbinds a given callback to the task.
-
-        This function binds and unbinds using the context manager protocol.
-        When events are triggered on the task of the given event name this
-        callback will automatically be called with the provided
-        keyword arguments as the first argument (further arguments may be
-        provided by the entity triggering the event).
-
-        The arguments are interpreted as for :func:`bind() <bind>`.
-        """
-        bound = False
-        if callback is not None:
-            try:
-                self.bind(event_name, callback, **kwargs)
-                bound = True
-            except ValueError:
-                LOG.warn("Failed binding callback `%s` as a receiver of"
-                         " event '%s' notifications emitted from task '%s'",
-                         reflection.get_callable_name(callback), event_name,
-                         self, exc_info=True)
-        try:
-            yield self
-        finally:
-            if bound:
-                self.unbind(event_name, callback)
-
-    def bind(self, event_name, callback, **kwargs):
-        """Attach a callback to be triggered on a task event.
-
-        Callbacks should *not* be bound, modified, or removed after execution
-        has commenced (they may be adjusted after execution has finished). This
-        is primarily due to the need to preserve the callbacks that exist at
-        execution time for engines which run tasks remotely or out of
-        process (so that those engines can correctly proxy back transmitted
-        events).
-
-        Callbacks should also be *quick* to execute so that the engine calling
-        them can continue execution in a timely manner (if long running
-        callbacks need to exist, consider creating a separate pool + queue
-        for those that the attached callbacks put long running operations into
-        for execution by other entities).
-
-        :param event_name: event type name
-        :param callback: callable to execute each time event is triggered
-        :param kwargs: optional named parameters that will be passed to the
-                       callable object as a dictionary to the callbacks
-                       *second* positional parameter.
-        :raises ValueError: if invalid event type, or callback is passed
-        """
-        if event_name not in self.TASK_EVENTS:
-            raise ValueError("Unknown task event '%s', can only bind"
-                             " to events %s" % (event_name, self.TASK_EVENTS))
-        if callback is not None:
-            if not six.callable(callback):
-                raise ValueError("Event handler callback must be callable")
-            self._events_listeners[event_name].append((callback, kwargs))
-
-    def unbind(self, event_name, callback=None):
-        """Remove a previously-attached event callback from the task.
-
-        If a callback is not passed, then this will unbind *all* event
-        callbacks for the provided event. If multiple of the same callbacks
-        are bound, then the first match is removed (and only the first match).
-
-        :param event_name: event type
-        :param callback: callback previously bound
-
-        :rtype: boolean
-        :return: whether anything was removed
-        """
-        removed_any = False
-        if not callback:
-            removed_any = self._events_listeners.pop(event_name, removed_any)
-        else:
-            event_listeners = self._events_listeners.get(event_name, [])
-            for i, (cb, _event_data) in enumerate(event_listeners):
-                if reflection.is_same_callback(cb, callback):
-                    # NOTE(harlowja): its safe to do this as long as we stop
-                    # iterating after we do the removal, otherwise its not
-                    # safe (since this could have resized the list).
-                    event_listeners.pop(i)
-                    removed_any = True
-                    break
-        return bool(removed_any)
-
-    def listeners_iter(self):
-        """Return an iterator over the mapping of event => callbacks bound."""
-        for event_name in list(six.iterkeys(self._events_listeners)):
-            # Use get() just incase it was removed while iterating...
-            event_listeners = self._events_listeners.get(event_name, [])
-            if event_listeners:
-                yield (event_name, event_listeners[:])
+        self._notifier.notify(EVENT_UPDATE_PROGRESS,
+                              {'progress': cleaned_progress})
 
 
 class Task(BaseTask):

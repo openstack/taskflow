@@ -84,6 +84,31 @@ class NotifierTest(test.TestCase):
         self.assertRaises(ValueError, notifier.register,
                           nt.Notifier.ANY, 2)
 
+    def test_restricted_notifier(self):
+        notifier = nt.RestrictedNotifier(['a', 'b'])
+        self.assertRaises(ValueError, notifier.register,
+                          'c', lambda *args, **kargs: None)
+        notifier.register('b', lambda *args, **kargs: None)
+        self.assertEqual(1, len(notifier))
+
+    def test_restricted_notifier_any(self):
+        notifier = nt.RestrictedNotifier(['a', 'b'])
+        self.assertRaises(ValueError, notifier.register,
+                          'c', lambda *args, **kargs: None)
+        notifier.register('b', lambda *args, **kargs: None)
+        self.assertEqual(1, len(notifier))
+        notifier.register(nt.RestrictedNotifier.ANY,
+                          lambda *args, **kargs: None)
+        self.assertEqual(2, len(notifier))
+
+    def test_restricted_notifier_no_any(self):
+        notifier = nt.RestrictedNotifier(['a', 'b'], allow_any=False)
+        self.assertRaises(ValueError, notifier.register,
+                          nt.RestrictedNotifier.ANY,
+                          lambda *args, **kargs: None)
+        notifier.register('b', lambda *args, **kargs: None)
+        self.assertEqual(1, len(notifier))
+
     def test_selective_notify(self):
         call_counts = collections.defaultdict(list)
 

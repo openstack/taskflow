@@ -118,7 +118,7 @@ class TestMessagePump(test.TestCase):
             else:
                 p.publish(pr.Request(test_utils.DummyTask("dummy_%s" % i),
                                      uuidutils.generate_uuid(),
-                                     pr.EXECUTE, [], None, None), TEST_TOPIC)
+                                     pr.EXECUTE, [], None), TEST_TOPIC)
 
         self.assertTrue(barrier.wait(test_utils.WAIT_TIMEOUT))
         self.assertEqual(0, barrier.needed)

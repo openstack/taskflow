@@ -22,7 +22,6 @@ from taskflow.engines.worker_based import protocol as pr
 from taskflow import exceptions as excp
 from taskflow.openstack.common import uuidutils
 from taskflow import test
-from taskflow.test import mock
 from taskflow.tests import utils
 from taskflow.types import failure
 
@@ -53,7 +52,7 @@ class TestProtocolValidation(test.TestCase):
 
     def test_request(self):
         msg = pr.Request(utils.DummyTask("hi"), uuidutils.generate_uuid(),
-                         pr.EXECUTE, {}, None, 1.0)
+                         pr.EXECUTE, {}, 1.0)
         pr.Request.validate(msg.to_dict())
 
     def test_request_invalid(self):
@@ -66,13 +65,14 @@ class TestProtocolValidation(test.TestCase):
 
     def test_request_invalid_action(self):
         msg = pr.Request(utils.DummyTask("hi"), uuidutils.generate_uuid(),
-                         pr.EXECUTE, {}, None, 1.0)
+                         pr.EXECUTE, {}, 1.0)
         msg = msg.to_dict()
         msg['action'] = 'NOTHING'
         self.assertRaises(excp.InvalidFormat, pr.Request.validate, msg)
 
     def test_response_progress(self):
-        msg = pr.Response(pr.PROGRESS, progress=0.5, event_data={})
+        msg = pr.Response(pr.EVENT, details={'progress': 0.5},
+                          event_type='blah')
         pr.Response.validate(msg.to_dict())
 
     def test_response_completion(self):
@@ -80,7 +80,9 @@ class TestProtocolValidation(test.TestCase):
         pr.Response.validate(msg.to_dict())
 
     def test_response_mixed_invalid(self):
-        msg = pr.Response(pr.PROGRESS, progress=0.5, event_data={}, result=1)
+        msg = pr.Response(pr.EVENT,
+                          details={'progress': 0.5},
+                          event_type='blah', result=1)
         self.assertRaises(excp.InvalidFormat, pr.Response.validate, msg)
 
     def test_response_bad_state(self):
@@ -184,16 +186,3 @@ class TestProtocol(test.TestCase):
         request.set_result(111)
         result = request.result.result()
         self.assertEqual(result, (executor.EXECUTED, 111))
-
-    def test_on_progress(self):
-        progress_callback = mock.MagicMock(name='progress_callback')
-        request = self.request(task=self.task,
-                               progress_callback=progress_callback)
-        request.on_progress('event_data', 0.0)
-        request.on_progress('event_data', 1.0)
-
-        expected_calls = [
-            mock.call(self.task, 'event_data', 0.0),
-            mock.call(self.task, 'event_data', 1.0)
-        ]
-        self.assertEqual(progress_callback.mock_calls, expected_calls)

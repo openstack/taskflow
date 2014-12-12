@@ -15,6 +15,7 @@
 #    under the License.
 
 import collections
+import copy
 import logging
 
 import six
@@ -38,6 +39,14 @@ class _Listener(object):
             self._kwargs = {}
         else:
             self._kwargs = kwargs.copy()
+
+    @property
+    def kwargs(self):
+        return self._kwargs
+
+    @property
+    def args(self):
+        return self._args
 
     def __call__(self, event_type, details):
         if self._details_filter is not None:
@@ -117,17 +126,18 @@ class Notifier(object):
         event type will be called.
 
         :param event_type: event type that occurred
-        :param details: addition event details
+        :param details: additional event details *dictionary* passed to
+                        callback keyword argument with the same name.
         """
         listeners = list(self._listeners.get(self.ANY, []))
-        for listener in self._listeners[event_type]:
-            if listener not in listeners:
-                listeners.append(listener)
+        listeners.extend(self._listeners.get(event_type, []))
         if not listeners:
             return
+        if not details:
+            details = {}
         for listener in listeners:
             try:
-                listener(event_type, details)
+                listener(event_type, details.copy())
             except Exception:
                 LOG.warn("Failure calling listener %s to notify about event"
                          " %s, details: %s", listener, event_type,
@@ -150,6 +160,9 @@ class Notifier(object):
         if details_filter is not None:
             if not six.callable(details_filter):
                 raise ValueError("Details filter must be callable")
+        if not self.can_be_registered(event_type):
+            raise ValueError("Disallowed event type '%s' can not have a"
+                             " callback registered" % event_type)
         if self.is_registered(event_type, callback,
                               details_filter=details_filter):
             raise ValueError("Event callback already registered with"
@@ -165,10 +178,61 @@ class Notifier(object):
                       details_filter=details_filter))
 
     def deregister(self, event_type, callback, details_filter=None):
-        """Remove a single callback from listening to event ``event_type``."""
+        """Remove a single listener bound to event ``event_type``."""
         if event_type not in self._listeners:
-            return
-        for i, listener in enumerate(self._listeners[event_type]):
+            return False
+        for i, listener in enumerate(self._listeners.get(event_type, [])):
             if listener.is_equivalent(callback, details_filter=details_filter):
                 self._listeners[event_type].pop(i)
-                break
+                return True
+        return False
+
+    def deregister_event(self, event_type):
+        """Remove a group of listeners bound to event ``event_type``."""
+        return len(self._listeners.pop(event_type, []))
+
+    def copy(self):
+        c = copy.copy(self)
+        c._listeners = collections.defaultdict(list)
+        for event_type, listeners in six.iteritems(self._listeners):
+            c._listeners[event_type] = listeners[:]
+        return c
+
+    def listeners_iter(self):
+        """Return an iterator over the mapping of event => listeners bound."""
+        for event_type, listeners in six.iteritems(self._listeners):
+            if listeners:
+                yield (event_type, listeners)
+
+    def can_be_registered(self, event_type):
+        """Checks if the event can be registered/subscribed to."""
+        return True
+
+
+class RestrictedNotifier(Notifier):
+    """A notification class that restricts events registered/triggered.
+
+    NOTE(harlowja): This class unlike :class:`.Notifier` restricts and
+    disallows registering callbacks for event types that are not declared
+    when constructing the notifier.
+    """
+
+    def __init__(self, watchable_events, allow_any=True):
+        super(RestrictedNotifier, self).__init__()
+        self._watchable_events = frozenset(watchable_events)
+        self._allow_any = allow_any
+
+    def events_iter(self):
+        """Returns iterator of events that can be registered/subscribed to.
+
+        NOTE(harlowja): does not include back the ``ANY`` event type as that
+        meta-type is not a specific event but is a capture-all that does not
+        imply the same meaning as specific event types.
+        """
+        for event_type in self._watchable_events:
+            yield event_type
+
+    def can_be_registered(self, event_type):
+        """Checks if the event can be registered/subscribed to."""
+        return (event_type in self._watchable_events or
+                (event_type == self.ANY and self._allow_any))

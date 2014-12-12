@@ -17,7 +17,7 @@
 from taskflow import task
 from taskflow import test
 from taskflow.test import mock
-from taskflow.utils import reflection
+from taskflow.types import notifier
 
 
 class MyTask(task.Task):
@@ -198,24 +198,24 @@ class TaskTest(test.TestCase):
         values = [0.0, 0.5, 1.0]
         result = []
 
-        def progress_callback(task, event_data, progress):
-            result.append(progress)
+        def progress_callback(event_type, details):
+            result.append(details.pop('progress'))
 
         a_task = ProgressTask()
-        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, progress_callback):
-            a_task.execute(values)
+        a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
+        a_task.execute(values)
         self.assertEqual(result, values)
 
     @mock.patch.object(task.LOG, 'warn')
     def test_update_progress_lower_bound(self, mocked_warn):
         result = []
 
-        def progress_callback(task, event_data, progress):
-            result.append(progress)
+        def progress_callback(event_type, details):
+            result.append(details.pop('progress'))
 
         a_task = ProgressTask()
-        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, progress_callback):
-            a_task.execute([-1.0, -0.5, 0.0])
+        a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
+        a_task.execute([-1.0, -0.5, 0.0])
         self.assertEqual(result, [0.0, 0.0, 0.0])
         self.assertEqual(mocked_warn.call_count, 2)
 
@@ -223,81 +223,87 @@ class TaskTest(test.TestCase):
     def test_update_progress_upper_bound(self, mocked_warn):
         result = []
 
-        def progress_callback(task, event_data, progress):
-            result.append(progress)
+        def progress_callback(event_type, details):
+            result.append(details.pop('progress'))
 
         a_task = ProgressTask()
-        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, progress_callback):
-            a_task.execute([1.0, 1.5, 2.0])
+        a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
+        a_task.execute([1.0, 1.5, 2.0])
         self.assertEqual(result, [1.0, 1.0, 1.0])
         self.assertEqual(mocked_warn.call_count, 2)
 
-    @mock.patch.object(task.LOG, 'warn')
+    @mock.patch.object(notifier.LOG, 'warn')
     def test_update_progress_handler_failure(self, mocked_warn):
+
         def progress_callback(*args, **kwargs):
             raise Exception('Woot!')
 
         a_task = ProgressTask()
-        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, progress_callback):
-            a_task.execute([0.5])
-        mocked_warn.assert_called_once_with(
-            mock.ANY, reflection.get_callable_name(progress_callback),
-            task.EVENT_UPDATE_PROGRESS, exc_info=mock.ANY)
+        a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
+        a_task.execute([0.5])
+        mocked_warn.assert_called_once()
 
-    def test_autobind_handler_is_none(self):
+    def test_register_handler_is_none(self):
         a_task = MyTask()
-        with a_task.autobind(task.EVENT_UPDATE_PROGRESS, None):
-            self.assertEqual(len(list(a_task.listeners_iter())), 0)
+        self.assertRaises(ValueError, a_task.notifier.register,
+                          task.EVENT_UPDATE_PROGRESS, None)
+        self.assertEqual(len(a_task.notifier), 0)
 
-    def test_unbind_any_handler(self):
+    def test_deregister_any_handler(self):
         a_task = MyTask()
-        self.assertEqual(len(list(a_task.listeners_iter())), 0)
-        a_task.bind(task.EVENT_UPDATE_PROGRESS, lambda: None)
-        self.assertEqual(len(list(a_task.listeners_iter())), 1)
-        self.assertTrue(a_task.unbind(task.EVENT_UPDATE_PROGRESS))
-        self.assertEqual(len(list(a_task.listeners_iter())), 0)
+        self.assertEqual(len(a_task.notifier), 0)
+        a_task.notifier.register(task.EVENT_UPDATE_PROGRESS,
+                                 lambda event_type, details: None)
+        self.assertEqual(len(a_task.notifier), 1)
+        a_task.notifier.deregister_event(task.EVENT_UPDATE_PROGRESS)
+        self.assertEqual(len(a_task.notifier), 0)
 
-    def test_unbind_any_handler_empty_listeners(self):
+    def test_deregister_any_handler_empty_listeners(self):
         a_task = MyTask()
-        self.assertEqual(len(list(a_task.listeners_iter())), 0)
-        self.assertFalse(a_task.unbind(task.EVENT_UPDATE_PROGRESS))
-        self.assertEqual(len(list(a_task.listeners_iter())), 0)
+        self.assertEqual(len(a_task.notifier), 0)
+        self.assertFalse(a_task.notifier.deregister_event(
+            task.EVENT_UPDATE_PROGRESS))
+        self.assertEqual(len(a_task.notifier), 0)
 
-    def test_unbind_non_existent_listener(self):
-        handler1 = lambda: None
-        handler2 = lambda: None
+    def test_deregister_non_existent_listener(self):
+        handler1 = lambda event_type, details: None
+        handler2 = lambda event_type, details: None
         a_task = MyTask()
-        a_task.bind(task.EVENT_UPDATE_PROGRESS, handler1)
-        self.assertEqual(len(list(a_task.listeners_iter())), 1)
-        self.assertFalse(a_task.unbind(task.EVENT_UPDATE_PROGRESS, handler2))
-        self.assertEqual(len(list(a_task.listeners_iter())), 1)
+        a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler1)
+        self.assertEqual(len(list(a_task.notifier.listeners_iter())), 1)
+        a_task.notifier.deregister(task.EVENT_UPDATE_PROGRESS, handler2)
+        self.assertEqual(len(list(a_task.notifier.listeners_iter())), 1)
+        a_task.notifier.deregister(task.EVENT_UPDATE_PROGRESS, handler1)
+        self.assertEqual(len(list(a_task.notifier.listeners_iter())), 0)
 
     def test_bind_not_callable(self):
-        task = MyTask()
-        self.assertRaises(ValueError, task.bind, 'update_progress', 2)
+        a_task = MyTask()
+        self.assertRaises(ValueError, a_task.notifier.register,
+                          task.EVENT_UPDATE_PROGRESS, 2)
 
     def test_copy_no_listeners(self):
-        handler1 = lambda: None
+        handler1 = lambda event_type, details: None
         a_task = MyTask()
-        a_task.bind(task.EVENT_UPDATE_PROGRESS, handler1)
+        a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler1)
         b_task = a_task.copy(retain_listeners=False)
-        self.assertEqual(len(list(a_task.listeners_iter())), 1)
-        self.assertEqual(len(list(b_task.listeners_iter())), 0)
+        self.assertEqual(len(a_task.notifier), 1)
+        self.assertEqual(len(b_task.notifier), 0)
 
     def test_copy_listeners(self):
-        handler1 = lambda: None
-        handler2 = lambda: None
+        handler1 = lambda event_type, details: None
+        handler2 = lambda event_type, details: None
         a_task = MyTask()
-        a_task.bind(task.EVENT_UPDATE_PROGRESS, handler1)
+        a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler1)
         b_task = a_task.copy()
-        self.assertEqual(len(list(b_task.listeners_iter())), 1)
-        self.assertTrue(a_task.unbind(task.EVENT_UPDATE_PROGRESS))
-        self.assertEqual(len(list(a_task.listeners_iter())), 0)
-        self.assertEqual(len(list(b_task.listeners_iter())), 1)
-        b_task.bind(task.EVENT_UPDATE_PROGRESS, handler2)
-        listeners = dict(list(b_task.listeners_iter()))
+        self.assertEqual(len(b_task.notifier), 1)
+        self.assertTrue(a_task.notifier.deregister_event(
+            task.EVENT_UPDATE_PROGRESS))
+        self.assertEqual(len(a_task.notifier), 0)
+        self.assertEqual(len(b_task.notifier), 1)
+        b_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler2)
+        listeners = dict(list(b_task.notifier.listeners_iter()))
         self.assertEqual(len(listeners[task.EVENT_UPDATE_PROGRESS]), 2)
-        self.assertEqual(len(list(a_task.listeners_iter())), 0)
+        self.assertEqual(len(a_task.notifier), 0)
 
 
 class FunctorTaskTest(test.TestCase):

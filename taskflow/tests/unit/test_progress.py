@@ -39,7 +39,12 @@ class ProgressTask(task.Task):
 
 class ProgressTaskWithDetails(task.Task):
     def execute(self):
-        self.update_progress(0.5, test='test data', foo='bar')
+        details = {
+            'progress': 0.5,
+            'test': 'test data',
+            'foo': 'bar',
+        }
+        self.notifier.notify(task.EVENT_UPDATE_PROGRESS, details)
 
 
 class TestProgress(test.TestCase):
@@ -60,12 +65,12 @@ class TestProgress(test.TestCase):
     def test_sanity_progress(self):
         fired_events = []
 
-        def notify_me(task, event_data, progress):
-            fired_events.append(progress)
+        def notify_me(event_type, details):
+            fired_events.append(details.pop('progress'))
 
         ev_count = 5
         t = ProgressTask("test", ev_count)
-        t.bind('update_progress', notify_me)
+        t.notifier.register(task.EVENT_UPDATE_PROGRESS, notify_me)
         flo = lf.Flow("test")
         flo.add(t)
         e = self._make_engine(flo)
@@ -77,11 +82,11 @@ class TestProgress(test.TestCase):
     def test_no_segments_progress(self):
         fired_events = []
 
-        def notify_me(task, event_data, progress):
-            fired_events.append(progress)
+        def notify_me(event_type, details):
+            fired_events.append(details.pop('progress'))
 
         t = ProgressTask("test", 0)
-        t.bind('update_progress', notify_me)
+        t.notifier.register(task.EVENT_UPDATE_PROGRESS, notify_me)
         flo = lf.Flow("test")
         flo.add(t)
         e = self._make_engine(flo)
@@ -121,12 +126,12 @@ class TestProgress(test.TestCase):
     def test_dual_storage_progress(self):
         fired_events = []
 
-        def notify_me(task, event_data, progress):
-            fired_events.append(progress)
+        def notify_me(event_type, details):
+            fired_events.append(details.pop('progress'))
 
         with contextlib.closing(impl_memory.MemoryBackend({})) as be:
             t = ProgressTask("test", 5)
-            t.bind('update_progress', notify_me)
+            t.notifier.register(task.EVENT_UPDATE_PROGRESS, notify_me)
             flo = lf.Flow("test")
             flo.add(t)
             b, fd = p_utils.temporary_flow_detail(be)

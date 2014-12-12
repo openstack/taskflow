@@ -42,14 +42,14 @@ class TestEndpoint(test.TestCase):
         self.task_result = 1
 
     def test_creation(self):
-        task = self.task_ep._get_task()
+        task = self.task_ep.generate()
         self.assertEqual(self.task_ep.name, self.task_cls_name)
         self.assertIsInstance(task, self.task_cls)
         self.assertEqual(task.name, self.task_cls_name)
 
     def test_creation_with_task_name(self):
         task_name = 'test'
-        task = self.task_ep._get_task(name=task_name)
+        task = self.task_ep.generate(name=task_name)
         self.assertEqual(self.task_ep.name, self.task_cls_name)
         self.assertIsInstance(task, self.task_cls)
         self.assertEqual(task.name, task_name)
@@ -58,20 +58,22 @@ class TestEndpoint(test.TestCase):
         # NOTE(skudriashev): Exception is expected here since task
         # is created without any arguments passing to its constructor.
         endpoint = ep.Endpoint(Task)
-        self.assertRaises(TypeError, endpoint._get_task)
+        self.assertRaises(TypeError, endpoint.generate)
 
     def test_to_str(self):
         self.assertEqual(str(self.task_ep), self.task_cls_name)
 
     def test_execute(self):
-        result = self.task_ep.execute(task_name=self.task_cls_name,
+        task = self.task_ep.generate(self.task_cls_name)
+        result = self.task_ep.execute(task,
                                       task_uuid=self.task_uuid,
                                       arguments=self.task_args,
                                       progress_callback=None)
         self.assertEqual(result, self.task_result)
 
     def test_revert(self):
-        result = self.task_ep.revert(task_name=self.task_cls_name,
+        task = self.task_ep.generate(self.task_cls_name)
+        result = self.task_ep.revert(task,
                                      task_uuid=self.task_uuid,
                                      arguments=self.task_args,
                                      progress_callback=None,
