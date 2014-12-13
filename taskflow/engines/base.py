@@ -113,3 +113,10 @@ class Engine(object):
         not currently be preempted) and move the engine into a suspend state
         which can then later be resumed from.
         """
+
+
+# TODO(harlowja): remove in 0.7 or later...
+EngineBase = deprecation.moved_inheritable_class(Engine,
+                                                 'EngineBase', __name__,
+                                                 version="0.6",
+                                                 removal_version="?")
