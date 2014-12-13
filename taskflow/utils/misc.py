@@ -100,6 +100,22 @@ def parse_uri(uri):
                                query=split.query)
 
 
+def clamp(value, minimum, maximum, on_clamped=None):
+    """Clamps a value to ensure its >= minimum and <= maximum."""
+    if minimum > maximum:
+        raise ValueError("Provided minimum '%s' must be less than or equal to"
+                         " the provided maximum '%s'" % (minimum, maximum))
+    if value > maximum:
+        value = maximum
+        if on_clamped is not None:
+            on_clamped()
+    if value < minimum:
+        value = minimum
+        if on_clamped is not None:
+            on_clamped()
+    return value
+
+
 def binary_encode(text, encoding='utf-8'):
     """Converts a string of into a binary type using given encoding.
 

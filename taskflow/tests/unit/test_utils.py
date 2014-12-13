@@ -443,3 +443,32 @@ class TestSequenceMinus(test.TestCase):
     def test_equal_items_not_continious(self):
         result = misc.sequence_minus([1, 2, 3, 1], [1, 3])
         self.assertEqual(result, [2, 1])
+
+
+class TestClamping(test.TestCase):
+    def test_simple_clamp(self):
+        result = misc.clamp(1.0, 2.0, 3.0)
+        self.assertEqual(result, 2.0)
+        result = misc.clamp(4.0, 2.0, 3.0)
+        self.assertEqual(result, 3.0)
+        result = misc.clamp(3.0, 4.0, 4.0)
+        self.assertEqual(result, 4.0)
+
+    def test_invalid_clamp(self):
+        self.assertRaises(ValueError, misc.clamp, 0.0, 2.0, 1.0)
+
+    def test_clamped_callback(self):
+        calls = []
+
+        def on_clamped():
+            calls.append(True)
+
+        misc.clamp(-1, 0.0, 1.0, on_clamped=on_clamped)
+        self.assertEqual(1, len(calls))
+        calls.pop()
+
+        misc.clamp(0.0, 0.0, 1.0, on_clamped=on_clamped)
+        self.assertEqual(0, len(calls))
+
+        misc.clamp(2, 0.0, 1.0, on_clamped=on_clamped)
+        self.assertEqual(1, len(calls))

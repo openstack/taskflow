@@ -24,6 +24,7 @@ import six
 
 from taskflow import atom
 from taskflow import logging
+from taskflow.utils import misc
 from taskflow.utils import reflection
 
 LOG = logging.getLogger(__name__)
@@ -157,13 +158,12 @@ class BaseTask(atom.Atom):
         :param kwargs: any keyword arguments that are tied to the specific
                        progress value.
         """
-        if progress > 1.0:
-            LOG.warn("Progress must be <= 1.0, clamping to upper bound")
-            progress = 1.0
-        if progress < 0.0:
-            LOG.warn("Progress must be >= 0.0, clamping to lower bound")
-            progress = 0.0
-        self.trigger(EVENT_UPDATE_PROGRESS, progress, **kwargs)
+        def on_clamped():
+            LOG.warn("Progress value must be greater or equal to 0.0 or less"
+                     " than or equal to 1.0 instead of being '%s'", progress)
+        cleaned_progress = misc.clamp(progress, 0.0, 1.0,
+                                      on_clamped=on_clamped)
+        self.trigger(EVENT_UPDATE_PROGRESS, cleaned_progress, **kwargs)
 
     def trigger(self, event_name, *args, **kwargs):
         """Execute all callbacks registered for the given event type.
