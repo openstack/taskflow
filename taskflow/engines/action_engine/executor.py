@@ -61,7 +61,7 @@ def _revert_task(task, arguments, result, failures, progress_callback):
 
 
 @six.add_metaclass(abc.ABCMeta)
-class TaskExecutorBase(object):
+class TaskExecutor(object):
     """Executes and reverts tasks.
 
     This class takes task and its arguments and executes or reverts it.
@@ -91,8 +91,8 @@ class TaskExecutorBase(object):
         pass
 
 
-class SerialTaskExecutor(TaskExecutorBase):
-    """Execute task one after another."""
+class SerialTaskExecutor(TaskExecutor):
+    """Executes tasks one after another."""
 
     def __init__(self):
         self._executor = futures.SynchronousExecutor()
@@ -114,7 +114,7 @@ class SerialTaskExecutor(TaskExecutorBase):
         return async_utils.wait_for_any(fs, timeout)
 
 
-class ParallelTaskExecutor(TaskExecutorBase):
+class ParallelTaskExecutor(TaskExecutor):
     """Executes tasks in parallel.
 
     Submits tasks to an executor which should provide an interface similar

@@ -69,7 +69,7 @@ class PeriodicWorker(object):
         self._timeout.reset()
 
 
-class WorkerTaskExecutor(executor.TaskExecutorBase):
+class WorkerTaskExecutor(executor.TaskExecutor):
     """Executes tasks on remote workers."""
 
     def __init__(self, uuid, exchange, topics,
