@@ -230,7 +230,7 @@ def _get_arg_spec(function):
 def get_callable_args(function, required_only=False):
     """Get names of callable arguments.
 
-    Special arguments (like *args and **kwargs) are not included into
+    Special arguments (like ``*args`` and ``**kwargs``) are not included into
     output.
 
     If required_only is True, optional arguments (with default values)

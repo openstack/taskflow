@@ -167,7 +167,7 @@ Additional supported keyword arguments:
 * ``executor``: a object that implements a :pep:`3148` compatible `executor`_
   interface; it will be used for scheduling tasks. You can use instances of a
   `thread pool executor`_ or a :py:class:`green executor
-  <taskflow.utils.eventlet_utils.GreenExecutor>` (which internally uses
+  <taskflow.types.futures.GreenThreadPoolExecutor>` (which internally uses
   `eventlet <http://eventlet.net/>`_ and greenthread pools).
 
 .. tip::
@@ -271,13 +271,13 @@ Scheduling
 ^^^^^^^^^^
 
 This stage selects which atoms are eligible to run by using a
-:py:class:`~taskflow.engines.action_engine.runtime.Scheduler` implementation
+:py:class:`~taskflow.engines.action_engine.scheduler.Scheduler` implementation
 (the default implementation looks at there intention, checking if predecessor
 atoms have ran and so-on, using a
 :py:class:`~taskflow.engines.action_engine.analyzer.Analyzer` helper
 object as needed) and submits those atoms to a previously provided compatible
 `executor`_ for asynchronous execution. This
-:py:class:`~taskflow.engines.action_engine.runtime.Scheduler` will return a
+:py:class:`~taskflow.engines.action_engine.scheduler.Scheduler` will return a
 `future`_ object for each atom scheduled; all of which are collected into a
 list of not done futures. This will end the initial round of scheduling and at
 this point the engine enters the :ref:`waiting <waiting>` stage.
@@ -290,7 +290,7 @@ Waiting
 In this stage the engine waits for any of the future objects previously
 submitted to complete. Once one of the future objects completes (or fails) that
 atoms result will be examined and finalized using a
-:py:class:`~taskflow.engines.action_engine.runtime.Completer` implementation.
+:py:class:`~taskflow.engines.action_engine.completer.Completer` implementation.
 It typically will persist results to a provided persistence backend (saved
 into the corresponding :py:class:`~taskflow.persistence.logbook.AtomDetail`
 and :py:class:`~taskflow.persistence.logbook.FlowDetail` objects) and reflect
@@ -330,18 +330,21 @@ Interfaces
 
 .. automodule:: taskflow.engines.action_engine.analyzer
 .. automodule:: taskflow.engines.action_engine.compiler
+.. automodule:: taskflow.engines.action_engine.completer
 .. automodule:: taskflow.engines.action_engine.engine
 .. automodule:: taskflow.engines.action_engine.runner
 .. automodule:: taskflow.engines.action_engine.runtime
+.. automodule:: taskflow.engines.action_engine.scheduler
+.. automodule:: taskflow.engines.action_engine.scopes
 .. automodule:: taskflow.engines.base
 
 Hierarchy
 =========
 
 .. inheritance-diagram::
-    taskflow.engines.base
-    taskflow.engines.action_engine.engine
-    taskflow.engines.worker_based.engine
+    taskflow.engines.action_engine.engine.ActionEngine
+    taskflow.engines.base.Engine
+    taskflow.engines.worker_based.engine.WorkerBasedActionEngine
     :parts: 1
 
 .. _future: https://docs.python.org/dev/library/concurrent.futures.html#future-objects
