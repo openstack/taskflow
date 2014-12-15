@@ -145,6 +145,14 @@ class BackendPersistenceTestMixin(base.PersistenceTestMixin):
     def _get_connection(self):
         return self.backend.get_connection()
 
+    def test_entrypoint(self):
+        # Test that the entrypoint fetching also works (even with dialects)
+        # using the same configuration we used in setUp() but not using
+        # the impl_sqlalchemy SQLAlchemyBackend class directly...
+        with contextlib.closing(backends.fetch(self.db_conf)) as backend:
+            with contextlib.closing(backend.get_connection()):
+                pass
+
     @abc.abstractmethod
     def _init_db(self):
         """Sets up the database, and returns the uri to that database."""
@@ -158,17 +166,17 @@ class BackendPersistenceTestMixin(base.PersistenceTestMixin):
         self.backend = None
         try:
             self.db_uri = self._init_db()
+            self.db_conf = {
+                'connection': self.db_uri
+            }
             # Since we are using random database names, we need to make sure
             # and remove our random database when we are done testing.
             self.addCleanup(self._remove_db)
-            conf = {
-                'connection': self.db_uri
-            }
         except Exception as e:
             self.skipTest("Failed to create temporary database;"
                           " testing being skipped due to: %s" % (e))
         try:
-            self.backend = impl_sqlalchemy.SQLAlchemyBackend(conf)
+            self.backend = impl_sqlalchemy.SQLAlchemyBackend(self.db_conf)
             self.addCleanup(self.backend.close)
             with contextlib.closing(self._get_connection()) as conn:
                 conn.upgrade()
