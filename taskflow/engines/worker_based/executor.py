@@ -27,7 +27,6 @@ from taskflow import exceptions as exc
 from taskflow import logging
 from taskflow import task as task_atom
 from taskflow.types import timing as tt
-from taskflow.utils import async_utils
 from taskflow.utils import misc
 from taskflow.utils import reflection
 from taskflow.utils import threading_utils as tu
@@ -247,10 +246,6 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         return self._submit_task(task, task_uuid, pr.REVERT, arguments,
                                  progress_callback, result=result,
                                  failures=failures)
-
-    def wait_for_any(self, fs, timeout=None):
-        """Wait for futures returned by this executor to complete."""
-        return async_utils.wait_for_any(fs, timeout)
 
     def wait_for_workers(self, workers=1, timeout=None):
         """Waits for geq workers to notify they are ready to do work.
