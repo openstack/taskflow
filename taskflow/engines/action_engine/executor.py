@@ -15,13 +15,13 @@
 #    under the License.
 
 import abc
-import contextlib
 
 import six
 
 from taskflow import task as task_atom
 from taskflow.types import failure
 from taskflow.types import futures
+from taskflow.types import notifier
 from taskflow.utils import async_utils
 from taskflow.utils import threading_utils
 
@@ -30,23 +30,10 @@ EXECUTED = 'executed'
 REVERTED = 'reverted'
 
 
-@contextlib.contextmanager
-def _autobind(task, progress_callback=None):
-    bound = False
-    if progress_callback is not None:
-        task.notifier.register(task_atom.EVENT_UPDATE_PROGRESS,
-                               progress_callback)
-        bound = True
-    try:
-        yield
-    finally:
-        if bound:
-            task.notifier.deregister(task_atom.EVENT_UPDATE_PROGRESS,
-                                     progress_callback)
-
-
 def _execute_task(task, arguments, progress_callback=None):
-    with _autobind(task, progress_callback=progress_callback):
+    with notifier.register_deregister(task.notifier,
+                                      task_atom.EVENT_UPDATE_PROGRESS,
+                                      callback=progress_callback):
         try:
             task.pre_execute()
             result = task.execute(**arguments)
@@ -63,7 +50,9 @@ def _revert_task(task, arguments, result, failures, progress_callback=None):
     arguments = arguments.copy()
     arguments[task_atom.REVERT_RESULT] = result
     arguments[task_atom.REVERT_FLOW_FAILURES] = failures
-    with _autobind(task, progress_callback=progress_callback):
+    with notifier.register_deregister(task.notifier,
+                                      task_atom.EVENT_UPDATE_PROGRESS,
+                                      callback=progress_callback):
         try:
             task.pre_revert()
             result = task.revert(**arguments)
