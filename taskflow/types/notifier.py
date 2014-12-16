@@ -99,6 +99,9 @@ class Notifier(object):
     #: Kleene star constant that is used to recieve all notifications
     ANY = '*'
 
+    #: Events which can *not* be used to trigger notifications
+    _DISALLOWED_NOTIFICATION_EVENTS = set([ANY])
+
     def __init__(self):
         self._listeners = collections.defaultdict(list)
 
@@ -124,12 +127,20 @@ class Notifier(object):
         """Notify about event occurrence.
 
         All callbacks registered to receive notifications about given
-        event type will be called.
+        event type will be called. If the provided event type can not be
+        used to emit notifications (this is checked via
+        the :meth:`.can_be_registered` method) then it will silently be
+        dropped (notification failures are not allowed to cause or
+        raise exceptions).
 
         :param event_type: event type that occurred
         :param details: additional event details *dictionary* passed to
                         callback keyword argument with the same name.
         """
+        if not self.can_trigger_notification(event_type):
+            LOG.debug("Event type '%s' is not allowed to trigger"
+                      " notifications", event_type)
+            return
         listeners = list(self._listeners.get(self.ANY, []))
         listeners.extend(self._listeners.get(event_type, []))
         if not listeners:
@@ -208,6 +219,13 @@ class Notifier(object):
     def can_be_registered(self, event_type):
         """Checks if the event can be registered/subscribed to."""
         return True
+
+    def can_trigger_notification(self, event_type):
+        """Checks if the event can trigger a notification."""
+        if event_type in self._DISALLOWED_NOTIFICATION_EVENTS:
+            return False
+        else:
+            return True
 
 
 class RestrictedNotifier(Notifier):
