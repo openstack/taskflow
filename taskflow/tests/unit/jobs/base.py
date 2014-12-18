@@ -18,9 +18,9 @@ import contextlib
 import time
 
 from kazoo.recipe import watchers
+from oslo.utils import uuidutils
 
 from taskflow import exceptions as excp
-from taskflow.openstack.common import uuidutils
 from taskflow.persistence.backends import impl_dir
 from taskflow import states
 from taskflow.test import mock

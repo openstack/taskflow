@@ -17,6 +17,7 @@
 
 from oslo.serialization import jsonutils
 from oslo.utils import timeutils
+from oslo.utils import uuidutils
 from sqlalchemy import Column, String, DateTime, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey
@@ -24,7 +25,6 @@ from sqlalchemy.orm import backref
 from sqlalchemy.orm import relationship
 from sqlalchemy import types as types
 
-from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow import states
 

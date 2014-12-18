@@ -20,6 +20,7 @@ import threading
 from concurrent import futures
 import jsonschema
 from jsonschema import exceptions as schema_exc
+from oslo.utils import reflection
 from oslo.utils import timeutils
 import six
 
@@ -29,7 +30,6 @@ from taskflow import logging
 from taskflow.types import failure as ft
 from taskflow.types import timing as tt
 from taskflow.utils import lock_utils
-from taskflow.utils import reflection
 
 # NOTE(skudriashev): This is protocol states and events, which are not
 # related to task states.

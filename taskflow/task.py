@@ -18,13 +18,13 @@
 import abc
 import copy
 
+from oslo.utils import reflection
 import six
 
 from taskflow import atom
 from taskflow import logging
 from taskflow.types import notifier
 from taskflow.utils import misc
-from taskflow.utils import reflection
 
 LOG = logging.getLogger(__name__)
 

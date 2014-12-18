@@ -19,6 +19,7 @@ import logging
 import time
 
 from oslo.serialization import jsonutils
+from oslo.utils import reflection
 import six
 from zake import fake_client
 
@@ -37,7 +38,6 @@ from taskflow.test import mock
 from taskflow.tests import utils as test_utils
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils
-from taskflow.utils import reflection
 from taskflow.utils import threading_utils
 
 

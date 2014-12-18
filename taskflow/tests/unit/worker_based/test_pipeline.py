@@ -15,12 +15,12 @@
 #    under the License.
 
 from concurrent import futures
+from oslo.utils import uuidutils
 
 from taskflow.engines.action_engine import executor as base_executor
 from taskflow.engines.worker_based import endpoint
 from taskflow.engines.worker_based import executor as worker_executor
 from taskflow.engines.worker_based import server as worker_server
-from taskflow.openstack.common import uuidutils
 from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.types import failure

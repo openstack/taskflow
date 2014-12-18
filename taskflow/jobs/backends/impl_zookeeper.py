@@ -25,13 +25,13 @@ from kazoo.protocol import paths as k_paths
 from kazoo.recipe import watchers
 from oslo.serialization import jsonutils
 from oslo.utils import excutils
+from oslo.utils import uuidutils
 import six
 
 from taskflow import exceptions as excp
 from taskflow.jobs import job as base_job
 from taskflow.jobs import jobboard
 from taskflow import logging
-from taskflow.openstack.common import uuidutils
 from taskflow import states
 from taskflow.types import timing as tt
 from taskflow.utils import kazoo_utils

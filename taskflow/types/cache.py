@@ -16,9 +16,8 @@
 
 import threading
 
+from oslo.utils import reflection
 import six
-
-from taskflow.utils import reflection
 
 
 class ExpiringCache(object):

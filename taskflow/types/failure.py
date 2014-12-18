@@ -18,10 +18,10 @@ import copy
 import sys
 import traceback
 
+from oslo.utils import reflection
 import six
 
 from taskflow import exceptions as exc
-from taskflow.utils import reflection
 
 
 def _copy_exc_info(exc_info):

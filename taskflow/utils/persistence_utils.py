@@ -17,9 +17,9 @@
 import contextlib
 
 from oslo.utils import timeutils
+from oslo.utils import uuidutils
 
 from taskflow import logging
-from taskflow.openstack.common import uuidutils
 from taskflow.persistence import logbook
 from taskflow.utils import misc
 

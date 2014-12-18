@@ -17,9 +17,8 @@
 
 import abc
 
+from oslo.utils import uuidutils
 import six
-
-from taskflow.openstack.common import uuidutils
 
 
 @six.add_metaclass(abc.ABCMeta)
