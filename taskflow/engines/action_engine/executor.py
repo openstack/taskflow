@@ -83,9 +83,9 @@ class TaskExecutor(object):
                     progress_callback=None):
         """Schedules task reversion."""
 
-    @abc.abstractmethod
     def wait_for_any(self, fs, timeout=None):
         """Wait for futures returned by this executor to complete."""
+        return async_utils.wait_for_any(fs, timeout=timeout)
 
     def start(self):
         """Prepare to execute tasks."""
@@ -117,9 +117,6 @@ class SerialTaskExecutor(TaskExecutor):
         fut.atom = task
         return fut
 
-    def wait_for_any(self, fs, timeout=None):
-        return async_utils.wait_for_any(fs, timeout)
-
 
 class ParallelTaskExecutor(TaskExecutor):
     """Executes tasks in parallel.
@@ -147,9 +144,6 @@ class ParallelTaskExecutor(TaskExecutor):
                                     progress_callback=progress_callback)
         fut.atom = task
         return fut
-
-    def wait_for_any(self, fs, timeout=None):
-        return async_utils.wait_for_any(fs, timeout)
 
     def start(self):
         if self._create_executor:

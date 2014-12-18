@@ -58,7 +58,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.request_inst_mock.expired = False
         self.request_inst_mock.task_cls = self.task.name
         self.wait_for_any_mock = self.patch(
-            'taskflow.engines.worker_based.executor.async_utils.wait_for_any')
+            'taskflow.engines.action_engine.executor.async_utils.wait_for_any')
         self.message_mock = mock.MagicMock(name='message')
         self.message_mock.properties = {'correlation_id': self.task_uuid,
                                         'type': pr.RESPONSE}
@@ -289,7 +289,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         ex.wait_for_any(fs)
 
         expected_calls = [
-            mock.call(fs, None)
+            mock.call(fs, timeout=None)
         ]
         self.assertEqual(self.wait_for_any_mock.mock_calls, expected_calls)
 
@@ -300,7 +300,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         ex.wait_for_any(fs, timeout)
 
         master_mock_calls = [
-            mock.call(fs, timeout)
+            mock.call(fs, timeout=timeout)
         ]
         self.assertEqual(self.wait_for_any_mock.mock_calls, master_mock_calls)
 
