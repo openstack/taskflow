@@ -631,11 +631,13 @@ class RetryTest(utils.EngineTestBase):
 
         r = FailingRetry()
         flow = lf.Flow('testflow', r)
-        self.assertRaisesRegexp(ValueError, '^OMG',
-                                self._make_engine(flow).run)
-        self.assertEqual(len(r.history), 1)
-        self.assertEqual(r.history[0][1], {})
-        self.assertEqual(isinstance(r.history[0][0], failure.Failure), True)
+        engine = self._make_engine(flow)
+        self.assertRaisesRegexp(ValueError, '^OMG', engine.run)
+        self.assertEqual(1, len(engine.storage.get_retry_histories()))
+        self.assertEqual(len(r.history), 0)
+        self.assertEqual([], list(r.history.outcomes_iter()))
+        self.assertIsNotNone(r.history.failure)
+        self.assertTrue(r.history.caused_by(ValueError, include_retry=True))
 
     def test_retry_revert_fails(self):
 

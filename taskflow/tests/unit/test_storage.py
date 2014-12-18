@@ -448,7 +448,7 @@ class StorageTestMixin(object):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopRetry('my retry'))
         history = s.get_retry_history('my retry')
-        self.assertEqual(history, [])
+        self.assertEqual([], list(history))
 
     def test_ensure_retry_and_task_with_same_name(self):
         s = self._get_storage()
@@ -463,7 +463,8 @@ class StorageTestMixin(object):
         s.save('my retry', 'a')
         s.save('my retry', 'b')
         history = s.get_retry_history('my retry')
-        self.assertEqual(history, [('a', {}), ('b', {})])
+        self.assertEqual([('a', {}), ('b', {})], list(history))
+        self.assertEqual(['a', 'b'], list(history.provided_iter()))
 
     def test_save_retry_results_with_mapping(self):
         s = self._get_storage()
@@ -471,9 +472,10 @@ class StorageTestMixin(object):
         s.save('my retry', 'a')
         s.save('my retry', 'b')
         history = s.get_retry_history('my retry')
-        self.assertEqual(history, [('a', {}), ('b', {})])
-        self.assertEqual(s.fetch_all(), {'x': 'b'})
-        self.assertEqual(s.fetch('x'), 'b')
+        self.assertEqual([('a', {}), ('b', {})], list(history))
+        self.assertEqual(['a', 'b'], list(history.provided_iter()))
+        self.assertEqual({'x': 'b'}, s.fetch_all())
+        self.assertEqual('b', s.fetch('x'))
 
     def test_cleanup_retry_history(self):
         s = self._get_storage()
@@ -482,7 +484,8 @@ class StorageTestMixin(object):
         s.save('my retry', 'b')
         s.cleanup_retry_history('my retry', states.REVERTED)
         history = s.get_retry_history('my retry')
-        self.assertEqual(history, [])
+        self.assertEqual(list(history), [])
+        self.assertEqual(0, len(history))
         self.assertEqual(s.fetch_all(), {})
 
     def test_cached_retry_failure(self):
@@ -492,8 +495,11 @@ class StorageTestMixin(object):
         s.save('my retry', 'a')
         s.save('my retry', a_failure, states.FAILURE)
         history = s.get_retry_history('my retry')
-        self.assertEqual(history, [('a', {}), (a_failure, {})])
-        self.assertIs(s.has_failures(), True)
+        self.assertEqual([('a', {})], list(history))
+        self.assertTrue(history.caused_by(RuntimeError, include_retry=True))
+        self.assertIsNotNone(history.failure)
+        self.assertEqual(1, len(history))
+        self.assertTrue(s.has_failures())
         self.assertEqual(s.get_failures(), {'my retry': a_failure})
 
     def test_logbook_get_unknown_atom_type(self):

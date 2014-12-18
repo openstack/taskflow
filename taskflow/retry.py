@@ -38,6 +38,70 @@ EXECUTE_REVERT_HISTORY = 'history'
 REVERT_FLOW_FAILURES = 'flow_failures'
 
 
+class History(object):
+    """Helper that simplifies interactions with retry historical contents."""
+
+    def __init__(self, contents, failure=None):
+        self._contents = contents
+        self._failure = failure
+
+    @property
+    def failure(self):
+        """Returns the retries own failure or none if not existent."""
+        return self._failure
+
+    def outcomes_iter(self, index=None):
+        """Iterates over the contained failure outcomes.
+
+        If the index is not provided, then all outcomes are iterated over.
+
+        NOTE(harlowja): if the retry itself failed, this will **not** include
+        those types of failures. Use the :py:attr:`.failure` attribute to
+        access that instead (if it exists, aka, non-none).
+        """
+        if index is None:
+            contents = self._contents
+        else:
+            contents = [
+                self._contents[index],
+            ]
+        for (provided, outcomes) in contents:
+            for (owner, outcome) in six.iteritems(outcomes):
+                yield (owner, outcome)
+
+    def __len__(self):
+        return len(self._contents)
+
+    def provided_iter(self):
+        """Iterates over all the values the retry has attempted (in order)."""
+        for (provided, outcomes) in self._contents:
+            yield provided
+
+    def __getitem__(self, index):
+        return self._contents[index]
+
+    def caused_by(self, exception_cls, index=None, include_retry=False):
+        """Checks if the exception class provided caused the failures.
+
+        If the index is not provided, then all outcomes are iterated over.
+
+        NOTE(harlowja): only if ``include_retry`` is provided as true (defaults
+                        to false) will the potential retries own failure be
+                        checked against as well.
+        """
+        for (name, failure) in self.outcomes_iter(index=index):
+            if failure.check(exception_cls):
+                return True
+        if include_retry and self._failure is not None:
+            if self._failure.check(exception_cls):
+                return True
+        return False
+
+    def __iter__(self):
+        """Iterates over the raw contents of this history object."""
+        return iter(self._contents)
+
+
 @six.add_metaclass(abc.ABCMeta)
 class Retry(atom.Atom):
     """A class that can decide how to resolve execution failures.
@@ -174,8 +238,7 @@ class ForEachBase(Retry):
         # Fetches the next resolution result to try, removes overlapping
         # entries with what has already been tried and then returns the first
         # resolution strategy remaining.
-        items = (item for item, _failures in history)
-        remaining = misc.sequence_minus(values, items)
+        remaining = misc.sequence_minus(values, history.provided_iter())
         if not remaining:
             raise exc.NotFound("No elements left in collection of iterable "
                                "retry controller %s" % self.name)
