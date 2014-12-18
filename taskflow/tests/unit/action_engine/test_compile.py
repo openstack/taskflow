@@ -264,6 +264,107 @@ class PatternCompileTest(test.TestCase):
         self.assertItemsEqual([b], g.no_predecessors_iter())
         self.assertItemsEqual([a, c], g.no_successors_iter())
 
+    def test_empty_flow_in_linear_flow(self):
+        flow = lf.Flow('lf')
+        a = test_utils.ProvidesRequiresTask('a', provides=[], requires=[])
+        b = test_utils.ProvidesRequiresTask('b', provides=[], requires=[])
+        empty_flow = gf.Flow("empty")
+        flow.add(a, empty_flow, b)
+
+        compilation = compiler.PatternCompiler(flow).compile()
+        g = compilation.execution_graph
+        self.assertItemsEqual(g.edges(data=True), [
+            (a, b, {'invariant': True}),
+        ])
+
+    def test_many_empty_in_graph_flow(self):
+        flow = gf.Flow('root')
+
+        a = test_utils.ProvidesRequiresTask('a', provides=[], requires=[])
+        flow.add(a)
+
+        b = lf.Flow('b')
+        b_0 = test_utils.ProvidesRequiresTask('b.0', provides=[], requires=[])
+        b_3 = test_utils.ProvidesRequiresTask('b.3', provides=[], requires=[])
+        b.add(
+            b_0,
+            lf.Flow('b.1'), lf.Flow('b.2'),
+            b_3,
+        )
+        flow.add(b)
+
+        c = lf.Flow('c')
+        c.add(lf.Flow('c.0'), lf.Flow('c.1'), lf.Flow('c.2'))
+        flow.add(c)
+
+        d = test_utils.ProvidesRequiresTask('d', provides=[], requires=[])
+        flow.add(d)
+
+        flow.link(b, d)
+        flow.link(a, d)
+        flow.link(c, d)
+
+        compilation = compiler.PatternCompiler(flow).compile()
+        g = compilation.execution_graph
+        self.assertTrue(g.has_edge(b_0, b_3))
+        self.assertTrue(g.has_edge(b_3, d))
+        self.assertEqual(4, len(g))
+
+    def test_empty_flow_in_nested_flow(self):
+        flow = lf.Flow('lf')
+        a = test_utils.ProvidesRequiresTask('a', provides=[], requires=[])
+        b = test_utils.ProvidesRequiresTask('b', provides=[], requires=[])
+
+        flow2 = lf.Flow("lf-2")
+        c = test_utils.ProvidesRequiresTask('c', provides=[], requires=[])
+        d = test_utils.ProvidesRequiresTask('d', provides=[], requires=[])
+        empty_flow = gf.Flow("empty")
+        flow2.add(c, empty_flow, d)
+        flow.add(a, flow2, b)
+
+        compilation = compiler.PatternCompiler(flow).compile()
+        g = compilation.execution_graph
+
+        self.assertTrue(g.has_edge(a, c))
+        self.assertTrue(g.has_edge(c, d))
+        self.assertTrue(g.has_edge(d, b))
+
+    def test_empty_flow_in_graph_flow(self):
+        flow = lf.Flow('lf')
+        a = test_utils.ProvidesRequiresTask('a', provides=['a'], requires=[])
+        b = test_utils.ProvidesRequiresTask('b', provides=[], requires=['a'])
+        empty_flow = lf.Flow("empty")
+        flow.add(a, empty_flow, b)
+
+        compilation = compiler.PatternCompiler(flow).compile()
+        g = compilation.execution_graph
+        self.assertTrue(g.has_edge(a, b))
+
+    def test_empty_flow_in_graph_flow_empty_linkage(self):
+        flow = gf.Flow('lf')
+        a = test_utils.ProvidesRequiresTask('a', provides=[], requires=[])
+        b = test_utils.ProvidesRequiresTask('b', provides=[], requires=[])
+        empty_flow = lf.Flow("empty")
+        flow.add(a, empty_flow, b)
+        flow.link(empty_flow, b)
+
+        compilation = compiler.PatternCompiler(flow).compile()
+        g = compilation.execution_graph
+        self.assertEqual(0, len(g.edges()))
+
+    def test_empty_flow_in_graph_flow_linkage(self):
+        flow = gf.Flow('lf')
+        a = test_utils.ProvidesRequiresTask('a', provides=[], requires=[])
+        b = test_utils.ProvidesRequiresTask('b', provides=[], requires=[])
+        empty_flow = lf.Flow("empty")
+        flow.add(a, empty_flow, b)
+        flow.link(a, b)
+
+        compilation = compiler.PatternCompiler(flow).compile()
+        g = compilation.execution_graph
+        self.assertEqual(1, len(g.edges()))
+        self.assertTrue(g.has_edge(a, b))
+
     def test_checks_for_dups(self):
         flo = gf.Flow("test").add(
             test_utils.DummyTask(name="a"),
