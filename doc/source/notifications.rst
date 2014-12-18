@@ -17,10 +17,9 @@ transitions, which is useful for monitoring, logging, metrics, debugging
 and plenty of other tasks.
 
 To receive these notifications you should register a callback with
-an instance of the :py:class:`~taskflow.utils.misc.Notifier`
-class that is attached
-to :py:class:`Engine <taskflow.engines.base.EngineBase>`
-attributes ``task_notifier`` and ``notifier``.
+an instance of the :py:class:`~taskflow.types.notifier.Notifier`
+class that is attached to :py:class:`~taskflow.engines.base.Engine`
+attributes ``atom_notifier`` and ``notifier``.
 
 TaskFlow also comes with a set of predefined :ref:`listeners <listeners>`, and
 provides means to write your own listeners, which can be more convenient than
@@ -34,7 +33,7 @@ Flow notifications
 ------------------
 
 To receive notification on flow state changes use the
-:py:class:`~taskflow.utils.misc.Notifier` instance available as the
+:py:class:`~taskflow.types.notifier.Notifier` instance available as the
 ``notifier`` property of an engine.
 
 A basic example is:
@@ -69,8 +68,8 @@ Task notifications
 ------------------
 
 To receive notification on task state changes use the
-:py:class:`~taskflow.utils.misc.Notifier` instance available as the
-``task_notifier`` property of an engine.
+:py:class:`~taskflow.types.notifier.Notifier` instance available as the
+``atom_notifier`` property of an engine.
 
 A basic example is:
 
@@ -149,12 +148,12 @@ For example, this is how you can use
 Basic listener
 --------------
 
-.. autoclass:: taskflow.listeners.base.ListenerBase
+.. autoclass:: taskflow.listeners.base.Listener
 
 Printing and logging listeners
 ------------------------------
 
-.. autoclass:: taskflow.listeners.base.LoggingBase
+.. autoclass:: taskflow.listeners.base.DumpingListener
 
 .. autoclass:: taskflow.listeners.logging.LoggingListener
 
@@ -173,3 +172,17 @@ Claim listener
 --------------
 
 .. autoclass:: taskflow.listeners.claims.CheckingClaimListener
+
+Hierarchy
+---------
+
+.. inheritance-diagram::
+    taskflow.listeners.base.DumpingListener
+    taskflow.listeners.base.Listener
+    taskflow.listeners.claims.CheckingClaimListener
+    taskflow.listeners.logging.DynamicLoggingListener
+    taskflow.listeners.logging.LoggingListener
+    taskflow.listeners.printing.PrintingListener
+    taskflow.listeners.timing.PrintingTimingListener
+    taskflow.listeners.timing.TimingListener
+    :parts: 1
