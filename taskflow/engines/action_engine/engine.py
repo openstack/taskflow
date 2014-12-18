@@ -20,7 +20,6 @@ import threading
 
 from concurrent import futures
 from oslo.utils import excutils
-from oslo.utils import reflection
 
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
@@ -69,9 +68,6 @@ class ActionEngine(base.Engine):
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
         self._storage_ensured = False
-
-    def __str__(self):
-        return "%s: %s" % (reflection.get_class_name(self), id(self))
 
     def suspend(self):
         if not self._compiled:
