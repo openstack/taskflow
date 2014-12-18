@@ -104,6 +104,18 @@ Creating a volume (in parallel)
     :linenos:
     :lines: 16-
 
+Summation mapper(s) and reducer (in parallel)
+=============================================
+
+.. note::
+
+    Full source located at :example:`simple_map_reduce`
+
+.. literalinclude:: ../../taskflow/examples/simple_map_reduce.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Storing & emitting a bill
 =========================
 
