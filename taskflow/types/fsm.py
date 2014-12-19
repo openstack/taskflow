@@ -196,7 +196,12 @@ class FSM(object):
         if self._states[self._start_state]['terminal']:
             raise excp.InvalidState("Can not start from a terminal"
                                     " state '%s'" % (self._start_state))
-        self._current = _Jump(self._start_state, None, None)
+        # No on enter will be called, since we are priming the state machine
+        # and have not really transitioned from anything to get here, we will
+        # though allow 'on_exit' to be called on the event that causes this
+        # to be moved from...
+        self._current = _Jump(self._start_state, None,
+                              self._states[self._start_state]['on_exit'])
 
     def run(self, event, initialize=True):
         """Runs the state machine, using reactions only."""
