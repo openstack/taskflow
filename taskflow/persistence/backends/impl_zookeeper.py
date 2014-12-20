@@ -22,7 +22,7 @@ from oslo.serialization import jsonutils
 
 from taskflow import exceptions as exc
 from taskflow import logging
-from taskflow.persistence.backends import base
+from taskflow.persistence import base
 from taskflow.persistence import logbook
 from taskflow.utils import kazoo_utils as k_utils
 from taskflow.utils import misc

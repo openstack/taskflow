@@ -19,7 +19,7 @@ import six
 
 from taskflow import exceptions as exc
 from taskflow import logging
-from taskflow.persistence.backends import base
+from taskflow.persistence import base
 from taskflow.persistence import logbook
 
 LOG = logging.getLogger(__name__)
