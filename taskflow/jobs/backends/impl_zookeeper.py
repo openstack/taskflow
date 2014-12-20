@@ -29,8 +29,7 @@ from oslo_utils import uuidutils
 import six
 
 from taskflow import exceptions as excp
-from taskflow.jobs import job as base_job
-from taskflow.jobs import jobboard
+from taskflow.jobs import base
 from taskflow import logging
 from taskflow import states
 from taskflow.types import timing as tt
@@ -62,7 +61,9 @@ def _check_who(who):
         raise ValueError("Job applicant must be non-empty")
 
 
-class ZookeeperJob(base_job.Job):
+class ZookeeperJob(base.Job):
+    """A zookeeper job."""
+
     def __init__(self, name, board, client, backend, path,
                  uuid=None, details=None, book=None, book_data=None,
                  created_on=None):
@@ -95,10 +96,12 @@ class ZookeeperJob(base_job.Job):
 
     @property
     def sequence(self):
+        """Sequence number of the current job."""
         return self._sequence
 
     @property
     def root(self):
+        """The parent path of the job in zookeeper."""
         return self._root
 
     def _get_node_attr(self, path, attr_name, trans_func=None):
@@ -232,14 +235,14 @@ class ZookeeperJob(base_job.Job):
 
 
 class ZookeeperJobBoardIterator(six.Iterator):
-    """Iterator over a zookeeper jobboard.
+    """Iterator over a zookeeper jobboard that iterates over potential jobs.
 
     It supports the following attributes/constructor arguments:
 
-    * ensure_fresh: boolean that requests that during every fetch of a new
+    * ``ensure_fresh``: boolean that requests that during every fetch of a new
       set of jobs this will cause the iterator to force the backend to
       refresh (ensuring that the jobboard has the most recent job listings).
-    * only_unclaimed: boolean that indicates whether to only iterate
+    * ``only_unclaimed``: boolean that indicates whether to only iterate
       over unclaimed jobs.
     """
 
@@ -288,7 +291,30 @@ class ZookeeperJobBoardIterator(six.Iterator):
             return job
 
 
-class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
+class ZookeeperJobBoard(base.NotifyingJobBoard):
+    """A jobboard backend by zookeeper.
+
+    Powered by the `kazoo <http://kazoo.readthedocs.org/>`_ library.
+
+    This jobboard creates *sequenced* persistent znodes in a directory in
+    zookeeper (that directory defaults ``/taskflow/jobs``) and uses zookeeper
+    watches to notify other jobboards that the job which was posted using the
+    :meth:`.post` method (this creates a znode with contents/details in json)
+    The users of those jobboard(s) (potentially on disjoint sets of machines)
+    can then iterate over the available jobs and decide if they want to attempt
+    to claim one of the jobs they have iterated over. If so they will then
+    attempt to contact zookeeper and will attempt to create a ephemeral znode
+    using the name of the persistent znode + ".lock" as a postfix. If the
+    entity trying to use the jobboard to :meth:`.claim` the job is able to
+    create a ephemeral znode with that name then it will be allowed (and
+    expected) to perform whatever *work* the contents of that job that it
+    locked described. Once finished the ephemeral znode and persistent znode
+    may be deleted (if successfully completed) in a single transcation or if
+    not successfull (or the entity that claimed the znode dies) the ephemeral
+    znode will be released (either manually by using :meth:`.abandon` or
+    automatically by zookeeper the ephemeral is deemed to be lost).
+    """
+
     def __init__(self, name, conf,
                  client=None, persistence=None, emit_notifications=True):
         super(ZookeeperJobBoard, self).__init__(name, conf)
@@ -373,7 +399,7 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
             job = self._known_jobs.pop(path, None)
         if job is not None:
             LOG.debug("Removed job that was at path '%s'", path)
-            self._emit(jobboard.REMOVAL, details={'job': job})
+            self._emit(base.REMOVAL, details={'job': job})
 
     def _process_child(self, path, request):
         """Receives the result of a child data fetch request."""
@@ -412,7 +438,7 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
                     self._known_jobs[path] = job
                     self._job_cond.notify_all()
         if job is not None:
-            self._emit(jobboard.POSTED, details={'job': job})
+            self._emit(base.POSTED, details={'job': job})
 
     def _on_job_posting(self, children, delayed=True):
         LOG.debug("Got children %s under path %s", children, self.path)
@@ -498,7 +524,7 @@ class ZookeeperJobBoard(jobboard.NotifyingJobBoard):
             with self._job_cond:
                 self._known_jobs[job_path] = job
                 self._job_cond.notify_all()
-            self._emit(jobboard.POSTED, details={'job': job})
+            self._emit(base.POSTED, details={'job': job})
             return job
 
     def claim(self, job, who):
