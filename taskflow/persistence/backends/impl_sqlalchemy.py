@@ -183,11 +183,11 @@ def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
 class SQLAlchemyBackend(base.Backend):
     """A sqlalchemy backend.
 
-    Example conf:
+    Example configuration::
 
-    conf = {
-        "connection": "sqlite:////tmp/test.db",
-    }
+        conf = {
+            "connection": "sqlite:////tmp/test.db",
+        }
     """
     def __init__(self, conf, engine=None):
         super(SQLAlchemyBackend, self).__init__(conf)

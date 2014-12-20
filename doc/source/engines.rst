@@ -330,6 +330,11 @@ saved for this execution.
 Interfaces
 ==========
 
+.. automodule:: taskflow.engines.base
+
+Implementations
+===============
+
 .. automodule:: taskflow.engines.action_engine.analyzer
 .. automodule:: taskflow.engines.action_engine.compiler
 .. automodule:: taskflow.engines.action_engine.completer
@@ -339,7 +344,6 @@ Interfaces
 .. automodule:: taskflow.engines.action_engine.runtime
 .. automodule:: taskflow.engines.action_engine.scheduler
 .. automodule:: taskflow.engines.action_engine.scopes
-.. automodule:: taskflow.engines.base
 
 Hierarchy
 =========

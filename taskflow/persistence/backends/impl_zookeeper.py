@@ -43,12 +43,12 @@ class ZkBackend(base.Backend):
     inside those directories that represent the contents of those objects for
     later reading and writing.
 
-    Example conf:
+    Example configuration::
 
-    conf = {
-        "hosts": "192.168.0.1:2181,192.168.0.2:2181,192.168.0.3:2181",
-        "path": "/taskflow",
-    }
+        conf = {
+            "hosts": "192.168.0.1:2181,192.168.0.2:2181,192.168.0.3:2181",
+            "path": "/taskflow",
+        }
     """
     def __init__(self, conf, client=None):
         super(ZkBackend, self).__init__(conf)
