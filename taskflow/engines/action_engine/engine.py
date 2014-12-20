@@ -14,9 +14,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
 import contextlib
 import threading
 
+from concurrent import futures
 from oslo.utils import excutils
 from oslo.utils import reflection
 
@@ -58,7 +60,6 @@ class ActionEngine(base.Engine):
     the tasks and flow being ran can go through.
     """
     _compiler_factory = compiler.PatternCompiler
-    _task_executor_factory = executor.SerialTaskExecutor
 
     def __init__(self, flow, flow_detail, backend, options):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, options)
@@ -202,9 +203,10 @@ class ActionEngine(base.Engine):
             self._runtime.reset_all()
             self._change_state(states.PENDING)
 
-    @misc.cachedproperty
+    @abc.abstractproperty
     def _task_executor(self):
         return self._task_executor_factory()
+        pass
 
     @misc.cachedproperty
     def _compiler(self):
@@ -226,12 +228,26 @@ class SerialActionEngine(ActionEngine):
     """Engine that runs tasks in serial manner."""
     _storage_factory = atom_storage.SingleThreadedStorage
 
+    @misc.cachedproperty
+    def _task_executor(self):
+        return executor.SerialTaskExecutor()
+
 
 class ParallelActionEngine(ActionEngine):
     """Engine that runs tasks in parallel manner."""
     _storage_factory = atom_storage.MultiThreadedStorage
 
-    def _task_executor_factory(self):
-        return executor.ParallelTaskExecutor(
-            executor=self._options.get('executor'),
-            max_workers=self._options.get('max_workers'))
+    @misc.cachedproperty
+    def _task_executor(self):
+        kwargs = {
+            'executor': self._options.get('executor'),
+            'max_workers': self._options.get('max_workers'),
+        }
+        # The reason we use the library/built-in futures is to allow for
+        # instances of that to be detected and handled correctly, instead of
+        # forcing everyone to use our derivatives...
+        if isinstance(kwargs['executor'], futures.ProcessPoolExecutor):
+            executor_cls = executor.ParallelProcessTaskExecutor
+        else:
+            executor_cls = executor.ParallelThreadTaskExecutor
+        return executor_cls(**kwargs)

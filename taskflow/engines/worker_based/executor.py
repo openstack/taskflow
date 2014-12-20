@@ -34,12 +34,6 @@ from taskflow.utils import threading_utils as tu
 LOG = logging.getLogger(__name__)
 
 
-def _is_alive(thread):
-    if not thread:
-        return False
-    return thread.is_alive()
-
-
 class PeriodicWorker(object):
     """Calls a set of functions when activated periodically.
 
@@ -181,7 +175,7 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         self._requests_cache.cleanup(self._handle_expired_request)
 
     def _submit_task(self, task, task_uuid, action, arguments,
-                     progress_callback, **kwargs):
+                     progress_callback=None, **kwargs):
         """Submit task request to a worker."""
         request = pr.Request(task, task_uuid, action, arguments,
                              self._transition_timeout, **kwargs)
@@ -239,13 +233,13 @@ class WorkerTaskExecutor(executor.TaskExecutor):
     def execute_task(self, task, task_uuid, arguments,
                      progress_callback=None):
         return self._submit_task(task, task_uuid, pr.EXECUTE, arguments,
-                                 progress_callback)
+                                 progress_callback=progress_callback)
 
     def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
         return self._submit_task(task, task_uuid, pr.REVERT, arguments,
-                                 progress_callback, result=result,
-                                 failures=failures)
+                                 progress_callback=progress_callback,
+                                 result=result, failures=failures)
 
     def wait_for_workers(self, workers=1, timeout=None):
         """Waits for geq workers to notify they are ready to do work.
@@ -273,11 +267,11 @@ class WorkerTaskExecutor(executor.TaskExecutor):
 
     def start(self):
         """Starts proxy thread and associated topic notification thread."""
-        if not _is_alive(self._proxy_thread):
+        if not tu.is_alive(self._proxy_thread):
             self._proxy_thread = tu.daemon_thread(self._proxy.start)
             self._proxy_thread.start()
             self._proxy.wait()
-        if not _is_alive(self._periodic_thread):
+        if not tu.is_alive(self._periodic_thread):
             self._periodic.reset()
             self._periodic_thread = tu.daemon_thread(self._periodic.start)
             self._periodic_thread.start()

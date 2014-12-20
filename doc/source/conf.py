@@ -56,6 +56,7 @@ modindex_common_prefix = ['taskflow.']
 # Shortened external links.
 extlinks = {
     'example': (source_tree + '/taskflow/examples/%s.py', ''),
+    'pybug': ('http://bugs.python.org/issue%s', ''),
 }
 
 # -- Options for HTML output --------------------------------------------------

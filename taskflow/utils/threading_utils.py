@@ -40,6 +40,13 @@ else:
     Event = threading.Event
 
 
+def is_alive(thread):
+    """Helper to determine if a thread is alive (handles none safely)."""
+    if not thread:
+        return False
+    return thread.is_alive()
+
+
 def get_ident():
     """Return the 'thread identifier' of the current thread."""
     return _thread.get_ident()

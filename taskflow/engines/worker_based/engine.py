@@ -18,6 +18,7 @@ from taskflow.engines.action_engine import engine
 from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import storage as t_storage
+from taskflow.utils import misc
 
 
 class WorkerBasedActionEngine(engine.ActionEngine):
@@ -44,7 +45,8 @@ class WorkerBasedActionEngine(engine.ActionEngine):
 
     _storage_factory = t_storage.SingleThreadedStorage
 
-    def _task_executor_factory(self):
+    @misc.cachedproperty
+    def _task_executor(self):
         try:
             return self._options['executor']
         except KeyError:
