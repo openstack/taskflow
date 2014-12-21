@@ -236,6 +236,18 @@ Distributed execution (simple)
     :linenos:
     :lines: 16-
 
+Distributed notification (simple)
+=================================
+
+.. note::
+
+    Full source located at :example:`wbe_event_sender`
+
+.. literalinclude:: ../../taskflow/examples/wbe_event_sender.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Distributed mandelbrot (complex)
 ================================
 
