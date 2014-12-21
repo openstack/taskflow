@@ -46,6 +46,18 @@ Building a car
     :linenos:
     :lines: 16-
 
+Iterating over the alphabet (using processes)
+=============================================
+
+.. note::
+
+    Full source located at :example:`alphabet_soup`.
+
+.. literalinclude:: ../../taskflow/examples/alphabet_soup.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Watching execution timing
 =========================
 
