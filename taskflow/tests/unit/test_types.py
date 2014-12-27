@@ -15,7 +15,6 @@
 #    under the License.
 
 import networkx as nx
-from oslo_utils import timeutils
 import six
 
 from taskflow import exceptions as excp
@@ -123,8 +122,8 @@ class TreeTest(test.TestCase):
 class StopWatchTest(test.TestCase):
     def setUp(self):
         super(StopWatchTest, self).setUp()
-        timeutils.set_time_override()
-        self.addCleanup(timeutils.clear_time_override)
+        tt.StopWatch.set_now_override(now=0)
+        self.addCleanup(tt.StopWatch.clear_overrides)
 
     def test_no_states(self):
         watch = tt.StopWatch()
@@ -137,23 +136,23 @@ class StopWatchTest(test.TestCase):
     def test_backwards(self):
         watch = tt.StopWatch(0.1)
         watch.start()
-        timeutils.advance_time_seconds(0.5)
+        tt.StopWatch.advance_time_seconds(0.5)
         self.assertTrue(watch.expired())
 
-        timeutils.advance_time_seconds(-1.0)
+        tt.StopWatch.advance_time_seconds(-1.0)
         self.assertFalse(watch.expired())
         self.assertEqual(0.0, watch.elapsed())
 
     def test_expiry(self):
         watch = tt.StopWatch(0.1)
         watch.start()
-        timeutils.advance_time_seconds(0.2)
+        tt.StopWatch.advance_time_seconds(0.2)
         self.assertTrue(watch.expired())
 
     def test_not_expired(self):
         watch = tt.StopWatch(0.1)
         watch.start()
-        timeutils.advance_time_seconds(0.05)
+        tt.StopWatch.advance_time_seconds(0.05)
         self.assertFalse(watch.expired())
 
     def test_no_expiry(self):
@@ -163,7 +162,7 @@ class StopWatchTest(test.TestCase):
     def test_elapsed(self):
         watch = tt.StopWatch()
         watch.start()
-        timeutils.advance_time_seconds(0.2)
+        tt.StopWatch.advance_time_seconds(0.2)
         # NOTE(harlowja): Allow for a slight variation by using 0.19.
         self.assertGreaterEqual(0.19, watch.elapsed())
 
@@ -180,17 +179,17 @@ class StopWatchTest(test.TestCase):
     def test_pause_resume(self):
         watch = tt.StopWatch()
         watch.start()
-        timeutils.advance_time_seconds(0.05)
+        tt.StopWatch.advance_time_seconds(0.05)
         watch.stop()
         elapsed = watch.elapsed()
         self.assertAlmostEqual(elapsed, watch.elapsed())
         watch.resume()
-        timeutils.advance_time_seconds(0.05)
+        tt.StopWatch.advance_time_seconds(0.05)
         self.assertNotEqual(elapsed, watch.elapsed())
 
     def test_context_manager(self):
         with tt.StopWatch() as watch:
-            timeutils.advance_time_seconds(0.05)
+            tt.StopWatch.advance_time_seconds(0.05)
         self.assertGreater(0.01, watch.elapsed())
 
     def test_splits(self):
@@ -203,7 +202,7 @@ class StopWatchTest(test.TestCase):
         self.assertEqual(watch.splits[0].elapsed,
                          watch.splits[0].length)
 
-        timeutils.advance_time_seconds(0.05)
+        tt.StopWatch.advance_time_seconds(0.05)
         watch.split()
         splits = watch.splits
         self.assertEqual(2, len(splits))
@@ -221,16 +220,16 @@ class StopWatchTest(test.TestCase):
         watch = tt.StopWatch()
         watch.start()
 
-        timeutils.advance_time_seconds(1)
+        tt.StopWatch.advance_time_seconds(1)
         self.assertEqual(1, watch.elapsed())
 
-        timeutils.advance_time_seconds(10)
+        tt.StopWatch.advance_time_seconds(10)
         self.assertEqual(11, watch.elapsed())
         self.assertEqual(1, watch.elapsed(maximum=1))
 
         watch.stop()
         self.assertEqual(11, watch.elapsed())
-        timeutils.advance_time_seconds(10)
+        tt.StopWatch.advance_time_seconds(10)
         self.assertEqual(11, watch.elapsed())
         self.assertEqual(0, watch.elapsed(maximum=-1))
 

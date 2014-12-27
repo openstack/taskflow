@@ -14,12 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import datetime
 import threading
 import time
 
 from oslo.utils import reflection
-from oslo.utils import timeutils
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import types as worker_types
@@ -33,6 +31,7 @@ class TestWorkerTypes(test.TestCase):
 
     def setUp(self):
         super(TestWorkerTypes, self).setUp()
+        self.addCleanup(timing.StopWatch.clear_overrides)
         self.task = utils.DummyTask()
         self.task_uuid = 'task-uuid'
         self.task_action = 'execute'
@@ -52,15 +51,12 @@ class TestWorkerTypes(test.TestCase):
     def test_requests_cache_expiry(self):
         # Mock out the calls the underlying objects will soon use to return
         # times that we can control more easily...
-        now = timeutils.utcnow()
         overrides = [
-            now,
-            now,
-            now + datetime.timedelta(seconds=1),
-            now + datetime.timedelta(seconds=self.timeout + 1),
+            0,
+            1,
+            self.timeout + 1,
         ]
-        timeutils.set_time_override(overrides)
-        self.addCleanup(timeutils.clear_time_override)
+        timing.StopWatch.set_now_override(overrides)
 
         cache = worker_types.RequestsCache()
         cache[self.task_uuid] = self.request()
