@@ -45,8 +45,7 @@ class _DFSIter(object):
             # Visit the node.
             yield node
             # Traverse the left & right subtree.
-            for child_node in reversed(list(node)):
-                stack.append(child_node)
+            stack.extend(node.reverse_iter())
 
 
 class Node(object):
@@ -136,10 +135,10 @@ class Node(object):
             else:
                 yield "__%s" % six.text_type(node.item)
                 prefix = " " * 2
-            children = list(node)
-            for (i, child) in enumerate(children):
+            child_count = node.child_count()
+            for (i, child) in enumerate(node):
                 for (j, text) in enumerate(_inner_pformat(child, level + 1)):
-                    if j == 0 or i + 1 < len(children):
+                    if j == 0 or i + 1 < child_count:
                         text = prefix + "|" + text
                     else:
                         text = prefix + " " + text
