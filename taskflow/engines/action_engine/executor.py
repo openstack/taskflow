@@ -444,6 +444,9 @@ class ParallelProcessTaskExecutor(ParallelTaskExecutor):
         return futures.ProcessPoolExecutor(max_workers=max_workers)
 
     def start(self):
+        if threading_utils.is_alive(self._worker):
+            raise RuntimeError("Worker thread must be stopped via stop()"
+                               " before starting/restarting")
         super(ParallelProcessTaskExecutor, self).start()
         # TODO(harlowja): do something else here besides accessing a state
         # of the manager internals (it doesn't seem to expose any way to know
@@ -452,12 +455,11 @@ class ParallelProcessTaskExecutor(ParallelTaskExecutor):
             self._manager = multiprocessing.Manager()
         if self._manager._state.value == managers.State.INITIAL:
             self._manager.start()
-        if not threading_utils.is_alive(self._worker):
-            self._dispatcher.reset()
-            self._queue = self._manager.Queue()
-            self._worker = threading_utils.daemon_thread(self._dispatcher.run,
-                                                         self._queue)
-            self._worker.start()
+        self._dispatcher.reset()
+        self._queue = self._manager.Queue()
+        self._worker = threading_utils.daemon_thread(self._dispatcher.run,
+                                                     self._queue)
+        self._worker.start()
 
     def stop(self):
         self._dispatcher.interrupt()
