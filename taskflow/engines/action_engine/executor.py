@@ -445,10 +445,6 @@ class ParallelProcessTaskExecutor(ParallelTaskExecutor):
         for (event_type, listeners) in task.notifier.listeners_iter():
             if listeners:
                 needed.add(event_type)
-        # We don't register for the 'ANY' event; since that meta event type
-        # will be correctly proxied by the task notifier directly without
-        # needing clone replication.
-        needed.discard(task.notifier.ANY)
         if progress_callback is not None:
             needed.add(_UPDATE_PROGRESS)
         for event_type in needed:
