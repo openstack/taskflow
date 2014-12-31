@@ -49,7 +49,10 @@ class StopWatch(object):
 
     Inspired by: apache-commons-lang java stopwatch.
 
-    Not thread-safe.
+    Not thread-safe (when a single watch is mutated by multiple threads at
+    the same time). Thread-safe when used by a single thread (not shared) or
+    when operations are performed in a thread-safe manner on these objects by
+    wrapping those operations with locks.
     """
     _STARTED = 'STARTED'
     _STOPPED = 'STOPPED'
