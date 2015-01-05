@@ -140,7 +140,7 @@ class UriParseTest(test.TestCase):
         self.assertEqual('192.168.0.1', parsed.hostname)
         self.assertEqual('', parsed.fragment)
         self.assertEqual('/a/b/', parsed.path)
-        self.assertEqual({'c': 'd'}, parsed.params)
+        self.assertEqual({'c': 'd'}, parsed.params())
 
     def test_port_provided(self):
         url = "rabbitmq://www.yahoo.com:5672"

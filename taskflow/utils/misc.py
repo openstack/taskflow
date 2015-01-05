@@ -32,7 +32,6 @@ from oslo.utils import reflection
 import six
 from six.moves import map as compat_map
 from six.moves import range as compat_range
-from six.moves.urllib import parse as urlparse
 
 from taskflow.types import failure
 from taskflow.types import notifier
@@ -44,22 +43,6 @@ NUMERIC_TYPES = six.integer_types + (float,)
 # NOTE(imelnikov): regular expression to get scheme from URI,
 # see RFC 3986 section 3.1
 _SCHEME_REGEX = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
-
-
-# FIXME(harlowja): This should be removed with the next version of oslo.utils
-# which now has this functionality built-in, until then we are deriving from
-# there base class and adding this functionality on...
-#
-# The change was merged @ https://review.openstack.org/#/c/118881/
-class ModifiedSplitResult(netutils._ModifiedSplitResult):
-    """A split result that exposes the query parameters as a dictionary."""
-
-    @property
-    def params(self):
-        if self.query:
-            return dict(urlparse.parse_qsl(self.query))
-        else:
-            return {}
 
 
 def merge_uri(uri, conf):
@@ -80,7 +63,7 @@ def merge_uri(uri, conf):
         if uri.port is not None:
             hostname += ":%s" % (uri.port)
         conf.setdefault('hostname', hostname)
-    for (k, v) in six.iteritems(uri.params):
+    for (k, v) in six.iteritems(uri.params()):
         conf.setdefault(k, v)
     return conf
 
@@ -140,10 +123,7 @@ def parse_uri(uri):
     if not match:
         raise ValueError("Uri %r does not start with a RFC 3986 compliant"
                          " scheme" % (uri))
-    split = netutils.urlsplit(uri)
-    return ModifiedSplitResult(scheme=split.scheme, fragment=split.fragment,
-                               path=split.path, netloc=split.netloc,
-                               query=split.query)
+    return netutils.urlsplit(uri)
 
 
 def clamp(value, minimum, maximum, on_clamped=None):
