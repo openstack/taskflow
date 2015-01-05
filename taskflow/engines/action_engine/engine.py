@@ -14,12 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import abc
+import collections
 import contextlib
 import threading
 
 from concurrent import futures
 from oslo.utils import excutils
+import six
 
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
@@ -199,11 +200,6 @@ class ActionEngine(base.Engine):
             self._runtime.reset_all()
             self._change_state(states.PENDING)
 
-    @abc.abstractproperty
-    def _task_executor(self):
-        return self._task_executor_factory()
-        pass
-
     @misc.cachedproperty
     def _compiler(self):
         return self._compiler_factory(self._flow)
@@ -224,28 +220,105 @@ class SerialActionEngine(ActionEngine):
     """Engine that runs tasks in serial manner."""
     _storage_factory = atom_storage.SingleThreadedStorage
 
-    @misc.cachedproperty
-    def _task_executor(self):
-        return executor.SerialTaskExecutor()
+    def __init__(self, flow, flow_detail, backend, options):
+        super(SerialActionEngine, self).__init__(flow, flow_detail,
+                                                 backend, options)
+        self._task_executor = executor.SerialTaskExecutor()
+
+
+class _ExecutorTypeMatch(collections.namedtuple('_ExecutorTypeMatch',
+                                                ['types', 'executor_cls'])):
+    def matches(self, executor):
+        return isinstance(executor, self.types)
+
+
+class _ExecutorTextMatch(collections.namedtuple('_ExecutorTextMatch',
+                                                ['strings', 'executor_cls'])):
+    def matches(self, text):
+        return text.lower() in self.strings
 
 
 class ParallelActionEngine(ActionEngine):
     """Engine that runs tasks in parallel manner."""
     _storage_factory = atom_storage.MultiThreadedStorage
 
-    @misc.cachedproperty
-    def _task_executor(self):
-        kwargs = {
-            'executor': self._options.get('executor'),
-            'max_workers': self._options.get('max_workers'),
-        }
-        # The reason we use the library/built-in futures is to allow for
-        # instances of that to be detected and handled correctly, instead of
-        # forcing everyone to use our derivatives...
-        if isinstance(kwargs['executor'], futures.ProcessPoolExecutor):
-            executor_cls = executor.ParallelProcessTaskExecutor
-            kwargs['dispatch_periodicity'] = self._options.get(
-                'dispatch_periodicity')
-        else:
-            executor_cls = executor.ParallelThreadTaskExecutor
+    # One of these types should match when a object (non-string) is provided
+    # for the 'executor' option.
+    #
+    # NOTE(harlowja): the reason we use the library/built-in futures is to
+    # allow for instances of that to be detected and handled correctly, instead
+    # of forcing everyone to use our derivatives...
+    _executor_cls_matchers = [
+        _ExecutorTypeMatch((futures.ThreadPoolExecutor,),
+                           executor.ParallelThreadTaskExecutor),
+        _ExecutorTypeMatch((futures.ProcessPoolExecutor,),
+                           executor.ParallelProcessTaskExecutor),
+        _ExecutorTypeMatch((futures.Executor,),
+                           executor.ParallelThreadTaskExecutor),
+    ]
+
+    # One of these should match when a string/text is provided for the
+    # 'executor' option (a mixed case equivalent is allowed since the match
+    # will be lower-cased before checking).
+    _executor_str_matchers = [
+        _ExecutorTextMatch(frozenset(['processes', 'process']),
+                           executor.ParallelProcessTaskExecutor),
+        _ExecutorTextMatch(frozenset(['thread', 'threads', 'threaded']),
+                           executor.ParallelThreadTaskExecutor),
+    ]
+
+    # Used when no executor is provided (either a string or object)...
+    _default_executor_cls = executor.ParallelThreadTaskExecutor
+
+    def __init__(self, flow, flow_detail, backend, options):
+        super(ParallelActionEngine, self).__init__(flow, flow_detail,
+                                                   backend, options)
+        # This ensures that any provided executor will be validated before
+        # we get to far in the compilation/execution pipeline...
+        self._task_executor = self._fetch_task_executor(self._options)
+
+    @classmethod
+    def _fetch_task_executor(cls, options):
+        kwargs = {}
+        executor_cls = cls._default_executor_cls
+        # Match the desired executor to a class that will work with it...
+        desired_executor = options.get('executor')
+        if isinstance(desired_executor, six.string_types):
+            matched_executor_cls = None
+            for m in cls._executor_str_matchers:
+                if m.matches(desired_executor):
+                    matched_executor_cls = m.executor_cls
+                    break
+            if matched_executor_cls is None:
+                expected = set()
+                for m in cls._executor_str_matchers:
+                    expected.update(m.strings)
+                raise ValueError("Unknown executor string '%s' expected"
+                                 " one of %s (or mixed case equivalent)"
+                                 % (desired_executor, list(expected)))
+            else:
+                executor_cls = matched_executor_cls
+        elif desired_executor is not None:
+            matched_executor_cls = None
+            for m in cls._executor_cls_matchers:
+                if m.matches(desired_executor):
+                    matched_executor_cls = m.executor_cls
+                    break
+            if matched_executor_cls is None:
+                expected = set()
+                for m in cls._executor_cls_matchers:
+                    expected.update(m.types)
+                raise TypeError("Unknown executor type '%s' expected an"
+                                " instance of %s" % (type(desired_executor),
+                                                     list(expected)))
+            else:
+                executor_cls = matched_executor_cls
+                kwargs['executor'] = desired_executor
+        for k in getattr(executor_cls, 'OPTIONS', []):
+            if k == 'executor':
+                continue
+            try:
+                kwargs[k] = options[k]
+            except KeyError:
+                pass
         return executor_cls(**kwargs)

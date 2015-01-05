@@ -18,7 +18,6 @@ from taskflow.engines.action_engine import engine
 from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import storage as t_storage
-from taskflow.utils import misc
 
 
 class WorkerBasedActionEngine(engine.ActionEngine):
@@ -45,17 +44,30 @@ class WorkerBasedActionEngine(engine.ActionEngine):
 
     _storage_factory = t_storage.SingleThreadedStorage
 
-    @misc.cachedproperty
-    def _task_executor(self):
+    def __init__(self, flow, flow_detail, backend, options):
+        super(WorkerBasedActionEngine, self).__init__(flow, flow_detail,
+                                                      backend, options)
+        # This ensures that any provided executor will be validated before
+        # we get to far in the compilation/execution pipeline...
+        self._task_executor = self._fetch_task_executor(self._options,
+                                                        self._flow_detail)
+
+    @classmethod
+    def _fetch_task_executor(cls, options, flow_detail):
         try:
-            return self._options['executor']
+            e = options['executor']
+            if not isinstance(e, executor.WorkerTaskExecutor):
+                raise TypeError("Expected an instance of type '%s' instead of"
+                                " type '%s' for 'executor' option"
+                                % (executor.WorkerTaskExecutor, type(e)))
+            return e
         except KeyError:
             return executor.WorkerTaskExecutor(
-                uuid=self._flow_detail.uuid,
-                url=self._options.get('url'),
-                exchange=self._options.get('exchange', 'default'),
-                topics=self._options.get('topics', []),
-                transport=self._options.get('transport'),
-                transport_options=self._options.get('transport_options'),
-                transition_timeout=self._options.get('transition_timeout',
-                                                     pr.REQUEST_TIMEOUT))
+                uuid=flow_detail.uuid,
+                url=options.get('url'),
+                exchange=options.get('exchange', 'default'),
+                topics=options.get('topics', []),
+                transport=options.get('transport'),
+                transport_options=options.get('transport_options'),
+                transition_timeout=options.get('transition_timeout',
+                                               pr.REQUEST_TIMEOUT))
