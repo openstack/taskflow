@@ -22,8 +22,6 @@ import string
 import sys
 import time
 
-from concurrent import futures
-
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
@@ -46,12 +44,7 @@ from taskflow import task
 # This is useful since it allows further scaling up your workflows when thread
 # execution starts to become a bottleneck (which it can start to be due to the
 # GIL in python). It also offers a intermediary scalable runner that can be
-# used when the scale and or setup of remote workers is not desirable.
-
-# How many local processes to potentially use when executing... (one is fine
-# for this example, but more can be used to show play around with what happens
-# with many...)
-WORKERS = 1
+# used when the scale and/or setup of remote workers is not desirable.
 
 
 def progress_printer(task, event_type, details):
@@ -87,15 +80,14 @@ for letter in string.ascii_lowercase:
                           functools.partial(progress_printer, abc))
     soup.add(abc)
 try:
-    with futures.ProcessPoolExecutor(WORKERS) as executor:
-        print("Loading...")
-        e = engines.load(soup, engine='parallel', executor=executor)
-        print("Compiling...")
-        e.compile()
-        print("Preparing...")
-        e.prepare()
-        print("Running...")
-        e.run()
-        print("Done...")
+    print("Loading...")
+    e = engines.load(soup, engine='parallel', executor='processes')
+    print("Compiling...")
+    e.compile()
+    print("Preparing...")
+    e.prepare()
+    print("Running...")
+    e.run()
+    print("Done...")
 except exceptions.NotImplementedError as e:
     print(e)
