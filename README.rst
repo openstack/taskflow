@@ -21,16 +21,19 @@ Testing and requirements
 Requirements
 ~~~~~~~~~~~~
 
-Because TaskFlow has many optional (pluggable) parts like persistence
-backends and engines, we decided to split our requirements into two
-parts: - things that are absolutely required by TaskFlow (you can't use
-TaskFlow without them) are put into ``requirements-pyN.txt`` (``N`` being the
-Python *major* version number used to install the package); - things that are
-required by some optional part of TaskFlow (you can use TaskFlow without
-them) are put into ``optional-requirements.txt``; if you want to use the
-feature in question, you should add that requirements to your project or
-environment; - as usual, things that required only for running tests are
-put into ``test-requirements.txt``.
+Because this project has many optional (pluggable) parts like persistence
+backends and engines, we decided to split our requirements into three
+parts: - things that are absolutely required (you can't use the project
+without them) are put into ``requirements-pyN.txt`` (``N`` being the
+Python *major* version number used to install the package). The requirements
+that are required by some optional part of this project (you can use the
+project without them) are put into our ``tox.ini`` file (so that we can still
+test the optional functionality works as expected). If you want to use the
+feature in question (`eventlet`_ or the worker based engine that
+uses `kombu`_ or the `sqlalchemy`_ persistence backend or jobboards which
+have an implementation built using `kazoo`_ ...), you should add
+that requirement(s) to your project or environment; - as usual, things that
+required only for running tests are put into ``test-requirements.txt``.
 
 Tox.ini
 ~~~~~~~
@@ -51,5 +54,9 @@ We also have sphinx documentation in ``docs/source``.
 
     $ python setup.py build_sphinx
 
-.. _tox: http://testrun.org/tox/latest/
+.. _kazoo: http://kazoo.readthedocs.org/
+.. _sqlalchemy: http://www.sqlalchemy.org/
+.. _kombu: http://kombu.readthedocs.org/
+.. _eventlet: http://eventlet.net/
+.. _tox: http://tox.testrun.org/
 .. _developer documentation: http://docs.openstack.org/developer/taskflow/
