@@ -39,11 +39,10 @@ class TaskAction(object):
     def handles(atom):
         return isinstance(atom, task_atom.BaseTask)
 
-    def _is_identity_transition(self, state, task, progress):
+    def _is_identity_transition(self, old_state, state, task, progress):
         if state in SAVE_RESULT_STATES:
             # saving result is never identity transition
             return False
-        old_state = self._storage.get_atom_state(task.name)
         if state != old_state:
             # changing state is not identity transition by definition
             return False
@@ -58,7 +57,8 @@ class TaskAction(object):
         return True
 
     def change_state(self, task, state, result=None, progress=None):
-        if self._is_identity_transition(state, task, progress):
+        old_state = self._storage.get_atom_state(task.name)
+        if self._is_identity_transition(old_state, state, task, progress):
             # NOTE(imelnikov): ignore identity transitions in order
             # to avoid extra write to storage backend and, what's
             # more important, extra notifications
@@ -70,9 +70,12 @@ class TaskAction(object):
         if progress is not None:
             self._storage.set_task_progress(task.name, progress)
         task_uuid = self._storage.get_atom_uuid(task.name)
-        details = dict(task_name=task.name,
-                       task_uuid=task_uuid,
-                       result=result)
+        details = {
+            'task_name': task.name,
+            'task_uuid': task_uuid,
+            'result': result,
+            'old_state': old_state,
+        }
         self._notifier.notify(state, details)
         if progress is not None:
             task.update_progress(progress)
