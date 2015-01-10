@@ -22,6 +22,18 @@ Passing values from and to tasks
     :linenos:
     :lines: 16-
 
+Using listeners
+===============
+
+.. note::
+
+    Full source located at :example:`echo_listener`.
+
+.. literalinclude:: ../../taskflow/examples/echo_listener.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Making phone calls
 ==================
 

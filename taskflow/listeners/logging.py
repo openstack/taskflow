@@ -167,8 +167,9 @@ class DynamicLoggingListener(base.Listener):
                 exc_info, exc_details = self._format_failure(result)
                 self._logger.log(self._failure_level,
                                  "Task '%s' (%s) transitioned into state"
-                                 " '%s'%s", details['task_name'],
-                                 details['task_uuid'], state, exc_details,
+                                 " '%s' from state '%s'%s",
+                                 details['task_name'], details['task_uuid'],
+                                 state, details['old_state'], exc_details,
                                  exc_info=exc_info)
             else:
                 # Otherwise, depending on the enabled logging level/state we
@@ -178,17 +179,19 @@ class DynamicLoggingListener(base.Listener):
                 if (_isEnabledFor(self._logger, self._level)
                         or state == states.FAILURE):
                     self._logger.log(level, "Task '%s' (%s) transitioned into"
-                                     " state '%s' with result '%s'",
-                                     details['task_name'],
+                                     " state '%s' from state '%s' with"
+                                     " result '%s'", details['task_name'],
                                      details['task_uuid'], state,
-                                     result)
+                                     details['old_state'], result)
                 else:
                     self._logger.log(level, "Task '%s' (%s) transitioned into"
-                                     " state '%s'", details['task_name'],
-                                     details['task_uuid'], state)
+                                     " state '%s' from state '%s'",
+                                     details['task_name'],
+                                     details['task_uuid'], state,
+                                     details['old_state'])
         else:
             # Just a intermediary state, carry on!
             level = self._task_log_levels.get(state, self._level)
             self._logger.log(level, "Task '%s' (%s) transitioned into state"
-                             " '%s'", details['task_name'],
-                             details['task_uuid'], state)
+                             " '%s' from state '%s'", details['task_name'],
+                             details['task_uuid'], state, details['old_state'])
