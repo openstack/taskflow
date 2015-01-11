@@ -128,7 +128,7 @@ def main():
         'fontsize': '11',
     }
     nodes = {}
-    for (start_state, _on_event, end_state) in source:
+    for (start_state, on_event, end_state) in source:
         if start_state not in nodes:
             start_node_attrs = node_attrs.copy()
             text_color = map_color(internal_states, start_state)
@@ -143,7 +143,20 @@ def main():
                 end_node_attrs['fontcolor'] = text_color
             nodes[end_state] = pydot.Node(end_state, **end_node_attrs)
             g.add_node(nodes[end_state])
-        g.add_edge(pydot.Edge(nodes[start_state], nodes[end_state]))
+        if options.engines:
+            edge_attrs = {
+                'label': "on %s" % on_event
+            }
+            if 'reverted' in on_event:
+                edge_attrs['fontcolor'] = 'darkorange'
+            if 'fail' in on_event:
+                edge_attrs['fontcolor'] = 'red'
+            if 'success' in on_event:
+                edge_attrs['fontcolor'] = 'green'
+        else:
+            edge_attrs = {}
+        g.add_edge(pydot.Edge(nodes[start_state], nodes[end_state],
+                              **edge_attrs))
 
     start = pydot.Node("__start__", shape="point", width="0.1",
                        xlabel='start', fontcolor='green', **node_attrs)
