@@ -19,7 +19,7 @@ import errno
 import os
 import shutil
 
-from oslo.serialization import jsonutils
+from oslo_serialization import jsonutils
 import six
 
 from taskflow import exceptions as exc

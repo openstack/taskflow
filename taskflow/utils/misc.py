@@ -25,7 +25,7 @@ import sys
 import threading
 import types
 
-from oslo.serialization import jsonutils
+from oslo_serialization import jsonutils
 from oslo_utils import importutils
 from oslo_utils import netutils
 from oslo_utils import reflection

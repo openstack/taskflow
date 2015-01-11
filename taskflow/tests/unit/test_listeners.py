@@ -18,7 +18,7 @@ import contextlib
 import logging
 import time
 
-from oslo.serialization import jsonutils
+from oslo_serialization import jsonutils
 from oslo_utils import reflection
 import six
 from zake import fake_client
