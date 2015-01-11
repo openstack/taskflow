@@ -16,7 +16,7 @@
 
 import abc
 
-from oslo.utils import reflection
+from oslo_utils import reflection
 import six
 
 # Link metadata keys that have inherent/special meaning.

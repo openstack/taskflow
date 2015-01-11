@@ -24,7 +24,7 @@ import copy
 import functools
 import time
 
-from oslo.utils import strutils
+from oslo_utils import strutils
 import six
 import sqlalchemy as sa
 from sqlalchemy import exc as sa_exc

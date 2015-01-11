@@ -18,7 +18,7 @@ from __future__ import absolute_import
 
 import abc
 
-from oslo.utils import excutils
+from oslo_utils import excutils
 import six
 
 from taskflow import logging

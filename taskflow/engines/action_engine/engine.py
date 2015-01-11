@@ -19,7 +19,7 @@ import contextlib
 import threading
 
 from concurrent import futures
-from oslo.utils import excutils
+from oslo_utils import excutils
 import six
 
 from taskflow.engines.action_engine import compiler

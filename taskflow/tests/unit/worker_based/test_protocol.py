@@ -15,8 +15,8 @@
 #    under the License.
 
 from concurrent import futures
-from oslo.utils import timeutils
-from oslo.utils import uuidutils
+from oslo_utils import timeutils
+from oslo_utils import uuidutils
 
 from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import protocol as pr

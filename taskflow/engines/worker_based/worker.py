@@ -21,7 +21,7 @@ import string
 import sys
 
 from concurrent import futures
-from oslo.utils import reflection
+from oslo_utils import reflection
 
 from taskflow.engines.worker_based import endpoint
 from taskflow.engines.worker_based import server

@@ -17,7 +17,7 @@
 import time
 
 from concurrent import futures
-from oslo.utils import timeutils
+from oslo_utils import timeutils
 
 from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr

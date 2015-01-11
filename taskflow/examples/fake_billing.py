@@ -27,7 +27,7 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-from oslo.utils import uuidutils
+from oslo_utils import uuidutils
 
 from taskflow import engines
 from taskflow.listeners import printing

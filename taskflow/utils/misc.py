@@ -26,9 +26,9 @@ import threading
 import types
 
 from oslo.serialization import jsonutils
-from oslo.utils import importutils
-from oslo.utils import netutils
-from oslo.utils import reflection
+from oslo_utils import importutils
+from oslo_utils import netutils
+from oslo_utils import reflection
 import six
 from six.moves import map as compat_map
 from six.moves import range as compat_range

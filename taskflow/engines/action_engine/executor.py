@@ -20,10 +20,10 @@ from multiprocessing import managers
 import os
 import pickle
 
-from oslo.utils import excutils
-from oslo.utils import reflection
-from oslo.utils import timeutils
-from oslo.utils import uuidutils
+from oslo_utils import excutils
+from oslo_utils import reflection
+from oslo_utils import timeutils
+from oslo_utils import uuidutils
 import six
 from six.moves import queue as compat_queue
 

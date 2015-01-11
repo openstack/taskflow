@@ -17,8 +17,8 @@
 import contextlib
 import os
 
-from oslo.utils import timeutils
-from oslo.utils import uuidutils
+from oslo_utils import timeutils
+from oslo_utils import uuidutils
 
 from taskflow import logging
 from taskflow.persistence import logbook

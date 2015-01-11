@@ -19,7 +19,7 @@ import contextlib
 import copy
 import logging
 
-from oslo.utils import reflection
+from oslo_utils import reflection
 import six
 
 LOG = logging.getLogger(__name__)

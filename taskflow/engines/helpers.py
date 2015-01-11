@@ -18,8 +18,8 @@ import contextlib
 import itertools
 import traceback
 
-from oslo.utils import importutils
-from oslo.utils import reflection
+from oslo_utils import importutils
+from oslo_utils import reflection
 import six
 import stevedore.driver
 

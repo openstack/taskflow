@@ -16,7 +16,7 @@
 
 import contextlib
 
-from oslo.utils import uuidutils
+from oslo_utils import uuidutils
 
 from taskflow import exceptions as exc
 from taskflow.persistence import logbook

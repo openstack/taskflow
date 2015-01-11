@@ -17,7 +17,7 @@
 import contextlib
 import threading
 
-from oslo.utils import uuidutils
+from oslo_utils import uuidutils
 
 from taskflow import exceptions
 from taskflow.persistence import backends
