@@ -23,7 +23,7 @@ from taskflow.persistence import backends
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.types import futures as futures
-from taskflow.utils import async_utils as au
+from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import persistence_utils as pu
 
 
@@ -61,7 +61,7 @@ class ParallelCreationTest(test.TestCase):
             self.assertIsInstance(eng._task_executor,
                                   executor.ParallelProcessTaskExecutor)
 
-    @testtools.skipIf(not au.EVENTLET_AVAILABLE, 'eventlet is not available')
+    @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
     def test_green_executor_creation(self):
         with futures.GreenThreadPoolExecutor(1) as e:
             eng = self._create_engine(executor=e)

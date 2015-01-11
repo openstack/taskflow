@@ -19,6 +19,7 @@ import testtools
 from taskflow import test
 from taskflow.types import futures
 from taskflow.utils import async_utils as au
+from taskflow.utils import eventlet_utils as eu
 
 
 class WaitForAnyTestsMixin(object):
@@ -52,7 +53,7 @@ class WaitForAnyTestsMixin(object):
         self.assertIs(done.pop(), f2)
 
 
-@testtools.skipIf(not au.EVENTLET_AVAILABLE, 'eventlet is not available')
+@testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
 class AsyncUtilsEventletTest(test.TestCase,
                              WaitForAnyTestsMixin):
     def _make_executor(self, max_workers):

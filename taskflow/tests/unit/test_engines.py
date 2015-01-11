@@ -34,7 +34,7 @@ from taskflow.tests import utils
 from taskflow.types import failure
 from taskflow.types import futures
 from taskflow.types import graph as gr
-from taskflow.utils import async_utils as au
+from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import persistence_utils as p_utils
 from taskflow.utils import threading_utils as tu
 
@@ -652,7 +652,7 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
             executor.shutdown(wait=True)
 
 
-@testtools.skipIf(not au.EVENTLET_AVAILABLE, 'eventlet is not available')
+@testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
 class ParallelEngineWithEventletTest(EngineTaskTest,
                                      EngineLinearFlowTest,
                                      EngineParallelFlowTest,

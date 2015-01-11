@@ -19,11 +19,11 @@ from concurrent.futures import _base
 
 try:
     from eventlet.green import threading as greenthreading
-    EVENTLET_AVAILABLE = True
 except ImportError:
-    EVENTLET_AVAILABLE = False
+    pass
 
 from taskflow.types import futures
+from taskflow.utils import eventlet_utils as eu
 
 
 _DONE_STATES = frozenset([
@@ -94,7 +94,8 @@ def _partition_futures(fs):
 
 
 def _wait_for_any_green(fs, timeout=None):
-    assert EVENTLET_AVAILABLE, 'eventlet is needed to wait on green futures'
+    eu.check_for_eventlet(RuntimeError('Eventlet is needed to wait on'
+                                       ' green futures'))
 
     with _base._AcquireFutures(fs):
         done, not_done = _partition_futures(fs)

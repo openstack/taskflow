@@ -18,6 +18,11 @@ Deprecation
 
 .. automodule:: taskflow.utils.deprecation
 
+Eventlet
+~~~~~~~~
+
+.. automodule:: taskflow.utils.eventlet_utils
+
 Kazoo
 ~~~~~
 
