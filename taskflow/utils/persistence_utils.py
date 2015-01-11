@@ -15,6 +15,7 @@
 #    under the License.
 
 import contextlib
+import os
 
 from oslo.utils import timeutils
 from oslo.utils import uuidutils
@@ -139,7 +140,7 @@ def pformat_atom_detail(atom_detail, indent=0):
     lines.append("%s- failure = %s" % (" " * (indent + 1),
                                        bool(atom_detail.failure)))
     lines.extend(_format_meta(atom_detail.meta, indent=indent + 1))
-    return "\n".join(lines)
+    return os.linesep.join(lines)
 
 
 def pformat_flow_detail(flow_detail, indent=0):
@@ -149,7 +150,7 @@ def pformat_flow_detail(flow_detail, indent=0):
     lines.extend(_format_meta(flow_detail.meta, indent=indent + 1))
     for task_detail in flow_detail:
         lines.append(pformat_atom_detail(task_detail, indent=indent + 1))
-    return "\n".join(lines)
+    return os.linesep.join(lines)
 
 
 def pformat(book, indent=0):
@@ -167,4 +168,4 @@ def pformat(book, indent=0):
                         timeutils.isotime(book.updated_at)))
     for flow_detail in book:
         lines.append(pformat_flow_detail(flow_detail, indent=indent + 1))
-    return "\n".join(lines)
+    return os.linesep.join(lines)

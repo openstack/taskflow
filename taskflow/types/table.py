@@ -15,6 +15,7 @@
 #    under the License.
 
 import itertools
+import os
 
 import six
 
@@ -39,6 +40,7 @@ class PleasantTable(object):
     COLUMN_SEPARATOR_CHAR = '|'
     HEADER_FOOTER_JOINING_CHAR = '+'
     HEADER_FOOTER_CHAR = '-'
+    LINE_SEP = os.linesep
 
     @staticmethod
     def _center_text(text, max_len, fill=' '):
@@ -87,7 +89,7 @@ class PleasantTable(object):
         # Build the main header.
         content_buf = six.StringIO()
         content_buf.write(header_footer_buf.getvalue())
-        content_buf.write("\n")
+        content_buf.write(self.LINE_SEP)
         content_buf.write(self.COLUMN_STARTING_CHAR)
         for i, header in enumerate(headers):
             if i + 1 == column_count:
@@ -99,12 +101,12 @@ class PleasantTable(object):
             else:
                 content_buf.write(headers[i])
                 content_buf.write(self.COLUMN_SEPARATOR_CHAR)
-        content_buf.write("\n")
+        content_buf.write(self.LINE_SEP)
         content_buf.write(header_footer_buf.getvalue())
         # Build the main content.
         row_count = len(self._rows)
         if row_count:
-            content_buf.write("\n")
+            content_buf.write(self.LINE_SEP)
             for i, row in enumerate(self._rows):
                 pieces = []
                 for j, column in enumerate(row):
@@ -122,7 +124,7 @@ class PleasantTable(object):
                         content_buf.write(self.COLUMN_STARTING_CHAR)
                         content_buf.write(blob)
                 if i + 1 != row_count:
-                    content_buf.write("\n")
-            content_buf.write("\n")
+                    content_buf.write(self.LINE_SEP)
+            content_buf.write(self.LINE_SEP)
             content_buf.write(header_footer_buf.getvalue())
         return content_buf.getvalue()

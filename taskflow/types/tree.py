@@ -16,6 +16,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+
 import six
 
 
@@ -148,7 +150,7 @@ class Node(object):
         for i, line in enumerate(_inner_pformat(self, 0)):
             accumulator.write(line)
             if i < expected_lines:
-                accumulator.write('\n')
+                accumulator.write(os.linesep)
         return accumulator.getvalue()
 
     def child_count(self, only_direct=True):

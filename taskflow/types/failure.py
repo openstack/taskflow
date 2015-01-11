@@ -15,6 +15,7 @@
 #    under the License.
 
 import copy
+import os
 import sys
 import traceback
 
@@ -280,10 +281,13 @@ class Failure(object):
             else:
                 traceback_str = None
             if traceback_str:
-                buf.write('\nTraceback (most recent call last):\n')
+                buf.write(os.linesep)
+                buf.write('Traceback (most recent call last):')
+                buf.write(os.linesep)
                 buf.write(traceback_str)
             else:
-                buf.write('\nTraceback not available.')
+                buf.write(os.linesep)
+                buf.write('Traceback not available.')
         return buf.getvalue()
 
     def __iter__(self):
