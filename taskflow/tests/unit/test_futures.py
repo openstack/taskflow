@@ -67,6 +67,7 @@ class _SimpleFuturesTestMixin(object):
         with self._make_executor(2) as e:
             f = e.submit(_blowup)
         self.assertRaises(IOError, f.result)
+        self.assertEqual(1, e.statistics.failures)
 
     def test_accumulator(self):
         created = []
@@ -75,6 +76,7 @@ class _SimpleFuturesTestMixin(object):
                 created.append(e.submit(_return_one))
         results = [f.result() for f in created]
         self.assertEqual(10, sum(results))
+        self.assertEqual(10, e.statistics.executed)
 
     def test_map(self):
         count = [i for i in range(0, 100)]
@@ -119,6 +121,7 @@ class _FuturesTestMixin(_SimpleFuturesTestMixin):
 
         self.assertEqual(1, called[0])
         self.assertEqual(1, called[1])
+        self.assertEqual(2, e.statistics.executed)
 
     def test_result_callback(self):
         called = collections.defaultdict(int)
@@ -143,19 +146,22 @@ class _FuturesTestMixin(_SimpleFuturesTestMixin):
             for i in range(0, create_am):
                 fs.append(e.submit(functools.partial(_return_given, i)))
         self.assertEqual(create_am, len(fs))
+        self.assertEqual(create_am, e.statistics.executed)
         for i in range(0, create_am):
             result = fs[i].result()
             self.assertEqual(i, result)
 
     def test_called_restricted_size(self):
+        create_am = 100
         called = collections.defaultdict(int)
 
         with self._make_executor(1) as e:
-            for f in self._make_funcs(called, 100):
+            for f in self._make_funcs(called, create_am):
                 e.submit(f)
 
         self.assertFalse(e.alive)
-        self.assertEqual(100, len(called))
+        self.assertEqual(create_am, len(called))
+        self.assertEqual(create_am, e.statistics.executed)
 
 
 class ThreadPoolExecutorTest(test.TestCase, _FuturesTestMixin):
@@ -217,6 +223,7 @@ class GreenThreadPoolExecutorTest(test.TestCase, _FuturesTestMixin):
 
         self.assertEqual(0, len(called))
         self.assertEqual(2, len(fs))
+        self.assertEqual(2, e.statistics.cancelled)
         for f in fs:
             self.assertTrue(f.cancelled())
             self.assertTrue(f.done())
