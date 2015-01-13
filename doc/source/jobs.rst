@@ -164,7 +164,7 @@ might look like:
             else:
                 # I finished it, now cleanup.
                 board.consume(my_job)
-                persistence.destroy_logbook(my_job.book.uuid)
+                persistence.get_connection().destroy_logbook(my_job.book.uuid)
         time.sleep(coffee_break_time)
     ...
 
