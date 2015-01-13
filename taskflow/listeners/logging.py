@@ -16,6 +16,7 @@
 
 from __future__ import absolute_import
 
+import logging as logging_base
 import sys
 
 from taskflow.listeners import base
@@ -36,7 +37,7 @@ else:
 # when we can just support python 2.7+ (which fixed the lack of this method
 # on adapters).
 def _isEnabledFor(logger, level):
-    if _PY26 and isinstance(logger, logging.LoggerAdapter):
+    if _PY26 and isinstance(logger, logging_base.LoggerAdapter):
         return logger.logger.isEnabledFor(level)
     return logger.isEnabledFor(level)
 
