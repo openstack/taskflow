@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from oslo.utils import reflection
 from oslo.utils import timeutils
 
 from taskflow.utils import threading_utils
@@ -67,7 +68,7 @@ class Split(object):
         return self._length
 
     def __repr__(self):
-        r = self.__class__.__name__
+        r = reflection.get_class_name(self, fully_qualified=False)
         r += "(elapsed=%s, length=%s)" % (self._elapsed, self._length)
         return r
 
