@@ -373,6 +373,7 @@ class ParallelTaskExecutor(TaskExecutor):
     to concurrent.Futures.Executor.
     """
 
+    #: Options this executor supports (passed in from engine options).
     OPTIONS = frozenset(['max_workers'])
 
     def __init__(self, executor=None, max_workers=None):
@@ -431,6 +432,7 @@ class ParallelProcessTaskExecutor(ParallelTaskExecutor):
     the parent are executed on events in the child.
     """
 
+    #: Options this executor supports (passed in from engine options).
     OPTIONS = frozenset(['max_workers', 'dispatch_periodicity'])
 
     def __init__(self, executor=None, max_workers=None,

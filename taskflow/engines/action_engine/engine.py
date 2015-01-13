@@ -239,7 +239,43 @@ class _ExecutorTextMatch(collections.namedtuple('_ExecutorTextMatch',
 
 
 class ParallelActionEngine(ActionEngine):
-    """Engine that runs tasks in parallel manner."""
+    """Engine that runs tasks in parallel manner.
+
+    Supported keyword arguments:
+
+    * ``executor``: a object that implements a :pep:`3148` compatible executor
+      interface; it will be used for scheduling tasks. The following
+      type are applicable (other unknown types passed will cause a type
+      error to be raised).
+
+=========================  ===============================================
+Type provided              Executor used
+=========================  ===============================================
+|cft|.ThreadPoolExecutor   :class:`~.executor.ParallelThreadTaskExecutor`
+|cfp|.ProcessPoolExecutor  :class:`~.executor.ParallelProcessTaskExecutor`
+|cf|._base.Executor        :class:`~.executor.ParallelThreadTaskExecutor`
+=========================  ===============================================
+
+    * ``executor``: a string that will be used to select a :pep:`3148`
+      compatible executor; it will be used for scheduling tasks. The following
+      string are applicable (other unknown strings passed will cause a value
+      error to be raised).
+
+===========================  ===============================================
+String (case insensitive)    Executor used
+===========================  ===============================================
+``process``                  :class:`~.executor.ParallelProcessTaskExecutor`
+``processes``                :class:`~.executor.ParallelProcessTaskExecutor`
+``thread``                   :class:`~.executor.ParallelThreadTaskExecutor`
+``threaded``                 :class:`~.executor.ParallelThreadTaskExecutor`
+``threads``                  :class:`~.executor.ParallelThreadTaskExecutor`
+===========================  ===============================================
+
+    .. |cfp| replace:: concurrent.futures.process
+    .. |cft| replace:: concurrent.futures.thread
+    .. |cf| replace:: concurrent.futures
+    """
+
     _storage_factory = atom_storage.MultiThreadedStorage
 
     # One of these types should match when a object (non-string) is provided

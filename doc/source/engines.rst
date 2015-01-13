@@ -161,16 +161,10 @@ Parallel
 **Engine type**: ``'parallel'``
 
 A parallel engine schedules tasks onto different threads/processes to allow for
-running non-dependent tasks simultaneously.
-
-Additional supported keyword arguments:
-
-* ``executor``: a object that implements a :pep:`3148` compatible `executor`_
-  interface; it will be used for scheduling tasks. You can use instances of a
-  `thread pool executor`_ or a :py:class:`green executor
-  <taskflow.types.futures.GreenThreadPoolExecutor>` (which internally uses
-  `eventlet <http://eventlet.net/>`_ and greenthread pools) or a
-  `process pool executor`_.
+running non-dependent tasks simultaneously. See the documentation of
+:py:class:`~taskflow.engines.action_engine.engine.ParallelActionEngine` for
+supported arguments that can be used to construct a parallel engine that runs
+using your desired execution model.
 
 .. tip::
 
@@ -340,6 +334,7 @@ Interfaces
 .. automodule:: taskflow.engines.action_engine.compiler
 .. automodule:: taskflow.engines.action_engine.completer
 .. automodule:: taskflow.engines.action_engine.engine
+.. automodule:: taskflow.engines.action_engine.executor
 .. automodule:: taskflow.engines.action_engine.runner
 .. automodule:: taskflow.engines.action_engine.runtime
 .. automodule:: taskflow.engines.action_engine.scheduler
@@ -360,5 +355,4 @@ Hierarchy
 .. _executor: https://docs.python.org/dev/library/concurrent.futures.html#concurrent.futures.Executor
 .. _networkx: https://networkx.github.io/
 .. _futures backport: https://pypi.python.org/pypi/futures
-.. _thread pool executor: https://docs.python.org/dev/library/concurrent.futures.html#threadpoolexecutor
 .. _process pool executor: https://docs.python.org/dev/library/concurrent.futures.html#processpoolexecutor
