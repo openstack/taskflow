@@ -487,8 +487,10 @@ class ParallelProcessTaskExecutor(ParallelTaskExecutor):
                 needed.add(event_type)
         if progress_callback is not None:
             needed.add(_UPDATE_PROGRESS)
-        for event_type in needed:
-            clone.notifier.register(event_type, _EventSender(channel))
+        if needed:
+            sender = _EventSender(channel)
+            for event_type in needed:
+                clone.notifier.register(event_type, sender)
 
     def _submit_task(self, func, task, *args, **kwargs):
         """Submit a function to run the given task (with given args/kwargs).
