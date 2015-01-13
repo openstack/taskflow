@@ -142,6 +142,11 @@ def clamp(value, minimum, maximum, on_clamped=None):
     return value
 
 
+def fix_newlines(text, replacement=os.linesep):
+    """Fixes text that *may* end with wrong nl by replacing with right nl."""
+    return replacement.join(text.splitlines())
+
+
 def binary_encode(text, encoding='utf-8'):
     """Converts a string of into a binary type using given encoding.
 

@@ -141,8 +141,13 @@ class Worker(object):
             pass
         tpl_params['platform'] = platform.platform()
         tpl_params['thread_id'] = tu.get_ident()
-        return BANNER_TEMPLATE.substitute(BANNER_TEMPLATE.defaults,
-                                          **tpl_params)
+        banner = BANNER_TEMPLATE.substitute(BANNER_TEMPLATE.defaults,
+                                            **tpl_params)
+        # NOTE(harlowja): this is needed since the template in this file
+        # will always have newlines that end with '\n' (even on different
+        # platforms due to the way this source file is encoded) so we have
+        # to do this little dance to make it platform neutral...
+        return misc.fix_newlines(banner)
 
     def run(self, display_banner=True, banner_writer=None):
         """Runs the worker."""

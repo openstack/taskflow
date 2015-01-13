@@ -15,6 +15,7 @@
 #    under the License.
 
 import collections
+import os
 
 import networkx as nx
 import six
@@ -78,7 +79,7 @@ class DiGraph(nx.DiGraph):
                 buf.write(" --> %s" % (cycle[i]))
             buf.write(" --> %s" % (cycle[0]))
             lines.append("  %s" % buf.getvalue())
-        return "\n".join(lines)
+        return os.linesep.join(lines)
 
     def export_to_dot(self):
         """Exports the graph to a dot format (requires pydot library)."""

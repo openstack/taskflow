@@ -17,6 +17,7 @@
 from __future__ import absolute_import
 
 import logging
+import os
 
 import six
 
@@ -70,7 +71,8 @@ class CheckingClaimListener(base.Listener):
             engine.suspend()
         except exceptions.TaskFlowException as e:
             LOG.warn("Failed suspending engine '%s', (previously owned by"
-                     " '%s'):\n%s", engine, self._owner, e.pformat())
+                     " '%s'):%s%s", engine, self._owner, os.linesep,
+                     e.pformat())
 
     def _flow_receiver(self, state, details):
         self._claim_checker(state, details)

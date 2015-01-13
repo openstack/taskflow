@@ -17,6 +17,7 @@
 from __future__ import absolute_import
 
 import logging as logging_base
+import os
 import sys
 
 from taskflow.listeners import base
@@ -148,7 +149,7 @@ class DynamicLoggingListener(base.Listener):
             # exc_info that can be used but we *should* have a string
             # version that we can use instead...
             exc_info = None
-            exc_details = "\n%s" % fail.pformat(traceback=True)
+            exc_details = "%s%s" % (os.linesep, fail.pformat(traceback=True))
         return (exc_info, exc_details)
 
     def _flow_receiver(self, state, details):

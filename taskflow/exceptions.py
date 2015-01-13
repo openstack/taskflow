@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
 import traceback
 
 import six
@@ -46,14 +47,19 @@ class TaskFlowException(Exception):
         """Pretty formats a taskflow exception + any connected causes."""
         if indent < 0:
             raise ValueError("indent must be greater than or equal to zero")
-        return "\n".join(self._pformat(self, [], 0,
-                                       indent=indent, indent_text=indent_text))
+        return os.linesep.join(self._pformat(self, [], 0,
+                                             indent=indent,
+                                             indent_text=indent_text))
 
     @classmethod
     def _pformat(cls, excp, lines, current_indent, indent=2, indent_text=" "):
         line_prefix = indent_text * current_indent
         for line in traceback.format_exception_only(type(excp), excp):
             # We'll add our own newlines on at the end of formatting.
+            #
+            # NOTE(harlowja): the reason we don't search for os.linesep is
+            # that the traceback module seems to only use '\n' (for some
+            # reason).
             if line.endswith("\n"):
                 line = line[0:-1]
             lines.append(line_prefix + line)
