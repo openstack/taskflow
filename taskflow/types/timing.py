@@ -44,6 +44,34 @@ class Timeout(object):
         self._event.clear()
 
 
+class Split(object):
+    """A *immutable* stopwatch split.
+
+    See: http://en.wikipedia.org/wiki/Stopwatch for what this is/represents.
+    """
+
+    __slots__ = ['_elapsed', '_length']
+
+    def __init__(self, elapsed, length):
+        self._elapsed = elapsed
+        self._length = length
+
+    @property
+    def elapsed(self):
+        """Duration from stopwatch start."""
+        return self._elapsed
+
+    @property
+    def length(self):
+        """Seconds from last split (or the elapsed time if no prior split)."""
+        return self._length
+
+    def __repr__(self):
+        r = self.__class__.__name__
+        r += "(elapsed=%s, length=%s)" % (self._elapsed, self._length)
+        return r
+
+
 class StopWatch(object):
     """A simple timer/stopwatch helper class.
 
@@ -67,22 +95,49 @@ class StopWatch(object):
         self._started_at = None
         self._stopped_at = None
         self._state = None
+        self._splits = []
 
     def start(self):
+        """Starts the watch (if not already started).
+
+        NOTE(harlowja): resets any splits previously captured (if any).
+        """
         if self._state == self._STARTED:
             return self
         self._started_at = timeutils.utcnow()
         self._stopped_at = None
         self._state = self._STARTED
+        self._splits = []
         return self
 
+    @property
+    def splits(self):
+        """Accessor to all/any splits that have been captured."""
+        return tuple(self._splits)
+
+    def split(self):
+        """Captures a split/elapsed since start time (and doesn't stop)."""
+        if self._state == self._STARTED:
+            elapsed = self.elapsed()
+            if self._splits:
+                length = max(0.0, elapsed - self._splits[-1].elapsed)
+            else:
+                length = elapsed
+            self._splits.append(Split(elapsed, length))
+            return self._splits[-1]
+        else:
+            raise RuntimeError("Can not create a split time of a stopwatch"
+                               " if it has not been started")
+
     def restart(self):
+        """Restarts the watch from a started/stopped state."""
         if self._state == self._STARTED:
             self.stop()
         self.start()
         return self
 
     def elapsed(self):
+        """Returns how many seconds have elapsed."""
         if self._state == self._STOPPED:
             return max(0.0, float(timeutils.delta_seconds(self._started_at,
                                                           self._stopped_at)))
@@ -94,16 +149,19 @@ class StopWatch(object):
                                " if it has not been started/stopped")
 
     def __enter__(self):
+        """Starts the watch."""
         self.start()
         return self
 
     def __exit__(self, type, value, traceback):
+        """Stops the watch (ignoring errors if stop fails)."""
         try:
             self.stop()
         except RuntimeError:
             pass
 
     def leftover(self):
+        """Returns how many seconds are left until the watch expires."""
         if self._duration is None:
             raise RuntimeError("Can not get the leftover time of a watch that"
                                " has no duration")
@@ -113,6 +171,7 @@ class StopWatch(object):
         return max(0.0, self._duration - self.elapsed())
 
     def expired(self):
+        """Returns if the watch has expired (ie, duration provided elapsed)."""
         if self._duration is None:
             return False
         if self._state is None:
@@ -123,6 +182,7 @@ class StopWatch(object):
         return False
 
     def resume(self):
+        """Resumes the watch from a stopped state."""
         if self._state == self._STOPPED:
             self._state = self._STARTED
             return self
@@ -131,6 +191,7 @@ class StopWatch(object):
                                " stopped")
 
     def stop(self):
+        """Stops the watch."""
         if self._state == self._STOPPED:
             return self
         if self._state != self._STARTED:
