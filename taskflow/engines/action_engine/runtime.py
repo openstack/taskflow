@@ -71,8 +71,9 @@ class Runtime(object):
 
     @misc.cachedproperty
     def task_action(self):
-        return ta.TaskAction(self._storage, self._task_executor,
-                             self._atom_notifier, self._fetch_scopes_for)
+        return ta.TaskAction(self._storage,
+                             self._atom_notifier, self._fetch_scopes_for,
+                             self._task_executor)
 
     def _fetch_scopes_for(self, atom):
         """Fetches a tuple of the visible scopes for the given atom."""

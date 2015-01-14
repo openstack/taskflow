@@ -113,6 +113,7 @@ class ThreadPoolExecutor(_thread.ThreadPoolExecutor):
 
     @property
     def alive(self):
+        """Accessor to determine if the executor is alive/active."""
         return not self._shutdown
 
     def submit(self, fn, *args, **kwargs):
@@ -141,6 +142,7 @@ class ProcessPoolExecutor(_process.ProcessPoolExecutor):
 
     @property
     def alive(self):
+        """Accessor to determine if the executor is alive/active."""
         return not self._shutdown_thread
 
     @property
@@ -189,6 +191,7 @@ class SynchronousExecutor(_futures.Executor):
 
     @property
     def alive(self):
+        """Accessor to determine if the executor is alive/active."""
         return not self._shutoff
 
     def shutdown(self, wait=True):
@@ -276,6 +279,7 @@ class GreenThreadPoolExecutor(_futures.Executor):
 
     @property
     def alive(self):
+        """Accessor to determine if the executor is alive/active."""
         return not self._shutdown
 
     @property

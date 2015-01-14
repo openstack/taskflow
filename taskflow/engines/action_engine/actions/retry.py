@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from taskflow.engines.action_engine.actions import base
 from taskflow.engines.action_engine import executor as ex
 from taskflow import logging
 from taskflow import retry as retry_atom
@@ -23,16 +24,12 @@ from taskflow.types import futures
 
 LOG = logging.getLogger(__name__)
 
-SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 
-
-class RetryAction(object):
+class RetryAction(base.Action):
     """An action that handles executing, state changes, ... of retry atoms."""
 
     def __init__(self, storage, notifier, walker_factory):
-        self._storage = storage
-        self._notifier = notifier
-        self._walker_factory = walker_factory
+        super(RetryAction, self).__init__(storage, notifier, walker_factory)
         self._executor = futures.SynchronousExecutor()
 
     @staticmethod
@@ -50,10 +47,13 @@ class RetryAction(object):
             kwargs.update(addons)
         return kwargs
 
-    def change_state(self, retry, state, result=None):
+    def change_state(self, retry, state, result=base.NO_RESULT):
         old_state = self._storage.get_atom_state(retry.name)
-        if state in SAVE_RESULT_STATES:
-            self._storage.save(retry.name, result, state)
+        if state in base.SAVE_RESULT_STATES:
+            save_result = None
+            if result is not base.NO_RESULT:
+                save_result = result
+            self._storage.save(retry.name, save_result, state)
         elif state == states.REVERTED:
             self._storage.cleanup_retry_history(retry.name, state)
         else:
@@ -66,9 +66,10 @@ class RetryAction(object):
         details = {
             'retry_name': retry.name,
             'retry_uuid': retry_uuid,
-            'result': result,
             'old_state': old_state,
         }
+        if result is not base.NO_RESULT:
+            details['result'] = result
         self._notifier.notify(state, details)
 
     def execute(self, retry):
