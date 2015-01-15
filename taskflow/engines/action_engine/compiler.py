@@ -342,7 +342,7 @@ class PatternCompiler(object):
             node.add(tr.Node(flow.retry))
         decomposed_members = {}
         for item in flow:
-            subgraph, subnode = self._flatten(item, node)
+            subgraph, _subnode = self._flatten(item, node)
             decomposed_members[item] = subgraph
             if subgraph.number_of_nodes():
                 graph = gr.merge_graphs([graph, subgraph])

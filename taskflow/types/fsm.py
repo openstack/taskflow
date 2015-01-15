@@ -205,7 +205,7 @@ class FSM(object):
 
     def run(self, event, initialize=True):
         """Runs the state machine, using reactions only."""
-        for transition in self.run_iter(event, initialize=initialize):
+        for _transition in self.run_iter(event, initialize=initialize):
             pass
 
     def copy(self):
