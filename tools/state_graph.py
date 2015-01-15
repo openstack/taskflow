@@ -41,6 +41,12 @@ class DummyRuntime(object):
         self.storage = None
 
 
+def clean_event(name):
+    name = name.replace("_", " ")
+    name = name.strip()
+    return name
+
+
 def make_machine(start_state, transitions, disallowed):
     machine = fsm.FSM(start_state)
     machine.add_state(start_state)
@@ -129,6 +135,7 @@ def main():
     }
     nodes = {}
     for (start_state, on_event, end_state) in source:
+        on_event = clean_event(on_event)
         if start_state not in nodes:
             start_node_attrs = node_attrs.copy()
             text_color = map_color(internal_states, start_state)
@@ -145,7 +152,7 @@ def main():
             g.add_node(nodes[end_state])
         if options.engines:
             edge_attrs = {
-                'label': "on %s" % on_event
+                'label': on_event,
             }
             if 'reverted' in on_event:
                 edge_attrs['fontcolor'] = 'darkorange'

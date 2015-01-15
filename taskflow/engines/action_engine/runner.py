@@ -27,6 +27,17 @@ _UNDEFINED = 'UNDEFINED'
 _GAME_OVER = 'GAME_OVER'
 _META_STATES = (_GAME_OVER, _UNDEFINED)
 
+# Event name constants the state machine uses.
+_SCHEDULE = 'schedule_next'
+_WAIT = 'wait_finished'
+_ANALYZE = 'examine_finished'
+_FINISH = 'completed'
+_FAILED = 'failed'
+_SUSPENDED = 'suspended'
+_SUCCESS = 'success'
+_REVERTED = 'reverted'
+_START = 'start'
+
 LOG = logging.getLogger(__name__)
 
 
@@ -45,25 +56,25 @@ class _MachineBuilder(object):
 
     NOTE(harlowja): the machine states that this build will for are::
 
-    +--------------+-----------+------------+----------+---------+
-         Start     |   Event   |    End     | On Enter | On Exit
-    +--------------+-----------+------------+----------+---------+
-       ANALYZING   | finished  | GAME_OVER  |          |
-       ANALYZING   | schedule  | SCHEDULING |          |
-       ANALYZING   |   wait    |  WAITING   |          |
-       FAILURE[$]  |           |            |          |
-       GAME_OVER   |  failed   |  FAILURE   |          |
-       GAME_OVER   | reverted  |  REVERTED  |          |
-       GAME_OVER   |  success  |  SUCCESS   |          |
-       GAME_OVER   | suspended | SUSPENDED  |          |
-        RESUMING   | schedule  | SCHEDULING |          |
-      REVERTED[$]  |           |            |          |
-       SCHEDULING  |   wait    |  WAITING   |          |
-       SUCCESS[$]  |           |            |          |
-      SUSPENDED[$] |           |            |          |
-      UNDEFINED[^] |   start   |  RESUMING  |          |
-        WAITING    |  analyze  | ANALYZING  |          |
-    +--------------+-----------+------------+----------+---------+
+    +--------------+------------------+------------+----------+---------+
+         Start     |      Event       |    End     | On Enter | On Exit
+    +--------------+------------------+------------+----------+---------+
+       ANALYZING   |    completed     | GAME_OVER  |          |
+       ANALYZING   |  schedule_next   | SCHEDULING |          |
+       ANALYZING   |  wait_finished   |  WAITING   |          |
+       FAILURE[$]  |                  |            |          |
+       GAME_OVER   |      failed      |  FAILURE   |          |
+       GAME_OVER   |     reverted     |  REVERTED  |          |
+       GAME_OVER   |     success      |  SUCCESS   |          |
+       GAME_OVER   |    suspended     | SUSPENDED  |          |
+        RESUMING   |  schedule_next   | SCHEDULING |          |
+      REVERTED[$]  |                  |            |          |
+       SCHEDULING  |  wait_finished   |  WAITING   |          |
+       SUCCESS[$]  |                  |            |          |
+      SUSPENDED[$] |                  |            |          |
+      UNDEFINED[^] |      start       |  RESUMING  |          |
+        WAITING    | examine_finished | ANALYZING  |          |
+    +--------------+------------------+------------+----------+---------+
 
     Between any of these yielded states (minus ``GAME_OVER`` and ``UNDEFINED``)
     if the engine has been suspended or the engine has failed (due to a
@@ -90,17 +101,17 @@ class _MachineBuilder(object):
         def resume(old_state, new_state, event):
             memory.next_nodes.update(self._completer.resume())
             memory.next_nodes.update(self._analyzer.get_next_nodes())
-            return 'schedule'
+            return _SCHEDULE
 
         def game_over(old_state, new_state, event):
             if memory.failures:
-                return 'failed'
+                return _FAILED
             if self._analyzer.get_next_nodes():
-                return 'suspended'
+                return _SUSPENDED
             elif self._analyzer.is_success():
-                return 'success'
+                return _SUCCESS
             else:
-                return 'reverted'
+                return _REVERTED
 
         def schedule(old_state, new_state, event):
             if self.runnable() and memory.next_nodes:
@@ -111,7 +122,7 @@ class _MachineBuilder(object):
                 if failures:
                     memory.failures.extend(failures)
                 memory.next_nodes.clear()
-            return 'wait'
+            return _WAIT
 
         def wait(old_state, new_state, event):
             # TODO(harlowja): maybe we should start doing 'yield from' this
@@ -122,7 +133,7 @@ class _MachineBuilder(object):
                                                            timeout)
                 memory.done.update(done)
                 memory.not_done = not_done
-            return 'analyze'
+            return _ANALYZE
 
         def analyze(old_state, new_state, event):
             next_nodes = set()
@@ -145,11 +156,11 @@ class _MachineBuilder(object):
                         next_nodes.update(more_nodes)
             if self.runnable() and next_nodes and not memory.failures:
                 memory.next_nodes.update(next_nodes)
-                return 'schedule'
+                return _SCHEDULE
             elif memory.not_done:
-                return 'wait'
+                return _WAIT
             else:
-                return 'finished'
+                return _FINISH
 
         def on_exit(old_state, event):
             LOG.debug("Exiting old state '%s' in response to event '%s'",
@@ -178,23 +189,23 @@ class _MachineBuilder(object):
         m.add_state(st.WAITING, **watchers)
         m.add_state(st.FAILURE, terminal=True, **watchers)
 
-        m.add_transition(_GAME_OVER, st.REVERTED, 'reverted')
-        m.add_transition(_GAME_OVER, st.SUCCESS, 'success')
-        m.add_transition(_GAME_OVER, st.SUSPENDED, 'suspended')
-        m.add_transition(_GAME_OVER, st.FAILURE, 'failed')
-        m.add_transition(_UNDEFINED, st.RESUMING, 'start')
-        m.add_transition(st.ANALYZING, _GAME_OVER, 'finished')
-        m.add_transition(st.ANALYZING, st.SCHEDULING, 'schedule')
-        m.add_transition(st.ANALYZING, st.WAITING, 'wait')
-        m.add_transition(st.RESUMING, st.SCHEDULING, 'schedule')
-        m.add_transition(st.SCHEDULING, st.WAITING, 'wait')
-        m.add_transition(st.WAITING, st.ANALYZING, 'analyze')
+        m.add_transition(_GAME_OVER, st.REVERTED, _REVERTED)
+        m.add_transition(_GAME_OVER, st.SUCCESS, _SUCCESS)
+        m.add_transition(_GAME_OVER, st.SUSPENDED, _SUSPENDED)
+        m.add_transition(_GAME_OVER, st.FAILURE, _FAILED)
+        m.add_transition(_UNDEFINED, st.RESUMING, _START)
+        m.add_transition(st.ANALYZING, _GAME_OVER, _FINISH)
+        m.add_transition(st.ANALYZING, st.SCHEDULING, _SCHEDULE)
+        m.add_transition(st.ANALYZING, st.WAITING, _WAIT)
+        m.add_transition(st.RESUMING, st.SCHEDULING, _SCHEDULE)
+        m.add_transition(st.SCHEDULING, st.WAITING, _WAIT)
+        m.add_transition(st.WAITING, st.ANALYZING, _ANALYZE)
 
-        m.add_reaction(_GAME_OVER, 'finished', game_over)
-        m.add_reaction(st.ANALYZING, 'analyze', analyze)
-        m.add_reaction(st.RESUMING, 'start', resume)
-        m.add_reaction(st.SCHEDULING, 'schedule', schedule)
-        m.add_reaction(st.WAITING, 'wait', wait)
+        m.add_reaction(_GAME_OVER, _FINISH, game_over)
+        m.add_reaction(st.ANALYZING, _ANALYZE, analyze)
+        m.add_reaction(st.RESUMING, _START, resume)
+        m.add_reaction(st.SCHEDULING, _SCHEDULE, schedule)
+        m.add_reaction(st.WAITING, _WAIT, wait)
 
         m.freeze()
         return (m, memory)
@@ -231,7 +242,7 @@ class Runner(object):
     def run_iter(self, timeout=None):
         """Runs the nodes using a built state machine."""
         machine, memory = self.builder.build(timeout=timeout)
-        for (_prior_state, new_state) in machine.run_iter('start'):
+        for (_prior_state, new_state) in machine.run_iter(_START):
             # NOTE(harlowja): skip over meta-states.
             if new_state not in _META_STATES:
                 if new_state == st.FAILURE:
