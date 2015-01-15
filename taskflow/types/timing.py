@@ -136,17 +136,20 @@ class StopWatch(object):
         self.start()
         return self
 
-    def elapsed(self):
+    def elapsed(self, maximum=None):
         """Returns how many seconds have elapsed."""
-        if self._state == self._STOPPED:
-            return max(0.0, float(timeutils.delta_seconds(self._started_at,
-                                                          self._stopped_at)))
-        elif self._state == self._STARTED:
-            return max(0.0, float(timeutils.delta_seconds(self._started_at,
-                                                          timeutils.utcnow())))
-        else:
+        if self._state not in (self._STOPPED, self._STARTED):
             raise RuntimeError("Can not get the elapsed time of a stopwatch"
                                " if it has not been started/stopped")
+        if self._state == self._STOPPED:
+            elapsed = max(0.0, float(timeutils.delta_seconds(
+                self._started_at, self._stopped_at)))
+        else:
+            elapsed = max(0.0, float(timeutils.delta_seconds(
+                self._started_at, timeutils.utcnow())))
+        if maximum is not None and elapsed > maximum:
+            elapsed = max(0.0, maximum)
+        return elapsed
 
     def __enter__(self):
         """Starts the watch."""

@@ -217,6 +217,23 @@ class StopWatchTest(test.TestCase):
         watch.start()
         self.assertEqual(0, len(watch.splits))
 
+    def test_elapsed_maximum(self):
+        watch = tt.StopWatch()
+        watch.start()
+
+        timeutils.advance_time_seconds(1)
+        self.assertEqual(1, watch.elapsed())
+
+        timeutils.advance_time_seconds(10)
+        self.assertEqual(11, watch.elapsed())
+        self.assertEqual(1, watch.elapsed(maximum=1))
+
+        watch.stop()
+        self.assertEqual(11, watch.elapsed())
+        timeutils.advance_time_seconds(10)
+        self.assertEqual(11, watch.elapsed())
+        self.assertEqual(0, watch.elapsed(maximum=-1))
+
 
 class TableTest(test.TestCase):
     def test_create_valid_no_rows(self):
