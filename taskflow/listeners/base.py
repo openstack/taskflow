@@ -187,9 +187,9 @@ class DumpingListener(Listener):
         """Dumps the provided *templated* message to some output."""
 
     def _flow_receiver(self, state, details):
-        self._dump("%s has moved flow '%s' (%s) into state '%s'",
-                   self._engine, details['flow_name'],
-                   details['flow_uuid'], state)
+        self._dump("%s has moved flow '%s' (%s) into state '%s'"
+                   " from state '%s'", self._engine, details['flow_name'],
+                   details['flow_uuid'], state, details['old_state'])
 
     def _task_receiver(self, state, details):
         if state in FINISH_STATES:
@@ -201,14 +201,14 @@ class DumpingListener(Listener):
                     exc_info = tuple(result.exc_info)
                 was_failure = True
             self._dump("%s has moved task '%s' (%s) into state '%s'"
-                       " with result '%s' (failure=%s)",
+                       " from state '%s' with result '%s' (failure=%s)",
                        self._engine, details['task_name'],
-                       details['task_uuid'], state, result, was_failure,
-                       exc_info=exc_info)
+                       details['task_uuid'], state, details['old_state'],
+                       result, was_failure, exc_info=exc_info)
         else:
-            self._dump("%s has moved task '%s' (%s) into state '%s'",
-                       self._engine, details['task_name'],
-                       details['task_uuid'], state)
+            self._dump("%s has moved task '%s' (%s) into state '%s'"
+                       " from state '%s'", self._engine, details['task_name'],
+                       details['task_uuid'], state, details['old_state'])
 
 
 # TODO(harlowja): remove in 0.7 or later...
