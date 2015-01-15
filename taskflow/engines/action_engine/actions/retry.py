@@ -51,21 +51,24 @@ class RetryAction(object):
         return kwargs
 
     def change_state(self, retry, state, result=None):
+        old_state = self._storage.get_atom_state(retry.name)
         if state in SAVE_RESULT_STATES:
             self._storage.save(retry.name, result, state)
         elif state == states.REVERTED:
             self._storage.cleanup_retry_history(retry.name, state)
         else:
-            old_state = self._storage.get_atom_state(retry.name)
             if state == old_state:
                 # NOTE(imelnikov): nothing really changed, so we should not
                 # write anything to storage and run notifications
                 return
             self._storage.set_atom_state(retry.name, state)
         retry_uuid = self._storage.get_atom_uuid(retry.name)
-        details = dict(retry_name=retry.name,
-                       retry_uuid=retry_uuid,
-                       result=result)
+        details = {
+            'retry_name': retry.name,
+            'retry_uuid': retry_uuid,
+            'result': result,
+            'old_state': old_state,
+        }
         self._notifier.notify(state, details)
 
     def execute(self, retry):
