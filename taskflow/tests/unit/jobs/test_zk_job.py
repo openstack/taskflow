@@ -15,7 +15,7 @@
 #    under the License.
 
 from oslo.serialization import jsonutils
-from oslo.utils import uuidutils
+from oslo_utils import uuidutils
 import six
 import testtools
 from zake import fake_client

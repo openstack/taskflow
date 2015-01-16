@@ -20,8 +20,8 @@ import threading
 from concurrent import futures
 import jsonschema
 from jsonschema import exceptions as schema_exc
-from oslo.utils import reflection
-from oslo.utils import timeutils
+from oslo_utils import reflection
+from oslo_utils import timeutils
 import six
 
 from taskflow.engines.action_engine import executor

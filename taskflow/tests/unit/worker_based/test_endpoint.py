@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo.utils import reflection
+from oslo_utils import reflection
 
 from taskflow.engines.worker_based import endpoint as ep
 from taskflow import task

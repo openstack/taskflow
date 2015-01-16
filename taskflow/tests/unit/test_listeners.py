@@ -19,7 +19,7 @@ import logging
 import time
 
 from oslo.serialization import jsonutils
-from oslo.utils import reflection
+from oslo_utils import reflection
 import six
 from zake import fake_client
 

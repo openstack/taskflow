@@ -15,7 +15,7 @@
 #    under the License.
 
 import networkx as nx
-from oslo.utils import timeutils
+from oslo_utils import timeutils
 import six
 
 from taskflow import exceptions as excp

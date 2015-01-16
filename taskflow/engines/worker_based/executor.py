@@ -17,8 +17,8 @@
 import functools
 import threading
 
-from oslo.utils import reflection
-from oslo.utils import timeutils
+from oslo_utils import reflection
+from oslo_utils import timeutils
 
 from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import cache

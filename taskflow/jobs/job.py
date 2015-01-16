@@ -17,7 +17,7 @@
 
 import abc
 
-from oslo.utils import uuidutils
+from oslo_utils import uuidutils
 import six
 
 

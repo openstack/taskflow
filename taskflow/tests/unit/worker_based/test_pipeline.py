@@ -15,7 +15,7 @@
 #    under the License.
 
 from concurrent import futures
-from oslo.utils import uuidutils
+from oslo_utils import uuidutils
 
 from taskflow.engines.action_engine import executor as base_executor
 from taskflow.engines.worker_based import endpoint

@@ -18,7 +18,7 @@ import contextlib
 import time
 
 from kazoo.recipe import watchers
-from oslo.utils import uuidutils
+from oslo_utils import uuidutils
 
 from taskflow import exceptions as excp
 from taskflow.persistence.backends import impl_dir

@@ -17,7 +17,7 @@
 import contextlib
 
 from kazoo import exceptions as kazoo_exceptions
-from oslo.utils import uuidutils
+from oslo_utils import uuidutils
 import testtools
 from zake import fake_client
 

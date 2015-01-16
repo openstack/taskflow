@@ -16,7 +16,7 @@
 
 from kazoo import client
 from kazoo import exceptions as k_exc
-from oslo.utils import reflection
+from oslo_utils import reflection
 import six
 from six.moves import zip as compat_zip
 

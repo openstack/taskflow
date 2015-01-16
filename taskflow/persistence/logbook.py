@@ -18,8 +18,8 @@
 import abc
 import copy
 
-from oslo.utils import timeutils
-from oslo.utils import uuidutils
+from oslo_utils import timeutils
+from oslo_utils import uuidutils
 import six
 
 from taskflow import exceptions as exc

@@ -17,8 +17,8 @@
 import abc
 import contextlib
 
-from oslo.utils import reflection
-from oslo.utils import uuidutils
+from oslo_utils import reflection
+from oslo_utils import uuidutils
 import six
 
 from taskflow import exceptions

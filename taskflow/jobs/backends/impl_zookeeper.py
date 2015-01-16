@@ -24,8 +24,8 @@ from kazoo import exceptions as k_exceptions
 from kazoo.protocol import paths as k_paths
 from kazoo.recipe import watchers
 from oslo.serialization import jsonutils
-from oslo.utils import excutils
-from oslo.utils import uuidutils
+from oslo_utils import excutils
+from oslo_utils import uuidutils
 import six
 
 from taskflow import exceptions as excp

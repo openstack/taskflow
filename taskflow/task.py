@@ -18,7 +18,7 @@
 import abc
 import copy
 
-from oslo.utils import reflection
+from oslo_utils import reflection
 import six
 
 from taskflow import atom

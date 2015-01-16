@@ -17,7 +17,7 @@
 import functools
 import warnings
 
-from oslo.utils import reflection
+from oslo_utils import reflection
 import six
 
 _CLASS_MOVED_PREFIX_TPL = "Class '%s' has moved to '%s'"

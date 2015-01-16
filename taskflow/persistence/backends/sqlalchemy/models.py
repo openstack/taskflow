@@ -16,8 +16,8 @@
 #    under the License.
 
 from oslo.serialization import jsonutils
-from oslo.utils import timeutils
-from oslo.utils import uuidutils
+from oslo_utils import timeutils
+from oslo_utils import uuidutils
 from sqlalchemy import Column, String, DateTime, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import ForeignKey

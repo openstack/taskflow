@@ -19,7 +19,7 @@ import os
 import sys
 import traceback
 
-from oslo.utils import reflection
+from oslo_utils import reflection
 import six
 
 from taskflow import exceptions as exc
