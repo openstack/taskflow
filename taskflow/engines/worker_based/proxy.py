@@ -44,6 +44,26 @@ _TransportDetails = collections.namedtuple('_TransportDetails',
 class Proxy(object):
     """A proxy processes messages from/to the named exchange."""
 
+    # Settings that are by default used for consumers/producers to reconnect
+    # under tolerable/transient failures...
+    #
+    # See: http://kombu.readthedocs.org/en/latest/reference/kombu.html for
+    # what these values imply...
+    _DEFAULT_RETRY_OPTIONS = {
+        # The number of seconds we start sleeping for.
+        'interval_start': 1,
+        # How many seconds added to the interval for each retry.
+        'interval_step': 1,
+        # Maximum number of seconds to sleep between each retry.
+        'interval_max': 1,
+        # Maximum number of times to retry.
+        'max_retries': 3,
+    }
+    # This is the only provided option that should be an int, the others
+    # are allowed to be floats; used when we check that the user-provided
+    # value is valid...
+    _RETRY_INT_OPTS = frozenset(['max_retries'])
+
     def __init__(self, topic, exchange_name, type_handlers, on_wait=None,
                  **kwargs):
         self._topic = topic
@@ -56,9 +76,28 @@ class Proxy(object):
             # running, otherwise requeue them.
             lambda data, message: not self.is_running)
 
+        # TODO(harlowja): make these keyword arguments explict...
         url = kwargs.get('url')
         transport = kwargs.get('transport')
         transport_opts = kwargs.get('transport_options')
+        ensure_options = self._DEFAULT_RETRY_OPTIONS.copy()
+        if 'retry_options' in kwargs and kwargs['retry_options'] is not None:
+            # Override the defaults with any user provided values...
+            usr_retry_options = kwargs['retry_options']
+            for k in set(six.iterkeys(ensure_options)):
+                if k in usr_retry_options:
+                    # Ensure that the right type is passed in...
+                    val = usr_retry_options[k]
+                    if k in self._RETRY_INT_OPTS:
+                        tmp_val = int(val)
+                    else:
+                        tmp_val = float(val)
+                    if tmp_val < 0:
+                        raise ValueError("Expected value greater or equal to"
+                                         " zero for 'retry_options' %s; got"
+                                         " %s instead" % (k, val))
+                    ensure_options[k] = tmp_val
+        self._ensure_options = ensure_options
 
         self._drain_events_timeout = DRAIN_EVENTS_PERIOD
         if transport == 'memory' and transport_opts:
@@ -113,34 +152,60 @@ class Proxy(object):
             routing_keys = [routing_key]
         else:
             routing_keys = routing_key
+
+        def _publish(producer, routing_key):
+            queue = self._make_queue(routing_key, self._exchange)
+            producer.publish(body=msg.to_dict(),
+                             routing_key=routing_key,
+                             exchange=self._exchange,
+                             declare=[queue],
+                             type=msg.TYPE,
+                             reply_to=reply_to,
+                             correlation_id=correlation_id)
+
+        def _publish_errback(exc, interval):
+            LOG.exception('Publishing error: %s', exc)
+            LOG.info('Retry triggering in %s seconds', interval)
+
         LOG.debug("Sending '%s' using routing keys %s", msg, routing_keys)
-        with kombu.producers[self._conn].acquire(block=True) as producer:
-            for routing_key in routing_keys:
-                queue = self._make_queue(routing_key, self._exchange)
-                producer.publish(body=msg.to_dict(),
-                                 routing_key=routing_key,
-                                 exchange=self._exchange,
-                                 declare=[queue],
-                                 type=msg.TYPE,
-                                 reply_to=reply_to,
-                                 correlation_id=correlation_id)
+        with kombu.connections[self._conn].acquire(block=True) as conn:
+            with conn.Producer() as producer:
+                ensure_kwargs = self._ensure_options.copy()
+                ensure_kwargs['errback'] = _publish_errback
+                safe_publish = conn.ensure(producer, _publish, **ensure_kwargs)
+                for routing_key in routing_keys:
+                    safe_publish(producer, routing_key)
 
     def start(self):
         """Start proxy."""
+
+        def _drain(conn, timeout):
+            try:
+                conn.drain_events(timeout=timeout)
+            except socket.timeout:
+                pass
+
+        def _drain_errback(exc, interval):
+            LOG.exception('Draining error: %s', exc)
+            LOG.info('Retry triggering in %s seconds', interval)
+
         LOG.info("Starting to consume from the '%s' exchange.",
                  self._exchange_name)
         with kombu.connections[self._conn].acquire(block=True) as conn:
             queue = self._make_queue(self._topic, self._exchange, channel=conn)
-            with conn.Consumer(queues=queue,
-                               callbacks=[self._dispatcher.on_message]):
+            callbacks = [self._dispatcher.on_message]
+            with conn.Consumer(queues=queue, callbacks=callbacks) as consumer:
+                ensure_kwargs = self._ensure_options.copy()
+                ensure_kwargs['errback'] = _drain_errback
+                safe_drain = conn.ensure(consumer, _drain, **ensure_kwargs)
                 self._running.set()
-                while self.is_running:
-                    try:
-                        conn.drain_events(timeout=self._drain_events_timeout)
-                    except socket.timeout:
-                        pass
-                    if self._on_wait is not None:
-                        self._on_wait()
+                try:
+                    while self._running.is_set():
+                        safe_drain(conn, self._drain_events_timeout)
+                        if self._on_wait is not None:
+                            self._on_wait()
+                finally:
+                    self._running.clear()
 
     def wait(self):
         """Wait until proxy is started."""
