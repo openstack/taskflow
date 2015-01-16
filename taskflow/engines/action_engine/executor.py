@@ -359,6 +359,12 @@ class SerialTaskExecutor(TaskExecutor):
     def __init__(self):
         self._executor = futures.SynchronousExecutor()
 
+    def start(self):
+        self._executor.restart()
+
+    def stop(self):
+        self._executor.shutdown()
+
     def execute_task(self, task, task_uuid, arguments, progress_callback=None):
         fut = self._executor.submit(_execute_task,
                                     task, arguments,

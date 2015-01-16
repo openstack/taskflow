@@ -51,6 +51,10 @@ class _Gatherer(object):
     def statistics(self):
         return self._stats
 
+    def clear(self):
+        with self._stats_lock:
+            self._stats = ExecutorStatistics()
+
     def _capture_stats(self, watch, fut):
         watch.stop()
         with self._stats_lock:
@@ -196,6 +200,15 @@ class SynchronousExecutor(_futures.Executor):
 
     def shutdown(self, wait=True):
         self._shutoff = True
+
+    def restart(self):
+        """Restarts this executor (*iff* previously shutoff/shutdown).
+
+        NOTE(harlowja): clears any previously gathered statistics.
+        """
+        if self._shutoff:
+            self._shutoff = False
+            self._gatherer.clear()
 
     @property
     def statistics(self):
