@@ -16,6 +16,7 @@
 
 import functools
 
+from taskflow.engines.action_engine.actions import base
 from taskflow import logging
 from taskflow import states
 from taskflow import task as task_atom
@@ -23,24 +24,20 @@ from taskflow.types import failure
 
 LOG = logging.getLogger(__name__)
 
-SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 
-
-class TaskAction(object):
+class TaskAction(base.Action):
     """An action that handles scheduling, state changes, ... of task atoms."""
 
-    def __init__(self, storage, task_executor, notifier, walker_factory):
-        self._storage = storage
+    def __init__(self, storage, notifier, walker_factory, task_executor):
+        super(TaskAction, self).__init__(storage, notifier, walker_factory)
         self._task_executor = task_executor
-        self._notifier = notifier
-        self._walker_factory = walker_factory
 
     @staticmethod
     def handles(atom):
         return isinstance(atom, task_atom.BaseTask)
 
     def _is_identity_transition(self, old_state, state, task, progress):
-        if state in SAVE_RESULT_STATES:
+        if state in base.SAVE_RESULT_STATES:
             # saving result is never identity transition
             return False
         if state != old_state:
@@ -56,15 +53,19 @@ class TaskAction(object):
             return False
         return True
 
-    def change_state(self, task, state, result=None, progress=None):
+    def change_state(self, task, state,
+                     result=base.NO_RESULT, progress=None):
         old_state = self._storage.get_atom_state(task.name)
         if self._is_identity_transition(old_state, state, task, progress):
             # NOTE(imelnikov): ignore identity transitions in order
             # to avoid extra write to storage backend and, what's
             # more important, extra notifications
             return
-        if state in SAVE_RESULT_STATES:
-            self._storage.save(task.name, result, state)
+        if state in base.SAVE_RESULT_STATES:
+            save_result = None
+            if result is not base.NO_RESULT:
+                save_result = result
+            self._storage.save(task.name, save_result, state)
         else:
             self._storage.set_atom_state(task.name, state)
         if progress is not None:
@@ -73,9 +74,10 @@ class TaskAction(object):
         details = {
             'task_name': task.name,
             'task_uuid': task_uuid,
-            'result': result,
             'old_state': old_state,
         }
+        if result is not base.NO_RESULT:
+            details['result'] = result
         self._notifier.notify(state, details)
         if progress is not None:
             task.update_progress(progress)
@@ -138,8 +140,8 @@ class TaskAction(object):
             progress_callback=progress_callback)
         return future
 
-    def complete_reversion(self, task, rev_result):
-        if isinstance(rev_result, failure.Failure):
+    def complete_reversion(self, task, result):
+        if isinstance(result, failure.Failure):
             self.change_state(task, states.FAILURE)
         else:
             self.change_state(task, states.REVERTED, progress=1.0)

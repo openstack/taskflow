@@ -44,7 +44,7 @@ def close_many(*closeables):
 def test_factory(blowup):
     f = lf.Flow("test")
     if not blowup:
-        f.add(test_utils.SaveOrderTask('test1'))
+        f.add(test_utils.ProgressingTask('test1'))
     else:
         f.add(test_utils.FailingTask("test1"))
     return f

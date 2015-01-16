@@ -153,6 +153,7 @@ class Listener(object):
 
     def __enter__(self):
         self.register()
+        return self
 
     def __exit__(self, type, value, tb):
         try:
