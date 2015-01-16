@@ -48,7 +48,7 @@ def _exec(cmd, add_env=None):
                             stdout=subprocess.PIPE,
                             stderr=sys.stderr)
 
-    stdout, stderr = proc.communicate()
+    stdout, _stderr = proc.communicate()
     rc = proc.returncode
     if rc != 0:
         raise RuntimeError("Could not run %s [%s]", cmd, rc)

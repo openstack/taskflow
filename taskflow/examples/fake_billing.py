@@ -149,9 +149,9 @@ class DeclareSuccess(task.Task):
 
 
 class DummyUser(object):
-    def __init__(self, user, id):
+    def __init__(self, user, id_):
         self.user = user
-        self.id = id
+        self.id = id_
 
 
 # Resources (db handles and similar) of course can *not* be persisted so we
@@ -174,7 +174,7 @@ flow.add(sub_flow)
 # prepopulating this allows the tasks that dependent on the 'request' variable
 # to start processing (in this case this is the ExtractInputRequest task).
 store = {
-    'request': DummyUser(user="bob", id="1.35"),
+    'request': DummyUser(user="bob", id_="1.35"),
 }
 eng = engines.load(flow, engine='serial', store=store)
 

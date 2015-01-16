@@ -143,7 +143,7 @@ class AllocateIP(task.Task):
 
     def execute(self, vm_spec):
         ips = []
-        for i in range(0, vm_spec.get('ips', 0)):
+        for _i in range(0, vm_spec.get('ips', 0)):
             ips.append("192.168.0.%s" % (random.randint(1, 254)))
         return ips
 

@@ -131,7 +131,7 @@ def calculate(engine_conf):
     task_names = []
 
     # Compose our workflow.
-    height, width = IMAGE_SIZE
+    height, _width = IMAGE_SIZE
     chunk_size = int(math.ceil(height / float(CHUNK_COUNT)))
     for i in compat_range(0, CHUNK_COUNT):
         chunk_name = 'chunk_%s' % i
