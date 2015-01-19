@@ -27,11 +27,11 @@ try:
     from eventlet import greenpool
     from eventlet import patcher as greenpatcher
     from eventlet import queue as greenqueue
-    EVENTLET_AVAILABLE = True
 except ImportError:
-    EVENTLET_AVAILABLE = False
+    pass
 
 from taskflow.types import timing
+from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import threading_utils as tu
 
 
@@ -245,7 +245,8 @@ class _GreenWorker(object):
 class GreenFuture(Future):
     def __init__(self):
         super(GreenFuture, self).__init__()
-        assert EVENTLET_AVAILABLE, 'eventlet is needed to use a green future'
+        eu.check_for_eventlet(RuntimeError('Eventlet is needed to use a green'
+                                           ' future'))
         # NOTE(harlowja): replace the built-in condition with a greenthread
         # compatible one so that when getting the result of this future the
         # functions will correctly yield to eventlet. If this is not done then
@@ -266,7 +267,8 @@ class GreenThreadPoolExecutor(_futures.Executor):
     """
 
     def __init__(self, max_workers=1000):
-        assert EVENTLET_AVAILABLE, 'eventlet is needed to use a green executor'
+        eu.check_for_eventlet(RuntimeError('Eventlet is needed to use a green'
+                                           ' executor'))
         if max_workers <= 0:
             raise ValueError("Max workers must be greater than zero")
         self._max_workers = max_workers

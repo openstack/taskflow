@@ -25,17 +25,12 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-try:
-    import eventlet  # noqa
-    EVENTLET_AVAILABLE = True
-except ImportError:
-    EVENTLET_AVAILABLE = False
-
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 from taskflow.types import futures
+from taskflow.utils import eventlet_utils
 
 
 # INTRO: This is the defacto hello world equivalent for taskflow; it shows how
@@ -86,7 +81,7 @@ song.add(PrinterTask("conductor@begin",
                      show_name=False, inject={'output': "*dong*"}))
 
 # Run in parallel using eventlet green threads...
-if EVENTLET_AVAILABLE:
+if eventlet_utils.EVENTLET_AVAILABLE:
     with futures.GreenThreadPoolExecutor() as executor:
         e = engines.load(song, executor=executor, engine='parallel')
         e.run()

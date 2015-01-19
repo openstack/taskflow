@@ -23,13 +23,13 @@ import testtools
 
 from taskflow import test
 from taskflow.types import futures
+from taskflow.utils import eventlet_utils as eu
 
 try:
     from eventlet.green import threading as greenthreading
     from eventlet.green import time as greentime
-    EVENTLET_AVAILABLE = True
 except ImportError:
-    EVENTLET_AVAILABLE = False
+    pass
 
 
 def _noop():
@@ -194,7 +194,7 @@ class SynchronousExecutorTest(test.TestCase, _FuturesTestMixin):
         pass
 
 
-@testtools.skipIf(not EVENTLET_AVAILABLE, 'eventlet is not available')
+@testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
 class GreenThreadPoolExecutorTest(test.TestCase, _FuturesTestMixin):
     def _make_executor(self, max_workers):
         return futures.GreenThreadPoolExecutor(max_workers=max_workers)

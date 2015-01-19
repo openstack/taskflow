@@ -38,7 +38,7 @@ from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import models
 from taskflow.persistence import logbook
 from taskflow.types import failure
-from taskflow.utils import async_utils
+from taskflow.utils import eventlet_utils
 from taskflow.utils import misc
 
 
@@ -250,7 +250,7 @@ class SQLAlchemyBackend(base.Backend):
         engine_args.update(conf.pop('engine_args', {}))
         engine = sa.create_engine(sql_connection, **engine_args)
         checkin_yield = conf.pop('checkin_yield',
-                                 async_utils.EVENTLET_AVAILABLE)
+                                 eventlet_utils.EVENTLET_AVAILABLE)
         if _as_bool(checkin_yield):
             sa.event.listen(engine, 'checkin', _thread_yield)
         if 'mysql' in e_url.drivername:

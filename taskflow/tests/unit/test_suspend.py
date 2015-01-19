@@ -23,7 +23,7 @@ from taskflow import states
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.types import futures
-from taskflow.utils import async_utils as au
+from taskflow.utils import eventlet_utils as eu
 
 
 class SuspendingListener(utils.CaptureListener):
@@ -212,7 +212,7 @@ class ParallelEngineWithThreadsTest(SuspendTest, test.TestCase):
                                      max_workers=self._EXECUTOR_WORKERS)
 
 
-@testtools.skipIf(not au.EVENTLET_AVAILABLE, 'eventlet is not available')
+@testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
 class ParallelEngineWithEventletTest(SuspendTest, test.TestCase):
 
     def _make_engine(self, flow, flow_detail=None, executor=None):
