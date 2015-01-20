@@ -84,10 +84,13 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
     def test_creation(self):
         ex = self.executor(reset_master_mock=False)
-
         master_mock_calls = [
             mock.call.Proxy(self.executor_uuid, self.executor_exchange,
-                            mock.ANY, ex._on_wait, url=self.broker_url)
+                            mock.ANY, on_wait=ex._on_wait,
+                            url=self.broker_url, transport=mock.ANY,
+                            transport_options=mock.ANY,
+                            retry_options=mock.ANY
+                            )
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
@@ -250,8 +253,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(expected_calls, self.master_mock.mock_calls)
 
     def test_execute_task_topic_not_found(self):
-        workers_info = {self.executor_topic: ['<unknown>']}
-        ex = self.executor(workers_info=workers_info)
+        ex = self.executor()
         ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [

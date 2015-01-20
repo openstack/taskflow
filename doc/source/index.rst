@@ -29,11 +29,6 @@ Contents
    jobs
    conductors
 
-.. toctree::
-   :hidden:
-
-   workers
-
 Examples
 --------
 

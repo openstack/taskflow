@@ -28,7 +28,7 @@ class TestProxy(test.MockTestCase):
         super(TestProxy, self).setUp()
         self.topic = 'test-topic'
         self.broker_url = 'test-url'
-        self.exchange_name = 'test-exchange'
+        self.exchange = 'test-exchange'
         self.timeout = 5
         self.de_period = proxy.DRAIN_EVENTS_PERIOD
 
@@ -72,7 +72,7 @@ class TestProxy(test.MockTestCase):
         self.resetMasterMock()
 
     def _queue_name(self, topic):
-        return "%s_%s" % (self.exchange_name, topic)
+        return "%s_%s" % (self.exchange, topic)
 
     def proxy_start_calls(self, calls, exc_type=mock.ANY):
         return [
@@ -119,7 +119,7 @@ class TestProxy(test.MockTestCase):
 
     def proxy(self, reset_master_mock=False, **kwargs):
         proxy_kwargs = dict(topic=self.topic,
-                            exchange_name=self.exchange_name,
+                            exchange=self.exchange,
                             url=self.broker_url,
                             type_handlers={})
         proxy_kwargs.update(kwargs)
@@ -134,7 +134,7 @@ class TestProxy(test.MockTestCase):
         master_mock_calls = [
             mock.call.Connection(self.broker_url, transport=None,
                                  transport_options=None),
-            mock.call.Exchange(name=self.exchange_name,
+            mock.call.Exchange(name=self.exchange,
                                durable=False,
                                auto_delete=True)
         ]
@@ -147,7 +147,7 @@ class TestProxy(test.MockTestCase):
         master_mock_calls = [
             mock.call.Connection(self.broker_url, transport='memory',
                                  transport_options=transport_opts),
-            mock.call.Exchange(name=self.exchange_name,
+            mock.call.Exchange(name=self.exchange,
                                durable=False,
                                auto_delete=True)
         ]

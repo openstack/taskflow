@@ -82,7 +82,8 @@ class TestWorker(test.MockTestCase):
         master_mock_calls = [
             mock.call.executor_class(10),
             mock.call.Server(self.topic, self.exchange,
-                             self.executor_inst_mock, [], url=self.broker_url)
+                             self.executor_inst_mock, [],
+                             url=self.broker_url)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 

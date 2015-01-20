@@ -45,8 +45,10 @@ def delayed(executor):
 class Server(object):
     """Server implementation that waits for incoming tasks requests."""
 
-    def __init__(self, topic, exchange, executor, endpoints, **kwargs):
-        handlers = {
+    def __init__(self, topic, exchange, executor, endpoints,
+                 url=None, transport=None, transport_options=None,
+                 retry_options=None):
+        type_handlers = {
             pr.NOTIFY: [
                 delayed(executor)(self._process_notify),
                 functools.partial(pr.Notify.validate, response=False),
@@ -56,8 +58,10 @@ class Server(object):
                 pr.Request.validate,
             ],
         }
-        self._proxy = proxy.Proxy(topic, exchange, handlers,
-                                  on_wait=None, **kwargs)
+        self._proxy = proxy.Proxy(topic, exchange, type_handlers,
+                                  url=url, transport=transport,
+                                  transport_options=transport_options,
+                                  retry_options=retry_options)
         self._topic = topic
         self._endpoints = dict([(endpoint.name, endpoint)
                                 for endpoint in endpoints])

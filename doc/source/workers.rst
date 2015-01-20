@@ -1,7 +1,3 @@
--------
-Workers
--------
-
 Overview
 ========
 
@@ -98,9 +94,9 @@ Use-cases
 Design
 ======
 
-There are two communication sides, the *executor* and *worker* that communicate
-using a proxy component. The proxy is designed to accept/publish messages
-from/into a named exchange.
+There are two communication sides, the *executor* (and associated engine
+derivative) and *worker* that communicate using a proxy component. The proxy
+is designed to accept/publish messages from/into a named exchange.
 
 High level architecture
 -----------------------
@@ -390,7 +386,7 @@ Limitations
 Interfaces
 ==========
 
-.. automodule:: taskflow.engines.worker_based.worker
 .. automodule:: taskflow.engines.worker_based.engine
-.. automodule:: taskflow.engines.worker_based.proxy
 .. automodule:: taskflow.engines.worker_based.executor
+.. automodule:: taskflow.engines.worker_based.proxy
+.. automodule:: taskflow.engines.worker_based.worker

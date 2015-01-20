@@ -64,10 +64,12 @@ class Proxy(object):
     # value is valid...
     _RETRY_INT_OPTS = frozenset(['max_retries'])
 
-    def __init__(self, topic, exchange_name, type_handlers, on_wait=None,
-                 **kwargs):
+    def __init__(self, topic, exchange, type_handlers,
+                 on_wait=None, url=None,
+                 transport=None, transport_options=None,
+                 retry_options=None):
         self._topic = topic
-        self._exchange_name = exchange_name
+        self._exchange_name = exchange
         self._on_wait = on_wait
         self._running = threading_utils.Event()
         self._dispatcher = dispatcher.TypeDispatcher(type_handlers)
@@ -76,18 +78,13 @@ class Proxy(object):
             # running, otherwise requeue them.
             lambda data, message: not self.is_running)
 
-        # TODO(harlowja): make these keyword arguments explict...
-        url = kwargs.get('url')
-        transport = kwargs.get('transport')
-        transport_opts = kwargs.get('transport_options')
         ensure_options = self._DEFAULT_RETRY_OPTIONS.copy()
-        if 'retry_options' in kwargs and kwargs['retry_options'] is not None:
+        if retry_options is not None:
             # Override the defaults with any user provided values...
-            usr_retry_options = kwargs['retry_options']
             for k in set(six.iterkeys(ensure_options)):
-                if k in usr_retry_options:
+                if k in retry_options:
                     # Ensure that the right type is passed in...
-                    val = usr_retry_options[k]
+                    val = retry_options[k]
                     if k in self._RETRY_INT_OPTS:
                         tmp_val = int(val)
                     else:
@@ -100,14 +97,14 @@ class Proxy(object):
         self._ensure_options = ensure_options
 
         self._drain_events_timeout = DRAIN_EVENTS_PERIOD
-        if transport == 'memory' and transport_opts:
-            polling_interval = transport_opts.get('polling_interval')
+        if transport == 'memory' and transport_options:
+            polling_interval = transport_options.get('polling_interval')
             if polling_interval is not None:
                 self._drain_events_timeout = polling_interval
 
         # create connection
         self._conn = kombu.Connection(url, transport=transport,
-                                      transport_options=transport_opts)
+                                      transport_options=transport_options)
 
         # create exchange
         self._exchange = kombu.Exchange(name=self._exchange_name,
