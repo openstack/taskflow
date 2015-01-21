@@ -283,7 +283,7 @@ Hierarchy
 =========
 
 .. inheritance-diagram::
-    taskflow.persistence.backends.base
+    taskflow.persistence.base
     taskflow.persistence.backends.impl_dir
     taskflow.persistence.backends.impl_memory
     taskflow.persistence.backends.impl_sqlalchemy
