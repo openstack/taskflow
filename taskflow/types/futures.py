@@ -362,7 +362,7 @@ class ExecutorStatistics(object):
 
     @property
     def runtime(self):
-        """Total runtime of all submissions executed."""
+        """Total runtime of all submissions executed (failed or not)."""
         return self._runtime
 
     @property
