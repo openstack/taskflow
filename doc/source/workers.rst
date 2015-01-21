@@ -13,7 +13,6 @@ connected via `amqp`_ (or other supported `kombu`_ transports).
     production ready.
 
 .. _blueprint page: https://blueprints.launchpad.net/taskflow?searchtext=wbe
-.. _kombu: http://kombu.readthedocs.org/
 
 Terminology
 -----------
@@ -285,9 +284,52 @@ When **reverting:**
         ]
     }
 
+Request state transitions
+-------------------------
+
+.. image:: img/wbe_request_states.svg
+   :width: 660px
+   :align: left
+   :alt: WBE request state transitions
+
+**WAITING** - Request placed on queue (or other `kombu`_ message bus/transport)
+but not *yet* consumed.
+
+**PENDING** - Worker accepted request and is pending to run using its
+executor (threads, processes, or other).
+
+**FAILURE** - Worker failed after running request (due to task exeception) or
+no worker moved/started executing (by placing the request into ``RUNNING``
+state) with-in specified time span (this defaults to 60 seconds unless
+overriden).
+
+**RUNNING** - Workers executor (using threads, processes...) has started to
+run requested task (once this state is transitioned to any request timeout no
+longer becomes applicable; since at this point it is unknown how long a task
+will run since it can not be determined if a task is just taking a long time
+or has failed).
+
+**SUCCESS** - Worker finished running task without exception.
+
+.. note::
+
+    During the ``WAITING`` and ``PENDING`` stages the engine keeps track
+    of how long the request has been *alive* for and if a timeout is reached
+    the request will automatically transition to ``FAILURE`` and any further
+    transitions from a worker will be disallowed (for example, if a worker
+    accepts the request in the future and sets the task to ``PENDING`` this
+    transition will be logged and ignored). This timeout can be adjusted and/or
+    removed by setting the engine ``transition_timeout`` option to a
+    higher/lower value or by setting it to ``None`` (to remove the timeout
+    completely). In the future this will be improved to be more dynamic
+    by implementing the blueprints associated with `failover`_ and
+    `info/resilence`_.
+
+.. _failover: https://blueprints.launchpad.net/taskflow/+spec/wbe-worker-failover
+.. _info/resilence: https://blueprints.launchpad.net/taskflow/+spec/wbe-worker-info
+
 Usage
 =====
-
 
 Workers
 -------
@@ -390,3 +432,5 @@ Interfaces
 .. automodule:: taskflow.engines.worker_based.executor
 .. automodule:: taskflow.engines.worker_based.proxy
 .. automodule:: taskflow.engines.worker_based.worker
+
+.. _kombu: http://kombu.readthedocs.org/

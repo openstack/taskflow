@@ -27,6 +27,7 @@ sys.path.insert(0, top_dir)
 import pydot
 
 from taskflow.engines.action_engine import runner
+from taskflow.engines.worker_based import protocol
 from taskflow import states
 from taskflow.types import fsm
 
@@ -91,6 +92,10 @@ def main():
                       action='store_true',
                       help="use engine state transitions",
                       default=False)
+    parser.add_option("-w", "--wbe-requests", dest="wbe_requests",
+                      action='store_true',
+                      help="use wbe request transitions",
+                      default=False)
     parser.add_option("-T", "--format", dest="format",
                       help="output in given format",
                       default='svg')
@@ -99,9 +104,15 @@ def main():
     if options.filename is None:
         options.filename = 'states.%s' % options.format
 
-    types = [options.engines, options.retries, options.tasks]
+    types = [
+        options.engines,
+        options.retries,
+        options.tasks,
+        options.wbe_requests,
+    ]
     if sum([int(i) for i in types]) > 1:
-        parser.error("Only one of task/retry/engines may be specified.")
+        parser.error("Only one of task/retry/engines/wbe requests"
+                     " may be specified.")
 
     internal_states = list()
     ordering = 'in'
@@ -120,6 +131,10 @@ def main():
         source, memory = r.builder.build()
         internal_states.extend(runner._META_STATES)
         ordering = 'out'
+    elif options.wbe_requests:
+        source_type = "WBE requests"
+        source = make_machine(protocol.WAITING,
+                              list(protocol._ALLOWED_TRANSITIONS), [])
     else:
         source_type = "Flow"
         source = make_machine(states.PENDING,
