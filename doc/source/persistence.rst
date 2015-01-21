@@ -155,6 +155,11 @@ Memory
 Retains all data in local memory (not persisted to reliable storage). Useful
 for scenarios where persistence is not required (and also in unit tests).
 
+.. note::
+
+    See :py:class:`~taskflow.persistence.backends.impl_memory.MemoryBackend`
+    for implementation details.
+
 Files
 -----
 
@@ -165,6 +170,11 @@ persisted **locally** in the case of system failure (allowing for resumption
 from the same local machine only). Useful for cases where a *more* reliable
 persistence is desired along with the simplicity of files and directories (a
 concept everyone is familiar with).
+
+.. note::
+
+    See :py:class:`~taskflow.persistence.backends.impl_dir.DirBackend`
+    for implementation details.
 
 Sqlalchemy
 ----------
@@ -228,6 +238,11 @@ parent_uuid  VARCHAR   False
 .. _sqlalchemy: http://www.sqlalchemy.org/docs/
 .. _ACID: https://en.wikipedia.org/wiki/ACID
 
+.. note::
+
+    See :py:class:`~taskflow.persistence.backends.impl_sqlalchemy.SQLAlchemyBackend`
+    for implementation details.
+
 Zookeeper
 ---------
 
@@ -241,6 +256,11 @@ logbook represented as znodes. Since zookeeper is also distributed it is also
 able to resume a engine from a peer machine (having similar functionality
 as the database connection types listed previously).
 
+.. note::
+
+    See :py:class:`~taskflow.persistence.backends.impl_zookeeper.ZkBackend`
+    for implementation details.
+
 .. _zookeeper: http://zookeeper.apache.org
 .. _kazoo: http://kazoo.readthedocs.org/
 
@@ -251,12 +271,21 @@ Interfaces
 .. automodule:: taskflow.persistence.backends.base
 .. automodule:: taskflow.persistence.logbook
 
+Implementations
+===============
+
+.. automodule:: taskflow.persistence.backends.impl_dir
+.. automodule:: taskflow.persistence.backends.impl_memory
+.. automodule:: taskflow.persistence.backends.impl_sqlalchemy
+.. automodule:: taskflow.persistence.backends.impl_zookeeper
+
 Hierarchy
 =========
 
 .. inheritance-diagram::
-    taskflow.persistence.backends.impl_memory
-    taskflow.persistence.backends.impl_zookeeper
+    taskflow.persistence.backends.base
     taskflow.persistence.backends.impl_dir
+    taskflow.persistence.backends.impl_memory
     taskflow.persistence.backends.impl_sqlalchemy
+    taskflow.persistence.backends.impl_zookeeper
     :parts: 2

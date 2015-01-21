@@ -46,11 +46,11 @@ class DirBackend(base.Backend):
     guarantee that there will be no interprocess race conditions when
     writing and reading by using a consistent hierarchy of file based locks.
 
-    Example conf:
+    Example configuration::
 
-    conf = {
-        "path": "/tmp/taskflow",
-    }
+        conf = {
+            "path": "/tmp/taskflow",
+        }
     """
     def __init__(self, conf):
         super(DirBackend, self).__init__(conf)
