@@ -22,7 +22,7 @@ from zake import fake_client
 from taskflow.conductors import single_threaded as stc
 from taskflow import engines
 from taskflow.jobs.backends import impl_zookeeper
-from taskflow.jobs import jobboard
+from taskflow.jobs import base
 from taskflow.patterns import linear_flow as lf
 from taskflow.persistence.backends import impl_memory
 from taskflow import states as st
@@ -93,7 +93,7 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
         def on_consume(state, details):
             consumed_event.set()
 
-        components.board.notifier.register(jobboard.REMOVAL, on_consume)
+        components.board.notifier.register(base.REMOVAL, on_consume)
         with close_many(components.conductor, components.client):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
@@ -122,7 +122,7 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
         def on_consume(state, details):
             consumed_event.set()
 
-        components.board.notifier.register(jobboard.REMOVAL, on_consume)
+        components.board.notifier.register(base.REMOVAL, on_consume)
         with close_many(components.conductor, components.client):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
