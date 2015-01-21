@@ -38,7 +38,7 @@ How it is used
 
 On :doc:`engine <engines>` construction typically a backend (it can be
 optional) will be provided which satisfies the
-:py:class:`~taskflow.persistence.backends.base.Backend` abstraction. Along with
+:py:class:`~taskflow.persistence.base.Backend` abstraction. Along with
 providing a backend object a
 :py:class:`~taskflow.persistence.logbook.FlowDetail` object will also be
 created and provided (this object will contain the details about the flow to be
@@ -55,7 +55,7 @@ interface to the underlying backend storage objects (it provides helper
 functions that are commonly used by the engine, avoiding repeating code when
 interacting with the provided
 :py:class:`~taskflow.persistence.logbook.FlowDetail` and
-:py:class:`~taskflow.persistence.backends.base.Backend` objects). As an engine
+:py:class:`~taskflow.persistence.base.Backend` objects). As an engine
 initializes it will extract (or create)
 :py:class:`~taskflow.persistence.logbook.AtomDetail` objects for each atom in
 the workflow the engine will be executing.
@@ -72,7 +72,7 @@ predecessor :py:class:`~taskflow.persistence.logbook.AtomDetail` outputs and
 states (which may have been persisted in a past run). This will result in
 either using there previous information or by running those predecessors and
 saving their output to the :py:class:`~taskflow.persistence.logbook.FlowDetail`
-and :py:class:`~taskflow.persistence.backends.base.Backend` objects. This
+and :py:class:`~taskflow.persistence.base.Backend` objects. This
 execution, analysis and interaction with the storage objects continues (what is
 described here is a simplification of what really happens; which is quite a bit
 more complex) until the engine has finished running (at which point the engine
@@ -268,7 +268,7 @@ Interfaces
 ==========
 
 .. automodule:: taskflow.persistence.backends
-.. automodule:: taskflow.persistence.backends.base
+.. automodule:: taskflow.persistence.base
 .. automodule:: taskflow.persistence.logbook
 
 Implementations

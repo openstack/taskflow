@@ -33,9 +33,9 @@ from sqlalchemy import pool as sa_pool
 
 from taskflow import exceptions as exc
 from taskflow import logging
-from taskflow.persistence.backends import base
 from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import models
+from taskflow.persistence import base
 from taskflow.persistence import logbook
 from taskflow.types import failure
 from taskflow.utils import eventlet_utils
