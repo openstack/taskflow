@@ -121,12 +121,16 @@ class Message(object):
 
 class Notify(Message):
     """Represents notify message type."""
+
+    #: String constant representing this message type.
     TYPE = NOTIFY
 
     # NOTE(harlowja): the executor (the entity who initially requests a worker
     # to send back a notification response) schema is different than the
     # worker response schema (that's why there are two schemas here).
-    _RESPONSE_SCHEMA = {
+
+    #: Expected notify *response* message schema (in json schema format).
+    RESPONSE_SCHEMA = {
         "type": "object",
         'properties': {
             'topic': {
@@ -142,7 +146,9 @@ class Notify(Message):
         "required": ["topic", 'tasks'],
         "additionalProperties": False,
     }
-    _SENDER_SCHEMA = {
+
+    #: Expected *sender* request message schema (in json schema format).
+    SENDER_SCHEMA = {
         "type": "object",
         "additionalProperties": False,
     }
@@ -156,9 +162,9 @@ class Notify(Message):
     @classmethod
     def validate(cls, data, response):
         if response:
-            schema = cls._RESPONSE_SCHEMA
+            schema = cls.RESPONSE_SCHEMA
         else:
-            schema = cls._SENDER_SCHEMA
+            schema = cls.SENDER_SCHEMA
         try:
             jsonschema.validate(data, schema, types=_SCHEMA_TYPES)
         except schema_exc.ValidationError as e:
@@ -180,8 +186,11 @@ class Request(Message):
     states.
     """
 
+    #: String constant representing this message type.
     TYPE = REQUEST
-    _SCHEMA = {
+
+    #: Expected message schema (in json schema format).
+    SCHEMA = {
         "type": "object",
         'properties': {
             # These two are typically only sent on revert actions (that is
@@ -346,7 +355,7 @@ class Request(Message):
     @classmethod
     def validate(cls, data):
         try:
-            jsonschema.validate(data, cls._SCHEMA, types=_SCHEMA_TYPES)
+            jsonschema.validate(data, cls.SCHEMA, types=_SCHEMA_TYPES)
         except schema_exc.ValidationError as e:
             raise excp.InvalidFormat("%s message response data not of the"
                                      " expected format: %s"
@@ -355,8 +364,12 @@ class Request(Message):
 
 class Response(Message):
     """Represents response message type."""
+
+    #: String constant representing this message type.
     TYPE = RESPONSE
-    _SCHEMA = {
+
+    #: Expected message schema (in json schema format).
+    SCHEMA = {
         "type": "object",
         'properties': {
             'state': {
@@ -439,7 +452,7 @@ class Response(Message):
     @classmethod
     def validate(cls, data):
         try:
-            jsonschema.validate(data, cls._SCHEMA, types=_SCHEMA_TYPES)
+            jsonschema.validate(data, cls.SCHEMA, types=_SCHEMA_TYPES)
         except schema_exc.ValidationError as e:
             raise excp.InvalidFormat("%s message response data not of the"
                                      " expected format: %s"
