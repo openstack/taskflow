@@ -24,6 +24,7 @@ from taskflow.listeners import base
 from taskflow import logging
 from taskflow import states
 from taskflow.types import failure
+from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
@@ -48,10 +49,14 @@ class LoggingListener(base.DumpingListener):
 
     It listens for task and flow notifications and writes those notifications
     to a provided logger, or logger of its module
-    (``taskflow.listeners.logging``) if none is provided. The log level
-    can also be configured, ``logging.DEBUG`` is used by default when none
-    is provided.
+    (``taskflow.listeners.logging``) if none is provided (and no class
+    attribute is overriden). The log level can also be
+    configured, ``logging.DEBUG`` is used by default when none is provided.
     """
+
+    #: Default logger to use if one is not provided on construction.
+    _LOGGER = None
+
     def __init__(self, engine,
                  task_listen_for=base.DEFAULT_LISTEN_FOR,
                  flow_listen_for=base.DEFAULT_LISTEN_FOR,
@@ -61,10 +66,7 @@ class LoggingListener(base.DumpingListener):
         super(LoggingListener, self).__init__(
             engine, task_listen_for=task_listen_for,
             flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
-        if not log:
-            self._logger = LOG
-        else:
-            self._logger = log
+        self._logger = misc.pick_first_not_none(log, self._LOGGER, LOG)
         self._level = level
 
     def _dump(self, message, *args, **kwargs):
@@ -76,10 +78,11 @@ class DynamicLoggingListener(base.Listener):
 
     It listens for task and flow notifications and writes those notifications
     to a provided logger, or logger of its module
-    (``taskflow.listeners.logging``) if none is provided. The log level
-    can *slightly* be configured and ``logging.DEBUG`` or ``logging.WARNING``
-    (unless overriden via a constructor parameter) will be selected
-    automatically based on the execution state and results produced.
+    (``taskflow.listeners.logging``) if none is provided (and no class
+    attribute is overriden). The log level can *slightly* be configured
+    and ``logging.DEBUG`` or ``logging.WARNING`` (unless overriden via a
+    constructor parameter) will be selected automatically based on the
+    execution state and results produced.
 
     The following flow states cause ``logging.WARNING`` (or provided
     level) to be used:
@@ -101,6 +104,9 @@ class DynamicLoggingListener(base.Listener):
     provide a meaningful traceback).
     """
 
+    #: Default logger to use if one is not provided on construction.
+    _LOGGER = None
+
     def __init__(self, engine,
                  task_listen_for=base.DEFAULT_LISTEN_FOR,
                  flow_listen_for=base.DEFAULT_LISTEN_FOR,
@@ -121,10 +127,7 @@ class DynamicLoggingListener(base.Listener):
             states.FAILURE: self._failure_level,
             states.REVERTED: self._failure_level,
         }
-        if not log:
-            self._logger = LOG
-        else:
-            self._logger = log
+        self._logger = misc.pick_first_not_none(log, self._LOGGER, LOG)
 
     @staticmethod
     def _format_failure(fail):
