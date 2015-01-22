@@ -23,7 +23,7 @@ from taskflow import storage as t_storage
 class WorkerBasedActionEngine(engine.ActionEngine):
     """Worker based action engine.
 
-    Specific backend options:
+    Specific backend options (extracted from provided engine options):
 
     :param exchange: broker exchange exchange name in which executor / worker
                      communication is performed
@@ -40,6 +40,8 @@ class WorkerBasedActionEngine(engine.ActionEngine):
                                for will have its result become a
                                `RequestTimeout` exception instead of its
                                normally returned value (or raised exception).
+    :param retry_options: retry specific options (used to configure how kombu
+                          handles retrying under tolerable/transient failures).
     """
 
     _storage_factory = t_storage.SingleThreadedStorage
@@ -66,6 +68,7 @@ class WorkerBasedActionEngine(engine.ActionEngine):
                 uuid=flow_detail.uuid,
                 url=options.get('url'),
                 exchange=options.get('exchange', 'default'),
+                retry_options=options.get('retry_options'),
                 topics=options.get('topics', []),
                 transport=options.get('transport'),
                 transport_options=options.get('transport_options'),

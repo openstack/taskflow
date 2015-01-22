@@ -80,6 +80,8 @@ class Worker(object):
     :param threads_count: threads count to be passed to the default executor
     :param transport: transport to be used (e.g. amqp, memory, etc.)
     :param transport_options: transport specific options
+    :param retry_options: retry specific options (used to configure how kombu
+                          handles retrying under tolerable/transient failures).
     """
 
     def __init__(self, exchange, topic, tasks, executor=None, **kwargs):

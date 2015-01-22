@@ -43,8 +43,11 @@ class TestProxy(test.MockTestCase):
             proxy.kombu, 'Producer')
 
         # connection mocking
+        def _ensure(obj, func, *args, **kwargs):
+            return func
         self.conn_inst_mock.drain_events.side_effect = [
             socket.timeout, socket.timeout, KeyboardInterrupt]
+        self.conn_inst_mock.ensure = mock.MagicMock(side_effect=_ensure)
 
         # connections mocking
         self.connections_mock = self.patch(
@@ -54,11 +57,8 @@ class TestProxy(test.MockTestCase):
             self.conn_inst_mock
 
         # producers mocking
-        self.producers_mock = self.patch(
-            "taskflow.engines.worker_based.proxy.kombu.producers",
-            attach_as='producers')
-        self.producers_mock.__getitem__().acquire().__enter__.return_value =\
-            self.producer_inst_mock
+        self.conn_inst_mock.Producer.return_value.__enter__ = mock.MagicMock()
+        self.conn_inst_mock.Producer.return_value.__exit__ = mock.MagicMock()
 
         # consumer mocking
         self.conn_inst_mock.Consumer.return_value.__enter__ = mock.MagicMock()
@@ -85,8 +85,35 @@ class TestProxy(test.MockTestCase):
             mock.call.connection.Consumer(queues=self.queue_inst_mock,
                                           callbacks=[mock.ANY]),
             mock.call.connection.Consumer().__enter__(),
+            mock.call.connection.ensure(mock.ANY, mock.ANY,
+                                        interval_start=mock.ANY,
+                                        interval_max=mock.ANY,
+                                        max_retries=mock.ANY,
+                                        interval_step=mock.ANY,
+                                        errback=mock.ANY),
         ] + calls + [
             mock.call.connection.Consumer().__exit__(exc_type, mock.ANY,
+                                                     mock.ANY)
+        ]
+
+    def proxy_publish_calls(self, calls, routing_key, exc_type=mock.ANY):
+        return [
+            mock.call.connection.Producer(),
+            mock.call.connection.Producer().__enter__(),
+            mock.call.connection.ensure(mock.ANY, mock.ANY,
+                                        interval_start=mock.ANY,
+                                        interval_max=mock.ANY,
+                                        max_retries=mock.ANY,
+                                        interval_step=mock.ANY,
+                                        errback=mock.ANY),
+            mock.call.Queue(name=self._queue_name(routing_key),
+                            routing_key=routing_key,
+                            exchange=self.exchange_inst_mock,
+                            durable=False,
+                            auto_delete=True,
+                            channel=None),
+        ] + calls + [
+            mock.call.connection.Producer().__exit__(exc_type, mock.ANY,
                                                      mock.ANY)
         ]
 
@@ -133,24 +160,19 @@ class TestProxy(test.MockTestCase):
         routing_key = 'routing-key'
         task_uuid = 'task-uuid'
 
-        self.proxy(reset_master_mock=True).publish(
-            msg_mock, routing_key, correlation_id=task_uuid)
+        p = self.proxy(reset_master_mock=True)
+        p.publish(msg_mock, routing_key, correlation_id=task_uuid)
 
-        master_mock_calls = [
-            mock.call.Queue(name=self._queue_name(routing_key),
-                            exchange=self.exchange_inst_mock,
-                            routing_key=routing_key,
-                            durable=False,
-                            auto_delete=True,
-                            channel=None),
-            mock.call.producer.publish(body=msg_data,
-                                       routing_key=routing_key,
-                                       exchange=self.exchange_inst_mock,
-                                       correlation_id=task_uuid,
-                                       declare=[self.queue_inst_mock],
-                                       type=msg_mock.TYPE,
-                                       reply_to=None)
-        ]
+        mock_producer = mock.call.connection.Producer()
+        master_mock_calls = self.proxy_publish_calls([
+            mock_producer.__enter__().publish(body=msg_data,
+                                              routing_key=routing_key,
+                                              exchange=self.exchange_inst_mock,
+                                              correlation_id=task_uuid,
+                                              declare=[self.queue_inst_mock],
+                                              type=msg_mock.TYPE,
+                                              reply_to=None)
+        ], routing_key)
         self.master_mock.assert_has_calls(master_mock_calls)
 
     def test_start(self):
