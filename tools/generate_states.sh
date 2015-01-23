@@ -30,3 +30,7 @@ $xsltproc $PWD/.diagram-tools/notugly.xsl /tmp/states.svg > $img_dir/engine_stat
 echo "---- Updating retry state diagram ----"
 python $script_dir/state_graph.py -r -f /tmp/states.svg
 $xsltproc $PWD/.diagram-tools/notugly.xsl /tmp/states.svg > $img_dir/retry_states.svg
+
+echo "---- Updating wbe request state diagram ----"
+python $script_dir/state_graph.py -w -f /tmp/states.svg
+$xsltproc $PWD/.diagram-tools/notugly.xsl /tmp/states.svg > $img_dir/wbe_request_states.svg
