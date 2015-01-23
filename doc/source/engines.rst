@@ -187,8 +187,16 @@ Worker-based
 
 **Engine type**: ``'worker-based'``
 
-For more information, please see :doc:`workers <workers>` for more details on
-how the worker based engine operates (and the design decisions behind it).
+.. note:: Since this engine is significantly more complicated (and
+          different) then the others we thought it appropriate to devote a
+          whole documentation section to it.
+
+For further information, please refer to the the following:
+
+.. toctree::
+   :maxdepth: 2
+
+   workers
 
 How they run
 ============

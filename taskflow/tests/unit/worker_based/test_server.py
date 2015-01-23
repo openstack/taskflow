@@ -86,7 +86,9 @@ class TestServer(test.MockTestCase):
         # check calls
         master_mock_calls = [
             mock.call.Proxy(self.server_topic, self.server_exchange,
-                            mock.ANY, url=self.broker_url, on_wait=mock.ANY)
+                            mock.ANY, url=self.broker_url,
+                            transport=mock.ANY, transport_options=mock.ANY,
+                            retry_options=mock.ANY)
         ]
         self.master_mock.assert_has_calls(master_mock_calls)
         self.assertEqual(len(s._endpoints), 3)
@@ -97,7 +99,9 @@ class TestServer(test.MockTestCase):
         # check calls
         master_mock_calls = [
             mock.call.Proxy(self.server_topic, self.server_exchange,
-                            mock.ANY, url=self.broker_url, on_wait=mock.ANY)
+                            mock.ANY, url=self.broker_url,
+                            transport=mock.ANY, transport_options=mock.ANY,
+                            retry_options=mock.ANY)
         ]
         self.master_mock.assert_has_calls(master_mock_calls)
         self.assertEqual(len(s._endpoints), len(self.endpoints))

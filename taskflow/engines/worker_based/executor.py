@@ -67,14 +67,16 @@ class WorkerTaskExecutor(executor.TaskExecutor):
     """Executes tasks on remote workers."""
 
     def __init__(self, uuid, exchange, topics,
-                 transition_timeout=pr.REQUEST_TIMEOUT, **kwargs):
+                 transition_timeout=pr.REQUEST_TIMEOUT,
+                 url=None, transport=None, transport_options=None,
+                 retry_options=None):
         self._uuid = uuid
         self._topics = topics
         self._requests_cache = cache.RequestsCache()
         self._transition_timeout = transition_timeout
         self._workers_cache = cache.WorkersCache()
         self._workers_arrival = threading.Condition()
-        handlers = {
+        type_handlers = {
             pr.NOTIFY: [
                 self._process_notify,
                 functools.partial(pr.Notify.validate, response=True),
@@ -84,8 +86,11 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                 pr.Response.validate,
             ],
         }
-        self._proxy = proxy.Proxy(uuid, exchange, handlers,
-                                  self._on_wait, **kwargs)
+        self._proxy = proxy.Proxy(uuid, exchange, type_handlers,
+                                  on_wait=self._on_wait, url=url,
+                                  transport=transport,
+                                  transport_options=transport_options,
+                                  retry_options=retry_options)
         self._proxy_thread = None
         self._periodic = PeriodicWorker(tt.Timeout(pr.NOTIFY_PERIOD),
                                         [self._notify_topics])
