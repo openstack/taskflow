@@ -112,6 +112,14 @@ def find_subclasses(locations, base_cls, exclude_hidden=True):
     return derived
 
 
+def pick_first_not_none(*values):
+    """Returns first of values that is *not* None (or None if all are/were)."""
+    for val in values:
+        if val is not None:
+            return val
+    return None
+
+
 def parse_uri(uri):
     """Parses a uri into its components."""
     # Do some basic validation before continuing...
