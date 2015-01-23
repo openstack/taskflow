@@ -18,7 +18,7 @@ import contextlib
 
 from kazoo import exceptions as k_exc
 from kazoo.protocol import paths
-from oslo.serialization import jsonutils
+from oslo_serialization import jsonutils
 
 from taskflow import exceptions as exc
 from taskflow import logging
