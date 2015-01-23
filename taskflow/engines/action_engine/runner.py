@@ -143,8 +143,24 @@ class _MachineBuilder(object):
                 try:
                     event, result = fut.result()
                     retain = self._completer.complete(node, event, result)
-                    if retain and isinstance(result, failure.Failure):
-                        memory.failures.append(result)
+                    if isinstance(result, failure.Failure):
+                        if retain:
+                            memory.failures.append(result)
+                        else:
+                            # NOTE(harlowja): avoid making any
+                            # intention request to storage unless we are
+                            # sure we are in DEBUG enabled logging (otherwise
+                            # we will call this all the time even when DEBUG
+                            # is not enabled, which would suck...)
+                            if LOG.isEnabledFor(logging.DEBUG):
+                                intention = self._storage.get_atom_intention(
+                                    node.name)
+                                LOG.debug("Discarding failure '%s' (in"
+                                          " response to event '%s') under"
+                                          " completion units request during"
+                                          " completion of node '%s' (intention"
+                                          " is to %s)", result, event,
+                                          node, intention)
                 except Exception:
                     memory.failures.append(failure.Failure())
                 else:
