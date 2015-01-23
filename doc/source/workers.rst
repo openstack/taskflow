@@ -31,11 +31,12 @@ Executor
   these requests can be accepted and processed by remote workers.
 
 Worker
-  Workers are started on remote hosts and has list of tasks it can perform (on
-  request). Workers accept and process task requests that are published by an
-  executor. Several requests can be processed simultaneously in separate
-  threads. For example, an `executor`_ can be passed to the worker and
-  configured to run in as many threads (green or not) as desired.
+  Workers are started on remote hosts and each has a list of tasks it can
+  perform (on request). Workers accept and process task requests that are
+  published by an executor. Several requests can be processed simultaneously
+  in separate threads (or processes...). For example, an `executor`_ can be
+  passed to the worker and configured to run in as many threads (green or
+  not) as desired.
 
 Proxy
   Executors interact with workers via a proxy. The proxy maintains the
@@ -153,8 +154,16 @@ engine executor in the following manner:
     from dicts after receiving on both executor & worker sides (this
     translation is lossy since the traceback won't be fully retained).
 
-Executor execute format
-~~~~~~~~~~~~~~~~~~~~~~~
+Protocol
+~~~~~~~~
+
+.. automodule:: taskflow.engines.worker_based.protocol
+
+Examples
+~~~~~~~~
+
+Request (execute)
+"""""""""""""""""
 
 * **task_name** - full task name to be performed
 * **task_cls** - full task class name to be performed
@@ -186,8 +195,52 @@ Additionally, the following parameters are added to the request message:
         ]
     }
 
-Worker response format
-~~~~~~~~~~~~~~~~~~~~~~
+
+Request (revert)
+""""""""""""""""
+
+When **reverting:**
+
+.. code:: json
+
+    {
+        "action": "revert",
+        "arguments": {},
+        "failures": {
+            "taskflow.tests.utils.TaskWithFailure": {
+                "exc_type_names": [
+                    "RuntimeError",
+                    "StandardError",
+                    "Exception"
+                ],
+                "exception_str": "Woot!",
+                "traceback_str": "  File \"/homes/harlowja/dev/os/taskflow/taskflow/engines/action_engine/executor.py\", line 56, in _execute_task\n    result = task.execute(**arguments)\n  File \"/homes/harlowja/dev/os/taskflow/taskflow/tests/utils.py\", line 165, in execute\n    raise RuntimeError('Woot!')\n",
+                "version": 1
+            }
+        },
+        "result": [
+            "failure",
+            {
+                "exc_type_names": [
+                    "RuntimeError",
+                    "StandardError",
+                    "Exception"
+                ],
+                "exception_str": "Woot!",
+                "traceback_str": "  File \"/homes/harlowja/dev/os/taskflow/taskflow/engines/action_engine/executor.py\", line 56, in _execute_task\n    result = task.execute(**arguments)\n  File \"/homes/harlowja/dev/os/taskflow/taskflow/tests/utils.py\", line 165, in execute\n    raise RuntimeError('Woot!')\n",
+                "version": 1
+            }
+        ],
+        "task_cls": "taskflow.tests.utils.TaskWithFailure",
+        "task_name": "taskflow.tests.utils.TaskWithFailure",
+        "task_version": [
+            1,
+            0
+        ]
+    }
+
+Worker response(s)
+""""""""""""""""""
 
 When **running:**
 
@@ -239,49 +292,6 @@ When **failed:**
             }
         },
         "state": "FAILURE"
-    }
-
-Executor revert format
-~~~~~~~~~~~~~~~~~~~~~~
-
-When **reverting:**
-
-.. code:: json
-
-    {
-        "action": "revert",
-        "arguments": {},
-        "failures": {
-            "taskflow.tests.utils.TaskWithFailure": {
-                "exc_type_names": [
-                    "RuntimeError",
-                    "StandardError",
-                    "Exception"
-                ],
-                "exception_str": "Woot!",
-                "traceback_str": "  File \"/homes/harlowja/dev/os/taskflow/taskflow/engines/action_engine/executor.py\", line 56, in _execute_task\n    result = task.execute(**arguments)\n  File \"/homes/harlowja/dev/os/taskflow/taskflow/tests/utils.py\", line 165, in execute\n    raise RuntimeError('Woot!')\n",
-                "version": 1
-            }
-        },
-        "result": [
-            "failure",
-            {
-                "exc_type_names": [
-                    "RuntimeError",
-                    "StandardError",
-                    "Exception"
-                ],
-                "exception_str": "Woot!",
-                "traceback_str": "  File \"/homes/harlowja/dev/os/taskflow/taskflow/engines/action_engine/executor.py\", line 56, in _execute_task\n    result = task.execute(**arguments)\n  File \"/homes/harlowja/dev/os/taskflow/taskflow/tests/utils.py\", line 165, in execute\n    raise RuntimeError('Woot!')\n",
-                "version": 1
-            }
-        ],
-        "task_cls": "taskflow.tests.utils.TaskWithFailure",
-        "task_name": "taskflow.tests.utils.TaskWithFailure",
-        "task_version": [
-            1,
-            0
-        ]
     }
 
 Request state transitions
