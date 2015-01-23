@@ -68,29 +68,6 @@ Requirements
 .. _executor: https://docs.python.org/dev/library/concurrent.futures.html#executor-objects
 .. _protocol: http://en.wikipedia.org/wiki/Communications_protocol
 
-Use-cases
----------
-
-* `Glance`_
-
-  * Image tasks *(long-running)*
-
-    * Convert, import/export & more...
-
-* `Heat`_
-
-  * Engine work distribution
-
-* `Rally`_
-
-  * Load generation
-
-* *Your use-case here*
-
-.. _Heat: https://wiki.openstack.org/wiki/Heat
-.. _Rally: https://wiki.openstack.org/wiki/Rally
-.. _Glance: https://wiki.openstack.org/wiki/Glance
-
 Design
 ======
 
