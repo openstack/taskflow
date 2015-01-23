@@ -257,6 +257,14 @@ object starts to take over and begins going through the stages listed
 below (for a more visual diagram/representation see
 the :ref:`engine state diagram <engine states>`).
 
+.. note::
+
+   The engine will respect the constraints imposed by the flow. For example,
+   if Engine is executing a :py:class:`.linear_flow.Flow` then it is
+   constrained by the dependency-graph which is linear in this case, and hence
+   using a Parallel Engine may not yield any benefits if one is looking for
+   concurrency.
+
 Resumption
 ^^^^^^^^^^
 
