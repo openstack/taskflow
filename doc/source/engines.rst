@@ -182,10 +182,10 @@ using your desired execution model.
     :pybug:`22393` and others...) as the most recent python version (which
     themselves have a variety of ongoing/recent bugs).
 
-Worker-based
-------------
+Workers
+-------
 
-**Engine type**: ``'worker-based'``
+**Engine type**: ``'worker-based'`` or ``'workers'``
 
 .. note:: Since this engine is significantly more complicated (and
           different) then the others we thought it appropriate to devote a
