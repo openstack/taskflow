@@ -20,7 +20,7 @@ import threading
 from concurrent import futures as _futures
 from concurrent.futures import process as _process
 from concurrent.futures import thread as _thread
-from oslo.utils import reflection
+from oslo_utils import reflection
 
 try:
     from eventlet.green import threading as greenthreading
