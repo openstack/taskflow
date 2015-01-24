@@ -99,11 +99,19 @@ class _MachineBuilder(object):
             timeout = _WAITING_TIMEOUT
 
         def resume(old_state, new_state, event):
+            # This reaction function just updates the state machines memory
+            # to include any nodes that need to be executed (from a previous
+            # attempt, which may be empty if never ran before) and any nodes
+            # that are now ready to be ran.
             memory.next_nodes.update(self._completer.resume())
             memory.next_nodes.update(self._analyzer.get_next_nodes())
             return _SCHEDULE
 
         def game_over(old_state, new_state, event):
+            # This reaction function is mainly a intermediary delegation
+            # function that analyzes the current memory and transitions to
+            # the appropriate handler that will deal with the memory values,
+            # it is *always* called before the final state is entered.
             if memory.failures:
                 return _FAILED
             if self._analyzer.get_next_nodes():
@@ -114,6 +122,11 @@ class _MachineBuilder(object):
                 return _REVERTED
 
         def schedule(old_state, new_state, event):
+            # This reaction function starts to schedule the memory's next
+            # nodes (iff the engine is still runnable, which it may not be
+            # if the user of this engine has requested the engine/storage
+            # that holds this information to stop or suspend); handles failures
+            # that occur during this process safely...
             if self.runnable() and memory.next_nodes:
                 not_done, failures = self._scheduler.schedule(
                     memory.next_nodes)
@@ -136,6 +149,11 @@ class _MachineBuilder(object):
             return _ANALYZE
 
         def analyze(old_state, new_state, event):
+            # This reaction function is responsible for analyzing all nodes
+            # that have finished executing and completing them and figuring
+            # out what nodes are now ready to be ran (and then triggering those
+            # nodes to be scheduled in the future); handles failures that
+            # occur during this process safely...
             next_nodes = set()
             while memory.done:
                 fut = memory.done.pop()
