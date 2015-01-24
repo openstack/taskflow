@@ -92,15 +92,15 @@ def find_subclasses(locations, base_cls, exclude_hidden=True):
             else:
                 obj = importutils.import_class('%s.%s' % (pkg, cls))
                 if not reflection.is_subclass(obj, base_cls):
-                    raise TypeError("Item %s is not a %s subclass" %
-                                    (item, base_cls))
+                    raise TypeError("Object '%s' (%s) is not a '%s' subclass"
+                                    % (item, type(item), base_cls))
                 derived.add(obj)
         elif isinstance(item, types.ModuleType):
             module = item
         elif reflection.is_subclass(item, base_cls):
             derived.add(item)
         else:
-            raise TypeError("Item %s unexpected type: %s" %
+            raise TypeError("Object '%s' (%s) is an unexpected type" %
                             (item, type(item)))
         # If it's a module derive objects from it if we can.
         if module is not None:
@@ -125,11 +125,10 @@ def parse_uri(uri):
     # Do some basic validation before continuing...
     if not isinstance(uri, six.string_types):
         raise TypeError("Can only parse string types to uri data, "
-                        "and not an object of type %s"
-                        % reflection.get_class_name(uri))
+                        "and not '%s' (%s)" % (uri, type(uri)))
     match = _SCHEME_REGEX.match(uri)
     if not match:
-        raise ValueError("Uri %r does not start with a RFC 3986 compliant"
+        raise ValueError("Uri '%s' does not start with a RFC 3986 compliant"
                          " scheme" % (uri))
     return netutils.urlsplit(uri)
 
@@ -165,7 +164,7 @@ def binary_encode(text, encoding='utf-8'):
     elif isinstance(text, six.text_type):
         return text.encode(encoding)
     else:
-        raise TypeError("Expected binary or string type")
+        raise TypeError("Expected binary or string type not '%s'" % type(text))
 
 
 def binary_decode(data, encoding='utf-8'):
@@ -178,7 +177,7 @@ def binary_decode(data, encoding='utf-8'):
     elif isinstance(data, six.text_type):
         return data
     else:
-        raise TypeError("Expected binary or string type")
+        raise TypeError("Expected binary or string type not '%s'" % type(data))
 
 
 def decode_json(raw_data, root_types=(dict,)):
@@ -194,10 +193,17 @@ def decode_json(raw_data, root_types=(dict,)):
         raise ValueError("Expected UTF-8 decodable data: %s" % e)
     except ValueError as e:
         raise ValueError("Expected JSON decodable data: %s" % e)
-    if root_types and not isinstance(data, tuple(root_types)):
-        ok_types = ", ".join(str(t) for t in root_types)
-        raise ValueError("Expected (%s) root types not: %s"
-                         % (ok_types, type(data)))
+    if root_types:
+        if not isinstance(root_types, tuple):
+            root_types = tuple(root_types)
+        if not isinstance(data, root_types):
+            if len(root_types) == 1:
+                root_type = root_types[0]
+                raise ValueError("Expected '%s' root type not '%s'"
+                                 % (root_type, type(data)))
+            else:
+                raise ValueError("Expected %s root types not '%s'"
+                                 % (list(root_types), type(data)))
     return data
 
 
@@ -346,7 +352,8 @@ def as_int(obj, quiet=False):
         pass
     # Eck, not sure what this is then.
     if not quiet:
-        raise TypeError("Can not translate %s to an integer." % (obj))
+        raise TypeError("Can not translate '%s' (%s) to an integer"
+                        % (obj, type(obj)))
     return obj
 
 

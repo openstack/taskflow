@@ -69,7 +69,8 @@ def _build_rebind_dict(args, rebind_args):
     elif isinstance(rebind_args, dict):
         return rebind_args
     else:
-        raise TypeError('Invalid rebind value: %s' % rebind_args)
+        raise TypeError("Invalid rebind value '%s' (%s)"
+                        % (rebind_args, type(rebind_args)))
 
 
 def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,

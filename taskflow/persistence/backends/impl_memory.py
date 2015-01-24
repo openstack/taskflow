@@ -82,8 +82,8 @@ class _MemoryHelper(object):
                 saved_info = self._memory.atom_details.setdefault(
                     incoming.uuid, {})
             else:
-                raise TypeError("Unknown how to merge type '%s'"
-                                % type(incoming))
+                raise TypeError("Unknown how to merge '%s' (%s)"
+                                % (incoming, type(incoming)))
         try:
             saved_info['object'].merge(incoming)
         except KeyError:

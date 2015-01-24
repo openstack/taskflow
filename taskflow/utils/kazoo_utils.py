@@ -185,7 +185,8 @@ def make_client(conf):
     hosts = _parse_hosts(conf.get("hosts", "localhost:2181"))
     if not hosts or not isinstance(hosts, six.string_types):
         raise TypeError("Invalid hosts format, expected "
-                        "non-empty string/list, not %s" % type(hosts))
+                        "non-empty string/list, not '%s' (%s)"
+                        % (hosts, type(hosts)))
     client_kwargs['hosts'] = hosts
     if 'timeout' in conf:
         client_kwargs['timeout'] = float(conf['timeout'])

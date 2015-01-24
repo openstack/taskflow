@@ -183,8 +183,8 @@ class Storage(object):
                                       misc.get_version_string(atom),
                                       atom.save_as)
         else:
-            raise TypeError("Object of type 'atom' expected."
-                            " Got %s, %r." % (type(atom), atom))
+            raise TypeError("Object of type 'atom' expected not"
+                            " '%s' (%s)" % (atom, type(atom)))
 
     def _ensure_task(self, task_name, task_version, result_mapping):
         """Ensures there is a taskdetail that corresponds to the task info.

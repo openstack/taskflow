@@ -583,11 +583,12 @@ def atom_detail_class(atom_type):
     try:
         return _NAME_TO_DETAIL[atom_type]
     except KeyError:
-        raise TypeError("Unknown atom type: %s" % (atom_type))
+        raise TypeError("Unknown atom type '%s'" % (atom_type))
 
 
 def atom_detail_type(atom_detail):
     try:
         return _DETAIL_TO_NAME[type(atom_detail)]
     except KeyError:
-        raise TypeError("Unknown atom type: %s" % type(atom_detail))
+        raise TypeError("Unknown atom '%s' (%s)"
+                        % (atom_detail, type(atom_detail)))

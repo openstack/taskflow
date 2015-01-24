@@ -147,7 +147,8 @@ class Failure(object):
             self._exc_type_names = tuple(
                 reflection.get_all_class_names(exc_info[0], up_to=Exception))
             if not self._exc_type_names:
-                raise TypeError('Invalid exception type: %r' % exc_info[0])
+                raise TypeError("Invalid exception type '%s' (%s)"
+                                % (exc_info[0], type(exc_info[0])))
             self._exception_str = exc.exception_message(self._exc_info[1])
             self._traceback_str = ''.join(
                 traceback.format_tb(self._exc_info[2]))

@@ -91,7 +91,8 @@ class Scheduler(object):
             if sched.handles(node):
                 return sched.schedule(node)
         else:
-            raise TypeError("Unknown how to schedule '%s'" % node)
+            raise TypeError("Unknown how to schedule '%s' (%s)"
+                            % (node, type(node)))
 
     def schedule(self, nodes):
         """Schedules the provided nodes for *future* completion.

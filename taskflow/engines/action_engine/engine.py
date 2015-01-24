@@ -344,8 +344,9 @@ String (case insensitive)    Executor used
                 expected = set()
                 for m in cls._executor_cls_matchers:
                     expected.update(m.types)
-                raise TypeError("Unknown executor type '%s' expected an"
-                                " instance of %s" % (type(desired_executor),
+                raise TypeError("Unknown executor '%s' (%s) expected an"
+                                " instance of %s" % (desired_executor,
+                                                     type(desired_executor),
                                                      list(expected)))
             else:
                 executor_cls = matched_executor_cls

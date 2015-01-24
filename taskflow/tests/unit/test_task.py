@@ -181,7 +181,7 @@ class TaskTest(test.TestCase):
         })
 
     def test_rebind_list_bad_value(self):
-        self.assertRaisesRegexp(TypeError, '^Invalid rebind value:',
+        self.assertRaisesRegexp(TypeError, '^Invalid rebind value',
                                 MyTask, rebind=object())
 
     def test_default_provides(self):
