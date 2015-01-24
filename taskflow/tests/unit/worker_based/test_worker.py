@@ -64,7 +64,11 @@ class TestWorker(test.MockTestCase):
         master_mock_calls = [
             mock.call.executor_class(self.threads_count),
             mock.call.Server(self.topic, self.exchange,
-                             self.executor_inst_mock, [], url=self.broker_url)
+                             self.executor_inst_mock, [],
+                             url=self.broker_url,
+                             transport_options=mock.ANY,
+                             transport=mock.ANY,
+                             retry_options=mock.ANY)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
@@ -83,12 +87,12 @@ class TestWorker(test.MockTestCase):
             mock.call.executor_class(10),
             mock.call.Server(self.topic, self.exchange,
                              self.executor_inst_mock, [],
-                             url=self.broker_url)
+                             url=self.broker_url,
+                             transport_options=mock.ANY,
+                             transport=mock.ANY,
+                             retry_options=mock.ANY)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
-
-    def test_creation_with_negative_threads_count(self):
-        self.assertRaises(ValueError, self.worker, threads_count=-10)
 
     def test_creation_with_custom_executor(self):
         executor_mock = mock.MagicMock(name='executor')
@@ -96,7 +100,10 @@ class TestWorker(test.MockTestCase):
 
         master_mock_calls = [
             mock.call.Server(self.topic, self.exchange, executor_mock, [],
-                             url=self.broker_url)
+                             url=self.broker_url,
+                             transport_options=mock.ANY,
+                             transport=mock.ANY,
+                             retry_options=mock.ANY)
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
