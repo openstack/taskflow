@@ -18,7 +18,7 @@ Engine
 
 .. image:: img/engine_states.svg
    :width: 660px
-   :align: left
+   :align: center
    :alt: Action engine state transitions
 
 **RESUMING** - Prepares flow & atoms to be resumed.
@@ -47,7 +47,7 @@ Flow
 
 .. image:: img/flow_states.svg
    :width: 660px
-   :align: left
+   :align: center
    :alt: Flow state transitions
 
 **PENDING** - A flow starts its execution lifecycle in this state (it has no
@@ -110,7 +110,7 @@ Task
 
 .. image:: img/task_states.svg
    :width: 660px
-   :align: left
+   :align: center
    :alt: Task state transitions
 
 **PENDING** - A task starts its execution lifecycle in this state (it has no
@@ -154,7 +154,7 @@ Retry
 
 .. image:: img/retry_states.svg
    :width: 660px
-   :align: left
+   :align: center
    :alt: Retry state transitions
 
 **PENDING** - A retry starts its execution lifecycle in this state (it has no
