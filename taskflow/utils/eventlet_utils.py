@@ -14,11 +14,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-try:
-    import eventlet as _eventlet  # noqa
-    EVENTLET_AVAILABLE = True
-except ImportError:
-    EVENTLET_AVAILABLE = False
+from oslo_utils import importutils
+
+_eventlet = importutils.try_import('eventlet')
+
+EVENTLET_AVAILABLE = bool(_eventlet)
 
 
 def check_for_eventlet(exc=None):
