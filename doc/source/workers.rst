@@ -275,8 +275,8 @@ Request state transitions
 -------------------------
 
 .. image:: img/wbe_request_states.svg
-   :width: 660px
-   :align: left
+   :width: 520px
+   :align: center
    :alt: WBE request state transitions
 
 **WAITING** - Request placed on queue (or other `kombu`_ message bus/transport)
