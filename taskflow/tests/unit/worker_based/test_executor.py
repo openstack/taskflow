@@ -353,9 +353,6 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         ex = self.executor()
         ex.start()
 
-        # wait until executor thread is done
-        ex._proxy_thread.join()
-
         # stop executor
         ex.stop()
 

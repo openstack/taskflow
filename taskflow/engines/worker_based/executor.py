@@ -59,10 +59,16 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                                   transport=transport,
                                   transport_options=transport_options,
                                   retry_options=retry_options)
-        self._proxy_thread = None
         self._periodic = wt.PeriodicWorker(tt.Timeout(pr.NOTIFY_PERIOD),
                                            [self._notify_topics])
-        self._periodic_thread = None
+        self._helpers = tu.ThreadBundle()
+        self._helpers.bind(lambda: tu.daemon_thread(self._proxy.start),
+                           after_start=lambda t: self._proxy.wait(),
+                           before_join=lambda t: self._proxy.stop())
+        self._helpers.bind(lambda: tu.daemon_thread(self._periodic.start),
+                           before_join=lambda t: self._periodic.stop(),
+                           after_join=lambda t: self._periodic.reset(),
+                           before_start=lambda t: self._periodic.reset())
 
     def _process_notify(self, notify, message):
         """Process notify message from remote side."""
@@ -226,24 +232,10 @@ class WorkerTaskExecutor(executor.TaskExecutor):
 
     def start(self):
         """Starts proxy thread and associated topic notification thread."""
-        if not tu.is_alive(self._proxy_thread):
-            self._proxy_thread = tu.daemon_thread(self._proxy.start)
-            self._proxy_thread.start()
-            self._proxy.wait()
-        if not tu.is_alive(self._periodic_thread):
-            self._periodic.reset()
-            self._periodic_thread = tu.daemon_thread(self._periodic.start)
-            self._periodic_thread.start()
+        self._helpers.start()
 
     def stop(self):
         """Stops proxy thread and associated topic notification thread."""
-        if self._periodic_thread is not None:
-            self._periodic.stop()
-            self._periodic_thread.join()
-            self._periodic_thread = None
-        if self._proxy_thread is not None:
-            self._proxy.stop()
-            self._proxy_thread.join()
-            self._proxy_thread = None
+        self._helpers.stop()
         self._requests_cache.clear(self._handle_expired_request)
         self._workers.clear()
