@@ -154,7 +154,7 @@ class TestServer(test.MockTestCase):
         s = self.server(reset_master_mock=True)
         s._reply(True, self.reply_to, self.task_uuid)
 
-        self.assertEqual(self.master_mock.mock_calls, [
+        self.master_mock.assert_has_calls([
             mock.call.Response(pr.FAILURE),
             mock.call.proxy.publish(self.response_inst_mock, self.reply_to,
                                     correlation_id=self.task_uuid)
@@ -195,7 +195,7 @@ class TestServer(test.MockTestCase):
             mock.call.proxy.publish(self.response_inst_mock, self.reply_to,
                                     correlation_id=self.task_uuid)
         ]
-        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
 
     def test_process_request(self):
         # create server and process request
@@ -211,7 +211,7 @@ class TestServer(test.MockTestCase):
             mock.call.proxy.publish(self.response_inst_mock, self.reply_to,
                                     correlation_id=self.task_uuid)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
 
     @mock.patch("taskflow.engines.worker_based.server.LOG.warn")
     def test_process_request_parse_message_failure(self, mocked_exception):
@@ -219,8 +219,6 @@ class TestServer(test.MockTestCase):
         request = self.make_request()
         s = self.server(reset_master_mock=True)
         s._process_request(request, self.message_mock)
-
-        self.assertEqual(self.master_mock.mock_calls, [])
         self.assertTrue(mocked_exception.called)
 
     @mock.patch.object(failure.Failure, 'from_dict')
@@ -245,7 +243,7 @@ class TestServer(test.MockTestCase):
                                     self.reply_to,
                                     correlation_id=self.task_uuid)
         ]
-        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
 
     @mock.patch.object(failure.Failure, 'to_dict')
     def test_process_request_endpoint_not_found(self, to_mock):
@@ -266,7 +264,7 @@ class TestServer(test.MockTestCase):
                                     self.reply_to,
                                     correlation_id=self.task_uuid)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
 
     @mock.patch.object(failure.Failure, 'to_dict')
     def test_process_request_execution_failure(self, to_mock):
@@ -288,7 +286,7 @@ class TestServer(test.MockTestCase):
                                     self.reply_to,
                                     correlation_id=self.task_uuid)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
 
     @mock.patch.object(failure.Failure, 'to_dict')
     def test_process_request_task_failure(self, to_mock):
@@ -312,7 +310,7 @@ class TestServer(test.MockTestCase):
                                     self.reply_to,
                                     correlation_id=self.task_uuid)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
 
     def test_start(self):
         self.server(reset_master_mock=True).start()
@@ -321,7 +319,7 @@ class TestServer(test.MockTestCase):
         master_mock_calls = [
             mock.call.proxy.start()
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
 
     def test_wait(self):
         server = self.server(reset_master_mock=True)
@@ -333,7 +331,7 @@ class TestServer(test.MockTestCase):
             mock.call.proxy.start(),
             mock.call.proxy.wait()
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)
 
     def test_stop(self):
         self.server(reset_master_mock=True).stop()
@@ -342,4 +340,4 @@ class TestServer(test.MockTestCase):
         master_mock_calls = [
             mock.call.proxy.stop()
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.master_mock.assert_has_calls(master_mock_calls)

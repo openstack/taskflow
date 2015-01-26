@@ -23,6 +23,7 @@ from taskflow.engines.worker_based import proxy
 from taskflow import logging
 from taskflow.types import failure as ft
 from taskflow.types import notifier as nt
+from taskflow.utils import kombu_utils as ku
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -142,13 +143,14 @@ class Server(object):
 
     def _process_notify(self, notify, message):
         """Process notify message and reply back."""
-        LOG.debug("Started processing notify message %r", message.delivery_tag)
+        LOG.debug("Started processing notify message '%s'",
+                  ku.DelayedPretty(message))
         try:
             reply_to = message.properties['reply_to']
         except KeyError:
             LOG.warn("The 'reply_to' message property is missing"
-                     " in received notify message %r", message.delivery_tag,
-                     exc_info=True)
+                     " in received notify message '%s'",
+                     ku.DelayedPretty(message), exc_info=True)
         else:
             response = pr.Notify(topic=self._topic,
                                  tasks=self._endpoints.keys())
@@ -156,13 +158,13 @@ class Server(object):
                 self._proxy.publish(response, routing_key=reply_to)
             except Exception:
                 LOG.critical("Failed to send reply to '%s' with notify"
-                             " response %s", reply_to, response,
+                             " response '%s'", reply_to, response,
                              exc_info=True)
 
     def _process_request(self, request, message):
         """Process request message and reply back."""
-        LOG.debug("Started processing request message %r",
-                  message.delivery_tag)
+        LOG.debug("Started processing request message '%s'",
+                  ku.DelayedPretty(message))
         try:
             # NOTE(skudriashev): parse broker message first to get
             # the `reply_to` and the `task_uuid` parameters to have
@@ -170,8 +172,8 @@ class Server(object):
             # in the first place...).
             reply_to, task_uuid = self._parse_message(message)
         except ValueError:
-            LOG.warn("Failed to parse request attributes from message %r",
-                     message.delivery_tag, exc_info=True)
+            LOG.warn("Failed to parse request attributes from message '%s'",
+                     ku.DelayedPretty(message), exc_info=True)
             return
         else:
             # prepare reply callback
@@ -185,8 +187,8 @@ class Server(object):
             arguments['task_uuid'] = task_uuid
         except ValueError:
             with misc.capture_failure() as failure:
-                LOG.warn("Failed to parse request contents from message %r",
-                         message.delivery_tag, exc_info=True)
+                LOG.warn("Failed to parse request contents from message '%s'",
+                         ku.DelayedPretty(message), exc_info=True)
                 reply_callback(result=failure.to_dict())
                 return
 
@@ -196,8 +198,8 @@ class Server(object):
         except KeyError:
             with misc.capture_failure() as failure:
                 LOG.warn("The '%s' task endpoint does not exist, unable"
-                         " to continue processing request message %r",
-                         task_cls, message.delivery_tag, exc_info=True)
+                         " to continue processing request message '%s'",
+                         task_cls, ku.DelayedPretty(message), exc_info=True)
                 reply_callback(result=failure.to_dict())
                 return
         else:
@@ -207,8 +209,8 @@ class Server(object):
                 with misc.capture_failure() as failure:
                     LOG.warn("The '%s' handler does not exist on task endpoint"
                              " '%s', unable to continue processing request"
-                             " message %r", action, endpoint,
-                             message.delivery_tag, exc_info=True)
+                             " message '%s'", action, endpoint,
+                             ku.DelayedPretty(message), exc_info=True)
                     reply_callback(result=failure.to_dict())
                     return
             else:
@@ -217,8 +219,8 @@ class Server(object):
                 except Exception:
                     with misc.capture_failure() as failure:
                         LOG.warn("The '%s' task '%s' generation for request"
-                                 " message %r failed", endpoint, action,
-                                 message.delivery_tag, exc_info=True)
+                                 " message '%s' failed", endpoint, action,
+                                 ku.DelayedPretty(message), exc_info=True)
                         reply_callback(result=failure.to_dict())
                         return
                 else:
@@ -245,8 +247,8 @@ class Server(object):
         except Exception:
             with misc.capture_failure() as failure:
                 LOG.warn("The '%s' endpoint '%s' execution for request"
-                         " message %r failed", endpoint, action,
-                         message.delivery_tag, exc_info=True)
+                         " message '%s' failed", endpoint, action,
+                         ku.DelayedPretty(message), exc_info=True)
                 reply_callback(result=failure.to_dict())
         else:
             if isinstance(result, ft.Failure):

@@ -28,6 +28,11 @@ Kazoo
 
 .. automodule:: taskflow.utils.kazoo_utils
 
+Kombu
+~~~~~
+
+.. automodule:: taskflow.utils.kombu_utils
+
 Locks
 ~~~~~
 
