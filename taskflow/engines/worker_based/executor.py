@@ -25,7 +25,7 @@ from taskflow.engines.worker_based import types as wt
 from taskflow import exceptions as exc
 from taskflow import logging
 from taskflow import task as task_atom
-from taskflow.types import timing as tt
+from taskflow.types import periodic
 from taskflow.utils import kombu_utils as ku
 from taskflow.utils import misc
 from taskflow.utils import threading_utils as tu
@@ -41,51 +41,41 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                  url=None, transport=None, transport_options=None,
                  retry_options=None):
         self._uuid = uuid
-        self._topics = topics
         self._requests_cache = wt.RequestsCache()
-        self._workers = wt.TopicWorkers()
         self._transition_timeout = transition_timeout
         type_handlers = {
-            pr.NOTIFY: [
-                self._process_notify,
-                functools.partial(pr.Notify.validate, response=True),
-            ],
             pr.RESPONSE: [
                 self._process_response,
                 pr.Response.validate,
             ],
         }
-        self._proxy = proxy.Proxy(uuid, exchange, type_handlers,
+        self._proxy = proxy.Proxy(uuid, exchange,
+                                  type_handlers=type_handlers,
                                   on_wait=self._on_wait, url=url,
                                   transport=transport,
                                   transport_options=transport_options,
                                   retry_options=retry_options)
-        self._periodic = wt.PeriodicWorker(tt.Timeout(pr.NOTIFY_PERIOD),
-                                           [self._notify_topics])
+        # NOTE(harlowja): This is the most simplest finder impl. that
+        # doesn't have external dependencies (outside of what this engine
+        # already requires); it though does create periodic 'polling' traffic
+        # to workers to 'learn' of the tasks they can perform (and requires
+        # pre-existing knowledge of the topics those workers are on to gather
+        # and update this information).
+        self._finder = wt.ProxyWorkerFinder(uuid, self._proxy, topics)
+        self._finder.on_worker = self._on_worker
         self._helpers = tu.ThreadBundle()
         self._helpers.bind(lambda: tu.daemon_thread(self._proxy.start),
                            after_start=lambda t: self._proxy.wait(),
                            before_join=lambda t: self._proxy.stop())
-        self._helpers.bind(lambda: tu.daemon_thread(self._periodic.start),
-                           before_join=lambda t: self._periodic.stop(),
-                           after_join=lambda t: self._periodic.reset(),
-                           before_start=lambda t: self._periodic.reset())
+        p_worker = periodic.PeriodicWorker.create([self._finder])
+        if p_worker:
+            self._helpers.bind(lambda: tu.daemon_thread(p_worker.start),
+                               before_join=lambda t: p_worker.stop(),
+                               after_join=lambda t: p_worker.reset(),
+                               before_start=lambda t: p_worker.reset())
 
-    def _process_notify(self, notify, message):
-        """Process notify message from remote side."""
-        LOG.debug("Started processing notify message '%s'",
-                  ku.DelayedPretty(message))
-
-        topic = notify['topic']
-        tasks = notify['tasks']
-
-        # Add worker info to the cache
-        worker = self._workers.add(topic, tasks)
-        LOG.debug("Received notification about worker '%s' (%s"
-                  " total workers are currently known)", worker,
-                  len(self._workers))
-
-        # Publish waiting requests
+    def _on_worker(self, worker):
+        """Process new worker that has arrived (and fire off any work)."""
         for request in self._requests_cache.get_waiting_requests(worker):
             if request.transition_and_log_error(pr.PENDING, logger=LOG):
                 self._publish_request(request, worker)
@@ -174,7 +164,7 @@ class WorkerTaskExecutor(executor.TaskExecutor):
             request.result.add_done_callback(lambda fut: cleaner())
 
         # Get task's worker and publish request if worker was found.
-        worker = self._workers.get_worker_for_task(task)
+        worker = self._finder.get_worker_for_task(task)
         if worker is not None:
             # NOTE(skudriashev): Make sure request is set to the PENDING state
             # before putting it into the requests cache to prevent the notify
@@ -208,10 +198,6 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                     del self._requests_cache[request.uuid]
                     request.set_result(failure)
 
-    def _notify_topics(self):
-        """Cyclically called to publish notify message to each topic."""
-        self._proxy.publish(pr.Notify(), self._topics, reply_to=self._uuid)
-
     def execute_task(self, task, task_uuid, arguments,
                      progress_callback=None):
         return self._submit_task(task, task_uuid, pr.EXECUTE, arguments,
@@ -232,7 +218,8 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         return how many workers are still needed, otherwise it will
         return zero.
         """
-        return self._workers.wait_for_workers(workers=workers, timeout=timeout)
+        return self._finder.wait_for_workers(workers=workers,
+                                             timeout=timeout)
 
     def start(self):
         """Starts proxy thread and associated topic notification thread."""
@@ -242,4 +229,4 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         """Stops proxy thread and associated topic notification thread."""
         self._helpers.stop()
         self._requests_cache.clear(self._handle_expired_request)
-        self._workers.clear()
+        self._finder.clear()

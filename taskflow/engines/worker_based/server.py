@@ -59,7 +59,8 @@ class Server(object):
                 pr.Request.validate,
             ],
         }
-        self._proxy = proxy.Proxy(topic, exchange, type_handlers,
+        self._proxy = proxy.Proxy(topic, exchange,
+                                  type_handlers=type_handlers,
                                   url=url, transport=transport,
                                   transport_options=transport_options,
                                   retry_options=retry_options)

@@ -86,11 +86,12 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         ex = self.executor(reset_master_mock=False)
         master_mock_calls = [
             mock.call.Proxy(self.executor_uuid, self.executor_exchange,
-                            mock.ANY, on_wait=ex._on_wait,
+                            on_wait=ex._on_wait,
                             url=self.broker_url, transport=mock.ANY,
                             transport_options=mock.ANY,
-                            retry_options=mock.ANY
-                            )
+                            retry_options=mock.ANY,
+                            type_handlers=mock.ANY),
+            mock.call.proxy.dispatcher.type_handlers.update(mock.ANY),
         ]
         self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
 
@@ -212,10 +213,8 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(len(ex._requests_cache), 0)
 
     def test_execute_task(self):
-        self.message_mock.properties['type'] = pr.NOTIFY
-        notify = pr.Notify(topic=self.executor_topic, tasks=[self.task.name])
         ex = self.executor()
-        ex._process_notify(notify.to_dict(), self.message_mock)
+        ex._finder._add(self.executor_topic, [self.task.name])
         ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
@@ -231,10 +230,8 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(expected_calls, self.master_mock.mock_calls)
 
     def test_revert_task(self):
-        self.message_mock.properties['type'] = pr.NOTIFY
-        notify = pr.Notify(topic=self.executor_topic, tasks=[self.task.name])
         ex = self.executor()
-        ex._process_notify(notify.to_dict(), self.message_mock)
+        ex._finder._add(self.executor_topic, [self.task.name])
         ex.revert_task(self.task, self.task_uuid, self.task_args,
                        self.task_result, self.task_failures)
 
@@ -263,11 +260,9 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(self.master_mock.mock_calls, expected_calls)
 
     def test_execute_task_publish_error(self):
-        self.message_mock.properties['type'] = pr.NOTIFY
         self.proxy_inst_mock.publish.side_effect = Exception('Woot!')
-        notify = pr.Notify(topic=self.executor_topic, tasks=[self.task.name])
         ex = self.executor()
-        ex._process_notify(notify.to_dict(), self.message_mock)
+        ex._finder._add(self.executor_topic, [self.task.name])
         ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [

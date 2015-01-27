@@ -86,7 +86,7 @@ class TestServer(test.MockTestCase):
         # check calls
         master_mock_calls = [
             mock.call.Proxy(self.server_topic, self.server_exchange,
-                            mock.ANY, url=self.broker_url,
+                            type_handlers=mock.ANY, url=self.broker_url,
                             transport=mock.ANY, transport_options=mock.ANY,
                             retry_options=mock.ANY)
         ]
@@ -99,7 +99,7 @@ class TestServer(test.MockTestCase):
         # check calls
         master_mock_calls = [
             mock.call.Proxy(self.server_topic, self.server_exchange,
-                            mock.ANY, url=self.broker_url,
+                            type_handlers=mock.ANY, url=self.broker_url,
                             transport=mock.ANY, transport_options=mock.ANY,
                             retry_options=mock.ANY)
         ]

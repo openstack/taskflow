@@ -14,23 +14,20 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import threading
-import time
-
 from oslo.utils import reflection
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import types as worker_types
 from taskflow import test
+from taskflow.test import mock
 from taskflow.tests import utils
-from taskflow.types import latch
 from taskflow.types import timing
 
 
-class TestWorkerTypes(test.TestCase):
+class TestRequestCache(test.TestCase):
 
     def setUp(self):
-        super(TestWorkerTypes, self).setUp()
+        super(TestRequestCache, self).setUp()
         self.addCleanup(timing.StopWatch.clear_overrides)
         self.task = utils.DummyTask()
         self.task_uuid = 'task-uuid'
@@ -76,6 +73,8 @@ class TestWorkerTypes(test.TestCase):
         self.assertEqual(1, len(matches))
         self.assertEqual(2, len(cache))
 
+
+class TestTopicWorker(test.TestCase):
     def test_topic_worker(self):
         worker = worker_types.TopicWorker("dummy-topic",
                                           [utils.DummyTask], identity="dummy")
@@ -84,52 +83,37 @@ class TestWorkerTypes(test.TestCase):
         self.assertEqual('dummy', worker.identity)
         self.assertEqual('dummy-topic', worker.topic)
 
-    def test_single_topic_workers(self):
-        workers = worker_types.TopicWorkers()
-        w = workers.add('dummy-topic', [utils.DummyTask])
+
+class TestProxyFinder(test.TestCase):
+    def test_single_topic_worker(self):
+        finder = worker_types.ProxyWorkerFinder('me', mock.MagicMock(), [])
+        w, emit = finder._add('dummy-topic', [utils.DummyTask])
         self.assertIsNotNone(w)
-        self.assertEqual(1, len(workers))
-        w2 = workers.get_worker_for_task(utils.DummyTask)
+        self.assertTrue(emit)
+        self.assertEqual(1, finder._total_workers())
+        w2 = finder.get_worker_for_task(utils.DummyTask)
         self.assertEqual(w.identity, w2.identity)
 
     def test_multi_same_topic_workers(self):
-        workers = worker_types.TopicWorkers()
-        w = workers.add('dummy-topic', [utils.DummyTask])
+        finder = worker_types.ProxyWorkerFinder('me', mock.MagicMock(), [])
+        w, emit = finder._add('dummy-topic', [utils.DummyTask])
         self.assertIsNotNone(w)
-        w2 = workers.add('dummy-topic-2', [utils.DummyTask])
+        self.assertTrue(emit)
+        w2, emit = finder._add('dummy-topic-2', [utils.DummyTask])
         self.assertIsNotNone(w2)
-        w3 = workers.get_worker_for_task(
+        self.assertTrue(emit)
+        w3 = finder.get_worker_for_task(
             reflection.get_class_name(utils.DummyTask))
         self.assertIn(w3.identity, [w.identity, w2.identity])
 
     def test_multi_different_topic_workers(self):
-        workers = worker_types.TopicWorkers()
+        finder = worker_types.ProxyWorkerFinder('me', mock.MagicMock(), [])
         added = []
-        added.append(workers.add('dummy-topic', [utils.DummyTask]))
-        added.append(workers.add('dummy-topic-2', [utils.DummyTask]))
-        added.append(workers.add('dummy-topic-3', [utils.NastyTask]))
-        self.assertEqual(3, len(workers))
-        w = workers.get_worker_for_task(utils.NastyTask)
-        self.assertEqual(added[-1].identity, w.identity)
-        w = workers.get_worker_for_task(utils.DummyTask)
-        self.assertIn(w.identity, [w_a.identity for w_a in added[0:2]])
-
-    def test_periodic_worker(self):
-        barrier = latch.Latch(5)
-        to = timing.Timeout(0.01)
-        called_at = []
-
-        def callee():
-            barrier.countdown()
-            if barrier.needed == 0:
-                to.interrupt()
-            called_at.append(time.time())
-
-        w = worker_types.PeriodicWorker(to, [callee])
-        t = threading.Thread(target=w.start)
-        t.start()
-        t.join()
-
-        self.assertEqual(0, barrier.needed)
-        self.assertEqual(5, len(called_at))
-        self.assertTrue(to.is_stopped())
+        added.append(finder._add('dummy-topic', [utils.DummyTask]))
+        added.append(finder._add('dummy-topic-2', [utils.DummyTask]))
+        added.append(finder._add('dummy-topic-3', [utils.NastyTask]))
+        self.assertEqual(3, finder._total_workers())
+        w = finder.get_worker_for_task(utils.NastyTask)
+        self.assertEqual(added[-1][0].identity, w.identity)
+        w = finder.get_worker_for_task(utils.DummyTask)
+        self.assertIn(w.identity, [w_a[0].identity for w_a in added[0:2]])

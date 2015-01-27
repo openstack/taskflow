@@ -44,6 +44,11 @@ Notifier
 
 .. automodule:: taskflow.types.notifier
 
+Periodic
+========
+
+.. automodule:: taskflow.types.periodic
+
 Table
 =====
 

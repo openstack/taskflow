@@ -15,7 +15,6 @@
 #    under the License.
 
 from kombu import exceptions as kombu_exc
-import six
 
 from taskflow import exceptions as excp
 from taskflow import logging
@@ -27,14 +26,35 @@ LOG = logging.getLogger(__name__)
 class TypeDispatcher(object):
     """Receives messages and dispatches to type specific handlers."""
 
-    def __init__(self, type_handlers):
-        self._handlers = dict(type_handlers)
-        self._requeue_filters = []
+    def __init__(self, type_handlers=None, requeue_filters=None):
+        if type_handlers is not None:
+            self._type_handlers = dict(type_handlers)
+        else:
+            self._type_handlers = {}
+        if requeue_filters is not None:
+            self._requeue_filters = list(requeue_filters)
+        else:
+            self._requeue_filters = []
 
-    def add_requeue_filter(self, callback):
-        """Add a callback that can *request* message requeuing.
+    @property
+    def type_handlers(self):
+        """Dictionary of message type -> callback to handle that message.
 
-        The callback will be activated before the message has been acked and
+        The callback(s) will be activated by looking for a message
+        property 'type' and locating a callback in this dictionary that maps
+        to that type; if one is found it is expected to be a callback that
+        accepts two positional parameters; the first being the message data
+        and the second being the message object. If a callback is not found
+        then the message is rejected and it will be up to the underlying
+        message transport to determine what this means/implies...
+        """
+        return self._type_handlers
+
+    @property
+    def requeue_filters(self):
+        """List of filters (callbacks) to request a message to be requeued.
+
+        The callback(s) will be activated before the message has been acked and
         it can be used to instruct the dispatcher to requeue the message
         instead of processing it. The callback, when called, will be provided
         two positional parameters; the first being the message data and the
@@ -42,9 +62,7 @@ class TypeDispatcher(object):
         filter should return a truthy object if the message should be requeued
         and a falsey object if it should not.
         """
-        if not six.callable(callback):
-            raise ValueError("Requeue filter callback must be callable")
-        self._requeue_filters.append(callback)
+        return self._requeue_filters
 
     def _collect_requeue_votes(self, data, message):
         # Returns how many of the filters asked for the message to be requeued.
@@ -74,7 +92,7 @@ class TypeDispatcher(object):
             LOG.debug("Message '%s' was requeued.", ku.DelayedPretty(message))
 
     def _process_message(self, data, message, message_type):
-        handler = self._handlers.get(message_type)
+        handler = self._type_handlers.get(message_type)
         if handler is None:
             message.reject_log_error(logger=LOG,
                                      errors=(kombu_exc.MessageStateError,))

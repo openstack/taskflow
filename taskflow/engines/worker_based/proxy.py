@@ -68,19 +68,19 @@ class Proxy(object):
     # value is valid...
     _RETRY_INT_OPTS = frozenset(['max_retries'])
 
-    def __init__(self, topic, exchange, type_handlers,
-                 on_wait=None, url=None,
+    def __init__(self, topic, exchange,
+                 type_handlers=None, on_wait=None, url=None,
                  transport=None, transport_options=None,
                  retry_options=None):
         self._topic = topic
         self._exchange_name = exchange
         self._on_wait = on_wait
         self._running = threading_utils.Event()
-        self._dispatcher = dispatcher.TypeDispatcher(type_handlers)
-        self._dispatcher.add_requeue_filter(
+        self._dispatcher = dispatcher.TypeDispatcher(
             # NOTE(skudriashev): Process all incoming messages only if proxy is
             # running, otherwise requeue them.
-            lambda data, message: not self.is_running)
+            requeue_filters=[lambda data, message: not self.is_running],
+            type_handlers=type_handlers)
 
         ensure_options = self.DEFAULT_RETRY_OPTIONS.copy()
         if retry_options is not None:
@@ -112,11 +112,16 @@ class Proxy(object):
 
         # create exchange
         self._exchange = kombu.Exchange(name=self._exchange_name,
-                                        durable=False,
-                                        auto_delete=True)
+                                        durable=False, auto_delete=True)
+
+    @property
+    def dispatcher(self):
+        """Dispatcher internally used to dispatch message(s) that match."""
+        return self._dispatcher
 
     @property
     def connection_details(self):
+        """Details about the connection (read-only)."""
         # The kombu drivers seem to use 'N/A' when they don't have a version...
         driver_version = self._conn.transport.driver_version()
         if driver_version and driver_version.lower() == 'n/a':
