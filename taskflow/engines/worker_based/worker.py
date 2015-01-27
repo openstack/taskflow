@@ -81,9 +81,11 @@ class Worker(object):
                           default executor (used only if an executor is not
                           passed in)
     :param transport: transport to be used (e.g. amqp, memory, etc.)
-    :param transport_options: transport specific options
-    :param retry_options: retry specific options (used to configure how kombu
-                          handles retrying under tolerable/transient failures).
+    :param transport_options: transport specific options (see:
+                              http://kombu.readthedocs.org/ for what these
+                              options imply and are expected to be)
+    :param retry_options: retry specific options
+                          (see: :py:attr:`~.proxy.Proxy.DEFAULT_RETRY_OPTIONS`)
     """
 
     def __init__(self, exchange, topic, tasks,

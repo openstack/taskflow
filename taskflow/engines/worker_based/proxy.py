@@ -44,12 +44,7 @@ _TransportDetails = collections.namedtuple('_TransportDetails',
 class Proxy(object):
     """A proxy processes messages from/to the named exchange."""
 
-    # Settings that are by default used for consumers/producers to reconnect
-    # under tolerable/transient failures...
-    #
-    # See: http://kombu.readthedocs.org/en/latest/reference/kombu.html for
-    # what these values imply...
-    _DEFAULT_RETRY_OPTIONS = {
+    DEFAULT_RETRY_OPTIONS = {
         # The number of seconds we start sleeping for.
         'interval_start': 1,
         # How many seconds added to the interval for each retry.
@@ -59,6 +54,12 @@ class Proxy(object):
         # Maximum number of times to retry.
         'max_retries': 3,
     }
+    """Settings used (by default) to reconnect under transient failures.
+
+    See: http://kombu.readthedocs.org/ (and connection ``ensure_options``) for
+    what these values imply/mean...
+    """
+
     # This is the only provided option that should be an int, the others
     # are allowed to be floats; used when we check that the user-provided
     # value is valid...
@@ -78,7 +79,7 @@ class Proxy(object):
             # running, otherwise requeue them.
             lambda data, message: not self.is_running)
 
-        ensure_options = self._DEFAULT_RETRY_OPTIONS.copy()
+        ensure_options = self.DEFAULT_RETRY_OPTIONS.copy()
         if retry_options is not None:
             # Override the defaults with any user provided values...
             for k in set(six.iterkeys(ensure_options)):
