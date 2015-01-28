@@ -15,7 +15,6 @@
 #    under the License.
 
 from concurrent import futures
-from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from taskflow.engines.action_engine import executor
@@ -24,6 +23,7 @@ from taskflow import exceptions as excp
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.types import failure
+from taskflow.types import timing
 
 
 class TestProtocolValidation(test.TestCase):
@@ -94,8 +94,8 @@ class TestProtocol(test.TestCase):
 
     def setUp(self):
         super(TestProtocol, self).setUp()
-        timeutils.set_time_override()
-        self.addCleanup(timeutils.clear_time_override)
+        timing.StopWatch.set_now_override()
+        self.addCleanup(timing.StopWatch.clear_overrides)
         self.task = utils.DummyTask()
         self.task_uuid = 'task-uuid'
         self.task_action = 'execute'
@@ -166,19 +166,19 @@ class TestProtocol(test.TestCase):
 
     def test_pending_not_expired(self):
         req = self.request()
-        timeutils.advance_time_seconds(self.timeout - 1)
+        timing.StopWatch.set_offset_override(self.timeout - 1)
         self.assertFalse(req.expired)
 
     def test_pending_expired(self):
         req = self.request()
-        timeutils.advance_time_seconds(self.timeout + 1)
+        timing.StopWatch.set_offset_override(self.timeout + 1)
         self.assertTrue(req.expired)
 
     def test_running_not_expired(self):
         request = self.request()
         request.transition(pr.PENDING)
         request.transition(pr.RUNNING)
-        timeutils.advance_time_seconds(self.timeout + 1)
+        timing.StopWatch.set_offset_override(self.timeout + 1)
         self.assertFalse(request.expired)
 
     def test_set_result(self):

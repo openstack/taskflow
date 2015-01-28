@@ -15,9 +15,13 @@
 #    under the License.
 
 from oslo_utils import reflection
-from oslo_utils import timeutils
 
+from taskflow.utils import misc
 from taskflow.utils import threading_utils
+
+# Find a monotonic providing time (or fallback to using time.time()
+# which isn't *always* accurate but will suffice).
+_now = misc.find_monotonic(allow_time_time=True)
 
 
 class Timeout(object):
@@ -86,6 +90,12 @@ class StopWatch(object):
     _STARTED = 'STARTED'
     _STOPPED = 'STOPPED'
 
+    """
+    Class variables that should only be used for testing purposes only...
+    """
+    _now_offset = None
+    _now_override = None
+
     def __init__(self, duration=None):
         if duration is not None:
             if duration < 0:
@@ -105,7 +115,7 @@ class StopWatch(object):
         """
         if self._state == self._STARTED:
             return self
-        self._started_at = timeutils.utcnow()
+        self._started_at = self._now()
         self._stopped_at = None
         self._state = self._STARTED
         self._splits = []
@@ -121,7 +131,7 @@ class StopWatch(object):
         if self._state == self._STARTED:
             elapsed = self.elapsed()
             if self._splits:
-                length = max(0.0, elapsed - self._splits[-1].elapsed)
+                length = self._delta_seconds(self._splits[-1].elapsed, elapsed)
             else:
                 length = elapsed
             self._splits.append(Split(elapsed, length))
@@ -137,17 +147,88 @@ class StopWatch(object):
         self.start()
         return self
 
+    @classmethod
+    def clear_overrides(cls):
+        """Clears all overrides/offsets.
+
+        **Only to be used for testing (affects all watch instances).**
+        """
+        cls._now_override = None
+        cls._now_offset = None
+
+    @classmethod
+    def set_offset_override(cls, offset):
+        """Sets a offset that is applied to each time fetch.
+
+        **Only to be used for testing (affects all watch instances).**
+        """
+        cls._now_offset = offset
+
+    @classmethod
+    def advance_time_seconds(cls, offset):
+        """Advances/sets a offset that is applied to each time fetch.
+
+        NOTE(harlowja): if a previous offset exists (not ``None``) then this
+        offset will be added onto the existing one (if you want to reset
+        the offset completely use the :meth:`.set_offset_override`
+        method instead).
+
+        **Only to be used for testing (affects all watch instances).**
+        """
+        if cls._now_offset is None:
+            cls.set_offset_override(offset)
+        else:
+            cls.set_offset_override(cls._now_offset + offset)
+
+    @classmethod
+    def set_now_override(cls, now=None):
+        """Sets time override to use (if none, then current time is fetched).
+
+        NOTE(harlowja): if a list/tuple is provided then the first element of
+        the list will be used (and removed) each time a time fetch occurs (once
+        it becomes empty the override/s will no longer be applied). If a
+        numeric value is provided then it will be used (and never removed
+        until the override(s) are cleared via the :meth:`.clear_overrides`
+        method).
+
+        **Only to be used for testing (affects all watch instances).**
+        """
+        if isinstance(now, (list, tuple)):
+            cls._now_override = list(now)
+        else:
+            if now is None:
+                now = _now()
+            cls._now_override = now
+
+    @staticmethod
+    def _delta_seconds(earlier, later):
+        return max(0.0, later - earlier)
+
+    @classmethod
+    def _now(cls):
+        if cls._now_override is not None:
+            if isinstance(cls._now_override, list):
+                try:
+                    now = cls._now_override.pop(0)
+                except IndexError:
+                    now = _now()
+            else:
+                now = cls._now_override
+        else:
+            now = _now()
+        if cls._now_offset is not None:
+            now = now + cls._now_offset
+        return now
+
     def elapsed(self, maximum=None):
         """Returns how many seconds have elapsed."""
         if self._state not in (self._STOPPED, self._STARTED):
             raise RuntimeError("Can not get the elapsed time of a stopwatch"
                                " if it has not been started/stopped")
         if self._state == self._STOPPED:
-            elapsed = max(0.0, float(timeutils.delta_seconds(
-                self._started_at, self._stopped_at)))
+            elapsed = self._delta_seconds(self._started_at, self._stopped_at)
         else:
-            elapsed = max(0.0, float(timeutils.delta_seconds(
-                self._started_at, timeutils.utcnow())))
+            elapsed = self._delta_seconds(self._started_at, self._now())
         if maximum is not None and elapsed > maximum:
             elapsed = max(0.0, maximum)
         return elapsed
@@ -201,6 +282,6 @@ class StopWatch(object):
         if self._state != self._STARTED:
             raise RuntimeError("Can not stop a stopwatch that has not been"
                                " started")
-        self._stopped_at = timeutils.utcnow()
+        self._stopped_at = self._now()
         self._state = self._STOPPED
         return self
