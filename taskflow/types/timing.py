@@ -245,23 +245,32 @@ class StopWatch(object):
         except RuntimeError:
             pass
 
-    def leftover(self):
-        """Returns how many seconds are left until the watch expires."""
-        if self._duration is None:
-            raise RuntimeError("Can not get the leftover time of a watch that"
-                               " has no duration")
+    def leftover(self, return_none=False):
+        """Returns how many seconds are left until the watch expires.
+
+        :param return_none: when ``True`` instead of raising a ``RuntimeError``
+                            when no duration has been set this call will
+                            return ``None`` instead.
+        :type return_none: boolean
+        """
         if self._state != self._STARTED:
             raise RuntimeError("Can not get the leftover time of a stopwatch"
                                " that has not been started")
+        if self._duration is None:
+            if not return_none:
+                raise RuntimeError("Can not get the leftover time of a watch"
+                                   " that has no duration")
+            else:
+                return None
         return max(0.0, self._duration - self.elapsed())
 
     def expired(self):
         """Returns if the watch has expired (ie, duration provided elapsed)."""
-        if self._duration is None:
-            return False
         if self._state is None:
             raise RuntimeError("Can not check if a stopwatch has expired"
                                " if it has not been started/stopped")
+        if self._duration is None:
+            return False
         if self.elapsed() > self._duration:
             return True
         return False

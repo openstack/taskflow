@@ -54,15 +54,12 @@ class Latch(object):
         timeout expires then this will return True, otherwise it will
         return False.
         """
-        w = None
-        if timeout is not None:
-            w = tt.StopWatch(timeout).start()
+        watch = tt.StopWatch(duration=timeout)
+        watch.start()
         with self._cond:
             while self._count > 0:
-                if w is not None:
-                    if w.expired():
-                        return False
-                    else:
-                        timeout = w.leftover()
-                self._cond.wait(timeout)
+                if watch.expired():
+                    return False
+                else:
+                    self._cond.wait(watch.leftover(return_none=True))
             return True

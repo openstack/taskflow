@@ -175,10 +175,11 @@ class _WaitWorkItem(object):
                 'kind': _KIND_COMPLETE_ME,
             }
             if self._channel.put(message):
-                w = timing.StopWatch().start()
+                watch = timing.StopWatch()
+                watch.start()
                 self._barrier.wait()
                 LOG.blather("Waited %s seconds until task '%s' %s emitted"
-                            " notifications were depleted", w.elapsed(),
+                            " notifications were depleted", watch.elapsed(),
                             self._task, sent_events)
 
     def __call__(self):
@@ -303,11 +304,11 @@ class _Dispatcher(object):
                      " %s to target '%s'", kind, sender, target)
 
     def run(self, queue):
-        w = timing.StopWatch(duration=self._dispatch_periodicity)
+        watch = timing.StopWatch(duration=self._dispatch_periodicity)
         while (not self._dead.is_set() or
                (self._stop_when_empty and self._targets)):
-            w.restart()
-            leftover = w.leftover()
+            watch.restart()
+            leftover = watch.leftover()
             while leftover:
                 try:
                     message = queue.get(timeout=leftover)
@@ -315,8 +316,8 @@ class _Dispatcher(object):
                     break
                 else:
                     self._dispatch(message)
-                    leftover = w.leftover()
-            leftover = w.leftover()
+                    leftover = watch.leftover()
+            leftover = watch.leftover()
             if leftover:
                 self._dead.wait(leftover)
 

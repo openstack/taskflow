@@ -661,13 +661,12 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
 
     def wait(self, timeout=None):
         # Wait until timeout expires (or forever) for jobs to appear.
-        watch = None
-        if timeout is not None:
-            watch = tt.StopWatch(duration=float(timeout)).start()
+        watch = tt.StopWatch(duration=timeout)
+        watch.start()
         with self._job_cond:
             while True:
                 if not self._known_jobs:
-                    if watch is not None and watch.expired():
+                    if watch.expired():
                         raise excp.NotFound("Expired waiting for jobs to"
                                             " arrive; waited %s seconds"
                                             % watch.elapsed())
@@ -676,10 +675,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                     # when we acquire the condition that there will actually
                     # be jobs (especially if we are spuriously awaken), so we
                     # must recalculate the amount of time we really have left.
-                    timeout = None
-                    if watch is not None:
-                        timeout = watch.leftover()
-                    self._job_cond.wait(timeout)
+                    self._job_cond.wait(watch.leftover(return_none=True))
                 else:
                     it = ZookeeperJobBoardIterator(self)
                     it._jobs.extend(self._fetch_jobs())

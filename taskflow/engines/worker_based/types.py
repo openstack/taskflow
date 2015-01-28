@@ -157,17 +157,13 @@ class TopicWorkers(object):
         """
         if workers <= 0:
             raise ValueError("Worker amount must be greater than zero")
-        w = None
-        if timeout is not None:
-            w = tt.StopWatch(timeout).start()
+        watch = tt.StopWatch(duration=timeout)
+        watch.start()
         with self._cond:
             while len(self._workers) < workers:
-                if w is not None and w.expired():
+                if watch.expired():
                     return max(0, workers - len(self._workers))
-                timeout = None
-                if w is not None:
-                    timeout = w.leftover()
-                self._cond.wait(timeout)
+                self._cond.wait(watch.leftover(return_none=True))
             return 0
 
     def get_worker_for_task(self, task):
