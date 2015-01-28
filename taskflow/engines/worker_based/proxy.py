@@ -42,7 +42,10 @@ _TransportDetails = collections.namedtuple('_TransportDetails',
 
 
 class Proxy(object):
-    """A proxy processes messages from/to the named exchange."""
+    """A proxy processes messages from/to the named exchange.
+
+    For **internal** usage only (not for public consumption).
+    """
 
     # Settings that are by default used for consumers/producers to reconnect
     # under tolerable/transient failures...
