@@ -32,7 +32,6 @@ class WorkerBasedActionEngine(engine.ActionEngine):
                    be learned by listening to the notifications that workers
                    emit).
     :param transport: transport to be used (e.g. amqp, memory, etc.)
-    :param transport_options: transport specific options
     :param transition_timeout: numeric value (or None for infinite) to wait
                                for submitted remote requests to transition out
                                of the (PENDING, WAITING) request states. When
@@ -40,8 +39,11 @@ class WorkerBasedActionEngine(engine.ActionEngine):
                                for will have its result become a
                                `RequestTimeout` exception instead of its
                                normally returned value (or raised exception).
-    :param retry_options: retry specific options (used to configure how kombu
-                          handles retrying under tolerable/transient failures).
+    :param transport_options: transport specific options (see:
+                              http://kombu.readthedocs.org/ for what these
+                              options imply and are expected to be)
+    :param retry_options: retry specific options
+                          (see: :py:attr:`~.proxy.Proxy.DEFAULT_RETRY_OPTIONS`)
     """
 
     _storage_factory = t_storage.SingleThreadedStorage

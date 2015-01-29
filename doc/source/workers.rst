@@ -416,7 +416,6 @@ Interfaces
 ==========
 
 .. automodule:: taskflow.engines.worker_based.engine
-.. automodule:: taskflow.engines.worker_based.executor
 .. automodule:: taskflow.engines.worker_based.proxy
 .. automodule:: taskflow.engines.worker_based.worker
 
