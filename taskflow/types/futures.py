@@ -20,15 +20,13 @@ import threading
 from concurrent import futures as _futures
 from concurrent.futures import process as _process
 from concurrent.futures import thread as _thread
+from oslo_utils import importutils
 from oslo_utils import reflection
 
-try:
-    from eventlet.green import threading as greenthreading
-    from eventlet import greenpool
-    from eventlet import patcher as greenpatcher
-    from eventlet import queue as greenqueue
-except ImportError:
-    pass
+greenpatcher = importutils.try_import('eventlet.patcher')
+greenpool = importutils.try_import('eventlet.greenpool')
+greenqueue = importutils.try_import('eventlet.queue')
+greenthreading = importutils.try_import('eventlet.green.threading')
 
 from taskflow.types import timing
 from taskflow.utils import eventlet_utils as eu

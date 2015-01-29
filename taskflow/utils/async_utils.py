@@ -16,11 +16,9 @@
 
 from concurrent import futures as _futures
 from concurrent.futures import _base
+from oslo_utils import importutils
 
-try:
-    from eventlet.green import threading as greenthreading
-except ImportError:
-    pass
+greenthreading = importutils.try_import('eventlet.green.threading')
 
 from taskflow.types import futures
 from taskflow.utils import eventlet_utils as eu
