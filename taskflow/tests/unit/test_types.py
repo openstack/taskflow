@@ -125,6 +125,13 @@ class StopWatchTest(test.TestCase):
         tt.StopWatch.set_now_override(now=0)
         self.addCleanup(tt.StopWatch.clear_overrides)
 
+    def test_leftover_no_duration(self):
+        watch = tt.StopWatch()
+        watch.start()
+        self.assertRaises(RuntimeError, watch.leftover)
+        self.assertRaises(RuntimeError, watch.leftover, return_none=False)
+        self.assertIsNone(watch.leftover(return_none=True))
+
     def test_no_states(self):
         watch = tt.StopWatch()
         self.assertRaises(RuntimeError, watch.stop)
