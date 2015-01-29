@@ -28,6 +28,9 @@ sys.path.insert(0, top_dir)
 import taskflow.engines
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
+from taskflow.types import notifier
+
+ANY = notifier.Notifier.ANY
 
 # INTRO: In this example we create two tasks (this time as functions instead
 # of task subclasses as in the simple_linear.py example), each of which ~calls~
@@ -92,8 +95,8 @@ engine = taskflow.engines.load(flow, store={
 # notification objects that a engine exposes. The usage of a '*' (kleene star)
 # here means that we want to be notified on all state changes, if you want to
 # restrict to a specific state change, just register that instead.
-engine.notifier.register('*', flow_watch)
-engine.task_notifier.register('*', task_watch)
+engine.notifier.register(ANY, flow_watch)
+engine.task_notifier.register(ANY, task_watch)
 
 # And now run!
 engine.run()

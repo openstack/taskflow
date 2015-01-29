@@ -34,6 +34,8 @@ from taskflow import task
 from taskflow.types import notifier
 from taskflow.utils import threading_utils
 
+ANY = notifier.Notifier.ANY
+
 # INTRO: This examples shows how to use a remote workers event notification
 # attribute to proxy back task event notifications to the controlling process.
 #
@@ -94,7 +96,7 @@ WORKER_CONF = {
 
 def run(engine_options):
     reporter = EventReporter()
-    reporter.notifier.register(notifier.Notifier.ANY, event_receiver)
+    reporter.notifier.register(ANY, event_receiver)
     flow = lf.Flow('event-reporter').add(reporter)
     eng = engines.load(flow, engine='worker-based', **engine_options)
     eng.run()

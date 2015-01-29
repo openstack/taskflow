@@ -31,6 +31,9 @@ import taskflow.engines
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
+from taskflow.types import notifier
+
+ANY = notifier.Notifier.ANY
 
 import example_utils as eu  # noqa
 
@@ -160,11 +163,11 @@ spec = {
 
 engine = taskflow.engines.load(flow, store={'spec': spec.copy()})
 
-# This registers all (*) state transitions to trigger a call to the flow_watch
-# function for flow state transitions, and registers the same all (*) state
-# transitions for task state transitions.
-engine.notifier.register('*', flow_watch)
-engine.task_notifier.register('*', task_watch)
+# This registers all (ANY) state transitions to trigger a call to the
+# flow_watch function for flow state transitions, and registers the
+# same all (ANY) state transitions for task state transitions.
+engine.notifier.register(ANY, flow_watch)
+engine.task_notifier.register(ANY, task_watch)
 
 eu.print_wrapped("Building a car")
 engine.run()
@@ -176,8 +179,8 @@ engine.run()
 spec['doors'] = 5
 
 engine = taskflow.engines.load(flow, store={'spec': spec.copy()})
-engine.notifier.register('*', flow_watch)
-engine.task_notifier.register('*', task_watch)
+engine.notifier.register(ANY, flow_watch)
+engine.task_notifier.register(ANY, task_watch)
 
 eu.print_wrapped("Building a wrong car that doesn't match specification")
 try:
