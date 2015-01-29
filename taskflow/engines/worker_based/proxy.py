@@ -15,9 +15,9 @@
 #    under the License.
 
 import collections
-import socket
 
 import kombu
+from kombu import exceptions as kombu_exceptions
 import six
 
 from taskflow.engines.worker_based import dispatcher
@@ -191,7 +191,7 @@ class Proxy(object):
         def _drain(conn, timeout):
             try:
                 conn.drain_events(timeout=timeout)
-            except socket.timeout:
+            except kombu_exceptions.TimeoutError:
                 pass
 
         def _drain_errback(exc, interval):
