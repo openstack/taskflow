@@ -7,6 +7,8 @@ Notifications and listeners
     from taskflow import task
     from taskflow.patterns import linear_flow
     from taskflow import engines
+    from taskflow.types import notifier
+    ANY = notifier.Notifier.ANY
 
 --------
 Overview
@@ -57,7 +59,7 @@ A basic example is:
    >>> flo = linear_flow.Flow("cat-dog").add(
    ...   CatTalk(), DogTalk(provides="dog"))
    >>> eng = engines.load(flo, store={'meow': 'meow', 'woof': 'woof'})
-   >>> eng.notifier.register("*", flow_transition)
+   >>> eng.notifier.register(ANY, flow_transition)
    >>> eng.run()
    Flow 'cat-dog' transition to state RUNNING
    meow
@@ -93,7 +95,7 @@ A basic example is:
    >>> flo.add(CatTalk(), DogTalk(provides="dog"))
    <taskflow.patterns.linear_flow.Flow object at 0x...>
    >>> eng = engines.load(flo, store={'meow': 'meow', 'woof': 'woof'})
-   >>> eng.task_notifier.register("*", task_transition)
+   >>> eng.task_notifier.register(ANY, task_transition)
    >>> eng.run()
    Task 'CatTalk' transition to state RUNNING
    meow
