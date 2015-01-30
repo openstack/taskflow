@@ -59,5 +59,5 @@ Tree
 
 .. automodule:: taskflow.types.tree
 
-.. [#f1] See: https://review.openstack.org/#/c/141961 for a proposal to do
+.. [#f1] See: https://review.openstack.org/#/c/141961 for a proposal to
          do this.
