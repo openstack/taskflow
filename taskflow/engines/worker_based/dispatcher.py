@@ -19,6 +19,7 @@ import six
 
 from taskflow import exceptions as excp
 from taskflow import logging
+from taskflow.utils import kombu_utils as ku
 
 LOG = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ class TypeDispatcher(object):
             LOG.critical("Couldn't requeue %r, reason:%r",
                          message.delivery_tag, exc, exc_info=True)
         else:
-            LOG.debug("AMQP message %r requeued.", message.delivery_tag)
+            LOG.debug("Message '%s' was requeued.", ku.DelayedPretty(message))
 
     def _process_message(self, data, message, message_type):
         handler = self._handlers.get(message_type)
@@ -78,7 +79,7 @@ class TypeDispatcher(object):
             message.reject_log_error(logger=LOG,
                                      errors=(kombu_exc.MessageStateError,))
             LOG.warning("Unexpected message type: '%s' in message"
-                        " %r", message_type, message.delivery_tag)
+                        " '%s'", message_type, ku.DelayedPretty(message))
         else:
             if isinstance(handler, (tuple, list)):
                 handler, validator = handler
@@ -87,15 +88,15 @@ class TypeDispatcher(object):
                 except excp.InvalidFormat as e:
                     message.reject_log_error(
                         logger=LOG, errors=(kombu_exc.MessageStateError,))
-                    LOG.warn("Message: %r, '%s' was rejected due to it being"
+                    LOG.warn("Message '%s' (%s) was rejected due to it being"
                              " in an invalid format: %s",
-                             message.delivery_tag, message_type, e)
+                             ku.DelayedPretty(message), message_type, e)
                     return
             message.ack_log_error(logger=LOG,
                                   errors=(kombu_exc.MessageStateError,))
             if message.acknowledged:
-                LOG.debug("AMQP message %r acknowledged.",
-                          message.delivery_tag)
+                LOG.debug("Message '%s' was acknowledged.",
+                          ku.DelayedPretty(message))
                 handler(data, message)
             else:
                 message.reject_log_error(logger=LOG,
@@ -103,7 +104,7 @@ class TypeDispatcher(object):
 
     def on_message(self, data, message):
         """This method is called on incoming messages."""
-        LOG.debug("Got message: %r", message.delivery_tag)
+        LOG.debug("Received message '%s'", ku.DelayedPretty(message))
         if self._collect_requeue_votes(data, message):
             self._requeue_log_error(message,
                                     errors=(kombu_exc.MessageStateError,))
@@ -114,6 +115,6 @@ class TypeDispatcher(object):
                 message.reject_log_error(
                     logger=LOG, errors=(kombu_exc.MessageStateError,))
                 LOG.warning("The 'type' message property is missing"
-                            " in message %r", message.delivery_tag)
+                            " in message '%s'", ku.DelayedPretty(message))
             else:
                 self._process_message(data, message, message_type)

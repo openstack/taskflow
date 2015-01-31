@@ -176,7 +176,8 @@ class Proxy(object):
             LOG.exception('Publishing error: %s', exc)
             LOG.info('Retry triggering in %s seconds', interval)
 
-        LOG.debug("Sending '%s' using routing keys %s", msg, routing_keys)
+        LOG.debug("Sending '%s' message using routing keys %s",
+                  msg, routing_keys)
         with kombu.connections[self._conn].acquire(block=True) as conn:
             with conn.Producer() as producer:
                 ensure_kwargs = self._ensure_options.copy()

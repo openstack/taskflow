@@ -26,6 +26,7 @@ from taskflow import exceptions as exc
 from taskflow import logging
 from taskflow import task as task_atom
 from taskflow.types import timing as tt
+from taskflow.utils import kombu_utils as ku
 from taskflow.utils import misc
 from taskflow.utils import threading_utils as tu
 
@@ -73,7 +74,8 @@ class WorkerTaskExecutor(executor.TaskExecutor):
     def _process_notify(self, notify, message):
         """Process notify message from remote side."""
         LOG.debug("Started processing notify message '%s'",
-                  message.delivery_tag)
+                  ku.DelayedPretty(message))
+
         topic = notify['topic']
         tasks = notify['tasks']
 
@@ -91,11 +93,13 @@ class WorkerTaskExecutor(executor.TaskExecutor):
     def _process_response(self, response, message):
         """Process response from remote side."""
         LOG.debug("Started processing response message '%s'",
-                  message.delivery_tag)
+                  ku.DelayedPretty(message))
         try:
             task_uuid = message.properties['correlation_id']
         except KeyError:
-            LOG.warning("The 'correlation_id' message property is missing")
+            LOG.warning("The 'correlation_id' message property is"
+                        " missing in message '%s'",
+                        ku.DelayedPretty(message))
         else:
             request = self._requests_cache.get(task_uuid)
             if request is not None:
