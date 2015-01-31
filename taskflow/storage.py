@@ -635,7 +635,8 @@ class Storage(object):
             return results
 
     def fetch_mapped_args(self, args_mapping,
-                          atom_name=None, scope_walker=None):
+                          atom_name=None, scope_walker=None,
+                          optional_args=None):
         """Fetch arguments for an atom using an atoms argument mapping."""
 
         def _get_results(looking_for, provider):
@@ -674,10 +675,14 @@ class Storage(object):
             return []
 
         with self._lock.read_lock():
+            if optional_args is None:
+                optional_args = []
+
             if atom_name and atom_name not in self._atom_name_to_uuid:
                 raise exceptions.NotFound("Unknown atom name: %s" % atom_name)
             if not args_mapping:
                 return {}
+
             # The order of lookup is the following:
             #
             # 1. Injected atom specific arguments.
@@ -711,6 +716,8 @@ class Storage(object):
                     try:
                         possible_providers = self._reverse_mapping[name]
                     except KeyError:
+                        if bound_name in optional_args:
+                            continue
                         raise exceptions.NotFound("Name %r is not mapped as a"
                                                   " produced output by any"
                                                   " providers" % name)

@@ -354,6 +354,20 @@ class StorageTestMixin(object):
         self.assertRaises(exceptions.NotFound,
                           s.fetch_mapped_args, {'viking': 'helmet'})
 
+    def test_fetch_optional_args_found(self):
+        s = self._get_storage()
+        s.inject({'foo': 'bar', 'spam': 'eggs'})
+        self.assertEqual(s.fetch_mapped_args({'viking': 'spam'},
+                                             optional_args=set(['viking'])),
+                         {'viking': 'eggs'})
+
+    def test_fetch_optional_args_not_found(self):
+        s = self._get_storage()
+        s.inject({'foo': 'bar', 'spam': 'eggs'})
+        self.assertEqual(s.fetch_mapped_args({'viking': 'helmet'},
+                                             optional_args=set(['viking'])),
+                         {})
+
     def test_set_and_get_task_state(self):
         s = self._get_storage()
         state = states.PENDING

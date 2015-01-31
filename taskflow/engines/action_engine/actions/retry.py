@@ -54,9 +54,12 @@ class RetryAction(base.Action):
 
     def _get_retry_args(self, retry, addons=None):
         scope_walker = self._walker_factory(retry)
-        arguments = self._storage.fetch_mapped_args(retry.rebind,
-                                                    atom_name=retry.name,
-                                                    scope_walker=scope_walker)
+        arguments = self._storage.fetch_mapped_args(
+            retry.rebind,
+            atom_name=retry.name,
+            scope_walker=scope_walker,
+            optional_args=retry.optional
+        )
         history = self._storage.get_retry_history(retry.name)
         arguments[retry_atom.EXECUTE_REVERT_HISTORY] = history
         if addons:
