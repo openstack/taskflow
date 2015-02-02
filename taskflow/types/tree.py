@@ -53,6 +53,13 @@ class _DFSIter(object):
 class Node(object):
     """A n-ary node class that can be used to create tree structures."""
 
+    # Constants used when pretty formatting the node (and its children).
+    STARTING_PREFIX = ""
+    EMPTY_SPACE_SEP = " "
+    HORIZONTAL_CONN = "__"
+    VERTICAL_CONN = "|"
+    LINE_SEP = os.linesep
+
     def __init__(self, item, **kwargs):
         self.item = item
         self.parent = None
@@ -133,24 +140,24 @@ class Node(object):
         def _inner_pformat(node, level):
             if level == 0:
                 yield six.text_type(node.item)
-                prefix = ""
+                prefix = self.STARTING_PREFIX
             else:
-                yield "__%s" % six.text_type(node.item)
-                prefix = " " * 2
+                yield self.HORIZONTAL_CONN + six.text_type(node.item)
+                prefix = self.EMPTY_SPACE_SEP * len(self.HORIZONTAL_CONN)
             child_count = node.child_count()
             for (i, child) in enumerate(node):
                 for (j, text) in enumerate(_inner_pformat(child, level + 1)):
                     if j == 0 or i + 1 < child_count:
-                        text = prefix + "|" + text
+                        text = prefix + self.VERTICAL_CONN + text
                     else:
-                        text = prefix + " " + text
+                        text = prefix + self.EMPTY_SPACE_SEP + text
                     yield text
         expected_lines = self.child_count(only_direct=False)
         accumulator = six.StringIO()
         for i, line in enumerate(_inner_pformat(self, 0)):
             accumulator.write(line)
             if i < expected_lines:
-                accumulator.write(os.linesep)
+                accumulator.write(self.LINE_SEP)
         return accumulator.getvalue()
 
     def child_count(self, only_direct=True):

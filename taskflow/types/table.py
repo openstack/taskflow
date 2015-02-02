@@ -35,6 +35,8 @@ class PleasantTable(object):
           Josh | San Jose |  CA   |   USA
         +------+----------+-------+---------+
     """
+
+    # Constants used when pretty formatting the table.
     COLUMN_STARTING_CHAR = ' '
     COLUMN_ENDING_CHAR = ''
     COLUMN_SEPARATOR_CHAR = '|'
