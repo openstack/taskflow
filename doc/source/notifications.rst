@@ -175,12 +175,18 @@ Claim listener
 
 .. autoclass:: taskflow.listeners.claims.CheckingClaimListener
 
+Capturing listener
+------------------
+
+.. autoclass:: taskflow.listeners.capturing.CaptureListener
+
 Hierarchy
 ---------
 
 .. inheritance-diagram::
     taskflow.listeners.base.DumpingListener
     taskflow.listeners.base.Listener
+    taskflow.listeners.capturing.CaptureListener
     taskflow.listeners.claims.CheckingClaimListener
     taskflow.listeners.logging.DynamicLoggingListener
     taskflow.listeners.logging.LoggingListener
