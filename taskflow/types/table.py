@@ -49,8 +49,15 @@ class PleasantTable(object):
 
     @classmethod
     def _size_selector(cls, possible_sizes):
-        # The number two is used so that the edges of a column have spaces
-        # around them (instead of being right next to a column separator).
+        """Select the maximum size, utility function for adding borders.
+
+        The number two is used so that the edges of a column have spaces
+        around them (instead of being right next to a column separator).
+
+        :param possible_sizes: possible sizes available
+        :returns: maximum size
+        :rtype: number
+        """
         try:
             return max(x + 2 for x in possible_sizes)
         except ValueError:

@@ -39,7 +39,12 @@ _PERIODIC_ATTRS = tuple([
 
 
 def periodic(spacing, run_immediately=True):
-    """Tags a method/function as wanting/able to execute periodically."""
+    """Tags a method/function as wanting/able to execute periodically.
+
+    :param run_immediately: option to specify whether to run
+                            immediately or not
+    :type run_immediately: boolean
+    """
 
     if spacing <= 0:
         raise ValueError("Periodicity/spacing must be greater than"

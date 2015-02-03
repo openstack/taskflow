@@ -49,10 +49,11 @@ class Latch(object):
     def wait(self, timeout=None):
         """Waits until the latch is released.
 
-        NOTE(harlowja): if a timeout is provided this function will wait
-        until that timeout expires, if the latch has been released before the
-        timeout expires then this will return True, otherwise it will
-        return False.
+        :param timeout: wait until the timeout expires
+        :type timeout: number
+        :returns: true if the latch has been released before the
+                  timeout expires otherwise false
+        :rtype: boolean
         """
         watch = tt.StopWatch(duration=timeout)
         watch.start()

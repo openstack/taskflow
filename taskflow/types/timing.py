@@ -250,8 +250,10 @@ class StopWatch(object):
 
         :param return_none: when ``True`` instead of raising a ``RuntimeError``
                             when no duration has been set this call will
-                            return ``None`` instead.
+                            return ``None`` instead
         :type return_none: boolean
+        :returns: how many seconds left until the watch expires
+        :rtype: number
         """
         if self._state != self._STARTED:
             raise RuntimeError("Can not get the leftover time of a stopwatch"
@@ -265,7 +267,11 @@ class StopWatch(object):
         return max(0.0, self._duration - self.elapsed())
 
     def expired(self):
-        """Returns if the watch has expired (ie, duration provided elapsed)."""
+        """Returns if the watch has expired (ie, duration provided elapsed).
+
+        :returns: if the watch has expired
+        :rtype: boolean
+        """
         if self._state is None:
             raise RuntimeError("Can not check if a stopwatch has expired"
                                " if it has not been started/stopped")
