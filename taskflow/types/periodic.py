@@ -111,11 +111,11 @@ class PeriodicWorker(object):
         self._immediates = []
         now = _now()
         for i, (cb, cb_name) in enumerate(self._callables):
-            spacing = getattr(cb, '_periodic_spacing')
+            spacing = cb._periodic_spacing
             next_run = now + spacing
             heapq.heappush(self._schedule, (next_run, i))
         for (cb, cb_name) in reversed(self._callables):
-            if getattr(cb, '_periodic_run_immediately', False):
+            if cb._periodic_run_immediately:
                 self._immediates.append((cb, cb_name))
 
     def __len__(self):
@@ -154,7 +154,7 @@ class PeriodicWorker(object):
                 when_next = next_run - now
                 if when_next <= 0:
                     cb, cb_name = self._callables[i]
-                    spacing = getattr(cb, '_periodic_spacing')
+                    spacing = cb._periodic_spacing
                     LOG.debug("Calling periodic callable '%s' (it runs every"
                               " %s seconds)", cb_name, spacing)
                     self._safe_call(cb, cb_name)
@@ -175,5 +175,5 @@ class PeriodicWorker(object):
         self._tombstone.clear()
         self._immediates = []
         for (cb, cb_name) in reversed(self._callables):
-            if getattr(cb, '_periodic_run_immediately', False):
+            if cb._periodic_run_immediately:
                 self._immediates.append((cb, cb_name))
