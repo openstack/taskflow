@@ -28,7 +28,6 @@ class Completer(object):
         self._runtime = runtime
         self._analyzer = runtime.analyzer
         self._retry_action = runtime.retry_action
-        self._runtime = runtime
         self._storage = runtime.storage
         self._task_action = runtime.task_action
 
