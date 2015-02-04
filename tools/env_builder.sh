@@ -57,18 +57,19 @@ cd $build_dir
 
 # Get python 2.7 installed (if it's not).
 if [ -z "$python_27" ]; then
-    py_file="Python-2.7.7.tgz"
+    py_version="2.7.9"
+    py_file="Python-$py_version.tgz"
     py_base_file=${py_file%.*}
-    py_url="https://www.python.org/ftp/python/2.7.7/$py_file"
+    py_url="https://www.python.org/ftp/python/$py_version/$py_file"
 
-    Box "Building python 2.7..."
+    Box "Building python 2.7 (version $py_version)..."
     wget $py_url -O "$build_dir/$py_file" --no-check-certificate -nv
     tar -xf "$py_file"
     cd $build_dir/$py_base_file
     ./configure --disable-ipv6 -q
     make --quiet
 
-    Box "Installing python 2.7..."
+    Box "Installing python 2.7 (version $py_version)..."
     make altinstall >/dev/null 2>&1
     python_27=/usr/local/bin/python2.7
 fi
