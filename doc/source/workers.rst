@@ -78,7 +78,7 @@ is designed to accept/publish messages from/into a named exchange.
 High level architecture
 -----------------------
 
-.. image:: img/worker-engine.png
+.. image:: img/worker-engine.svg
    :height: 340px
    :align: right
 
