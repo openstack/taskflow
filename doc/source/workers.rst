@@ -78,8 +78,8 @@ is designed to accept/publish messages from/into a named exchange.
 High level architecture
 -----------------------
 
-.. image:: img/distributed_flow_rpc.png
-   :height: 275px
+.. image:: img/worker-engine.png
+   :height: 340px
    :align: right
 
 Executor and worker communication
