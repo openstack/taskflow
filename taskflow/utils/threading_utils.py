@@ -21,7 +21,7 @@ import threading
 import six
 from six.moves import _thread
 
-from taskflow.utils import misc
+from taskflow.utils import iter_utils
 
 
 def is_alive(thread):
@@ -144,7 +144,7 @@ class ThreadBundle(object):
         """Stops & joins all associated threads (that have been started)."""
         count = 0
         with self._lock:
-            it = misc.reverse_enumerate(self._threads)
+            it = iter_utils.reverse_enumerate(self._threads)
             for i, (builder, thread, started) in it:
                 if not thread or not started:
                     continue

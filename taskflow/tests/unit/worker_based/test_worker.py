@@ -57,11 +57,11 @@ class TestWorker(test.MockTestCase):
         master_mock_calls = [
             mock.call.executor_class(max_workers=None),
             mock.call.Server(self.topic, self.exchange,
-                             self.executor_inst_mock, [],
+                             self.executor_inst_mock, (),
                              url=self.broker_url,
                              transport_options=mock.ANY,
                              transport=mock.ANY,
-                             retry_options=mock.ANY)
+                             retry_options=mock.ANY,)
         ]
         self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
@@ -79,7 +79,7 @@ class TestWorker(test.MockTestCase):
         master_mock_calls = [
             mock.call.executor_class(max_workers=10),
             mock.call.Server(self.topic, self.exchange,
-                             self.executor_inst_mock, [],
+                             self.executor_inst_mock, (),
                              url=self.broker_url,
                              transport_options=mock.ANY,
                              transport=mock.ANY,
@@ -92,7 +92,7 @@ class TestWorker(test.MockTestCase):
         self.worker(executor=executor_mock)
 
         master_mock_calls = [
-            mock.call.Server(self.topic, self.exchange, executor_mock, [],
+            mock.call.Server(self.topic, self.exchange, executor_mock, (),
                              url=self.broker_url,
                              transport_options=mock.ANY,
                              transport=mock.ANY,

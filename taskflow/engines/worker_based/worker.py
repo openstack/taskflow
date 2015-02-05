@@ -18,9 +18,11 @@ import os
 import platform
 import socket
 import sys
+import threading
 
 import futurist
 from oslo_utils import reflection
+import six
 
 from taskflow.engines.worker_based import endpoint
 from taskflow.engines.worker_based import server
@@ -55,12 +57,19 @@ class Worker(object):
                               options imply and are expected to be)
     :param retry_options: retry specific options
                           (see: :py:attr:`~.proxy.Proxy.DEFAULT_RETRY_OPTIONS`)
+    :param advertiser_factory: factory function that will generate a advertiser
+                               that can be used with this worker to advertise
+                               its capabilities via some mechanism (the
+                               default will use the built-in *passive*
+                               mechanism that responds to requests
+                               for a workers capabilities with that workers
+                               capabilities).
     """
 
     def __init__(self, exchange, topic, tasks,
                  executor=None, threads_count=None, url=None,
                  transport=None, transport_options=None,
-                 retry_options=None):
+                 retry_options=None, advertiser_factory=None):
         self._topic = topic
         self._executor = executor
         self._owns_executor = False
@@ -68,13 +77,43 @@ class Worker(object):
             self._executor = futurist.ThreadPoolExecutor(
                 max_workers=threads_count)
             self._owns_executor = True
-        self._endpoints = self._derive_endpoints(tasks)
+        self._endpoints = tuple(self._derive_endpoints(tasks))
         self._exchange = exchange
         self._server = server.Server(topic, exchange, self._executor,
                                      self._endpoints, url=url,
                                      transport=transport,
                                      transport_options=transport_options,
                                      retry_options=retry_options)
+        self._advertiser = None
+        self._advertiser_lock = threading.Lock()
+        if advertiser_factory is not None:
+            if not six.callable(advertiser_factory):
+                raise ValueError("Provided factory used to build worker"
+                                 " advertisers must be callable")
+            self._advertiser_factory = advertiser_factory
+        else:
+            self._advertiser_factory = None
+
+    @property
+    def topic(self):
+        """Topic this worker responds to on (similar to a phone number)."""
+        return self._topic
+
+    @property
+    def endpoints(self):
+        """Read-only list of endpoints/tasks this worker can perform."""
+        return self._endpoints
+
+    def _fetch_advertiser(self):
+        # Lazily populate the advertiser attribute/instance so that subclasses
+        # of workers function correctly (and so that the factory gets a
+        # instance that has been constructed fully, instead of one that is
+        # partially created/under construction...).
+        with self._advertiser_lock:
+            if self._advertiser is None:
+                if self._advertiser_factory is not None:
+                    self._advertiser = self._advertiser_factory(self)
+            return self._advertiser
 
     @staticmethod
     def _derive_endpoints(tasks):
@@ -101,6 +140,9 @@ class Worker(object):
         except OSError:
             pid = "???"
         chapters = {
+            'Worker details': {
+                'Kind': reflection.get_class_name(self),
+            },
             'Connection details': {
                 'Driver': transport_driver,
                 'Exchange': self._exchange,
@@ -121,16 +163,27 @@ class Worker(object):
                 'Thread id': tu.get_ident(),
             },
         }
+        advertiser = self._fetch_advertiser()
+        if advertiser is not None:
+            banner_additions = getattr(advertiser, 'banner_additions', {})
+            if banner_additions:
+                chapters.update(banner_additions)
+
         return banner.make_banner('WBE worker', chapters)
 
     def run(self, display_banner=True, banner_writer=None):
-        """Runs the worker."""
+        """Runs the worker component(s)."""
         if display_banner:
             if banner_writer is None:
                 for line in self.banner.splitlines():
                     LOG.info(line)
             else:
                 banner_writer(self.banner)
+
+        advertiser = self._fetch_advertiser()
+        if advertiser is not None:
+            advertiser.start()
+
         self._server.start()
 
     def wait(self):
@@ -138,10 +191,14 @@ class Worker(object):
         self._server.wait()
 
     def stop(self):
-        """Stop worker."""
+        """Stop the worker component(s)."""
         self._server.stop()
         if self._owns_executor:
             self._executor.shutdown()
+
+        advertiser = self._fetch_advertiser()
+        if advertiser is not None:
+            advertiser.stop()
 
 
 if __name__ == '__main__':
