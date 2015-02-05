@@ -14,9 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import functools
 import threading
 
+from futurist import periodics
 from oslo_utils import timeutils
 import six
 
@@ -24,7 +24,6 @@ from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import dispatcher
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
-from taskflow.engines.worker_based import types as wt
 from taskflow import exceptions as exc
 from taskflow import logging
 from taskflow.task import EVENT_UPDATE_PROGRESS  # noqa
@@ -38,41 +37,68 @@ LOG = logging.getLogger(__name__)
 class WorkerTaskExecutor(executor.TaskExecutor):
     """Executes tasks on remote workers."""
 
-    def __init__(self, uuid, exchange, topics,
+    def __init__(self, topic, exchange, finder_factory,
                  transition_timeout=pr.REQUEST_TIMEOUT,
                  url=None, transport=None, transport_options=None,
-                 retry_options=None, worker_expiry=pr.EXPIRES_AFTER):
-        self._uuid = uuid
+                 retry_options=None):
+        self._topic = topic
         self._ongoing_requests = {}
         self._ongoing_requests_lock = threading.RLock()
         self._transition_timeout = transition_timeout
-        self._proxy = proxy.Proxy(uuid, exchange,
+        type_handlers = {
+            pr.RESPONSE: dispatcher.Handler(self._process_response,
+                                            validator=pr.Response.validate),
+        }
+        self._proxy = proxy.Proxy(topic, exchange,
+                                  type_handlers=type_handlers,
                                   on_wait=self._on_wait, url=url,
                                   transport=transport,
                                   transport_options=transport_options,
                                   retry_options=retry_options)
-        # NOTE(harlowja): This is the most simplest finder impl. that
-        # doesn't have external dependencies (outside of what this engine
-        # already requires); it though does create periodic 'polling' traffic
-        # to workers to 'learn' of the tasks they can perform (and requires
-        # pre-existing knowledge of the topics those workers are on to gather
-        # and update this information).
-        self._finder = wt.ProxyWorkerFinder(uuid, self._proxy, topics,
-                                            worker_expiry=worker_expiry)
-        self._proxy.dispatcher.type_handlers.update({
-            pr.RESPONSE: dispatcher.Handler(self._process_response,
-                                            validator=pr.Response.validate),
-            pr.NOTIFY: dispatcher.Handler(
-                self._finder.process_response,
-                validator=functools.partial(pr.Notify.validate,
-                                            response=True)),
-        })
-        # Thread that will run the message dispatching (and periodically
-        # call the on_wait callback to do various things) loop...
-        self._helper = None
+
+        if not six.callable(finder_factory):
+            raise ValueError("Provided factory used to build worker finders"
+                             " must be callable")
+        self._finder = finder_factory(topic, self._proxy)
+        self._finder.notifier.register(pr.WORKER_LOST, self._reassign_worker_tasks)
+
+        self._helpers = tu.ThreadBundle()
+        self._helpers.bind(lambda: tu.daemon_thread(self._proxy.start),
+                           after_start=lambda t: self._proxy.wait(),
+                           before_join=lambda t: self._proxy.stop())
+        p_worker = periodics.PeriodicWorker.create([self._finder])
+        if p_worker:
+            self._helpers.bind(lambda: tu.daemon_thread(p_worker.start),
+                               before_join=lambda t: p_worker.stop(),
+                               after_join=lambda t: p_worker.reset(),
+                               before_start=lambda t: p_worker.reset())
+        self._activator = misc.Activator([self._finder, self._helpers])
         self._messages_processed = {
             'finder': self._finder.messages_processed,
         }
+
+    def _reassign_worker_tasks(self, state, details):
+        worker_id = details['identity']
+        worker_requests = []
+        with self._ongoing_requests_lock:
+            for request in six.itervalues(self._ongoing_requests):
+                if request.worker and request.worker.identity == worker_id:
+                    worker_requests.append(request)
+
+        for request in worker_requests:
+            request.detach_worker()
+            if request.transition_and_log_error(pr.WAITING, logger=LOG):
+                self._assign_worker_to_request(request, request.task)
+                if request.worker is not None:
+                    LOG.debug("Request %s for task %s has moved from "
+                              "worker %s to worker %s", request.uuid,
+                              request.task, worker_id,
+                              request.worker.identity)
+                else:
+                    LOG.debug("Request %s for task %s has been abandoned "
+                              "from worker %s - no new worker could be "
+                              "found", request.uuid, request.task,
+                              worker_id)
 
     def _process_response(self, response, message):
         """Process response from remote side."""
@@ -180,11 +206,8 @@ class WorkerTaskExecutor(executor.TaskExecutor):
 
     def _on_wait(self):
         """This function is called cyclically between draining events."""
-        # Publish any finding messages (used to locate workers).
-        self._finder.maybe_publish()
-        # If the finder hasn't heard from workers in a given amount
-        # of time, then those workers are likely dead, so clean them out...
-        self._finder.clean()
+        # Discover any new workers
+        self._finder.discover()
         # Process any expired requests or requests that have no current
         # worker located (publish messages for those if we now do have
         # a worker located).
@@ -197,6 +220,7 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         request = pr.Request(task, task_uuid, action, arguments,
                              timeout=self._transition_timeout,
                              result=result, failures=failures)
+
         # Register the callback, so that we can proxy the progress correctly.
         if (progress_callback is not None and
                 task.notifier.can_be_registered(EVENT_UPDATE_PROGRESS)):
@@ -204,10 +228,14 @@ class WorkerTaskExecutor(executor.TaskExecutor):
             request.future.add_done_callback(
                 lambda _fut: task.notifier.deregister(EVENT_UPDATE_PROGRESS,
                                                       progress_callback))
+        return self._assign_worker_to_request(request, task)
+
+    def _assign_worker_to_request(self, request, task):
         # Get task's worker and publish request if worker was found.
         worker = self._finder.get_worker_for_task(task)
         if worker is not None:
             if request.transition_and_log_error(pr.PENDING, logger=LOG):
+                request.attach_worker(worker)
                 with self._ongoing_requests_lock:
                     self._ongoing_requests[request.uuid] = request
                 self._publish_request(request, worker)
@@ -223,11 +251,11 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         LOG.debug("Submitting execution of '%s' to worker '%s' (expecting"
                   " response identified by reply_to=%s and"
                   " correlation_id=%s) - waited %0.3f seconds to"
-                  " get published", request, worker, self._uuid,
+                  " get published", request, worker, self._topic,
                   request.uuid, timeutils.now() - request.created_on)
         try:
             self._proxy.publish(request, worker.topic,
-                                reply_to=self._uuid,
+                                reply_to=self._topic,
                                 correlation_id=request.uuid)
         except Exception:
             with misc.capture_failure() as failure:
@@ -262,23 +290,15 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                                              timeout=timeout)
 
     def start(self):
-        """Starts message processing thread."""
-        if self._helper is not None:
+        """Starts proxy thread and associated topic notification thread."""
+        if self._activator.need_to_be_stopped:
             raise RuntimeError("Worker executor must be stopped before"
                                " it can be started")
-        self._helper = tu.daemon_thread(self._proxy.start)
-        self._helper.start()
-        self._proxy.wait()
+
+        self._activator.start()
 
     def stop(self):
-        """Stops message processing thread."""
-        if self._helper is not None:
-            self._proxy.stop()
-            self._helper.join()
-            self._helper = None
-        with self._ongoing_requests_lock:
-            while self._ongoing_requests:
-                _request_uuid, request = self._ongoing_requests.popitem()
-                self._handle_expired_request(request)
-        self._finder.reset()
-        self._messages_processed['finder'] = self._finder.messages_processed
+        """Stops proxy thread and associated topic notification thread."""
+        self._activator.stop()
+        self._finder.clear()
+        self._ongoing_requests = {}

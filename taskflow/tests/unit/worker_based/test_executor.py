@@ -19,6 +19,7 @@ import time
 
 from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr
+from taskflow.engines.worker_based import types as wt
 from taskflow import task as task_atom
 from taskflow import test
 from taskflow.test import mock
@@ -68,9 +69,12 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.proxy_started_event.clear()
 
     def executor(self, reset_master_mock=True, **kwargs):
-        executor_kwargs = dict(uuid=self.executor_uuid,
+        finder_factory = wt.ProxyWorkerFinder.generate_factory({
+            'topics': [self.executor_topic],
+        })
+        executor_kwargs = dict(topic=self.executor_uuid,
                                exchange=self.executor_exchange,
-                               topics=[self.executor_topic],
+                               finder_factory=finder_factory,
                                url=self.broker_url)
         executor_kwargs.update(kwargs)
         ex = executor.WorkerTaskExecutor(**executor_kwargs)
@@ -85,7 +89,8 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                             on_wait=ex._on_wait,
                             url=self.broker_url, transport=mock.ANY,
                             transport_options=mock.ANY,
-                            retry_options=mock.ANY),
+                            retry_options=mock.ANY,
+                            type_handlers=mock.ANY),
             mock.call.proxy.dispatcher.type_handlers.update(mock.ANY),
         ]
         self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
@@ -193,7 +198,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
     def test_execute_task(self):
         ex = self.executor()
-        ex._finder._add(self.executor_topic, [self.task.name])
+        worker, _ = ex._finder._add(self.executor_topic, [self.task.name])
         ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
@@ -202,6 +207,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                               result=mock.ANY, failures=mock.ANY),
             mock.call.request.transition_and_log_error(pr.PENDING,
                                                        logger=mock.ANY),
+            mock.call.request.attach_worker(worker),
             mock.call.proxy.publish(self.request_inst_mock,
                                     self.executor_topic,
                                     reply_to=self.executor_uuid,
@@ -211,7 +217,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
     def test_revert_task(self):
         ex = self.executor()
-        ex._finder._add(self.executor_topic, [self.task.name])
+        worker, _ = ex._finder._add(self.executor_topic, [self.task.name])
         ex.revert_task(self.task, self.task_uuid, self.task_args,
                        self.task_result, self.task_failures)
 
@@ -222,6 +228,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                               result=self.task_result),
             mock.call.request.transition_and_log_error(pr.PENDING,
                                                        logger=mock.ANY),
+            mock.call.request.attach_worker(worker),
             mock.call.proxy.publish(self.request_inst_mock,
                                     self.executor_topic,
                                     reply_to=self.executor_uuid,
@@ -243,7 +250,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
     def test_execute_task_publish_error(self):
         self.proxy_inst_mock.publish.side_effect = Exception('Woot!')
         ex = self.executor()
-        ex._finder._add(self.executor_topic, [self.task.name])
+        worker, _ = ex._finder._add(self.executor_topic, [self.task.name])
         ex.execute_task(self.task, self.task_uuid, self.task_args)
 
         expected_calls = [
@@ -252,6 +259,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                               result=mock.ANY, failures=mock.ANY),
             mock.call.request.transition_and_log_error(pr.PENDING,
                                                        logger=mock.ANY),
+            mock.call.request.attach_worker(worker),
             mock.call.proxy.publish(self.request_inst_mock,
                                     self.executor_topic,
                                     reply_to=self.executor_uuid,

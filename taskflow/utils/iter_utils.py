@@ -124,6 +124,27 @@ def find_first_match(it, matcher, not_found_value=None):
     return not_found_value
 
 
+def countdown_iter(start_at, decr=1):
+    """Generator that decrements after each generation until <= zero.
+
+    NOTE(harlowja): we can likely remove this when we can use an
+    ``itertools.count`` that takes a step (on py2.6 which we still support
+    that step parameter does **not** exist and therefore can't be used).
+    """
+    if decr <= 0:
+        raise ValueError("Decrement value must be greater"
+                         " than zero and not %s" % decr)
+    while start_at > 0:
+        yield start_at
+        start_at -= decr
+
+
+def reverse_enumerate(items):
+    """Like reversed(enumerate(items)) but with less copying/cloning..."""
+    for i in countdown_iter(len(items)):
+        yield i - 1, items[i - 1]
+
+
 @_ensure_iterable
 def while_is_not(it, stop_value):
     """Yields given values from iterator until stop value is passed.

@@ -435,4 +435,12 @@ Components
 .. automodule:: taskflow.engines.worker_based.worker
 .. automodule:: taskflow.engines.worker_based.types
 
+Finders and advertisers
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: taskflow.engines.worker_based.types.WorkerFinder
+.. autoclass:: taskflow.engines.worker_based.types.ProxyWorkerFinder
+.. autoclass:: taskflow.engines.worker_based.types.ToozWorkerAdvertiser
+.. autoclass:: taskflow.engines.worker_based.types.ToozWorkerFinder
+
 .. _kombu: http://kombu.readthedocs.org/

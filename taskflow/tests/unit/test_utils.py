@@ -17,10 +17,8 @@
 import collections
 import inspect
 import random
-import string
 import time
 
-import six
 import testscenarios
 
 from taskflow import test
@@ -194,54 +192,120 @@ class TestSequenceMinus(test.TestCase):
         self.assertEqual([2, 1], result)
 
 
-class TestReversedEnumerate(testscenarios.TestWithScenarios, test.TestCase):
-    scenarios = [
-        ('ten', {'sample': [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]}),
-        ('empty', {'sample': []}),
-        ('negative', {'sample': [-1, -2, -3]}),
-        ('one', {'sample': [1]}),
-        ('abc', {'sample': ['a', 'b', 'c']}),
-        ('ascii_letters', {'sample': list(string.ascii_letters)}),
-    ]
+class _StartStop(object):
+    def __init__(self, name, started, stopped):
+        self.started = started
+        self.stopped = stopped
+        self.name = name
 
-    def test_sample_equivalence(self):
-        expected = list(reversed(list(enumerate(self.sample))))
-        actual = list(misc.reverse_enumerate(self.sample))
-        self.assertEqual(expected, actual)
+    def start(self):
+        self.started.append(self.name)
+
+    def stop(self):
+        self.stopped.append(self.name)
 
 
-class TestCountdownIter(test.TestCase):
-    def test_expected_count(self):
-        upper = 100
-        it = misc.countdown_iter(upper)
-        items = []
-        for i in it:
-            self.assertEqual(upper, i)
-            upper -= 1
-            items.append(i)
-        self.assertEqual(0, upper)
-        self.assertEqual(100, len(items))
+class _BlowUpOnStopStartStop(_StartStop):
+    def stop(self):
+        raise RuntimeError("broken")
 
-    def test_no_count(self):
-        it = misc.countdown_iter(0)
-        self.assertEqual(0, len(list(it)))
-        it = misc.countdown_iter(-1)
-        self.assertEqual(0, len(list(it)))
 
-    def test_expected_count_custom_decr(self):
-        upper = 100
-        it = misc.countdown_iter(upper, decr=2)
-        items = []
-        for i in it:
-            self.assertEqual(upper, i)
-            upper -= 2
-            items.append(i)
-        self.assertEqual(0, upper)
-        self.assertEqual(50, len(items))
+class _BlowUpOnStartStartStop(_StartStop):
+    def start(self):
+        raise RuntimeError("broken")
 
-    def test_invalid_decr(self):
-        it = misc.countdown_iter(10, -1)
-        self.assertRaises(ValueError, six.next, it)
+
+class TestActivator(test.TestCase):
+    def test_activation_order(self):
+        started = []
+        stopped = []
+        things = [
+            _StartStop('a', started, stopped),
+            _StartStop('b', started, stopped),
+            _StartStop('c', started, stopped),
+        ]
+        a = misc.Activator(things)
+        a.start()
+        self.assertEqual(0, a.need_to_be_started)
+        self.assertEqual(3, a.need_to_be_stopped)
+        self.assertEqual(['a', 'b', 'c'], started)
+        a.stop()
+        self.assertEqual(3, a.need_to_be_started)
+        self.assertEqual(0, a.need_to_be_stopped)
+        self.assertEqual(['c', 'b', 'a'], stopped)
+
+    def test_repeat_start(self):
+        started = []
+        stopped = []
+        things = [
+            _StartStop('a', started, stopped),
+            _StartStop('b', started, stopped),
+            _StartStop('c', started, stopped),
+        ]
+        a = misc.Activator(things)
+        a.start()
+        self.assertEqual(0, a.need_to_be_started)
+        self.assertEqual(3, a.need_to_be_stopped)
+        a.start()
+        self.assertEqual(0, a.need_to_be_started)
+
+    def test_repeat_stop(self):
+        started = []
+        stopped = []
+        things = [
+            _StartStop('a', started, stopped),
+            _StartStop('b', started, stopped),
+            _StartStop('c', started, stopped),
+        ]
+        a = misc.Activator(things)
+        a.start()
+        self.assertEqual(0, a.need_to_be_started)
+        self.assertEqual(3, a.need_to_be_stopped)
+        a.stop()
+        self.assertEqual(0, a.need_to_be_stopped)
+        a.stop()
+        self.assertEqual(0, a.need_to_be_stopped)
+
+    def test_fail_activation(self):
+        started = []
+        stopped = []
+        things = [
+            _StartStop('a', started, stopped),
+            _StartStop('b', started, stopped),
+            _BlowUpOnStartStartStop('c', started, stopped),
+            _StartStop('d', started, stopped),
+        ]
+        a = misc.Activator(things)
+        self.assertRaises(RuntimeError, a.start)
+        self.assertEqual(['a', 'b'], started)
+        self.assertEqual(2, a.need_to_be_started)
+        self.assertEqual(2, a.need_to_be_stopped)
+        a.stop()
+        self.assertEqual(4, a.need_to_be_started)
+        self.assertEqual(['b', 'a'], stopped)
+
+    def test_fail_stop(self):
+        started = []
+        stopped = []
+        things = [
+            _StartStop('a', started, stopped),
+            _StartStop('b', started, stopped),
+            _BlowUpOnStopStartStop('c', started, stopped),
+            _StartStop('d', started, stopped),
+        ]
+        a = misc.Activator(things)
+        a.start()
+        self.assertEqual(4, a.need_to_be_stopped)
+        self.assertEqual(['a', 'b', 'c', 'd'], started)
+        self.assertRaises(RuntimeError, a.stop)
+        self.assertEqual(3, a.need_to_be_stopped)
+        self.assertRaises(RuntimeError, a.stop)
+        self.assertEqual(['d'], stopped)
+        self.assertEqual(3, a.need_to_be_stopped)
+
+    def test_invalid_things(self):
+        for thing in [object(), 1, "", 1.0, False]:
+            self.assertRaises(AttributeError, misc.Activator, [thing])
 
 
 class TestMergeUri(test.TestCase):
@@ -324,7 +388,7 @@ class TestIterable(test.TestCase):
         self.assertTrue(misc.is_iterable(dict()))
 
 
-class TestSafeCopyDict(testscenarios.TestWithScenarios):
+class TestSafeCopyDict(testscenarios.TestWithScenarios, test.TestCase):
     scenarios = [
         ('none', {'original': None, 'expected': {}}),
         ('empty_dict', {'original': {}, 'expected': {}}),
@@ -344,7 +408,7 @@ class TestSafeCopyDict(testscenarios.TestWithScenarios):
         self.assertEqual("c", a['a'])
 
 
-class TestSafeCopyDictRaises(testscenarios.TestWithScenarios):
+class TestSafeCopyDictRaises(testscenarios.TestWithScenarios, test.TestCase):
     scenarios = [
         ('list', {'original': [1, 2], 'exception': TypeError}),
         ('tuple', {'original': (1, 2), 'exception': TypeError}),
