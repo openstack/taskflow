@@ -62,7 +62,8 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         # pre-existing knowledge of the topics those workers are on to gather
         # and update this information).
         self._finder = wt.ProxyWorkerFinder(uuid, self._proxy, topics)
-        self._finder.on_worker = self._on_worker
+        self._finder.notifier.register(wt.WorkerFinder.WORKER_ARRIVED,
+                                       self._on_worker)
         self._helpers = tu.ThreadBundle()
         self._helpers.bind(lambda: tu.daemon_thread(self._proxy.start),
                            after_start=lambda t: self._proxy.wait(),
@@ -74,8 +75,9 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                                after_join=lambda t: p_worker.reset(),
                                before_start=lambda t: p_worker.reset())
 
-    def _on_worker(self, worker):
+    def _on_worker(self, event_type, details):
         """Process new worker that has arrived (and fire off any work)."""
+        worker = details['worker']
         for request in self._requests_cache.get_waiting_requests(worker):
             if request.transition_and_log_error(pr.PENDING, logger=LOG):
                 self._publish_request(request, worker)
