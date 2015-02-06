@@ -49,17 +49,14 @@ class StorageTestMixin(object):
         for t in threads:
             t.join()
 
-    def _get_storage(self, flow_detail=None, threaded=False):
+    def _get_storage(self, flow_detail=None):
         if flow_detail is None:
             _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
-        storage_cls = storage.SingleThreadedStorage
-        if threaded:
-            storage_cls = storage.MultiThreadedStorage
-        return storage_cls(flow_detail=flow_detail, backend=self.backend)
+        return storage.Storage(flow_detail=flow_detail, backend=self.backend)
 
     def test_non_saving_storage(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
-        s = storage.SingleThreadedStorage(flow_detail=flow_detail)
+        s = storage.Storage(flow_detail=flow_detail)
         s.ensure_atom(test_utils.NoopTask('my_task'))
         self.assertTrue(uuidutils.is_uuid_like(s.get_atom_uuid('my_task')))
 
@@ -311,7 +308,7 @@ class StorageTestMixin(object):
         })
 
     def test_many_thread_ensure_same_task(self):
-        s = self._get_storage(threaded=True)
+        s = self._get_storage()
 
         def ensure_my_task():
             s.ensure_atom(test_utils.NoopTask('my_task'))
@@ -325,7 +322,7 @@ class StorageTestMixin(object):
         self.assertEqual(1, len(s._flowdetail))
 
     def test_many_thread_inject(self):
-        s = self._get_storage(threaded=True)
+        s = self._get_storage()
 
         def inject_values(values):
             s.inject(values)

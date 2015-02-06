@@ -241,36 +241,6 @@ class ReaderWriterLock(object):
                     self._cond.release()
 
 
-class DummyReaderWriterLock(object):
-    """A dummy reader/writer lock.
-
-    This dummy lock doesn't lock anything but provides the same functions as a
-    normal reader/writer lock class and can be useful in unit tests or other
-    similar scenarios (do *not* use it if locking is actually required).
-    """
-    @contextlib.contextmanager
-    def write_lock(self):
-        yield self
-
-    @contextlib.contextmanager
-    def read_lock(self):
-        yield self
-
-    @property
-    def owner(self):
-        return None
-
-    def is_reader(self):
-        return False
-
-    def is_writer(self, check_pending=True):
-        return False
-
-    @property
-    def has_pending_writers(self):
-        return False
-
-
 class MultiLock(object):
     """A class which attempts to obtain & release many locks at once.
 

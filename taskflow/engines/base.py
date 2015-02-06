@@ -19,6 +19,7 @@ import abc
 
 import six
 
+from taskflow import storage
 from taskflow.types import notifier
 from taskflow.utils import deprecation
 from taskflow.utils import misc
@@ -74,11 +75,7 @@ class Engine(object):
     @misc.cachedproperty
     def storage(self):
         """The storage unit for this flow."""
-        return self._storage_factory(self._flow_detail, self._backend)
-
-    @abc.abstractproperty
-    def _storage_factory(self):
-        """Storage factory that will be used to generate storage objects."""
+        return storage.Storage(self._flow_detail, backend=self._backend)
 
     @abc.abstractmethod
     def compile(self):

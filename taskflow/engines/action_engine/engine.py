@@ -28,7 +28,6 @@ from taskflow.engines.action_engine import runtime
 from taskflow.engines import base
 from taskflow import exceptions as exc
 from taskflow import states
-from taskflow import storage as atom_storage
 from taskflow.types import failure
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
@@ -218,7 +217,6 @@ class ActionEngine(base.Engine):
 
 class SerialActionEngine(ActionEngine):
     """Engine that runs tasks in serial manner."""
-    _storage_factory = atom_storage.SingleThreadedStorage
 
     def __init__(self, flow, flow_detail, backend, options):
         super(SerialActionEngine, self).__init__(flow, flow_detail,
@@ -275,8 +273,6 @@ String (case insensitive)    Executor used
     .. |cft| replace:: concurrent.futures.thread
     .. |cf| replace:: concurrent.futures
     """
-
-    _storage_factory = atom_storage.MultiThreadedStorage
 
     # One of these types should match when a object (non-string) is provided
     # for the 'executor' option.

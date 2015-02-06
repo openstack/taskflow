@@ -279,6 +279,11 @@ Implementations
 .. automodule:: taskflow.persistence.backends.impl_sqlalchemy
 .. automodule:: taskflow.persistence.backends.impl_zookeeper
 
+Storage
+=======
+
+.. automodule:: taskflow.storage
+
 Hierarchy
 =========
 
