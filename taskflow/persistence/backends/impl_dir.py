@@ -109,6 +109,9 @@ class Connection(base.Connection):
     def _write_to(self, filename, contents):
         if isinstance(contents, six.text_type):
             contents = contents.encode('utf-8')
+        abs_dir = os.path.dirname(filename)
+        if not os.path.exists(abs_dir):
+            os.makedirs(abs_dir)
         with open(filename, 'wb') as fp:
             fp.write(contents)
         self._file_cache.pop(filename, None)
