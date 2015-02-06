@@ -243,6 +243,16 @@ parent_uuid  VARCHAR   False
     See :py:class:`~taskflow.persistence.backends.impl_sqlalchemy.SQLAlchemyBackend`
     for implementation details.
 
+.. warning::
+
+    Currently there is a size limit (not applicable for ``sqlite``) that the
+    ``results`` will contain. This size limit will restrict how many prior
+    failures a retry atom can contain. More information and a future fix
+    will be posted to bug `1416088`_ (for the meantime try to ensure that
+    your retry units history does not grow beyond ~80 prior results).
+
+.. _1416088: http://bugs.launchpad.net/taskflow/+bug/1416088
+
 Zookeeper
 ---------
 
