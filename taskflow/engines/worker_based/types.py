@@ -26,6 +26,7 @@ import six
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import logging
 from taskflow.types import cache as base
+from taskflow.types import notifier
 from taskflow.types import periodic
 from taskflow.types import timing as tt
 from taskflow.utils import kombu_utils as ku
@@ -99,9 +100,12 @@ class TopicWorker(object):
 class WorkerFinder(object):
     """Base class for worker finders..."""
 
+    #: Event type emitted when a new worker arrives.
+    WORKER_ARRIVED = 'worker_arrived'
+
     def __init__(self):
         self._cond = threading.Condition()
-        self.on_worker = None
+        self.notifier = notifier.RestrictedNotifier([self.WORKER_ARRIVED])
 
     @abc.abstractmethod
     def _total_workers(self):
@@ -214,8 +218,8 @@ class ProxyWorkerFinder(WorkerFinder):
                           " total workers are currently known)", worker,
                           self._total_workers())
                 self._cond.notify_all()
-        if self.on_worker is not None and new_or_updated:
-            self.on_worker(worker)
+        if new_or_updated:
+            self.notifier.notify(self.WORKER_ARRIVED, {'worker': worker})
 
     def clear(self):
         with self._cond:
