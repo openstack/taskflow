@@ -242,9 +242,9 @@ This stage starts by setting up the storage needed for all atoms in the
 previously created graph, ensuring that corresponding
 :py:class:`~taskflow.persistence.logbook.AtomDetail` (or subclass of) objects
 are created for each node in the graph. Once this is done final validation
-occurs on the requirements that are needed to start execution and what storage
-provides.  If there is any atom or flow requirements not satisfied then
-execution will not be allowed to continue.
+occurs on the requirements that are needed to start execution and what
+:py:class:`~taskflow.storage.Storage` provides.  If there is any atom or flow
+requirements not satisfied then execution will not be allowed to continue.
 
 Execution
 ---------
@@ -311,7 +311,8 @@ atoms result will be examined and finalized using a
 :py:class:`~taskflow.engines.action_engine.completer.Completer` implementation.
 It typically will persist results to a provided persistence backend (saved
 into the corresponding :py:class:`~taskflow.persistence.logbook.AtomDetail`
-and :py:class:`~taskflow.persistence.logbook.FlowDetail` objects) and reflect
+and :py:class:`~taskflow.persistence.logbook.FlowDetail` objects via the
+:py:class:`~taskflow.storage.Storage` helper) and reflect
 the new state of the atom. At this point what typically happens falls into two
 categories, one for if that atom failed and one for if it did not. If the atom
 failed it may be set to a new intention such as ``RETRY`` or

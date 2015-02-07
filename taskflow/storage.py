@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import abc
 import contextlib
 
 from oslo_utils import reflection
@@ -107,9 +106,8 @@ def _item_from_first_of(providers, looking_for):
         " extraction" % (looking_for, providers))
 
 
-@six.add_metaclass(abc.ABCMeta)
 class Storage(object):
-    """Interface between engines and logbook.
+    """Interface between engines and logbook and its backend (if any).
 
     This class provides a simple interface to save atoms of a given flow and
     associated activity and results to persistence layer (logbook,
@@ -119,15 +117,21 @@ class Storage(object):
     """
 
     injector_name = '_TaskFlow_INJECTOR'
+    """Injector task detail name.
+
+    This task detail is a **special** detail that will be automatically
+    created and saved to store **persistent** injected values (name conflicts
+    with it must be avoided) that are *global* to the flow being executed.
+    """
 
     def __init__(self, flow_detail, backend=None):
         self._result_mappings = {}
         self._reverse_mapping = {}
         self._backend = backend
         self._flowdetail = flow_detail
-        self._lock = self._lock_cls()
         self._transients = {}
         self._injected_args = {}
+        self._lock = lock_utils.ReaderWriterLock()
 
         # NOTE(imelnikov): failure serialization looses information,
         # so we cache failures here, in atom name -> failure mapping.
@@ -149,16 +153,6 @@ class Storage(object):
             names = six.iterkeys(injector_td.results)
             self._set_result_mapping(injector_td.name,
                                      dict((name, name) for name in names))
-
-    @abc.abstractproperty
-    def _lock_cls(self):
-        """Lock class used to generate reader/writer locks.
-
-        These locks are used for protecting read/write access to the
-        underlying storage backend when internally mutating operations occur.
-        They ensure that we read and write data in a consistent manner when
-        being used in a multithreaded situation.
-        """
 
     def _with_connection(self, functor, *args, **kwargs):
         # NOTE(harlowja): Activate the given function with a backend
@@ -771,13 +765,3 @@ class Storage(object):
                     histories.append((ad.name,
                                       self._translate_into_history(ad)))
         return histories
-
-
-class MultiThreadedStorage(Storage):
-    """Storage that uses locks to protect against concurrent access."""
-    _lock_cls = lock_utils.ReaderWriterLock
-
-
-class SingleThreadedStorage(Storage):
-    """Storage that uses dummy locks when you really don't need locks."""
-    _lock_cls = lock_utils.DummyReaderWriterLock

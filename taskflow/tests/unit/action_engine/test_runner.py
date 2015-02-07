@@ -35,7 +35,7 @@ class _RunnerTestMixin(object):
     def _make_runtime(self, flow, initial_state=None):
         compilation = compiler.PatternCompiler(flow).compile()
         flow_detail = pu.create_flow_detail(flow)
-        store = storage.SingleThreadedStorage(flow_detail)
+        store = storage.Storage(flow_detail)
         # This ensures the tasks exist in storage...
         for task in compilation.execution_graph:
             store.ensure_atom(task)

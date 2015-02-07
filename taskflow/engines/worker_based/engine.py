@@ -17,7 +17,6 @@
 from taskflow.engines.action_engine import engine
 from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr
-from taskflow import storage as t_storage
 
 
 class WorkerBasedActionEngine(engine.ActionEngine):
@@ -45,8 +44,6 @@ class WorkerBasedActionEngine(engine.ActionEngine):
     :param retry_options: retry specific options
                           (see: :py:attr:`~.proxy.Proxy.DEFAULT_RETRY_OPTIONS`)
     """
-
-    _storage_factory = t_storage.SingleThreadedStorage
 
     def __init__(self, flow, flow_detail, backend, options):
         super(WorkerBasedActionEngine, self).__init__(flow, flow_detail,
