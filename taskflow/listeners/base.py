@@ -18,6 +18,7 @@ from __future__ import absolute_import
 
 import abc
 
+from debtcollector import moves
 from oslo_utils import excutils
 import six
 
@@ -25,7 +26,6 @@ from taskflow import logging
 from taskflow import states
 from taskflow.types import failure
 from taskflow.types import notifier
-from taskflow.utils import deprecation
 
 LOG = logging.getLogger(__name__)
 
@@ -165,10 +165,8 @@ class Listener(object):
 
 
 # TODO(harlowja): remove in 0.7 or later...
-ListenerBase = deprecation.moved_inheritable_class(Listener,
-                                                   'ListenerBase', __name__,
-                                                   version="0.6",
-                                                   removal_version="?")
+ListenerBase = moves.moved_class(Listener, 'ListenerBase', __name__,
+                                 version="0.6", removal_version="?")
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -213,10 +211,9 @@ class DumpingListener(Listener):
 
 
 # TODO(harlowja): remove in 0.7 or later...
-class LoggingBase(deprecation.moved_inheritable_class(DumpingListener,
-                                                      'LoggingBase', __name__,
-                                                      version="0.6",
-                                                      removal_version="?")):
+class LoggingBase(moves.moved_class(DumpingListener,
+                                    'LoggingBase', __name__,
+                                    version="0.6", removal_version="?")):
 
     def _dump(self, message, *args, **kwargs):
         self._log(message, *args, **kwargs)

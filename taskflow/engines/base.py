@@ -17,11 +17,11 @@
 
 import abc
 
+from debtcollector import moves
 import six
 
 from taskflow import storage
 from taskflow.types import notifier
-from taskflow.utils import deprecation
 from taskflow.utils import misc
 
 
@@ -56,8 +56,8 @@ class Engine(object):
         return self._notifier
 
     @property
-    @deprecation.moved_property('atom_notifier', version="0.6",
-                                removal_version="?")
+    @moves.moved_property('atom_notifier', version="0.6",
+                          removal_version="?")
     def task_notifier(self):
         """The task notifier."""
         return self._atom_notifier
@@ -113,7 +113,5 @@ class Engine(object):
 
 
 # TODO(harlowja): remove in 0.7 or later...
-EngineBase = deprecation.moved_inheritable_class(Engine,
-                                                 'EngineBase', __name__,
-                                                 version="0.6",
-                                                 removal_version="?")
+EngineBase = moves.moved_class(Engine, 'EngineBase', __name__,
+                               version="0.6", removal_version="?")

@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from debtcollector import moves
+
 from taskflow.conductors.backends import impl_blocking
 from taskflow.utils import deprecation
 
@@ -23,6 +25,6 @@ deprecation.removed_module(__name__,
                            version="0.8", removal_version="?")
 
 # TODO(harlowja): remove this proxy/legacy class soon...
-SingleThreadedConductor = deprecation.moved_inheritable_class(
+SingleThreadedConductor = moves.moved_class(
     impl_blocking.BlockingConductor, 'SingleThreadedConductor',
     __name__, version="0.8", removal_version="?")
