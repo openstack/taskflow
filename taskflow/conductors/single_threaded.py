@@ -20,7 +20,7 @@ from taskflow.listeners import logging as logging_listener
 from taskflow import logging
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
-from taskflow.utils import lock_utils
+from taskflow.utils import deprecation
 from taskflow.utils import threading_utils
 
 LOG = logging.getLogger(__name__)
@@ -65,22 +65,22 @@ class SingleThreadedConductor(base.Conductor):
             raise ValueError("Invalid timeout literal: %s" % (wait_timeout))
         self._dead = threading_utils.Event()
 
-    @lock_utils.locked
+    @deprecation.removed_kwarg('timeout')
     def stop(self, timeout=None):
         """Requests the conductor to stop dispatching.
 
         This method can be used to request that a conductor stop its
-        consumption & dispatching loop. It returns whether the stop request
-        was successfully completed. If the dispatching is still occurring
-        then False is returned otherwise True will be returned to signal that
-        the conductor is no longer consuming & dispatching job requests.
+        consumption & dispatching loop.
 
-        NOTE(harlowja): If a timeout is provided the dispatcher loop may
-        not have ceased by the timeout reached (the request to cease will
-        be honored in the future) and False will be returned indicating this.
+        The method returns immediately regardless of whether the conductor has
+        been stopped.
+
+        :param timeout: This parameter is deprecated and is present for
+                        backward compatibility.  In order to wait for the
+                        conductor to gracefully shut down, :meth:`wait` should
+                        be used.
         """
         self._wait_timeout.interrupt()
-        return self._dead.wait(timeout)
 
     @property
     def dispatching(self):
@@ -158,3 +158,16 @@ class SingleThreadedConductor(base.Conductor):
                     self._wait_timeout.wait()
         finally:
             self._dead.set()
+
+    def wait(self, timeout=None):
+        """Waits for the conductor to gracefully exit.
+
+        This method waits for the conductor to gracefully exit.  An optional
+        timeout can be provided, which will cause the method to return
+        within the specified timeout.  If the timeout is reached, the returned
+        value will be False.
+
+        :param timeout: Maximum number of seconds that the :meth:`wait` method
+                        should block for.
+        """
+        return self._dead.wait(timeout)

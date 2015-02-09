@@ -80,8 +80,9 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
         with close_many(components.conductor, components.client):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
+            components.conductor.stop()
             self.assertTrue(
-                components.conductor.stop(test_utils.WAIT_TIMEOUT))
+                components.conductor.wait(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
             t.join()
 
@@ -104,7 +105,8 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
             components.board.post('poke', lb,
                                   details={'flow_uuid': fd.uuid})
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
-            self.assertTrue(components.conductor.stop(test_utils.WAIT_TIMEOUT))
+            components.conductor.stop()
+            self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
 
         persistence = components.persistence
@@ -133,7 +135,8 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
             components.board.post('poke', lb,
                                   details={'flow_uuid': fd.uuid})
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
-            self.assertTrue(components.conductor.stop(test_utils.WAIT_TIMEOUT))
+            components.conductor.stop()
+            self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
 
         persistence = components.persistence
