@@ -151,6 +151,15 @@ class TreeTest(test.TestCase):
         self.assertEqual(['mammal', 'horse', 'primate',
                           'monkey', 'human', 'reptile'], things)
 
+    def test_bfs_iter(self):
+        root = self._make_species()
+        things = list([n.item for n in root.bfs_iter(include_self=True)])
+        self.assertEqual(['animal', 'reptile', 'mammal', 'primate',
+                          'horse', 'human', 'monkey'], things)
+        things = list([n.item for n in root.bfs_iter(include_self=False)])
+        self.assertEqual(['reptile', 'mammal', 'primate',
+                          'horse', 'human', 'monkey'], things)
+
 
 class StopWatchTest(test.TestCase):
     def setUp(self):
