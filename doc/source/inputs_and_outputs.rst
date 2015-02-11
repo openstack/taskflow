@@ -129,9 +129,10 @@ of the engine helpers (:py:func:`~taskflow.engines.helpers.run` or
    {'dog': 'dog', 'meow': 'meow', 'woof': 'woof'}
 
 You can also directly interact with the engine storage layer to add additional
-values, note that if this route is used you can't use
-:py:func:`~taskflow.engines.helpers.run` in this case to run your engine
-(instead your must activate the engines run method directly):
+values, note that if this route is used you can't use the helper method
+:py:func:`~taskflow.engines.helpers.run`. Instead,
+you must activate the engine's run method directly
+:py:func:`~taskflow.engines.base.EngineBase.run`:
 
 .. doctest::
 
