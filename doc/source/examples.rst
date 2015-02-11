@@ -94,6 +94,18 @@ Watching execution timing
     :linenos:
     :lines: 16-
 
+Distance calculator
+===================
+
+.. note::
+
+    Full source located at :example:`distance_calculator`
+
+.. literalinclude:: ../../taskflow/examples/distance_calculator.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Table multiplier (in parallel)
 ==============================
 

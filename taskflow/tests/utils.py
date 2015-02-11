@@ -157,6 +157,12 @@ class FailingTask(ProgressingTask):
         raise RuntimeError('Woot!')
 
 
+class OptionalTask(task.Task):
+    def execute(self, a, b=5):
+        result = a * b
+        return result
+
+
 class TaskWithFailure(task.Task):
 
     def execute(self, **kwargs):

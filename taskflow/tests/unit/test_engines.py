@@ -104,6 +104,51 @@ class EngineTaskTest(object):
         self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
 
 
+class EngineOptionalRequirementsTest(utils.EngineTestBase):
+    def test_expected_optional_multiplers(self):
+        flow_no_inject = lf.Flow("flow")
+        flow_no_inject.add(utils.OptionalTask(provides='result'))
+
+        flow_inject_a = lf.Flow("flow")
+        flow_inject_a.add(utils.OptionalTask(provides='result',
+                                             inject={'a': 10}))
+
+        flow_inject_b = lf.Flow("flow")
+        flow_inject_b.add(utils.OptionalTask(provides='result',
+                                             inject={'b': 1000}))
+
+        engine = self._make_engine(flow_no_inject, store={'a': 3})
+        engine.run()
+        result = engine.storage.fetch_all()
+        self.assertEqual(result, {'a': 3, 'result': 15})
+
+        engine = self._make_engine(flow_no_inject,
+                                   store={'a': 3, 'b': 7})
+        engine.run()
+        result = engine.storage.fetch_all()
+        self.assertEqual(result, {'a': 3, 'b': 7, 'result': 21})
+
+        engine = self._make_engine(flow_inject_a, store={'a': 3})
+        engine.run()
+        result = engine.storage.fetch_all()
+        self.assertEqual(result, {'a': 3, 'result': 50})
+
+        engine = self._make_engine(flow_inject_a, store={'a': 3, 'b': 7})
+        engine.run()
+        result = engine.storage.fetch_all()
+        self.assertEqual(result, {'a': 3, 'b': 7, 'result': 70})
+
+        engine = self._make_engine(flow_inject_b, store={'a': 3})
+        engine.run()
+        result = engine.storage.fetch_all()
+        self.assertEqual(result, {'a': 3, 'result': 3000})
+
+        engine = self._make_engine(flow_inject_b, store={'a': 3, 'b': 7})
+        engine.run()
+        result = engine.storage.fetch_all()
+        self.assertEqual(result, {'a': 3, 'b': 7, 'result': 3000})
+
+
 class EngineLinearFlowTest(utils.EngineTestBase):
 
     def test_run_empty_flow(self):
@@ -601,14 +646,17 @@ class SerialEngineTest(EngineTaskTest,
                        EngineLinearFlowTest,
                        EngineParallelFlowTest,
                        EngineLinearAndUnorderedExceptionsTest,
+                       EngineOptionalRequirementsTest,
                        EngineGraphFlowTest,
                        EngineCheckingTaskTest,
                        test.TestCase):
-    def _make_engine(self, flow, flow_detail=None):
+    def _make_engine(self, flow,
+                     flow_detail=None, store=None):
         return taskflow.engines.load(flow,
                                      flow_detail=flow_detail,
                                      engine='serial',
-                                     backend=self.backend)
+                                     backend=self.backend,
+                                     store=store)
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
@@ -623,18 +671,21 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
                                     EngineLinearFlowTest,
                                     EngineParallelFlowTest,
                                     EngineLinearAndUnorderedExceptionsTest,
+                                    EngineOptionalRequirementsTest,
                                     EngineGraphFlowTest,
                                     EngineCheckingTaskTest,
                                     test.TestCase):
     _EXECUTOR_WORKERS = 2
 
-    def _make_engine(self, flow, flow_detail=None, executor=None):
+    def _make_engine(self, flow,
+                     flow_detail=None, executor=None, store=None):
         if executor is None:
             executor = 'threads'
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      backend=self.backend,
                                      executor=executor,
                                      engine='parallel',
+                                     store=store,
                                      max_workers=self._EXECUTOR_WORKERS)
 
     def test_correct_load(self):
@@ -657,23 +708,27 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
                                      EngineLinearFlowTest,
                                      EngineParallelFlowTest,
                                      EngineLinearAndUnorderedExceptionsTest,
+                                     EngineOptionalRequirementsTest,
                                      EngineGraphFlowTest,
                                      EngineCheckingTaskTest,
                                      test.TestCase):
 
-    def _make_engine(self, flow, flow_detail=None, executor=None):
+    def _make_engine(self, flow,
+                     flow_detail=None, executor=None, store=None):
         if executor is None:
             executor = futures.GreenThreadPoolExecutor()
             self.addCleanup(executor.shutdown)
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      backend=self.backend, engine='parallel',
-                                     executor=executor)
+                                     executor=executor,
+                                     store=store)
 
 
 class ParallelEngineWithProcessTest(EngineTaskTest,
                                     EngineLinearFlowTest,
                                     EngineParallelFlowTest,
                                     EngineLinearAndUnorderedExceptionsTest,
+                                    EngineOptionalRequirementsTest,
                                     EngineGraphFlowTest,
                                     test.TestCase):
     _EXECUTOR_WORKERS = 2
@@ -682,13 +737,15 @@ class ParallelEngineWithProcessTest(EngineTaskTest,
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
         self.assertIsInstance(engine, eng.ParallelActionEngine)
 
-    def _make_engine(self, flow, flow_detail=None, executor=None):
+    def _make_engine(self, flow,
+                     flow_detail=None, executor=None, store=None):
         if executor is None:
             executor = 'processes'
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      backend=self.backend,
                                      engine='parallel',
                                      executor=executor,
+                                     store=store,
                                      max_workers=self._EXECUTOR_WORKERS)
 
 
@@ -696,6 +753,7 @@ class WorkerBasedEngineTest(EngineTaskTest,
                             EngineLinearFlowTest,
                             EngineParallelFlowTest,
                             EngineLinearAndUnorderedExceptionsTest,
+                            EngineOptionalRequirementsTest,
                             EngineGraphFlowTest,
                             test.TestCase):
     def setUp(self):
@@ -740,9 +798,11 @@ class WorkerBasedEngineTest(EngineTaskTest,
         self.worker_thread.join()
         super(WorkerBasedEngineTest, self).tearDown()
 
-    def _make_engine(self, flow, flow_detail=None):
+    def _make_engine(self, flow,
+                     flow_detail=None, store=None):
         return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     backend=self.backend, **self.engine_conf)
+                                     backend=self.backend,
+                                     store=store, **self.engine_conf)
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
