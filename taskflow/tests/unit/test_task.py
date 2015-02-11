@@ -120,10 +120,19 @@ class TaskTest(test.TestCase):
     def test_requires_ignores_optional(self):
         my_task = DefaultArgTask()
         self.assertEqual(my_task.requires, set(['spam']))
+        self.assertEqual(my_task.optional, set(['eggs']))
 
     def test_requires_allows_optional(self):
         my_task = DefaultArgTask(requires=('spam', 'eggs'))
         self.assertEqual(my_task.requires, set(['spam', 'eggs']))
+        self.assertEqual(my_task.optional, set())
+
+    def test_rebind_includes_optional(self):
+        my_task = DefaultArgTask()
+        self.assertEqual(my_task.rebind, {
+            'spam': 'spam',
+            'eggs': 'eggs',
+        })
 
     def test_rebind_all_args(self):
         my_task = MyTask(rebind={'spam': 'a', 'eggs': 'b', 'context': 'c'})

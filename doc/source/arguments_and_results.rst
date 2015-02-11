@@ -22,9 +22,12 @@ are and how to use those ways to accomplish your desired usage pattern.
 
     Task/retry arguments
         Set of names of task/retry arguments available as the ``requires``
-        property of the task/retry instance. When a task or retry object is
-        about to be executed values with these names are retrieved from storage
-        and passed to the ``execute`` method of the task/retry.
+        and/or ``optional`` property of the task/retry instance. When a task or
+        retry object is about to be executed values with these names are
+        retrieved from storage and passed to the ``execute`` method of the
+        task/retry.  If any names in the ``requires`` property cannot be
+        found in storage, an exception will be thrown.  Any names in the
+        ``optional`` property that cannot be found are ignored.
 
     Task/retry results
         Set of names of task/retry results (what task/retry provides) available
@@ -53,32 +56,26 @@ method of a task (or the |retry.execute| of a retry object).
 .. doctest::
 
     >>> class MyTask(task.Task):
-    ...     def execute(self, spam, eggs):
+    ...     def execute(self, spam, eggs, bacon=None):
     ...         return spam + eggs
     ...
     >>> sorted(MyTask().requires)
     ['eggs', 'spam']
+    >>> sorted(MyTask().optional)
+    ['bacon']
 
 Inference from the method signature is the ''simplest'' way to specify
-arguments. Optional arguments (with default values), and special arguments like
-``self``, ``*args`` and ``**kwargs`` are ignored during inference (as these
-names have special meaning/usage in python).
+arguments. Special arguments like ``self``, ``*args`` and ``**kwargs`` are
+ignored during inference (as these names have special meaning/usage in python).
 
 .. doctest::
 
-    >>> class MyTask(task.Task):
-    ...     def execute(self, spam, eggs=()):
-    ...         return spam + eggs
-    ...
-    >>> MyTask().requires
-    set(['spam'])
-    >>>
     >>> class UniTask(task.Task):
     ...     def execute(self, *args, **kwargs):
     ...         pass
     ...
     >>> UniTask().requires
-    set([])
+    frozenset([])
 
 .. make vim sphinx highlighter* happy**
 

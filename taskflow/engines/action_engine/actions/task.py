@@ -101,9 +101,12 @@ class TaskAction(base.Action):
     def schedule_execution(self, task):
         self.change_state(task, states.RUNNING, progress=0.0)
         scope_walker = self._walker_factory(task)
-        arguments = self._storage.fetch_mapped_args(task.rebind,
-                                                    atom_name=task.name,
-                                                    scope_walker=scope_walker)
+        arguments = self._storage.fetch_mapped_args(
+            task.rebind,
+            atom_name=task.name,
+            scope_walker=scope_walker,
+            optional_args=task.optional
+        )
         if task.notifier.can_be_registered(task_atom.EVENT_UPDATE_PROGRESS):
             progress_callback = functools.partial(self._on_update_progress,
                                                   task)
@@ -124,9 +127,12 @@ class TaskAction(base.Action):
     def schedule_reversion(self, task):
         self.change_state(task, states.REVERTING, progress=0.0)
         scope_walker = self._walker_factory(task)
-        arguments = self._storage.fetch_mapped_args(task.rebind,
-                                                    atom_name=task.name,
-                                                    scope_walker=scope_walker)
+        arguments = self._storage.fetch_mapped_args(
+            task.rebind,
+            atom_name=task.name,
+            scope_walker=scope_walker,
+            optional_args=task.optional
+        )
         task_uuid = self._storage.get_atom_uuid(task.name)
         task_result = self._storage.get(task.name)
         failures = self._storage.get_failures()
