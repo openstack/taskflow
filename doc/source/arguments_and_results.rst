@@ -215,7 +215,7 @@ name of the value.
     ...        return 42
     ...
     >>> TheAnswerReturningTask(provides='the_answer').provides
-    set(['the_answer'])
+    frozenset(['the_answer'])
 
 Returning a tuple
 +++++++++++++++++

@@ -135,12 +135,28 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
 
 @six.add_metaclass(abc.ABCMeta)
 class Atom(object):
-    """An abstract flow atom that causes a flow to progress (in some manner).
+    """An unit of work that causes a flow to progress (in some manner).
 
-    An atom is a named object that operates with input flow data to perform
+    An atom is a named object that operates with input data to perform
     some action that furthers the overall flows progress. It usually also
     produces some of its own named output as a result of this process.
 
+    NOTE(harlowja): there can be no intersection between what this atom
+    requires and what it produces (since this would be an impossible
+    dependency to satisfy).
+
+    :param name: Meaningful name for this atom, should be something that is
+                 distinguishable and understandable for notification,
+                 debugging, storing and any other similar purposes.
+    :param provides: A set, string or list of items that
+                     this will be providing (or could provide) to others, used
+                     to correlate and associate the thing/s this atom
+                     produces, if it produces anything at all.
+    :param inject: An *immutable* input_name => value dictionary which
+                   specifies  any initial inputs that should be automatically
+                   injected into the atoms scope before the atom execution
+                   commences (this allows for providing atom *local* values
+                   that do not need to be provided by other atoms/dependents).
     :ivar version: An *immutable* version that associates version information
                    with this atom. It can be useful in resuming older versions
                    of atoms. Standard major, minor versioning concepts
@@ -156,43 +172,31 @@ class Atom(object):
                   the names that this atom expects (in a way this is like
                   remapping a namespace of another atom into the namespace
                   of this atom).
-    :param name: Meaningful name for this atom, should be something that is
-                 distinguishable and understandable for notification,
-                 debugging, storing and any other similar purposes.
-    :param provides: A set, string or list of items that
-                     this will be providing (or could provide) to others, used
-                     to correlate and associate the thing/s this atom
-                     produces, if it produces anything at all.
-    :param inject: An *immutable* input_name => value dictionary which
-                  specifies  any initial inputs that should be automatically
-                  injected into the atoms scope before the atom execution
-                  commences (this allows for providing atom *local* values that
-                  do not need to be provided by other atoms/dependents).
     :ivar inject: See parameter ``inject``.
-    :ivar requires: Any inputs this atom requires to function (if applicable).
-                    NOTE(harlowja): there can be no intersection between what
-                    this atom requires and what it produces (since this would
-                    be an impossible dependency to satisfy).
-    :ivar optional: Any inputs that are optional for this atom's execute
-                    method.
-
+    :ivar name: See parameter ``name``.
+    :ivar requires: An *immutable* set of inputs this atom requires to
+                    function.
+    :ivar optional: An *immutable* set of inputs that are optional for this
+                    atom to function.
+    :ivar provides: An *immutable* set of outputs this atom produces.
     """
 
     def __init__(self, name=None, provides=None, inject=None):
-        self._name = name
+        self.name = name
         self.save_as = _save_as_to_mapping(provides)
         self.version = (1, 0)
         self.inject = inject
         self.requires = frozenset()
         self.optional = frozenset()
+        self.provides = frozenset(self.save_as)
+        self.rebind = {}
 
     def _build_arg_mapping(self, executor, requires=None, rebind=None,
                            auto_extract=True, ignore_list=None):
         req_arg, opt_arg = _build_arg_mapping(self.name, requires, rebind,
                                               executor, auto_extract,
                                               ignore_list)
-
-        self.rebind = {}
+        self.rebind.clear()
         if opt_arg:
             self.rebind.update(opt_arg)
         if req_arg:
@@ -203,7 +207,6 @@ class Atom(object):
             inject_set = set(six.iterkeys(self.inject))
             self.requires -= inject_set
             self.optional -= inject_set
-
         out_of_order = self.provides.intersection(self.requires)
         if out_of_order:
             raise exceptions.DependencyFailure(
@@ -219,23 +222,8 @@ class Atom(object):
     def revert(self, *args, **kwargs):
         """Reverts this atom (undoing any :meth:`execute` side-effects)."""
 
-    @property
-    def name(self):
-        """A non-unique name for this atom (human readable)."""
-        return self._name
-
     def __str__(self):
         return "%s==%s" % (self.name, misc.get_version_string(self))
 
     def __repr__(self):
         return '<%s %s>' % (reflection.get_class_name(self), self)
-
-    @property
-    def provides(self):
-        """Any outputs this atom produces.
-
-        NOTE(harlowja): there can be no intersection between what this atom
-        requires and what it produces (since this would be an impossible
-        dependency to satisfy).
-        """
-        return set(self.save_as)
