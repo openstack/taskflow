@@ -142,6 +142,15 @@ class TreeTest(test.TestCase):
         self.assertEqual(set(['animal', 'reptile', 'mammal', 'horse',
                               'primate', 'monkey', 'human']), set(things))
 
+    def test_dfs_itr_order(self):
+        root = self._make_species()
+        things = list([n.item for n in root.dfs_iter(include_self=True)])
+        self.assertEqual(['animal', 'mammal', 'horse', 'primate',
+                          'monkey', 'human', 'reptile'], things)
+        things = list([n.item for n in root.dfs_iter(include_self=False)])
+        self.assertEqual(['mammal', 'horse', 'primate',
+                          'monkey', 'human', 'reptile'], things)
+
 
 class StopWatchTest(test.TestCase):
     def setUp(self):

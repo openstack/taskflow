@@ -40,8 +40,7 @@ class _DFSIter(object):
         if self.include_self:
             stack.append(self.root)
         else:
-            for child_node in self.root:
-                stack.append(child_node)
+            stack.extend(self.root.reverse_iter())
         while stack:
             node = stack.pop()
             # Visit the node.
