@@ -147,7 +147,7 @@ class SingleThreadedConductor(base.Conductor):
                             self._jobboard.consume(job, self._name)
                         else:
                             self._jobboard.abandon(job, self._name)
-                    except excp.JobFailure:
+                    except (excp.JobFailure, excp.NotFound):
                         if consume:
                             LOG.warn("Failed job consumption: %s", job,
                                      exc_info=True)
