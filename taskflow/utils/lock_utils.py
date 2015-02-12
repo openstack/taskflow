@@ -80,9 +80,11 @@ def locked(*args, **kwargs):
 
         @six.wraps(f)
         def wrapper(self, *args, **kwargs):
-            lock = getattr(self, attr_name)
-            if isinstance(lock, (tuple, list)):
-                lock = MultiLock(locks=list(lock))
+            attr_value = getattr(self, attr_name)
+            if isinstance(attr_value, (tuple, list)):
+                lock = MultiLock(attr_value)
+            else:
+                lock = attr_value
             with lock:
                 return f(self, *args, **kwargs)
 
