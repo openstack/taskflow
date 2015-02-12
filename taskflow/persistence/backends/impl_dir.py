@@ -36,8 +36,12 @@ def _storagefailure_wrapper():
         raise
     except Exception as e:
         if isinstance(e, (IOError, OSError)) and e.errno == errno.ENOENT:
-            raise exc.NotFound('Item not found: %s' % e.filename, e)
-        raise exc.StorageFailure("Storage backend internal error", e)
+            exc.raise_with_cause(exc.NotFound,
+                                 'Item not found: %s' % e.filename,
+                                 cause=e)
+        else:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Storage backend internal error", cause=e)
 
 
 class DirBackend(path_based.PathBasedBackend):

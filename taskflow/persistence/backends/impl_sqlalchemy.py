@@ -405,16 +405,18 @@ class Connection(base.Connection):
                     self._metadata.create_all(bind=conn)
                 else:
                     migration.db_sync(conn)
-        except sa_exc.SQLAlchemyError as e:
-            raise exc.StorageFailure("Failed upgrading database version", e)
+        except sa_exc.SQLAlchemyError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed upgrading database version")
 
     def clear_all(self):
         try:
             logbooks = self._tables.logbooks
             with self._engine.begin() as conn:
                 conn.execute(logbooks.delete())
-        except sa_exc.DBAPIError as e:
-            raise exc.StorageFailure("Failed clearing all entries", e)
+        except sa_exc.DBAPIError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed clearing all entries")
 
     def update_atom_details(self, atom_detail):
         try:
@@ -429,9 +431,10 @@ class Connection(base.Connection):
                 e_ad = self._converter.convert_atom_detail(row)
                 self._update_atom_details(conn, atom_detail, e_ad)
             return e_ad
-        except sa_exc.SQLAlchemyError as e:
-            raise exc.StorageFailure("Failed updating atom details with"
-                                     " uuid '%s'" % atom_detail.uuid, e)
+        except sa_exc.SQLAlchemyError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed updating atom details"
+                                 " with uuid '%s'" % atom_detail.uuid)
 
     def _insert_flow_details(self, conn, fd, parent_uuid):
         value = fd.to_dict()
@@ -479,9 +482,10 @@ class Connection(base.Connection):
                 self._converter.populate_flow_detail(conn, e_fd)
                 self._update_flow_details(conn, flow_detail, e_fd)
             return e_fd
-        except sa_exc.SQLAlchemyError as e:
-            raise exc.StorageFailure("Failed updating flow details with"
-                                     " uuid '%s'" % flow_detail.uuid, e)
+        except sa_exc.SQLAlchemyError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed updating flow details with"
+                                 " uuid '%s'" % flow_detail.uuid)
 
     def destroy_logbook(self, book_uuid):
         try:
@@ -492,9 +496,9 @@ class Connection(base.Connection):
                 if r.rowcount == 0:
                     raise exc.NotFound("No logbook found with"
                                        " uuid '%s'" % book_uuid)
-        except sa_exc.DBAPIError as e:
-            raise exc.StorageFailure("Failed destroying"
-                                     " logbook '%s'" % book_uuid, e)
+        except sa_exc.DBAPIError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed destroying logbook '%s'" % book_uuid)
 
     def save_logbook(self, book):
         try:
@@ -523,9 +527,10 @@ class Connection(base.Connection):
                     for fd in book:
                         self._insert_flow_details(conn, fd, book.uuid)
                     return book
-        except sa_exc.DBAPIError as e:
-            raise exc.StorageFailure("Failed saving logbook"
-                                     " '%s'" % book.uuid, e)
+        except sa_exc.DBAPIError:
+            exc.raise_with_cause(
+                exc.StorageFailure,
+                "Failed saving logbook '%s'" % book.uuid)
 
     def get_logbook(self, book_uuid, lazy=False):
         try:
@@ -541,9 +546,9 @@ class Connection(base.Connection):
                 if not lazy:
                     self._converter.populate_book(conn, book)
                 return book
-        except sa_exc.DBAPIError as e:
-            raise exc.StorageFailure(
-                "Failed getting logbook '%s'" % book_uuid, e)
+        except sa_exc.DBAPIError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed getting logbook '%s'" % book_uuid)
 
     def get_logbooks(self, lazy=False):
         gathered = []
@@ -555,8 +560,9 @@ class Connection(base.Connection):
                     if not lazy:
                         self._converter.populate_book(conn, book)
                     gathered.append(book)
-        except sa_exc.DBAPIError as e:
-            raise exc.StorageFailure("Failed getting logbooks", e)
+        except sa_exc.DBAPIError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed getting logbooks")
         for book in gathered:
             yield book
 
@@ -568,8 +574,10 @@ class Connection(base.Connection):
                     if not lazy:
                         self._converter.populate_flow_detail(conn, fd)
                     gathered.append(fd)
-        except sa_exc.DBAPIError as e:
-            raise exc.StorageFailure("Failed getting flow details", e)
+        except sa_exc.DBAPIError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed getting flow details in"
+                                 " logbook '%s'" % book_uuid)
         for flow_details in gathered:
             yield flow_details
 
@@ -587,9 +595,10 @@ class Connection(base.Connection):
                 if not lazy:
                     self._converter.populate_flow_detail(conn, fd)
                 return fd
-        except sa_exc.SQLAlchemyError as e:
-            raise exc.StorageFailure("Failed getting flow details with"
-                                     " uuid '%s'" % fd_uuid, e)
+        except sa_exc.SQLAlchemyError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed getting flow details with"
+                                 " uuid '%s'" % fd_uuid)
 
     def get_atom_details(self, ad_uuid):
         try:
@@ -602,9 +611,10 @@ class Connection(base.Connection):
                     raise exc.NotFound("No atom details found with uuid"
                                        " '%s'" % ad_uuid)
                 return self._converter.convert_atom_detail(row)
-        except sa_exc.SQLAlchemyError as e:
-            raise exc.StorageFailure("Failed getting atom details with"
-                                     " uuid '%s'" % ad_uuid, e)
+        except sa_exc.SQLAlchemyError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed getting atom details with"
+                                 " uuid '%s'" % ad_uuid)
 
     def get_atoms_for_flow(self, fd_uuid):
         gathered = []
@@ -612,8 +622,10 @@ class Connection(base.Connection):
             with contextlib.closing(self._engine.connect()) as conn:
                 for ad in self._converter.atom_query_iter(conn, fd_uuid):
                     gathered.append(ad)
-        except sa_exc.DBAPIError as e:
-            raise exc.StorageFailure("Failed getting atom details", e)
+        except sa_exc.DBAPIError:
+            exc.raise_with_cause(exc.StorageFailure,
+                                 "Failed getting atom details in flow"
+                                 " detail '%s'" % fd_uuid)
         for atom_details in gathered:
             yield atom_details
 
