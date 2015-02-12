@@ -160,6 +160,28 @@ def renamed_kwarg(old_name, new_name, message=None,
     return decorator
 
 
+def removed_kwarg(old_name, message=None,
+                  version=None, removal_version=None, stacklevel=3):
+    """Decorates a kwarg accepting function to deprecate a removed kwarg."""
+
+    prefix = _KWARG_MOVED_PREFIX_TPL % old_name
+    out_message = _generate_moved_message(prefix, postfix=None,
+                                          message=message, version=version,
+                                          removal_version=removal_version)
+
+    def decorator(f):
+
+        @six.wraps(f)
+        def wrapper(*args, **kwargs):
+            if old_name in kwargs:
+                deprecation(out_message, stacklevel=stacklevel)
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 def _moved_decorator(kind, new_attribute_name, message=None,
                      version=None, removal_version=None,
                      stacklevel=3):
