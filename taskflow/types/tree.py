@@ -102,6 +102,9 @@ class Node(object):
         This will search not only this node but also any children nodes and
         finally if nothing is found then None is returned instead of a node
         object.
+
+        :param item: item to lookup.
+        :returns: the node for an item if it exists in this node
         """
         for n in self.dfs_iter(include_self=True):
             if n.item == item:
@@ -109,7 +112,12 @@ class Node(object):
         return None
 
     def __contains__(self, item):
-        """Returns if this item exists in this node or this nodes children."""
+        """Returns whether item exists in this node or this nodes children.
+
+        :returns: if the item exists in this node or nodes children,
+                  true if the item exists, false otherwise
+        :rtype: boolean
+        """
         return self.find(item) is not None
 
     def __getitem__(self, index):

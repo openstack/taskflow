@@ -29,6 +29,18 @@ class _Listener(object):
     """Internal helper that represents a notification listener/target."""
 
     def __init__(self, callback, args=None, kwargs=None, details_filter=None):
+        """Initialize members
+
+        :param callback: callback function
+        :param details_filter: a callback that will be called before the
+                               actual callback that can be used to discard
+                               the event (thus avoiding the invocation of
+                               the actual callback)
+        :param args: non-keyworded arguments
+        :type args: list
+        :param kwargs: key-value pair arguments
+        :type kwargs: dictionary
+        """
         self._callback = callback
         self._details_filter = details_filter
         if not args:
@@ -64,6 +76,13 @@ class _Listener(object):
         return "<%s>" % repr_msg
 
     def is_equivalent(self, callback, details_filter=None):
+        """Check if the callback is same
+
+        :param callback: callback used for comparison
+        :param details_filter: callback used for comparison
+        :returns: false if not the same callback, otherwise true
+        :rtype: boolean
+        """
         if not reflection.is_same_callback(self._callback, callback):
             return False
         if details_filter is not None:
@@ -105,14 +124,22 @@ class Notifier(object):
         self._listeners = collections.defaultdict(list)
 
     def __len__(self):
-        """Returns how many callbacks are registered."""
+        """Returns how many callbacks are registered.
+
+        :returns: count of how many callbacks are registered
+        :rtype: number
+        """
         count = 0
         for (_event_type, listeners) in six.iteritems(self._listeners):
             count += len(listeners)
         return count
 
     def is_registered(self, event_type, callback, details_filter=None):
-        """Check if a callback is registered."""
+        """Check if a callback is registered.
+
+        :returns: checks if the callback is registered
+        :rtype: boolean
+        """
         for listener in self._listeners.get(event_type, []):
             if listener.is_equivalent(callback, details_filter=details_filter):
                 return True
@@ -134,7 +161,8 @@ class Notifier(object):
 
         :param event_type: event type that occurred
         :param details: additional event details *dictionary* passed to
-                        callback keyword argument with the same name.
+                        callback keyword argument with the same name
+        :type details: dictionary
         """
         if not self.can_trigger_notification(event_type):
             LOG.debug("Event type '%s' is not allowed to trigger"
@@ -165,6 +193,13 @@ class Notifier(object):
         :meth:`.notify` method (if a details filter callback is provided then
         the target callback will *only* be triggered if the details filter
         callback returns a truthy value).
+
+        :param event_type: event type input
+        :param callback: function callback to be registered.
+        :param args: non-keyworded arguments
+        :type args: list
+        :param kwargs: key-value pair arguments
+        :type kwargs: dictionary
         """
         if not six.callable(callback):
             raise ValueError("Event callback must be callable")
@@ -189,7 +224,10 @@ class Notifier(object):
                       details_filter=details_filter))
 
     def deregister(self, event_type, callback, details_filter=None):
-        """Remove a single listener bound to event ``event_type``."""
+        """Remove a single listener bound to event ``event_type``.
+
+        :param event_type: deregister listener bound to event_type
+        """
         if event_type not in self._listeners:
             return False
         for i, listener in enumerate(self._listeners.get(event_type, [])):
@@ -199,7 +237,10 @@ class Notifier(object):
         return False
 
     def deregister_event(self, event_type):
-        """Remove a group of listeners bound to event ``event_type``."""
+        """Remove a group of listeners bound to event ``event_type``.
+
+        :param event_type: deregister listeners bound to event_type
+        """
         return len(self._listeners.pop(event_type, []))
 
     def copy(self):
@@ -220,7 +261,12 @@ class Notifier(object):
         return True
 
     def can_trigger_notification(self, event_type):
-        """Checks if the event can trigger a notification."""
+        """Checks if the event can trigger a notification.
+
+        :param event_type: event that needs to be verified
+        :returns: whether the event can trigger a notification
+        :rtype: boolean
+        """
         if event_type in self._DISALLOWED_NOTIFICATION_EVENTS:
             return False
         else:
@@ -251,7 +297,12 @@ class RestrictedNotifier(Notifier):
             yield event_type
 
     def can_be_registered(self, event_type):
-        """Checks if the event can be registered/subscribed to."""
+        """Checks if the event can be registered/subscribed to.
+
+        :param event_type: event that needs to be verified
+        :returns: whether the event can be registered/subscribed to
+        :rtype: boolean
+        """
         return (event_type in self._watchable_events or
                 (event_type == self.ANY and self._allow_any))
 

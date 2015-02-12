@@ -54,6 +54,11 @@ class _Gatherer(object):
             self._stats = ExecutorStatistics()
 
     def _capture_stats(self, watch, fut):
+        """Capture statistics
+
+        :param watch: stopwatch object
+        :param fut: future object
+        """
         watch.stop()
         with self._stats_lock:
             # Use a new collection and lock so that all mutations are seen as
@@ -79,6 +84,7 @@ class _Gatherer(object):
                                              cancelled=cancelled)
 
     def submit(self, fn, *args, **kwargs):
+        """Submit work to be executed and capture statistics."""
         watch = timing.StopWatch()
         if self._start_before_submit:
             watch.start()
@@ -301,7 +307,13 @@ class GreenThreadPoolExecutor(_futures.Executor):
         return self._gatherer.statistics
 
     def submit(self, fn, *args, **kwargs):
-        """Submit some work to be executed (and gather statistics)."""
+        """Submit some work to be executed (and gather statistics).
+
+        :param args: non-keyworded arguments
+        :type args: list
+        :param kwargs: key-value arguments
+        :type kwargs: dictionary
+        """
         with self._shutdown_lock:
             if self._shutdown:
                 raise RuntimeError('Can not schedule new futures'
@@ -316,6 +328,12 @@ class GreenThreadPoolExecutor(_futures.Executor):
         return f
 
     def _spin_up(self, work):
+        """Spin up a greenworker if less than max_workers.
+
+        :param work: work to be given to the greenworker
+        :returns: whether a green worker was spun up or not
+        :rtype: boolean
+        """
         alive = self._pool.running() + self._pool.waiting()
         if alive < self._max_workers:
             self._pool.spawn_n(_GreenWorker(self, work, self._delayed_work))
@@ -350,28 +368,46 @@ class ExecutorStatistics(object):
 
     @property
     def failures(self):
-        """How many submissions ended up raising exceptions."""
+        """How many submissions ended up raising exceptions.
+
+        :returns: how many submissions ended up raising exceptions
+        :rtype: number
+        """
         return self._failures
 
     @property
     def executed(self):
-        """How many submissions were executed (failed or not)."""
+        """How many submissions were executed (failed or not).
+
+        :returns: how many submissions were executed
+        :rtype: number
+        """
         return self._executed
 
     @property
     def runtime(self):
-        """Total runtime of all submissions executed (failed or not)."""
+        """Total runtime of all submissions executed (failed or not).
+
+        :returns: total runtime of all submissions executed
+        :rtype: number
+        """
         return self._runtime
 
     @property
     def cancelled(self):
-        """How many submissions were cancelled before executing."""
+        """How many submissions were cancelled before executing.
+
+        :returns: how many submissions were cancelled before executing
+        :rtype: number
+        """
         return self._cancelled
 
     @property
     def average_runtime(self):
         """The average runtime of all submissions executed.
 
+        :returns: average runtime of all submissions executed
+        :rtype: number
         :raises: ZeroDivisionError when no executions have occurred.
         """
         return self._runtime / self._executed

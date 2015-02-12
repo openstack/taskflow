@@ -76,13 +76,23 @@ class FSM(object):
 
     @property
     def current_state(self):
+        """Return the current state name.
+
+        :returns: current state name
+        :rtype: string
+        """
         if self._current is not None:
             return self._current.name
         return None
 
     @property
     def terminated(self):
-        """Returns whether the state machine is in a terminal state."""
+        """Returns whether the state machine is in a terminal state.
+
+        :returns: whether the state machine is in
+                  terminal state or not
+        :rtype: boolean
+        """
         if self._current is None:
             return False
         return self._states[self._current.name]['terminal']
@@ -90,11 +100,16 @@ class FSM(object):
     def add_state(self, state, terminal=False, on_enter=None, on_exit=None):
         """Adds a given state to the state machine.
 
-        The on_enter and on_exit callbacks, if provided will be expected to
-        take two positional parameters, these being the state being exited (for
-        on_exit) or the state being entered (for on_enter) and a second
-        parameter which is the event that is being processed that caused the
-        state transition.
+        :param on_enter: callback, if provided will be expected to take
+                         two positional parameters, these being state being
+                         entered and the second parameter is the event that is
+                         being processed that caused the state transition
+        :param on_exit: callback, if provided will be expected to take
+                         two positional parameters, these being state being
+                         entered and the second parameter is the event that is
+                         being processed that caused the state transition
+        :param state: state being entered or exited
+        :type state: string
         """
         if self.frozen:
             raise FrozenMachine()
@@ -117,22 +132,22 @@ class FSM(object):
     def add_reaction(self, state, event, reaction, *args, **kwargs):
         """Adds a reaction that may get triggered by the given event & state.
 
+        :param state: the last stable state expressed
+        :type state: string
+        :param event: event that caused the transition
+        :param args: non-keyworded arguments
+        :type args: list
+        :param kwargs: key-value pair arguments
+        :type kwargs: dictionary
+
         Reaction callbacks may (depending on how the state machine is ran) be
-        used after an event is processed (and a transition occurs) to cause the
-        machine to react to the newly arrived at stable state.
-
-        These callbacks are expected to accept three default positional
-        parameters (although more can be passed in via *args and **kwargs,
-        these will automatically get provided to the callback when it is
-        activated *ontop* of the three default). The three default parameters
-        are the last stable state, the new stable state and the event that
-        caused the transition to this new stable state to be arrived at.
-
-        The expected result of a callback is expected to be a new event that
-        the callback wants the state machine to react to. This new event
-        may (depending on how the state machine is ran) get processed (and
-        this process typically repeats) until the state machine reaches a
-        terminal state.
+        used after an event is processed (and a transition occurs) to cause
+        the machine to react to the newly arrived at stable state. The
+        expected result of a callback is expected to be a
+        new event that the callback wants the state machine to react to.
+        This new event may (depending on how the state machine is ran) get
+        processed (and this process typically repeats) until the state
+        machine reaches a terminal state.
         """
         if self.frozen:
             raise FrozenMachine()
@@ -148,7 +163,12 @@ class FSM(object):
                                  " already defined" % (state, event))
 
     def add_transition(self, start, end, event):
-        """Adds an allowed transition from start -> end for the given event."""
+        """Adds an allowed transition from start -> end for the given event.
+
+        :param start: start of the transition
+        :param end: end of the transition
+        :param event: event that caused the transition
+        """
         if self.frozen:
             raise FrozenMachine()
         if start not in self._states:
@@ -164,7 +184,10 @@ class FSM(object):
                                                 self._states[start]['on_exit'])
 
     def process_event(self, event):
-        """Trigger a state change in response to the provided event."""
+        """Trigger a state change in response to the provided event.
+
+        :param event: event to be processed to cause a potential transition
+        """
         current = self._current
         if current is None:
             raise NotInitialized("Can only process events after"
@@ -256,7 +279,14 @@ class FSM(object):
                 event = cb(old_state, new_state, event, *args, **kwargs)
 
     def __contains__(self, state):
-        """Returns if this state exists in the machines known states."""
+        """Returns if this state exists in the machines known states.
+
+        :param state: input state
+        :type state: string
+        :returns: checks whether the state exists in the machine
+                  known states
+        :rtype: boolean
+        """
         return state in self._states
 
     def freeze(self):
@@ -270,7 +300,11 @@ class FSM(object):
 
     @property
     def events(self):
-        """Returns how many events exist."""
+        """Returns how many events exist.
+
+        :returns: how many events exist
+        :rtype: number
+        """
         c = 0
         for state in six.iterkeys(self._states):
             c += len(self._transitions[state])
