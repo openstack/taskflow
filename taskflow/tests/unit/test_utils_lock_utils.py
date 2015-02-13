@@ -24,15 +24,20 @@ from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils as test_utils
 from taskflow.utils import lock_utils
+from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
-# NOTE(harlowja): Sleep a little so time.time() can not be the same (which will
+# NOTE(harlowja): Sleep a little so now() can not be the same (which will
 # cause false positives when our overlap detection code runs). If there are
 # real overlaps then they will still exist.
 NAPPY_TIME = 0.05
 
 # We will spend this amount of time doing some "fake" work.
 WORK_TIMES = [(0.01 + x / 100.0) for x in range(0, 5)]
+
+# Try to use a more accurate time for overlap detection (one that should
+# never go backwards and cause false positives during overlap detection...).
+now = misc.find_monotonic(allow_time_time=True)
 
 
 def _find_overlaps(times, start, end):
@@ -52,17 +57,17 @@ def _spawn_variation(readers, writers, max_workers=None):
             # TODO(harlowja): sometime in the future use a monotonic clock here
             # to avoid problems that can be caused by ntpd resyncing the clock
             # while we are actively running.
-            enter_time = time.time()
+            enter_time = now()
             time.sleep(WORK_TIMES[ident % len(WORK_TIMES)])
-            exit_time = time.time()
+            exit_time = now()
             start_stops.append((lock.READER, enter_time, exit_time))
             time.sleep(NAPPY_TIME)
 
     def write_func(ident):
         with lock.write_lock():
-            enter_time = time.time()
+            enter_time = now()
             time.sleep(WORK_TIMES[ident % len(WORK_TIMES)])
-            exit_time = time.time()
+            exit_time = now()
             start_stops.append((lock.WRITER, enter_time, exit_time))
             time.sleep(NAPPY_TIME)
 
@@ -89,6 +94,8 @@ def _spawn_variation(readers, writers, max_workers=None):
 
 
 class MultilockTest(test.TestCase):
+    THREAD_COUNT = 20
+
     def test_empty_error(self):
         self.assertRaises(ValueError,
                           lock_utils.MultiLock, [])
@@ -179,56 +186,63 @@ class MultilockTest(test.TestCase):
 
     def test_acquired_pass(self):
         activated = collections.deque()
+        acquires = collections.deque()
         lock1 = threading.Lock()
         lock2 = threading.Lock()
         n_lock = lock_utils.MultiLock((lock1, lock2))
 
         def critical_section():
-            start = time.time()
-            time.sleep(0.05)
-            end = time.time()
+            start = now()
+            time.sleep(NAPPY_TIME)
+            end = now()
             activated.append((start, end))
 
         def run():
-            with n_lock:
+            with n_lock as gotten:
+                acquires.append(gotten)
                 critical_section()
 
         threads = []
-        for _i in range(0, 20):
+        for _i in range(0, self.THREAD_COUNT):
             t = threading_utils.daemon_thread(run)
             threads.append(t)
             t.start()
         while threads:
             t = threads.pop()
             t.join()
+
+        self.assertEqual(self.THREAD_COUNT, len(acquires))
+        self.assertTrue(all(acquires))
         for (start, end) in activated:
             self.assertEqual(1, _find_overlaps(activated, start, end))
-
         self.assertFalse(lock1.locked())
         self.assertFalse(lock2.locked())
 
     def test_acquired_fail(self):
         activated = collections.deque()
+        acquires = collections.deque()
         lock1 = threading.Lock()
         lock2 = threading.Lock()
         n_lock = lock_utils.MultiLock((lock1, lock2))
 
         def run():
-            with n_lock:
-                start = time.time()
-                time.sleep(0.05)
-                end = time.time()
+            with n_lock as gotten:
+                acquires.append(gotten)
+                start = now()
+                time.sleep(NAPPY_TIME)
+                end = now()
                 activated.append((start, end))
 
         def run_fail():
             try:
-                with n_lock:
+                with n_lock as gotten:
+                    acquires.append(gotten)
                     raise RuntimeError()
             except RuntimeError:
                 pass
 
         threads = []
-        for i in range(0, 20):
+        for i in range(0, self.THREAD_COUNT):
             if i % 2 == 1:
                 target = run_fail
             else:
@@ -240,6 +254,8 @@ class MultilockTest(test.TestCase):
             t = threads.pop()
             t.join()
 
+        self.assertEqual(self.THREAD_COUNT, len(acquires))
+        self.assertTrue(all(acquires))
         for (start, end) in activated:
             self.assertEqual(1, _find_overlaps(activated, start, end))
         self.assertFalse(lock1.locked())
@@ -247,44 +263,52 @@ class MultilockTest(test.TestCase):
 
     def test_double_acquire_single(self):
         activated = collections.deque()
+        acquires = []
 
         def run():
-            start = time.time()
-            time.sleep(0.05)
-            end = time.time()
+            start = now()
+            time.sleep(NAPPY_TIME)
+            end = now()
             activated.append((start, end))
 
         lock1 = threading.RLock()
         lock2 = threading.RLock()
         n_lock = lock_utils.MultiLock((lock1, lock2))
-        with n_lock:
+        with n_lock as gotten:
+            acquires.append(gotten)
             run()
-            with n_lock:
+            with n_lock as gotten:
+                acquires.append(gotten)
                 run()
             run()
 
+        self.assertTrue(all(acquires))
+        self.assertEqual(2, len(acquires))
         for (start, end) in activated:
             self.assertEqual(1, _find_overlaps(activated, start, end))
 
     def test_double_acquire_many(self):
         activated = collections.deque()
+        acquires = collections.deque()
         n_lock = lock_utils.MultiLock((threading.RLock(), threading.RLock()))
 
         def critical_section():
-            start = time.time()
-            time.sleep(0.05)
-            end = time.time()
+            start = now()
+            time.sleep(NAPPY_TIME)
+            end = now()
             activated.append((start, end))
 
         def run():
-            with n_lock:
+            with n_lock as gotten:
+                acquires.append(gotten)
                 critical_section()
-                with n_lock:
+                with n_lock as gotten:
+                    acquires.append(gotten)
                     critical_section()
                 critical_section()
 
         threads = []
-        for i in range(0, 20):
+        for i in range(0, self.THREAD_COUNT):
             t = threading_utils.daemon_thread(run)
             threads.append(t)
             t.start()
@@ -292,6 +316,9 @@ class MultilockTest(test.TestCase):
             t = threads.pop()
             t.join()
 
+        self.assertTrue(all(acquires))
+        self.assertEqual(self.THREAD_COUNT * 2, len(acquires))
+        self.assertEqual(self.THREAD_COUNT * 3, len(activated))
         for (start, end) in activated:
             self.assertEqual(1, _find_overlaps(activated, start, end))
 

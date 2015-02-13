@@ -363,21 +363,19 @@ class MultiLock(object):
         # Cleans off one level of the stack (this is done so that if there
         # are multiple __enter__() and __exit__() pairs active that this will
         # only remove one level (the last one), and not all levels...
-        leftover = self._lock_stacks[-1]
-        while leftover:
-            lock = self._locks[leftover - 1]
+        for left in misc.countdown_iter(self._lock_stacks[-1]):
+            lock_idx = left - 1
+            lock = self._locks[lock_idx]
             try:
                 lock.release()
             except (threading.ThreadError, RuntimeError) as e:
                 # Ensure that we adjust the lock stack under failure so that
                 # if release is attempted again that we do not try to release
                 # the locks we already released...
-                self._lock_stacks[-1] = leftover
+                self._lock_stacks[-1] = left
                 raise threading.ThreadError(
                     "Unable to release lock %s/%s due to '%s'"
-                    % (leftover, len(self._locks), e))
-            else:
-                leftover -= 1
+                    % (left, len(self._locks), e))
         # At the end only clear it off, so that under partial failure we don't
         # lose any locks...
         self._lock_stacks.pop()
