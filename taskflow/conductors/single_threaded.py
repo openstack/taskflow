@@ -65,7 +65,8 @@ class SingleThreadedConductor(base.Conductor):
             raise ValueError("Invalid timeout literal: %s" % (wait_timeout))
         self._dead = threading_utils.Event()
 
-    @deprecation.removed_kwarg('timeout')
+    @deprecation.removed_kwarg('timeout',
+                               version="0.8", removal_version="?")
     def stop(self, timeout=None):
         """Requests the conductor to stop dispatching.
 
@@ -75,10 +76,10 @@ class SingleThreadedConductor(base.Conductor):
         The method returns immediately regardless of whether the conductor has
         been stopped.
 
-        :param timeout: This parameter is deprecated and is present for
-                        backward compatibility.  In order to wait for the
-                        conductor to gracefully shut down, :meth:`wait` should
-                        be used.
+        :param timeout: This parameter is **deprecated** and is present for
+                        backward compatibility **only**. In order to wait for
+                        the conductor to gracefully shut down, :meth:`wait`
+                        should be used instead.
         """
         self._wait_timeout.interrupt()
 
