@@ -36,7 +36,7 @@ class UnorderedFlowTest(test.TestCase):
         self.assertEqual(f.requires, set())
         self.assertEqual(f.provides, set())
 
-        expected = 'taskflow.patterns.unordered_flow.Flow: test; 0'
+        expected = 'taskflow.patterns.unordered_flow.Flow: test(len=0)'
         self.assertEqual(str(f), expected)
 
     def test_unordered_flow_add_nothing(self):

@@ -36,7 +36,7 @@ class LinearFlowTest(test.TestCase):
         self.assertEqual(f.requires, set())
         self.assertEqual(f.provides, set())
 
-        expected = 'taskflow.patterns.linear_flow.Flow: test; 0'
+        expected = 'taskflow.patterns.linear_flow.Flow: test(len=0)'
         self.assertEqual(str(f), expected)
 
     def test_linear_flow_add_nothing(self):
@@ -107,7 +107,7 @@ class LinearFlowTest(test.TestCase):
             (task2, task3, {'invariant': True})
         ])
 
-        expected = 'taskflow.patterns.linear_flow.Flow: test; 3'
+        expected = 'taskflow.patterns.linear_flow.Flow: test(len=3)'
         self.assertEqual(str(f), expected)
 
     def test_linear_flow_with_retry(self):
