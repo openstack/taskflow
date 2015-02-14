@@ -17,6 +17,7 @@
 from kazoo import client
 from kazoo import exceptions as k_exc
 from oslo_utils import reflection
+import retrying
 import six
 from six.moves import zip as compat_zip
 
@@ -138,7 +139,32 @@ def finalize_client(client):
         pass
 
 
-def check_compatible(client, min_version=None, max_version=None):
+def fetch_server_version(client, fetch_attempts):
+    """Fetches the server version but also handles its apparent flakiness.
+
+    The issue @ https://github.com/python-zk/kazoo/issues/274 explains
+    why this happens and how it may become better at some point in the
+    future; once that issue is addressed we should be able to handle this
+    better...
+    """
+    # If for some reason the parsed version is not composed of a 'major.minor'
+    # version we likely got a truncated value back and we should try again...
+    retry_on_result = lambda version: not version or len(version) <= 1
+    retry_on_exception = lambda exc: isinstance(exc, (AttributeError,
+                                                      ValueError))
+    r = retrying.Retrying(retry_on_exception=retry_on_exception,
+                          stop_max_attempt_number=fetch_attempts,
+                          retry_on_result=retry_on_result)
+    try:
+        return r.call(client.server_version)
+    except (AttributeError, ValueError, retrying.RetryError):
+        raise k_exc.KazooException("Unable to fetch useable server"
+                                   " version after trying %s times"
+                                   % (fetch_attempts))
+
+
+def check_compatible(client, min_version=None, max_version=None,
+                     version_fetch_attempts=3):
     """Checks if a kazoo client is backed by a zookeeper server version.
 
     This check will verify that the zookeeper server version that the client
@@ -148,7 +174,7 @@ def check_compatible(client, min_version=None, max_version=None):
     """
     server_version = None
     if min_version:
-        server_version = tuple((int(a) for a in client.server_version()))
+        server_version = fetch_server_version(client, version_fetch_attempts)
         min_version = tuple((int(a) for a in min_version))
         if server_version < min_version:
             pretty_server_version = ".".join([str(a) for a in server_version])
@@ -159,7 +185,8 @@ def check_compatible(client, min_version=None, max_version=None):
                                                          min_version))
     if max_version:
         if server_version is None:
-            server_version = tuple((int(a) for a in client.server_version()))
+            server_version = fetch_server_version(client,
+                                                  version_fetch_attempts)
         max_version = tuple((int(a) for a in max_version))
         if server_version > max_version:
             pretty_server_version = ".".join([str(a) for a in server_version])
