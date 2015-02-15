@@ -16,6 +16,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import os
 
 import six
@@ -47,6 +48,27 @@ class _DFSIter(object):
             yield node
             # Traverse the left & right subtree.
             stack.extend(node.reverse_iter())
+
+
+class _BFSIter(object):
+    """Breadth first iterator (non-recursive) over the child nodes."""
+
+    def __init__(self, root, include_self=False):
+        self.root = root
+        self.include_self = bool(include_self)
+
+    def __iter__(self):
+        q = collections.deque()
+        if self.include_self:
+            q.append(self.root)
+        else:
+            q.extend(self.root.reverse_iter())
+        while q:
+            node = q.popleft()
+            # Visit the node.
+            yield node
+            # Traverse the left & right subtree.
+            q.extend(node.reverse_iter())
 
 
 class Node(object):
@@ -206,3 +228,7 @@ class Node(object):
     def dfs_iter(self, include_self=False):
         """Depth first iteration (non-recursive) over the child nodes."""
         return _DFSIter(self, include_self=include_self)
+
+    def bfs_iter(self, include_self=False):
+        """Breadth first iteration (non-recursive) over the child nodes."""
+        return _BFSIter(self, include_self=include_self)
