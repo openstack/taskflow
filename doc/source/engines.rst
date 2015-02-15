@@ -37,7 +37,7 @@ imperative model involves establishing statements that accomplish a programs
 action (likely using conditionals and such other language features to do this).
 This kind of program embeds the *how* to accomplish a goal while also defining
 *what* the goal actually is (and the state of this is maintained in memory or
-on the stack while these statements execute). In contrast there is the the
+on the stack while these statements execute). In contrast there is the
 declarative model which instead of combining the *how* to accomplish a goal
 along side the *what* is to be accomplished splits these two into only
 declaring what the intended goal is and not the *how*. In TaskFlow terminology
@@ -59,10 +59,10 @@ declarative model) allows for the following functionality to become possible:
   get back into that state when resumption occurs.
 * Enhancing scalability: When a engine is responsible for executing your
   desired work it becomes possible to alter the *how* in the future by creating
-  new types of execution backends (for example the worker model which does not
-  execute locally). Without the decoupling of the *what* and the *how* it is
-  not possible to provide such a feature (since by the very nature of that
-  coupling this kind of functionality is inherently hard to provide).
+  new types of execution backends (for example the `worker`_ model which does
+  not execute locally). Without the decoupling of the *what* and the *how* it
+  is not possible to provide such a feature (since by the very nature of that
+  coupling this kind of functionality is inherently very hard to provide).
 * Enhancing consistency: Since the engine is responsible for executing atoms
   and the associated workflow, it can be one (if not the only) of the primary
   entities that is working to keep the execution model in a consistent state.
@@ -184,6 +184,8 @@ using your desired execution model.
 
 Workers
 -------
+
+.. _worker:
 
 **Engine type**: ``'worker-based'`` or ``'workers'``
 
