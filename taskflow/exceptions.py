@@ -132,7 +132,7 @@ class MissingDependencies(DependencyFailure):
     """
 
     #: Exception message template used when creating an actual message.
-    MESSAGE_TPL = ("%(who)s requires %(requirements)s but no other entity"
+    MESSAGE_TPL = ("'%(who)s' requires %(requirements)s but no other entity"
                    " produces said requirements")
 
     def __init__(self, who, requirements, cause=None):
