@@ -15,6 +15,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
+
 from oslo_utils import reflection
 import six
 
@@ -128,6 +130,7 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
     return required, optional
 
 
+@six.add_metaclass(abc.ABCMeta)
 class Atom(object):
     """An abstract flow atom that causes a flow to progress (in some manner).
 
@@ -204,6 +207,14 @@ class Atom(object):
                 "Atom %(item)s provides %(oo)s that are required "
                 "by this atom"
                 % dict(item=self.name, oo=sorted(out_of_order)))
+
+    @abc.abstractmethod
+    def execute(self, *args, **kwargs):
+        """Executes this atom."""
+
+    @abc.abstractmethod
+    def revert(self, *args, **kwargs):
+        """Reverts this atom (undoing any :meth:`execute` side-effects)."""
 
     @property
     def name(self):
