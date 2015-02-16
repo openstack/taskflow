@@ -71,7 +71,7 @@ class ZkBackend(base.Backend):
         return self._path
 
     def get_connection(self):
-        conn = ZkConnection(self, self._client)
+        conn = ZkConnection(self, self._client, self._conf)
         if not self._validated:
             conn.validate()
             self._validated = True
@@ -88,9 +88,10 @@ class ZkBackend(base.Backend):
 
 
 class ZkConnection(base.Connection):
-    def __init__(self, backend, client):
+    def __init__(self, backend, client, conf):
         self._backend = backend
         self._client = client
+        self._conf = conf
         self._book_path = paths.join(self._backend.path, "books")
         self._flow_path = paths.join(self._backend.path, "flow_details")
         self._atom_path = paths.join(self._backend.path, "atom_details")
@@ -101,7 +102,8 @@ class ZkConnection(base.Connection):
     def validate(self):
         with self._exc_wrapper():
             try:
-                k_utils.check_compatible(self._client, MIN_ZK_VERSION)
+                if self._conf.get('check_compatible', True):
+                    k_utils.check_compatible(self._client, MIN_ZK_VERSION)
             except exc.IncompatibleVersion as e:
                 raise exc.StorageFailure("Backend storage is not a"
                                          " compatible version", e)
