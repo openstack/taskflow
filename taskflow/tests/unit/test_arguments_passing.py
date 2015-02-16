@@ -149,6 +149,16 @@ class ArgumentsPassingTest(utils.EngineTestBase):
                           utils.TaskOneArg,
                           rebind=object())
 
+    def test_long_arg_name(self):
+        flow = utils.LongArgNameTask(requires='long_arg_name',
+                                     provides='result')
+        engine = self._make_engine(flow)
+        engine.storage.inject({'long_arg_name': 1})
+        engine.run()
+        self.assertEqual(engine.storage.fetch_all(), {
+            'long_arg_name': 1, 'result': 1
+        })
+
 
 class SingleThreadedEngineTest(ArgumentsPassingTest,
                                test.TestCase):

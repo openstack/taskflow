@@ -95,6 +95,12 @@ class FakeTask(object):
         pass
 
 
+class LongArgNameTask(task.Task):
+
+    def execute(self, long_arg_name):
+        return long_arg_name
+
+
 if six.PY3:
     RUNTIME_ERROR_CLASSES = ['RuntimeError', 'Exception',
                              'BaseException', 'object']
