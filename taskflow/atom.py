@@ -100,7 +100,10 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
     required = {}
     # add reqs to required mappings
     if reqs:
-        required.update((a, a) for a in reqs)
+        if isinstance(reqs, six.string_types):
+            required.update({reqs: reqs})
+        else:
+            required.update((a, a) for a in reqs)
 
     # add req_args to required mappings if do_infer is set
     if do_infer:
