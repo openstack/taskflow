@@ -23,6 +23,7 @@ import threading
 from oslo_utils import reflection
 import six
 
+from taskflow.engines.worker_based import dispatcher
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import logging
 from taskflow.types import cache as base
@@ -165,10 +166,10 @@ class ProxyWorkerFinder(WorkerFinder):
         self._workers = {}
         self._uuid = uuid
         self._proxy.dispatcher.type_handlers.update({
-            pr.NOTIFY: [
+            pr.NOTIFY: dispatcher.Handler(
                 self._process_response,
-                functools.partial(pr.Notify.validate, response=True),
-            ],
+                validator=functools.partial(pr.Notify.validate,
+                                            response=True)),
         })
         self._counter = itertools.count()
 

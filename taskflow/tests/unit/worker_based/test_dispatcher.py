@@ -40,12 +40,12 @@ def mock_acked_message(ack_ok=True, **kwargs):
 class TestDispatcher(test.TestCase):
     def test_creation(self):
         on_hello = mock.MagicMock()
-        handlers = {'hello': on_hello}
+        handlers = {'hello': dispatcher.Handler(on_hello)}
         dispatcher.TypeDispatcher(type_handlers=handlers)
 
     def test_on_message(self):
         on_hello = mock.MagicMock()
-        handlers = {'hello': on_hello}
+        handlers = {'hello': dispatcher.Handler(on_hello)}
         d = dispatcher.TypeDispatcher(type_handlers=handlers)
         msg = mock_acked_message(properties={'type': 'hello'})
         d.on_message("", msg)
@@ -70,7 +70,7 @@ class TestDispatcher(test.TestCase):
 
     def test_failed_ack(self):
         on_hello = mock.MagicMock()
-        handlers = {'hello': on_hello}
+        handlers = {'hello': dispatcher.Handler(on_hello)}
         d = dispatcher.TypeDispatcher(type_handlers=handlers)
         msg = mock_acked_message(ack_ok=False,
                                  properties={'type': 'hello'})

@@ -23,6 +23,36 @@ from taskflow.utils import kombu_utils as ku
 LOG = logging.getLogger(__name__)
 
 
+class Handler(object):
+    """Component(s) that will be called on reception of messages."""
+
+    __slots__ = ['_process_message', '_validator']
+
+    def __init__(self, process_message, validator=None):
+        self._process_message = process_message
+        self._validator = validator
+
+    @property
+    def process_message(self):
+        """Main callback that is called to process a received message.
+
+        This is only called after the format has been validated (using
+        the ``validator`` callback if applicable) and only after the message
+        has been acknowledged.
+        """
+        return self._process_message
+
+    @property
+    def validator(self):
+        """Optional callback that will be activated before processing.
+
+        This callback if present is expected to validate the message and
+        raise :py:class:`~taskflow.exceptions.InvalidFormat` if the message
+        is not valid.
+        """
+        return self._validator
+
+
 class TypeDispatcher(object):
     """Receives messages and dispatches to type specific handlers."""
 
@@ -99,10 +129,9 @@ class TypeDispatcher(object):
             LOG.warning("Unexpected message type: '%s' in message"
                         " '%s'", message_type, ku.DelayedPretty(message))
         else:
-            if isinstance(handler, (tuple, list)):
-                handler, validator = handler
+            if handler.validator is not None:
                 try:
-                    validator(data)
+                    handler.validator(data)
                 except excp.InvalidFormat as e:
                     message.reject_log_error(
                         logger=LOG, errors=(kombu_exc.MessageStateError,))
@@ -115,7 +144,7 @@ class TypeDispatcher(object):
             if message.acknowledged:
                 LOG.debug("Message '%s' was acknowledged.",
                           ku.DelayedPretty(message))
-                handler(data, message)
+                handler.process_message(data, message)
             else:
                 message.reject_log_error(logger=LOG,
                                          errors=(kombu_exc.MessageStateError,))
