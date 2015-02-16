@@ -720,7 +720,8 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                 k_exceptions.KazooException) as e:
             raise excp.JobFailure("Failed to connect to zookeeper", e)
         try:
-            kazoo_utils.check_compatible(self._client, MIN_ZK_VERSION)
+            if self._conf.get('check_compatible', True):
+                kazoo_utils.check_compatible(self._client, MIN_ZK_VERSION)
             if self._worker is None and self._emit_notifications:
                 self._worker = futures.ThreadPoolExecutor(max_workers=1)
             self._client.ensure_path(self.path)
