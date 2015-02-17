@@ -23,9 +23,9 @@ values (requirements) and name outputs (provided values).
 Task
 =====
 
-A :py:class:`task <taskflow.task.BaseTask>` (derived from an atom) is the
-smallest possible unit of work that can have an execute & rollback sequence
-associated with it. These task objects all derive
+A :py:class:`task <taskflow.task.BaseTask>` (derived from an atom) is a
+unit of work that can have an execute & rollback sequence associated with
+it (they are *nearly* analogous to functions). These task objects all derive
 from :py:class:`~taskflow.task.BaseTask` which defines what a task must
 provide in terms of properties and methods.
 
@@ -48,17 +48,17 @@ Retry
 =====
 
 A :py:class:`retry <taskflow.retry.Retry>` (derived from an atom) is a special
-unit that handles errors, controls flow execution and can (for example) retry
-other atoms with other parameters if needed. When an associated atom
-fails, these retry units are *consulted* to determine what the resolution
-method should be. The goal is that with this *consultation* the retry atom
-will suggest a method for getting around the failure (perhaps by retrying,
-reverting a single item, or reverting everything contained in the retries
-associated scope).
+unit of work that handles errors, controls flow execution and can (for
+example) retry other atoms with other parameters if needed. When an associated
+atom fails, these retry units are *consulted* to determine what the resolution
+*strategy* should be. The goal is that with this consultation the retry atom
+will suggest a *strategy* for getting around the failure (perhaps by retrying,
+reverting a single atom, or reverting everything contained in the retries
+associated `scope`_).
 
 Currently derivatives of the :py:class:`retry <taskflow.retry.Retry>` base
-class must provide a ``on_failure`` method to determine how a failure should
-be handled.
+class must provide a :py:func:`~taskflow.retry.Retry.on_failure` method to
+determine how a failure should be handled.
 
 The current enumeration set that can be returned from this method is:
 
@@ -74,12 +74,13 @@ The current enumeration set that can be returned from this method is:
 * ``REVERT_ALL`` - completely reverts a whole flow.
 
 To aid in the reconciliation process the
-:py:class:`retry <taskflow.retry.Retry>` base class also mandates ``execute``
-and ``revert`` methods (although subclasses are allowed to define these methods
-as no-ops) that can be used by a retry atom to interact with the runtime
-execution model (for example, to track the number of times it has been
-called which is useful for the :py:class:`~taskflow.retry.ForEach` retry
-subclass).
+:py:class:`retry <taskflow.retry.Retry>` base class also mandates
+:py:func:`~taskflow.retry.Retry.execute`
+and :py:func:`~taskflow.retry.Retry.revert` methods (although subclasses
+are allowed to define these methods as no-ops) that can be used by a retry
+atom to interact with the runtime execution model (for example, to track the
+number of times it has been called which is useful for
+the :py:class:`~taskflow.retry.ForEach` retry subclass).
 
 To avoid recreating common retry patterns the following provided retry
 subclasses are provided:
@@ -93,6 +94,15 @@ subclasses are provided:
 * :py:class:`~taskflow.retry.ParameterizedForEach`: Same as
   :py:class:`~taskflow.retry.ForEach` but extracts values from storage
   instead of the :py:class:`~taskflow.retry.ForEach` constructor.
+
+.. _scope: http://en.wikipedia.org/wiki/Scope_%28computer_science%29
+
+.. note::
+
+    They are *similar* to exception handlers but are made to be *more* capable
+    due to there ability to *dynamically* choose a reconciliation strategy,
+    which allows for these atoms to influence subsequent execution(s) and the
+    inputs any associated atoms require.
 
 Examples
 --------
