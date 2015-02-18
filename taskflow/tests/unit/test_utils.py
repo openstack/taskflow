@@ -19,6 +19,8 @@ import inspect
 import random
 import time
 
+import six
+
 from taskflow import test
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
@@ -188,6 +190,40 @@ class TestSequenceMinus(test.TestCase):
     def test_equal_items_not_continious(self):
         result = misc.sequence_minus([1, 2, 3, 1], [1, 3])
         self.assertEqual(result, [2, 1])
+
+
+class TestCountdownIter(test.TestCase):
+    def test_expected_count(self):
+        upper = 100
+        it = misc.countdown_iter(upper)
+        items = []
+        for i in it:
+            self.assertEqual(upper, i)
+            upper -= 1
+            items.append(i)
+        self.assertEqual(0, upper)
+        self.assertEqual(100, len(items))
+
+    def test_no_count(self):
+        it = misc.countdown_iter(0)
+        self.assertEqual(0, len(list(it)))
+        it = misc.countdown_iter(-1)
+        self.assertEqual(0, len(list(it)))
+
+    def test_expected_count_custom_decr(self):
+        upper = 100
+        it = misc.countdown_iter(upper, decr=2)
+        items = []
+        for i in it:
+            self.assertEqual(upper, i)
+            upper -= 2
+            items.append(i)
+        self.assertEqual(0, upper)
+        self.assertEqual(50, len(items))
+
+    def test_invalid_decr(self):
+        it = misc.countdown_iter(10, -1)
+        self.assertRaises(ValueError, six.next, it)
 
 
 class TestClamping(test.TestCase):

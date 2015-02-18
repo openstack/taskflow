@@ -74,6 +74,21 @@ def find_monotonic(allow_time_time=False):
         return None
 
 
+def countdown_iter(start_at, decr=1):
+    """Generator that decrements after each generation until <= zero.
+
+    NOTE(harlowja): we can likely remove this when we can use an
+    ``itertools.count`` that takes a step (on py2.6 which we still support
+    that step parameter does **not** exist and therefore can't be used).
+    """
+    if decr <= 0:
+        raise ValueError("Decrement value must be greater"
+                         " than zero and not %s" % decr)
+    while start_at > 0:
+        yield start_at
+        start_at -= decr
+
+
 def merge_uri(uri, conf):
     """Merges a parsed uri into the given configuration dictionary.
 
