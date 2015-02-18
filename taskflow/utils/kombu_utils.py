@@ -23,7 +23,12 @@ _MSG_PROPERTIES = tuple([
 
 
 class DelayedPretty(object):
-    """Wraps a message and delays prettifying it until requested."""
+    """Wraps a message and delays prettifying it until requested.
+
+    TODO(harlowja): remove this when https://github.com/celery/kombu/pull/454/
+    is merged and a release is made that contains it (since that pull
+    request is equivalent and/or better than this).
+    """
 
     def __init__(self, message):
         self._message = message
@@ -47,8 +52,6 @@ def _prettify_message(message):
 
     This provides something decent(ish) for debugging (or other purposes) so
     that messages are more nice and understandable....
-
-    TODO(harlowja): submit something into kombu to fix/adjust this.
     """
     if message.content_type is not None:
         properties = {
