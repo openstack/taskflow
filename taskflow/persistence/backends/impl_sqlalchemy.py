@@ -558,5 +558,35 @@ class Connection(base.Connection):
         for book in gathered:
             yield book
 
+    def get_flow_details(self, fd_uuid):
+        try:
+            flowdetails = self._tables.flowdetails
+            with self._engine.begin() as conn:
+                q = (sql.select([flowdetails]).
+                     where(flowdetails.c.uuid == fd_uuid))
+                row = conn.execute(q).first()
+                if not row:
+                    raise exc.NotFound("No flow details found with uuid"
+                                       " '%s'" % fd_uuid)
+                return self._converter.convert_flow_detail(row)
+        except sa_exc.SQLAlchemyError as e:
+            raise exc.StorageFailure("Failed getting flow details with"
+                                     " uuid '%s'" % fd_uuid, e)
+
+    def get_atom_details(self, ad_uuid):
+        try:
+            atomdetails = self._tables.atomdetails
+            with self._engine.begin() as conn:
+                q = (sql.select([atomdetails]).
+                     where(atomdetails.c.uuid == ad_uuid))
+                row = conn.execute(q).first()
+                if not row:
+                    raise exc.NotFound("No atom details found with uuid"
+                                       " '%s'" % ad_uuid)
+                return self._converter.convert_atom_detail(row)
+        except sa_exc.SQLAlchemyError as e:
+            raise exc.StorageFailure("Failed getting atom details with"
+                                     " uuid '%s'" % ad_uuid, e)
+
     def close(self):
         pass

@@ -403,3 +403,9 @@ class Connection(base.Connection):
     def get_logbook(self, book_uuid):
         return self._run_with_process_lock("book",
                                            self._get_logbook, book_uuid)
+
+    def get_flow_details(self, fd_uuid):
+        return self._get_flow_details(fd_uuid)
+
+    def get_atom_details(self, ad_uuid):
+        return self._get_atom_details(ad_uuid)

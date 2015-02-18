@@ -118,6 +118,16 @@ class Connection(object):
         """Return an iterable of logbook objects."""
         pass
 
+    @abc.abstractmethod
+    def get_flow_details(self, fd_uuid):
+        """Fetches a flowdetails object matching the given uuid."""
+        pass
+
+    @abc.abstractmethod
+    def get_atom_details(self, ad_uuid):
+        """Fetches a atomdetails object matching the given uuid."""
+        pass
+
 
 def _format_atom(atom_detail):
     return {
