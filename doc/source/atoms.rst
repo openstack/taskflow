@@ -58,20 +58,11 @@ associated `scope`_).
 
 Currently derivatives of the :py:class:`retry <taskflow.retry.Retry>` base
 class must provide a :py:func:`~taskflow.retry.Retry.on_failure` method to
-determine how a failure should be handled.
+determine how a failure should be handled. The current enumeration(s) that can
+be returned from the :py:func:`~taskflow.retry.Retry.on_failure` method
+are defined in an enumeration class described here:
 
-The current enumeration set that can be returned from this method is:
-
-* ``RETRY`` - retries the surrounding subflow (a retry object is associated
-  with a flow, which is typically converted into a graph hierarchy at
-  compilation time) again.
-
-* ``REVERT`` - reverts only the surrounding subflow but *consult* the
-  parent atom before doing this to determine if the parent retry object
-  provides a different reconciliation strategy (retry atoms can be nested, this
-  is possible since flows themselves can be nested).
-
-* ``REVERT_ALL`` - completely reverts a whole flow.
+.. autoclass:: taskflow.retry.Decision
 
 To aid in the reconciliation process the
 :py:class:`retry <taskflow.retry.Retry>` base class also mandates
@@ -177,7 +168,13 @@ Interfaces
 ==========
 
 .. automodule:: taskflow.task
-.. automodule:: taskflow.retry
+.. autoclass:: taskflow.retry.Retry
+.. autoclass:: taskflow.retry.History
+.. autoclass:: taskflow.retry.AlwaysRevert
+.. autoclass:: taskflow.retry.AlwaysRevertAll
+.. autoclass:: taskflow.retry.Times
+.. autoclass:: taskflow.retry.ForEach
+.. autoclass:: taskflow.retry.ParameterizedForEach
 
 Hierarchy
 =========
@@ -185,5 +182,10 @@ Hierarchy
 .. inheritance-diagram::
     taskflow.atom
     taskflow.task
-    taskflow.retry
+    taskflow.retry.Retry
+    taskflow.retry.AlwaysRevert
+    taskflow.retry.AlwaysRevertAll
+    taskflow.retry.Times
+    taskflow.retry.ForEach
+    taskflow.retry.ParameterizedForEach
     :parts: 1
