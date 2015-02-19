@@ -19,7 +19,7 @@ import contextlib
 
 from zake import fake_client
 
-from taskflow.conductors import single_threaded as stc
+from taskflow.conductors import backends
 from taskflow import engines
 from taskflow.jobs.backends import impl_zookeeper
 from taskflow.jobs import base
@@ -50,10 +50,13 @@ def test_factory(blowup):
     return f
 
 
-class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
-    ComponentBundle = collections.namedtuple('ComponentBundle',
-                                             ['board', 'client',
-                                              'persistence', 'conductor'])
+ComponentBundle = collections.namedtuple('ComponentBundle',
+                                         ['board', 'client',
+                                          'persistence', 'conductor'])
+
+
+class BlockingConductorTest(test_utils.EngineTestBase, test.TestCase):
+    KIND = 'blocking'
 
     def make_components(self, name='testing', wait_timeout=0.1):
         client = fake_client.FakeClient()
@@ -61,9 +64,10 @@ class SingleThreadedConductorTest(test_utils.EngineTestBase, test.TestCase):
         board = impl_zookeeper.ZookeeperJobBoard(name, {},
                                                  client=client,
                                                  persistence=persistence)
-        conductor = stc.SingleThreadedConductor(name, board, persistence,
-                                                wait_timeout=wait_timeout)
-        return self.ComponentBundle(board, client, persistence, conductor)
+        conductor = backends.fetch(self.KIND, name, board,
+                                   persistence=persistence,
+                                   wait_timeout=wait_timeout)
+        return ComponentBundle(board, client, persistence, conductor)
 
     def test_connection(self):
         components = self.make_components()
