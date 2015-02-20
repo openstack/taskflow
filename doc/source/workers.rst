@@ -7,10 +7,9 @@ connected via `amqp`_ (or other supported `kombu`_ transports).
 
 .. note::
 
-    This engine is under active development and is experimental but it is
-    usable and does work but is missing some features (please check the
-    `blueprint page`_ for known issues and plans) that will make it more
-    production ready.
+    This engine is under active development and is usable and **does** work
+    but is missing some features (please check the `blueprint page`_ for
+    known issues and plans) that will make it more production ready.
 
 .. _blueprint page: https://blueprints.launchpad.net/taskflow?searchtext=wbe
 
