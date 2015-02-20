@@ -19,6 +19,7 @@ import functools
 from oslo_utils import timeutils
 
 from taskflow.engines.action_engine import executor
+from taskflow.engines.worker_based import dispatcher
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow.engines.worker_based import types as wt
@@ -44,10 +45,8 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         self._requests_cache = wt.RequestsCache()
         self._transition_timeout = transition_timeout
         type_handlers = {
-            pr.RESPONSE: [
-                self._process_response,
-                pr.Response.validate,
-            ],
+            pr.RESPONSE: dispatcher.Handler(self._process_response,
+                                            validator=pr.Response.validate),
         }
         self._proxy = proxy.Proxy(uuid, exchange,
                                   type_handlers=type_handlers,

@@ -16,6 +16,7 @@
 
 from oslo_utils import uuidutils
 
+from taskflow.engines.worker_based import dispatcher
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow import test
@@ -35,7 +36,7 @@ class TestMessagePump(test.TestCase):
         on_notify = mock.MagicMock()
         on_notify.side_effect = lambda *args, **kwargs: barrier.set()
 
-        handlers = {pr.NOTIFY: on_notify}
+        handlers = {pr.NOTIFY: dispatcher.Handler(on_notify)}
         p = proxy.Proxy(TEST_TOPIC, TEST_EXCHANGE, handlers,
                         transport='memory',
                         transport_options={
@@ -60,7 +61,7 @@ class TestMessagePump(test.TestCase):
         on_response = mock.MagicMock()
         on_response.side_effect = lambda *args, **kwargs: barrier.set()
 
-        handlers = {pr.RESPONSE: on_response}
+        handlers = {pr.RESPONSE: dispatcher.Handler(on_response)}
         p = proxy.Proxy(TEST_TOPIC, TEST_EXCHANGE, handlers,
                         transport='memory',
                         transport_options={
@@ -96,9 +97,9 @@ class TestMessagePump(test.TestCase):
         on_request.side_effect = countdown
 
         handlers = {
-            pr.NOTIFY: on_notify,
-            pr.RESPONSE: on_response,
-            pr.REQUEST: on_request,
+            pr.NOTIFY: dispatcher.Handler(on_notify),
+            pr.RESPONSE: dispatcher.Handler(on_response),
+            pr.REQUEST: dispatcher.Handler(on_request),
         }
         p = proxy.Proxy(TEST_TOPIC, TEST_EXCHANGE, handlers,
                         transport='memory',

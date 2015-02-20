@@ -36,8 +36,9 @@ class WorkerBasedActionEngine(engine.ActionEngine):
                                of the (PENDING, WAITING) request states. When
                                expired the associated task the request was made
                                for will have its result become a
-                               `RequestTimeout` exception instead of its
-                               normally returned value (or raised exception).
+                               :py:class:`~taskflow.exceptions.RequestTimeout`
+                               exception instead of its normally returned
+                               value (or raised exception).
     :param transport_options: transport specific options (see:
                               http://kombu.readthedocs.org/ for what these
                               options imply and are expected to be)

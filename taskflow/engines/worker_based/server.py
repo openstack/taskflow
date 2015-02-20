@@ -19,6 +19,7 @@ import functools
 from oslo_utils import reflection
 import six
 
+from taskflow.engines.worker_based import dispatcher
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import proxy
 from taskflow import logging
@@ -38,14 +39,13 @@ class Server(object):
                  url=None, transport=None, transport_options=None,
                  retry_options=None):
         type_handlers = {
-            pr.NOTIFY: [
+            pr.NOTIFY: dispatcher.Handler(
                 self._delayed_process(self._process_notify),
-                functools.partial(pr.Notify.validate, response=False),
-            ],
-            pr.REQUEST: [
+                validator=functools.partial(pr.Notify.validate,
+                                            response=False)),
+            pr.REQUEST: dispatcher.Handler(
                 self._delayed_process(self._process_request),
-                pr.Request.validate,
-            ],
+                validator=pr.Request.validate),
         }
         self._executor = executor
         self._proxy = proxy.Proxy(topic, exchange,
