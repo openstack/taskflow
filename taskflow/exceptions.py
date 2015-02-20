@@ -15,17 +15,50 @@
 #    under the License.
 
 import os
+import sys
 import traceback
 
 import six
+
+
+def raise_with_cause(exc_cls, message, *args, **kwargs):
+    """Helper to raise + chain exceptions (when able) and associate a *cause*.
+
+    NOTE(harlowja): Since in py3.x exceptions can be chained (due to
+    :pep:`3134`) we should try to raise the desired exception with the given
+    *cause* (or extract a *cause* from the current stack if able) so that the
+    exception formats nicely in old and new versions of python. Since py2.x
+    does **not** support exception chaining (or formatting) our root exception
+    class has a :py:meth:`~taskflow.exceptions.TaskFlowException.pformat`
+    method that can be used to get *similar* information instead (and this
+    function makes sure to retain the *cause* in that case as well so
+    that the :py:meth:`~taskflow.exceptions.TaskFlowException.pformat` method
+    shows them).
+
+    :param exc_cls: the :py:class:`~taskflow.exceptions.TaskFlowException`
+                    class to raise.
+    :param message: the text/str message that will be passed to
+                    the exceptions constructor as its first positional
+                    argument.
+    :param args: any additional positional arguments to pass to the
+                 exceptions constructor.
+    :param kwargs: any additional keyword arguments to pass to the
+                   exceptions constructor.
+    """
+    if 'cause' not in kwargs:
+        exc_type, exc, exc_tb = sys.exc_info()
+        if exc is not None:
+            kwargs['cause'] = exc
+        del(exc_type, exc, exc_tb)
+    six.raise_from(exc_cls(message, *args, **kwargs), kwargs.get('cause'))
 
 
 class TaskFlowException(Exception):
     """Base class for *most* exceptions emitted from this library.
 
     NOTE(harlowja): in later versions of python we can likely remove the need
-    to have a cause here as PY3+ have implemented PEP 3134 which handles
-    chaining in a much more elegant manner.
+    to have a ``cause`` here as PY3+ have implemented :pep:`3134` which
+    handles chaining in a much more elegant manner.
 
     :param message: the exception message, typically some string that is
                     useful for consumers to view when debugging or analyzing
