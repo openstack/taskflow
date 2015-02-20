@@ -271,3 +271,18 @@ class TestClamping(test.TestCase):
 
         misc.clamp(2, 0.0, 1.0, on_clamped=on_clamped)
         self.assertEqual(1, len(calls))
+
+
+class TestIterable(test.TestCase):
+    def test_string_types(self):
+        self.assertFalse(misc.is_iterable('string'))
+        self.assertFalse(misc.is_iterable(u'string'))
+
+    def test_list(self):
+        self.assertTrue(misc.is_iterable(list()))
+
+    def test_tuple(self):
+        self.assertTrue(misc.is_iterable(tuple()))
+
+    def test_dict(self):
+        self.assertTrue(misc.is_iterable(dict()))

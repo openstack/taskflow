@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+#    Copyright 2015 Hewlett-Packard Development Company, L.P.
 #    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
@@ -20,6 +21,7 @@ import copy
 
 from oslo_utils import reflection
 import six
+from six.moves import reduce as compat_reduce
 
 from taskflow import atom
 from taskflow import logging
@@ -234,3 +236,90 @@ class FunctorTask(BaseTask):
             return self._revert(*args, **kwargs)
         else:
             return None
+
+
+class ReduceFunctorTask(BaseTask):
+    """General purpose Task to reduce a list by applying a function
+
+    This Task mimics the behavior of Python's built-in reduce function.  The
+    Task takes a functor (lambda or otherwise) and a list.  The list is
+    specified using the requires argument of the Task.  When executed, this
+    task calls reduce with the functor and list as arguments.  The resulting
+    value from the call to reduce is then returned after execution.
+    """
+    def __init__(self, functor, requires, name=None, provides=None,
+                 auto_extract=True, rebind=None, inject=None):
+
+        if not six.callable(functor):
+            raise ValueError("Function to use for reduce must be callable")
+
+        f_args = reflection.get_callable_args(functor)
+        if len(f_args) != 2:
+            raise ValueError("%s arguments were provided. Reduce functor "
+                             "must take exactly 2 arguments." % len(f_args))
+
+        if not misc.is_iterable(requires):
+            raise TypeError("%s type was provided for requires. Requires "
+                            "must be an iterable." % type(requires))
+
+        if len(requires) < 2:
+            raise ValueError("%s elements were provided. Requires must have "
+                             "at least 2 elements." % len(requires))
+
+        if name is None:
+            name = reflection.get_callable_name(functor)
+        super(ReduceFunctorTask, self).__init__(name=name, provides=provides,
+                                                inject=inject)
+
+        self._functor = functor
+
+        self._build_arg_mapping(executor=self.execute, requires=requires,
+                                rebind=rebind, auto_extract=auto_extract)
+
+    def execute(self, *args, **kwargs):
+        l = [kwargs[r] for r in self.requires]
+        return compat_reduce(self._functor, l)
+
+
+class MapFunctorTask(BaseTask):
+    """General purpose Task to map a function to a list
+
+    This Task mimics the behavior of Python's built-in map function.  The Task
+    takes a functor (lambda or otherwise) and a list.  The list is specified
+    using the requires argument of the Task.  When executed, this task calls
+    map with the functor and list as arguments.  The resulting list from the
+    call to map is then returned after execution.
+
+    Each value of the returned list can be bound to individual names using
+    the provides argument, following taskflow standard behavior.  Order is
+    preserved in the returned list.
+    """
+
+    def __init__(self, functor, requires, name=None, provides=None,
+                 auto_extract=True, rebind=None, inject=None):
+
+        if not six.callable(functor):
+            raise ValueError("Function to use for map must be callable")
+
+        f_args = reflection.get_callable_args(functor)
+        if len(f_args) != 1:
+            raise ValueError("%s arguments were provided. Map functor must "
+                             "take exactly 1 argument." % len(f_args))
+
+        if not misc.is_iterable(requires):
+            raise TypeError("%s type was provided for requires. Requires "
+                            "must be an iterable." % type(requires))
+
+        if name is None:
+            name = reflection.get_callable_name(functor)
+        super(MapFunctorTask, self).__init__(name=name, provides=provides,
+                                             inject=inject)
+
+        self._functor = functor
+
+        self._build_arg_mapping(executor=self.execute, requires=requires,
+                                rebind=rebind, auto_extract=auto_extract)
+
+    def execute(self, *args, **kwargs):
+        l = [kwargs[r] for r in self.requires]
+        return list(map(self._functor, l))

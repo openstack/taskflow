@@ -40,6 +40,11 @@ class BunchOfFunctions(object):
         raise RuntimeError('Woot!')
 
 
+five = lambda: 5
+
+multiply = lambda x, y: x * y
+
+
 class FunctorTaskTest(test.TestCase):
 
     def test_simple(self):
@@ -63,3 +68,27 @@ class FunctorTaskTest(test.TestCase):
         self.assertRaisesRegexp(RuntimeError, '^Woot',
                                 taskflow.engines.run, flow)
         self.assertEqual(values, ['one', 'fail', 'revert one'])
+
+    def test_lambda_functors(self):
+        t = base.FunctorTask
+
+        flow = linear_flow.Flow('test')
+        flow.add(
+            t(five, provides='five', name='five'),
+            t(multiply, provides='product', name='product')
+        )
+
+        flow_store = {
+            'x': 2,
+            'y': 3
+        }
+
+        result = taskflow.engines.run(flow, store=flow_store)
+
+        expected = flow_store.copy()
+        expected.update({
+            'five': 5,
+            'product': 6
+        })
+
+        self.assertDictEqual(expected, result)

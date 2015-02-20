@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+#    Copyright 2015 Hewlett-Packard Development Company, L.P.
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -351,3 +352,47 @@ class FunctorTaskTest(test.TestCase):
     def test_revert_not_callable(self):
         self.assertRaises(ValueError, task.FunctorTask, lambda: None,
                           revert=2)
+
+
+class ReduceFunctorTaskTest(test.TestCase):
+
+    def test_invalid_functor(self):
+        # Functor not callable
+        self.assertRaises(ValueError, task.ReduceFunctorTask, 2, requires=5)
+
+        # Functor takes no arguments
+        self.assertRaises(ValueError, task.ReduceFunctorTask, lambda: None,
+                          requires=5)
+
+        # Functor takes too few arguments
+        self.assertRaises(ValueError, task.ReduceFunctorTask, lambda x: None,
+                          requires=5)
+
+    def test_functor_invalid_requires(self):
+        # Invalid type, requires is not iterable
+        self.assertRaises(TypeError, task.ReduceFunctorTask,
+                          lambda x, y: None, requires=1)
+
+        # Too few elements in requires
+        self.assertRaises(ValueError, task.ReduceFunctorTask,
+                          lambda x, y: None, requires=[1])
+
+
+class MapFunctorTaskTest(test.TestCase):
+
+    def test_invalid_functor(self):
+        # Functor not callable
+        self.assertRaises(ValueError, task.MapFunctorTask, 2, requires=5)
+
+        # Functor takes no arguments
+        self.assertRaises(ValueError, task.MapFunctorTask, lambda: None,
+                          requires=5)
+
+        # Functor takes too many arguments
+        self.assertRaises(ValueError, task.MapFunctorTask, lambda x, y: None,
+                          requires=5)
+
+    def test_functor_invalid_requires(self):
+        # Invalid type, requires is not iterable
+        self.assertRaises(TypeError, task.MapFunctorTask, lambda x: None,
+                          requires=1)
