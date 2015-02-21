@@ -26,6 +26,7 @@ import threading
 import time
 import types
 
+import enum
 from oslo_serialization import jsonutils
 from oslo_utils import importutils
 from oslo_utils import netutils
@@ -55,6 +56,17 @@ _MONOTONIC_LOCATIONS = tuple([
     # See: http://pypi.python.org/pypi/monotonic
     'monotonic.monotonic',
 ])
+
+
+class StrEnum(str, enum.Enum):
+    """An enumeration that is also a string and can be compared to strings."""
+
+    def __new__(cls, *args, **kwargs):
+        for a in args:
+            if not isinstance(a, str):
+                raise TypeError("Enumeration '%s' (%s) is not"
+                                " a string" % (a, type(a).__name__))
+        return super(StrEnum, cls).__new__(cls, *args, **kwargs)
 
 
 def find_monotonic(allow_time_time=False):
