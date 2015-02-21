@@ -172,7 +172,7 @@ using your desired execution model.
     scalability by reducing thread/process creation and teardown as well as by
     reusing existing pools (which is a good practice in general).
 
-.. note::
+.. warning::
 
     Running tasks with a `process pool executor`_ is **experimentally**
     supported. This is mainly due to the `futures backport`_ and
