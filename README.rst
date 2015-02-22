@@ -1,6 +1,14 @@
 TaskFlow
 ========
 
+.. image:: https://pypip.in/version/taskflow/badge.svg
+    :target: https://pypi.python.org/pypi/taskflow/
+    :alt: Latest Version
+
+.. image:: https://pypip.in/download/taskflow/badge.svg?period=month
+    :target: https://pypi.python.org/pypi/taskflow/
+    :alt: Downloads
+
 A library to do [jobs, tasks, flows] in a highly available, easy to understand
 and declarative manner (and more!) to be used with OpenStack and other
 projects.
