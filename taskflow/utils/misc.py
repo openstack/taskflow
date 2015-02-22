@@ -101,6 +101,12 @@ def countdown_iter(start_at, decr=1):
         start_at -= decr
 
 
+def reverse_enumerate(items):
+    """Like reversed(enumerate(items)) but with less copying/cloning..."""
+    for i in countdown_iter(len(items)):
+        yield i - 1, items[i - 1]
+
+
 def merge_uri(uri, conf):
     """Merges a parsed uri into the given configuration dictionary.
 

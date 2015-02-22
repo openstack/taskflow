@@ -533,23 +533,21 @@ class PeriodicTest(test.TestCase):
     def test_periodic_single(self):
         barrier = latch.Latch(5)
         capture = []
-        tombstone = tu.Event()
 
         @periodic.periodic(0.01)
         def callee():
             barrier.countdown()
             if barrier.needed == 0:
-                tombstone.set()
+                w.stop()
             capture.append(1)
 
-        w = periodic.PeriodicWorker([callee], tombstone=tombstone)
+        w = periodic.PeriodicWorker([callee])
         t = tu.daemon_thread(target=w.start)
         t.start()
         t.join()
 
         self.assertEqual(0, barrier.needed)
         self.assertEqual(5, sum(capture))
-        self.assertTrue(tombstone.is_set())
 
     def test_immediate(self):
         capture = []

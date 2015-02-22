@@ -21,6 +21,7 @@ from oslo_utils import reflection
 import six
 
 from taskflow import logging
+from taskflow.utils import deprecation
 from taskflow.utils import misc
 from taskflow.utils import threading_utils as tu
 
@@ -64,6 +65,51 @@ def periodic(spacing, run_immediately=True):
     return wrapper
 
 
+class _Schedule(object):
+    """Internal heap-based structure that maintains the schedule/ordering."""
+
+    def __init__(self):
+        self._ordering = []
+
+    def push(self, next_run, index):
+        heapq.heappush(self._ordering, (next_run, index))
+
+    def push_next(self, cb, index, now=None):
+        if now is None:
+            now = _now()
+        self.push(now + cb._periodic_spacing, index)
+
+    def __len__(self):
+        return len(self._ordering)
+
+    def pop(self):
+        return heapq.heappop(self._ordering)
+
+
+def _build(callables):
+    schedule = _Schedule()
+    now = None
+    immediates = []
+    # Reverse order is used since these are later popped off (and to
+    # ensure the popping order is first -> last we need to append them
+    # in the opposite ordering last -> first).
+    for i, cb in misc.reverse_enumerate(callables):
+        if cb._periodic_run_immediately:
+            immediates.append(i)
+        else:
+            if now is None:
+                now = _now()
+            schedule.push_next(cb, i, now=now)
+    return immediates, schedule
+
+
+def _safe_call(cb, kind):
+    try:
+        cb()
+    except Exception:
+        LOG.warn("Failed to call %s '%r'", kind, cb, exc_info=True)
+
+
 class PeriodicWorker(object):
     """Calls a collection of callables periodically (sleeping as needed...).
 
@@ -96,54 +142,29 @@ class PeriodicWorker(object):
                         callables.append(member)
         return cls(callables)
 
+    @deprecation.removed_kwarg('tombstone', version="0.8", removal_version="?")
     def __init__(self, callables, tombstone=None):
         if tombstone is None:
             self._tombstone = tu.Event()
         else:
-            # Allows someone to share an event (if they so want to...)
             self._tombstone = tombstone
-        almost_callables = list(callables)
-        for cb in almost_callables:
+        self._callables = []
+        for cb in callables:
             if not six.callable(cb):
                 raise ValueError("Periodic callback must be callable")
             for attr_name in _PERIODIC_ATTRS:
                 if not hasattr(cb, attr_name):
                     raise ValueError("Periodic callback missing required"
                                      " attribute '%s'" % attr_name)
-        self._callables = tuple((cb, reflection.get_callable_name(cb))
-                                for cb in almost_callables)
-        self._schedule = []
-        now = _now()
-        for i, (cb, cb_name) in enumerate(self._callables):
-            spacing = cb._periodic_spacing
-            next_run = now + spacing
-            heapq.heappush(self._schedule, (next_run, i))
-        self._immediates = self._fetch_immediates(self._callables)
+            if cb._periodic:
+                self._callables.append(cb)
+        self._immediates, self._schedule = _build(self._callables)
 
     def __len__(self):
         return len(self._callables)
 
-    @staticmethod
-    def _fetch_immediates(callables):
-        immediates = []
-        # Reverse order is used since these are later popped off (and to
-        # ensure the popping order is first -> last we need to append them
-        # in the opposite ordering last -> first).
-        for (cb, cb_name) in reversed(callables):
-            if cb._periodic_run_immediately:
-                immediates.append((cb, cb_name))
-        return immediates
-
-    @staticmethod
-    def _safe_call(cb, cb_name, kind='periodic'):
-        try:
-            cb()
-        except Exception:
-            LOG.warn("Failed to call %s callable '%s'",
-                     kind, cb_name, exc_info=True)
-
     def start(self):
-        """Starts running (will not stop/return until the tombstone is set).
+        """Starts running (will not return until :py:meth:`.stop` is called).
 
         NOTE(harlowja): If this worker has no contained callables this raises
         a runtime error and does not run since it is impossible to periodically
@@ -154,29 +175,30 @@ class PeriodicWorker(object):
                                " without any callables")
         while not self._tombstone.is_set():
             if self._immediates:
-                cb, cb_name = self._immediates.pop()
-                LOG.debug("Calling immediate callable '%s'", cb_name)
-                self._safe_call(cb, cb_name, kind='immediate')
+                # Run & schedule its next execution.
+                index = self._immediates.pop()
+                cb = self._callables[index]
+                LOG.blather("Calling immediate '%r'", cb)
+                _safe_call(cb, 'immediate')
+                self._schedule.push_next(cb, index)
             else:
                 # Figure out when we should run next (by selecting the
                 # minimum item from the heap, where the minimum should be
                 # the callable that needs to run next and has the lowest
                 # next desired run time).
                 now = _now()
-                next_run, i = heapq.heappop(self._schedule)
+                next_run, index = self._schedule.pop()
                 when_next = next_run - now
                 if when_next <= 0:
-                    cb, cb_name = self._callables[i]
-                    spacing = cb._periodic_spacing
-                    LOG.debug("Calling periodic callable '%s' (it runs every"
-                              " %s seconds)", cb_name, spacing)
-                    self._safe_call(cb, cb_name)
-                    # Run again someday...
-                    next_run = now + spacing
-                    heapq.heappush(self._schedule, (next_run, i))
+                    # Run & schedule its next execution.
+                    cb = self._callables[index]
+                    LOG.blather("Calling periodic '%r' (it runs every"
+                                " %s seconds)", cb, cb._periodic_spacing)
+                    _safe_call(cb, 'periodic')
+                    self._schedule.push_next(cb, index, now=now)
                 else:
                     # Gotta wait...
-                    heapq.heappush(self._schedule, (next_run, i))
+                    self._schedule.push(next_run, index)
                     self._tombstone.wait(when_next)
 
     def stop(self):
@@ -186,4 +208,4 @@ class PeriodicWorker(object):
     def reset(self):
         """Resets the tombstone and re-queues up any immediate executions."""
         self._tombstone.clear()
-        self._immediates = self._fetch_immediates(self._callables)
+        self._immediates, self._schedule = _build(self._callables)
