@@ -70,7 +70,8 @@ class _Listener(object):
 
     def __repr__(self):
         repr_msg = "%s object at 0x%x calling into '%r'" % (
-            reflection.get_class_name(self), id(self), self._callback)
+            reflection.get_class_name(self, fully_qualified=False),
+            id(self), self._callback)
         if self._details_filter is not None:
             repr_msg += " using details filter '%r'" % self._details_filter
         return "<%s>" % repr_msg
@@ -109,6 +110,13 @@ class Notifier(object):
     occurring as well as allow a entity to post said notifications to any
     associated subscribers without having either entity care about how this
     notification occurs.
+
+    **Not** thread-safe when a single notifier is mutated at the same
+    time by multiple threads. For example having multiple threads call
+    into :py:meth:`.register` or :py:meth:`.reset` at the same time could
+    potentially end badly. It is thread-safe when
+    only :py:meth:`.notify` calls or other read-only actions (like calling
+    into :py:meth:`.is_registered`) are occuring at the same time.
     """
 
     #: Keys that can *not* be used in callbacks arguments
