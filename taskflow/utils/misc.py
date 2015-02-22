@@ -28,6 +28,7 @@ import types
 
 import enum
 from oslo_serialization import jsonutils
+from oslo_utils import encodeutils
 from oslo_utils import importutils
 from oslo_utils import netutils
 from oslo_utils import reflection
@@ -210,30 +211,28 @@ def fix_newlines(text, replacement=os.linesep):
     return replacement.join(text.splitlines())
 
 
-def binary_encode(text, encoding='utf-8'):
-    """Converts a string of into a binary type using given encoding.
+def binary_encode(text, encoding='utf-8', errors='strict'):
+    """Encodes a text string into a binary string using given encoding.
 
-    Does nothing if text not unicode string.
+    Does nothing if data is already a binary string (raises on unknown types).
     """
     if isinstance(text, six.binary_type):
         return text
-    elif isinstance(text, six.text_type):
-        return text.encode(encoding)
     else:
-        raise TypeError("Expected binary or string type not '%s'" % type(text))
+        return encodeutils.safe_encode(text, encoding=encoding,
+                                       errors=errors)
 
 
-def binary_decode(data, encoding='utf-8'):
-    """Converts a binary type into a text type using given encoding.
+def binary_decode(data, encoding='utf-8', errors='strict'):
+    """Decodes a binary string into a text string using given encoding.
 
-    Does nothing if data is already unicode string.
+    Does nothing if data is already a text string (raises on unknown types).
     """
-    if isinstance(data, six.binary_type):
-        return data.decode(encoding)
-    elif isinstance(data, six.text_type):
+    if isinstance(data, six.text_type):
         return data
     else:
-        raise TypeError("Expected binary or string type not '%s'" % type(data))
+        return encodeutils.safe_decode(data, incoming=encoding,
+                                       errors=errors)
 
 
 def decode_json(raw_data, root_types=(dict,)):
