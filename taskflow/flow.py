@@ -96,9 +96,8 @@ class Flow(object):
         """
 
     def __str__(self):
-        lines = ["%s: %s" % (reflection.get_class_name(self), self.name)]
-        lines.append("%s" % (len(self)))
-        return "; ".join(lines)
+        return "%s: %s(len=%d)" % (reflection.get_class_name(self),
+                                   self.name, len(self))
 
     @property
     def provides(self):

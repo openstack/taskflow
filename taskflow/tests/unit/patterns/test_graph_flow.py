@@ -37,7 +37,7 @@ class GraphFlowTest(test.TestCase):
         self.assertEqual(f.requires, set())
         self.assertEqual(f.provides, set())
 
-        expected = 'taskflow.patterns.graph_flow.Flow: test; 0'
+        expected = 'taskflow.patterns.graph_flow.Flow: test(len=0)'
         self.assertEqual(str(f), expected)
 
     def test_graph_flow_add_nothing(self):
