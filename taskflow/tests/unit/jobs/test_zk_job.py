@@ -73,7 +73,7 @@ class ZakeJobboardTest(test.TestCase, base.BoardTestMixin):
     def setUp(self):
         super(ZakeJobboardTest, self).setUp()
         self.client, self.board = self._create_board()
-        self.bad_paths = [self.board.path]
+        self.bad_paths = [self.board.path, self.board.trash_path]
         self.bad_paths.extend(zake_utils.partition_path(self.board.path))
 
     def test_posting_owner_lost(self):
@@ -117,6 +117,34 @@ class ZakeJobboardTest(test.TestCase, base.BoardTestMixin):
                 if path.endswith("lock"):
                     self.client.storage.pop(path)
             self.assertEqual(states.UNCLAIMED, j.state)
+
+    def test_trashing_claimed_job(self):
+
+        with base.connect_close(self.board):
+            with base.flush(self.client):
+                j = self.board.post('test', p_utils.temporary_log_book())
+            self.assertEqual(states.UNCLAIMED, j.state)
+            with base.flush(self.client):
+                self.board.claim(j, self.board.name)
+            self.assertEqual(states.CLAIMED, j.state)
+
+            with base.flush(self.client):
+                self.board.trash(j, self.board.name)
+
+            trashed = []
+            jobs = []
+            paths = list(six.iteritems(self.client.storage.paths))
+            for (path, value) in paths:
+                if path in self.bad_paths:
+                    continue
+                if path.find(impl_zookeeper.TRASH_FOLDER) > -1:
+                    trashed.append(path)
+                elif (path.find(self.board._job_base) > -1
+                        and not path.endswith(impl_zookeeper.LOCK_POSTFIX)):
+                    jobs.append(path)
+
+            self.assertEqual(len(trashed), 1)
+            self.assertEqual(len(jobs), 0)
 
     def test_posting_received_raw(self):
         book = p_utils.temporary_log_book()

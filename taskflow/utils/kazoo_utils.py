@@ -37,27 +37,7 @@ def _parse_hosts(hosts):
 
 
 def prettify_failures(failures, limit=-1):
-    """Prettifies a checked commits failures (ignores sensitive data...).
-
-    Example input and output:
-
-    >>> from taskflow.utils import kazoo_utils
-    >>> conf = {"hosts": ['localhost:2181']}
-    >>> c = kazoo_utils.make_client(conf)
-    >>> c.start(timeout=1)
-    >>> txn = c.transaction()
-    >>> txn.create("/test")
-    >>> txn.check("/test", 2)
-    >>> txn.delete("/test")
-    >>> try:
-    ...     kazoo_utils.checked_commit(txn)
-    ... except kazoo_utils.KazooTransactionException as e:
-    ...     print(kazoo_utils.prettify_failures(e.failures, limit=1))
-    ...
-    RolledBackError@Create(path='/test') and 2 more...
-    >>> c.stop()
-    >>> c.close()
-    """
+    """Prettifies a checked commits failures (ignores sensitive data...)."""
     prettier = []
     for (op, r) in failures:
         pretty_op = reflection.get_class_name(op, fully_qualified=False)
