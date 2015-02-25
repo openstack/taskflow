@@ -673,24 +673,10 @@ class Storage(object):
         with self._lock.read_lock():
             if optional_args is None:
                 optional_args = []
-
             if atom_name and atom_name not in self._atom_name_to_uuid:
                 raise exceptions.NotFound("Unknown atom name: %s" % atom_name)
             if not args_mapping:
                 return {}
-
-            # The order of lookup is the following:
-            #
-            # 1. Injected atom specific arguments.
-            # 2. Transient injected arguments.
-            # 3. Non-transient injected arguments.
-            # 4. First scope visited group that produces the named result.
-            #    a). The first of that group that actually provided the name
-            #        result is selected (if group size is greater than one).
-            #
-            # Otherwise: blowup! (this will also happen if reading or
-            # extracting an expected result fails, since it is better to fail
-            # on lookup then provide invalid data from the wrong provider)
             if atom_name:
                 injected_args = self._injected_args.get(atom_name, {})
             else:
