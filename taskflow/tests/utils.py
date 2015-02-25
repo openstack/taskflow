@@ -89,6 +89,13 @@ class DummyTask(task.Task):
         pass
 
 
+class AddOne(task.Task):
+    default_provides = 'result'
+
+    def execute(self, source):
+        return source + 1
+
+
 class FakeTask(object):
 
     def execute(self, **kwargs):

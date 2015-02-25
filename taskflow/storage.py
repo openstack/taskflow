@@ -657,15 +657,17 @@ class Storage(object):
                 scope_iter = iter(scope_walker)
             else:
                 scope_iter = iter([])
-            for atom_names in scope_iter:
-                if not atom_names:
-                    continue
-                providers = []
-                for p in possible_providers:
-                    if p.name in atom_names:
-                        providers.append((p, _get_results(looking_for, p)))
+            extractor = lambda p: p.name
+            for names in scope_iter:
+                # *Always* retain the scope ordering (if any matches
+                # happen); instead of retaining the possible provider match
+                # order (which isn't that important and may be different from
+                # the scope requested ordering).
+                providers = misc.look_for(names, possible_providers,
+                                          extractor=extractor)
                 if providers:
-                    return providers
+                    return [(p, _get_results(looking_for, p))
+                            for p in providers]
             return []
 
         with self._lock.read_lock():

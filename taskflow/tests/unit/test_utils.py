@@ -244,6 +244,24 @@ class TestCountdownIter(test.TestCase):
         self.assertRaises(ValueError, six.next, it)
 
 
+class TestLookFor(test.TestCase):
+    def test_no_matches(self):
+        hay = [9, 10, 11]
+        self.assertEqual([], misc.look_for(hay, [1, 2, 3]))
+
+    def test_match_order(self):
+        hay = [6, 5, 4, 3, 2, 1]
+        priors = []
+        for i in range(0, 6):
+            priors.append(i + 1)
+            matches = misc.look_for(hay, priors)
+            self.assertGreater(0, len(matches))
+            self.assertIsSuperAndSubsequence(hay, matches)
+        hay = [10, 1, 15, 3, 5, 8, 44]
+        self.assertEqual([1, 15], misc.look_for(hay, [15, 1]))
+        self.assertEqual([10, 44], misc.look_for(hay, [44, 10]))
+
+
 class TestClamping(test.TestCase):
     def test_simple_clamp(self):
         result = misc.clamp(1.0, 2.0, 3.0)
