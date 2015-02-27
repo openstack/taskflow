@@ -260,6 +260,25 @@ class JobBoard(object):
             this must be the same name that was used for claiming this job.
         """
 
+    @abc.abstractmethod
+    def trash(self, job, who):
+        """Trash the provided job.
+
+        Trashing a job signals to others that the job is broken and should not
+        be reclaimed. This is provided as an option for users to be able to
+        remove jobs from the board externally.  The trashed job details should
+        be kept around in an alternate location to be reviewed, if desired.
+
+        Only the entity that has claimed that job can trash a job. Any entity
+        trashing a unclaimed job (or a job they do not own) will cause an
+        exception.
+
+        :param job: a job on this jobboard that can be trashed (if it does
+            not exist then a NotFound exception will be raised).
+        :param who: string that names the entity performing the trashing,
+            this must be the same name that was used for claiming this job.
+        """
+
     @abc.abstractproperty
     def connected(self):
         """Returns if this jobboard is connected."""

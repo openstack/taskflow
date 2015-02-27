@@ -51,6 +51,7 @@ ALL_JOB_STATES = (
 # Transaction support was added in 3.4.0
 MIN_ZK_VERSION = (3, 4, 0)
 LOCK_POSTFIX = ".lock"
+TRASH_FOLDER = ".trash"
 JOB_PREFIX = 'job'
 
 
@@ -79,7 +80,7 @@ class ZookeeperJob(base.Job):
             raise ValueError("Only one of 'book_data' or 'book'"
                              " can be provided")
         self._path = k_paths.normpath(path)
-        self._lock_path = path + LOCK_POSTFIX
+        self._lock_path = self._path + LOCK_POSTFIX
         self._created_on = created_on
         self._node_not_found = False
         basename = k_paths.basename(self._path)
@@ -330,6 +331,8 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         if not k_paths.isabs(path):
             raise ValueError("Zookeeper path must be absolute")
         self._path = path
+        self._trash_path = self._path.replace(k_paths.basename(self._path),
+                                              TRASH_FOLDER)
         # The backend to load the full logbooks from, since whats sent over
         # the zookeeper data connection is only the logbook uuid and name, and
         # not currently the full logbook (later when a zookeeper backend
@@ -361,6 +364,10 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     @property
     def path(self):
         return self._path
+
+    @property
+    def trash_path(self):
+        return self._trash_path
 
     @property
     def job_count(self):
@@ -656,6 +663,30 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             txn.delete(job.lock_path, version=lock_stat.version)
             kazoo_utils.checked_commit(txn)
 
+    def trash(self, job, who):
+        _check_who(who)
+        with self._wrap(job.uuid, job.path, "Trash failure: %s"):
+            try:
+                owner_data = self._get_owner_and_data(job)
+                lock_data, lock_stat, data, data_stat = owner_data
+            except k_exceptions.NoNodeError:
+                raise excp.JobFailure("Can not trash a job %s"
+                                      " which we can not determine"
+                                      " the owner of" % (job.uuid))
+            if lock_data.get("owner") != who:
+                raise excp.JobFailure("Can not trash a job %s"
+                                      " which is not owned by %s"
+                                      % (job.uuid, who))
+
+            trash_path = job.path.replace(self.path, self.trash_path)
+            value = misc.binary_encode(jsonutils.dumps(data))
+
+            txn = self._client.transaction()
+            txn.create(trash_path, value=value)
+            txn.delete(job.lock_path, version=lock_stat.version)
+            txn.delete(job.path, version=data_stat.version)
+            kazoo_utils.checked_commit(txn)
+
     def _state_change_listener(self, state):
         LOG.debug("Kazoo client has changed to state: %s", state)
 
@@ -725,6 +756,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             if self._worker is None and self._emit_notifications:
                 self._worker = futures.ThreadPoolExecutor(max_workers=1)
             self._client.ensure_path(self.path)
+            self._client.ensure_path(self.trash_path)
             if self._job_watcher is None:
                 self._job_watcher = watchers.ChildrenWatch(
                     self._client,
