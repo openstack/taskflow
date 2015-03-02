@@ -21,6 +21,8 @@ import os
 
 import six
 
+from taskflow.utils import misc
+
 
 class FrozenNode(Exception):
     """Exception raised when a frozen node is modified."""
@@ -98,9 +100,12 @@ class Node(object):
                 n.freeze()
             self.frozen = True
 
+    @misc.disallow_when_frozen(FrozenNode)
     def add(self, child):
-        if self.frozen:
-            raise FrozenNode()
+        """Adds a child to this node (appends to left of existing children).
+
+        NOTE(harlowja): this will also set the childs parent to be this node.
+        """
         child.parent = self
         self._children.append(child)
 
