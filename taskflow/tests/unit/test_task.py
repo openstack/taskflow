@@ -52,36 +52,36 @@ class TaskTest(test.TestCase):
 
     def test_passed_name(self):
         my_task = MyTask(name='my name')
-        self.assertEqual(my_task.name, 'my name')
+        self.assertEqual('my name', my_task.name)
 
     def test_generated_name(self):
         my_task = MyTask()
-        self.assertEqual(my_task.name,
-                         '%s.%s' % (__name__, 'MyTask'))
+        self.assertEqual('%s.%s' % (__name__, 'MyTask'),
+                         my_task.name)
 
     def test_task_str(self):
         my_task = MyTask(name='my')
-        self.assertEqual(str(my_task), 'my==1.0')
+        self.assertEqual('my==1.0', str(my_task))
 
     def test_task_repr(self):
         my_task = MyTask(name='my')
-        self.assertEqual(repr(my_task), '<%s.MyTask my==1.0>' % __name__)
+        self.assertEqual('<%s.MyTask my==1.0>' % __name__, repr(my_task))
 
     def test_no_provides(self):
         my_task = MyTask()
-        self.assertEqual(my_task.save_as, {})
+        self.assertEqual({}, my_task.save_as)
 
     def test_provides(self):
         my_task = MyTask(provides='food')
-        self.assertEqual(my_task.save_as, {'food': None})
+        self.assertEqual({'food': None}, my_task.save_as)
 
     def test_multi_provides(self):
         my_task = MyTask(provides=('food', 'water'))
-        self.assertEqual(my_task.save_as, {'food': 0, 'water': 1})
+        self.assertEqual({'food': 0, 'water': 1}, my_task.save_as)
 
     def test_unpack(self):
         my_task = MyTask(provides=('food',))
-        self.assertEqual(my_task.save_as, {'food': 0})
+        self.assertEqual({'food': 0}, my_task.save_as)
 
     def test_bad_provides(self):
         self.assertRaisesRegexp(TypeError, '^Atom provides',
@@ -89,28 +89,34 @@ class TaskTest(test.TestCase):
 
     def test_requires_by_default(self):
         my_task = MyTask()
-        self.assertEqual(my_task.rebind, {
+        expected = {
             'spam': 'spam',
             'eggs': 'eggs',
             'context': 'context'
-        })
+        }
+        self.assertEqual(expected,
+                         my_task.rebind)
+        self.assertEqual(set(['spam', 'eggs', 'context']),
+                         my_task.requires)
 
     def test_requires_amended(self):
         my_task = MyTask(requires=('spam', 'eggs'))
-        self.assertEqual(my_task.rebind, {
+        expected = {
             'spam': 'spam',
             'eggs': 'eggs',
             'context': 'context'
-        })
+        }
+        self.assertEqual(expected, my_task.rebind)
 
     def test_requires_explicit(self):
         my_task = MyTask(auto_extract=False,
                          requires=('spam', 'eggs', 'context'))
-        self.assertEqual(my_task.rebind, {
+        expected = {
             'spam': 'spam',
             'eggs': 'eggs',
             'context': 'context'
-        })
+        }
+        self.assertEqual(expected, my_task.rebind)
 
     def test_requires_explicit_not_enough(self):
         self.assertRaisesRegexp(ValueError, '^Missing arguments',
@@ -119,36 +125,43 @@ class TaskTest(test.TestCase):
 
     def test_requires_ignores_optional(self):
         my_task = DefaultArgTask()
-        self.assertEqual(my_task.requires, set(['spam']))
-        self.assertEqual(my_task.optional, set(['eggs']))
+        self.assertEqual(set(['spam']), my_task.requires)
+        self.assertEqual(set(['eggs']), my_task.optional)
 
     def test_requires_allows_optional(self):
         my_task = DefaultArgTask(requires=('spam', 'eggs'))
-        self.assertEqual(my_task.requires, set(['spam', 'eggs']))
-        self.assertEqual(my_task.optional, set())
+        self.assertEqual(set(['spam', 'eggs']), my_task.requires)
+        self.assertEqual(set(), my_task.optional)
 
     def test_rebind_includes_optional(self):
         my_task = DefaultArgTask()
-        self.assertEqual(my_task.rebind, {
+        expected = {
             'spam': 'spam',
             'eggs': 'eggs',
-        })
+        }
+        self.assertEqual(expected, my_task.rebind)
 
     def test_rebind_all_args(self):
         my_task = MyTask(rebind={'spam': 'a', 'eggs': 'b', 'context': 'c'})
-        self.assertEqual(my_task.rebind, {
+        expected = {
             'spam': 'a',
             'eggs': 'b',
             'context': 'c'
-        })
+        }
+        self.assertEqual(expected, my_task.rebind)
+        self.assertEqual(set(['a', 'b', 'c']),
+                         my_task.requires)
 
     def test_rebind_partial(self):
         my_task = MyTask(rebind={'spam': 'a', 'eggs': 'b'})
-        self.assertEqual(my_task.rebind, {
+        expected = {
             'spam': 'a',
             'eggs': 'b',
             'context': 'context'
-        })
+        }
+        self.assertEqual(expected, my_task.rebind)
+        self.assertEqual(set(['a', 'b', 'context']),
+                         my_task.requires)
 
     def test_rebind_unknown(self):
         self.assertRaisesRegexp(ValueError, '^Extra arguments',
@@ -156,26 +169,33 @@ class TaskTest(test.TestCase):
 
     def test_rebind_unknown_kwargs(self):
         task = KwargsTask(rebind={'foo': 'bar'})
-        self.assertEqual(task.rebind, {
+        expected = {
             'foo': 'bar',
             'spam': 'spam'
-        })
+        }
+        self.assertEqual(expected, task.rebind)
 
     def test_rebind_list_all(self):
         my_task = MyTask(rebind=('a', 'b', 'c'))
-        self.assertEqual(my_task.rebind, {
+        expected = {
             'context': 'a',
             'spam': 'b',
             'eggs': 'c'
-        })
+        }
+        self.assertEqual(expected, my_task.rebind)
+        self.assertEqual(set(['a', 'b', 'c']),
+                         my_task.requires)
 
     def test_rebind_list_partial(self):
         my_task = MyTask(rebind=('a', 'b'))
-        self.assertEqual(my_task.rebind, {
+        expected = {
             'context': 'a',
             'spam': 'b',
             'eggs': 'eggs'
-        })
+        }
+        self.assertEqual(expected, my_task.rebind)
+        self.assertEqual(set(['a', 'b', 'eggs']),
+                         my_task.requires)
 
     def test_rebind_list_more(self):
         self.assertRaisesRegexp(ValueError, '^Extra arguments',
@@ -183,11 +203,14 @@ class TaskTest(test.TestCase):
 
     def test_rebind_list_more_kwargs(self):
         task = KwargsTask(rebind=('a', 'b', 'c'))
-        self.assertEqual(task.rebind, {
+        expected = {
             'spam': 'a',
             'b': 'b',
             'c': 'c'
-        })
+        }
+        self.assertEqual(expected, task.rebind)
+        self.assertEqual(set(['a', 'b', 'c']),
+                         task.requires)
 
     def test_rebind_list_bad_value(self):
         self.assertRaisesRegexp(TypeError, '^Invalid rebind value',
@@ -195,13 +218,13 @@ class TaskTest(test.TestCase):
 
     def test_default_provides(self):
         task = DefaultProvidesTask()
-        self.assertEqual(task.provides, set(['def']))
-        self.assertEqual(task.save_as, {'def': None})
+        self.assertEqual(set(['def']), task.provides)
+        self.assertEqual({'def': None}, task.save_as)
 
     def test_default_provides_can_be_overridden(self):
         task = DefaultProvidesTask(provides=('spam', 'eggs'))
-        self.assertEqual(task.provides, set(['spam', 'eggs']))
-        self.assertEqual(task.save_as, {'spam': 0, 'eggs': 1})
+        self.assertEqual(set(['spam', 'eggs']), task.provides)
+        self.assertEqual({'spam': 0, 'eggs': 1}, task.save_as)
 
     def test_update_progress_within_bounds(self):
         values = [0.0, 0.5, 1.0]
@@ -213,7 +236,7 @@ class TaskTest(test.TestCase):
         a_task = ProgressTask()
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
         a_task.execute(values)
-        self.assertEqual(result, values)
+        self.assertEqual(values, result)
 
     @mock.patch.object(task.LOG, 'warn')
     def test_update_progress_lower_bound(self, mocked_warn):
@@ -225,8 +248,8 @@ class TaskTest(test.TestCase):
         a_task = ProgressTask()
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
         a_task.execute([-1.0, -0.5, 0.0])
-        self.assertEqual(result, [0.0, 0.0, 0.0])
-        self.assertEqual(mocked_warn.call_count, 2)
+        self.assertEqual([0.0, 0.0, 0.0], result)
+        self.assertEqual(2, mocked_warn.call_count)
 
     @mock.patch.object(task.LOG, 'warn')
     def test_update_progress_upper_bound(self, mocked_warn):
@@ -238,8 +261,8 @@ class TaskTest(test.TestCase):
         a_task = ProgressTask()
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
         a_task.execute([1.0, 1.5, 2.0])
-        self.assertEqual(result, [1.0, 1.0, 1.0])
-        self.assertEqual(mocked_warn.call_count, 2)
+        self.assertEqual([1.0, 1.0, 1.0], result)
+        self.assertEqual(2, mocked_warn.call_count)
 
     @mock.patch.object(notifier.LOG, 'warn')
     def test_update_progress_handler_failure(self, mocked_warn):
@@ -256,34 +279,34 @@ class TaskTest(test.TestCase):
         a_task = MyTask()
         self.assertRaises(ValueError, a_task.notifier.register,
                           task.EVENT_UPDATE_PROGRESS, None)
-        self.assertEqual(len(a_task.notifier), 0)
+        self.assertEqual(0, len(a_task.notifier))
 
     def test_deregister_any_handler(self):
         a_task = MyTask()
-        self.assertEqual(len(a_task.notifier), 0)
+        self.assertEqual(0, len(a_task.notifier))
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS,
                                  lambda event_type, details: None)
-        self.assertEqual(len(a_task.notifier), 1)
+        self.assertEqual(1, len(a_task.notifier))
         a_task.notifier.deregister_event(task.EVENT_UPDATE_PROGRESS)
-        self.assertEqual(len(a_task.notifier), 0)
+        self.assertEqual(0, len(a_task.notifier))
 
     def test_deregister_any_handler_empty_listeners(self):
         a_task = MyTask()
-        self.assertEqual(len(a_task.notifier), 0)
+        self.assertEqual(0, len(a_task.notifier))
         self.assertFalse(a_task.notifier.deregister_event(
             task.EVENT_UPDATE_PROGRESS))
-        self.assertEqual(len(a_task.notifier), 0)
+        self.assertEqual(0, len(a_task.notifier))
 
     def test_deregister_non_existent_listener(self):
         handler1 = lambda event_type, details: None
         handler2 = lambda event_type, details: None
         a_task = MyTask()
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler1)
-        self.assertEqual(len(list(a_task.notifier.listeners_iter())), 1)
+        self.assertEqual(1, len(list(a_task.notifier.listeners_iter())))
         a_task.notifier.deregister(task.EVENT_UPDATE_PROGRESS, handler2)
-        self.assertEqual(len(list(a_task.notifier.listeners_iter())), 1)
+        self.assertEqual(1, len(list(a_task.notifier.listeners_iter())))
         a_task.notifier.deregister(task.EVENT_UPDATE_PROGRESS, handler1)
-        self.assertEqual(len(list(a_task.notifier.listeners_iter())), 0)
+        self.assertEqual(0, len(list(a_task.notifier.listeners_iter())))
 
     def test_bind_not_callable(self):
         a_task = MyTask()
@@ -295,8 +318,8 @@ class TaskTest(test.TestCase):
         a_task = MyTask()
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler1)
         b_task = a_task.copy(retain_listeners=False)
-        self.assertEqual(len(a_task.notifier), 1)
-        self.assertEqual(len(b_task.notifier), 0)
+        self.assertEqual(1, len(a_task.notifier))
+        self.assertEqual(0, len(b_task.notifier))
 
     def test_copy_listeners(self):
         handler1 = lambda event_type, details: None
@@ -304,15 +327,15 @@ class TaskTest(test.TestCase):
         a_task = MyTask()
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler1)
         b_task = a_task.copy()
-        self.assertEqual(len(b_task.notifier), 1)
+        self.assertEqual(1, len(b_task.notifier))
         self.assertTrue(a_task.notifier.deregister_event(
             task.EVENT_UPDATE_PROGRESS))
-        self.assertEqual(len(a_task.notifier), 0)
-        self.assertEqual(len(b_task.notifier), 1)
+        self.assertEqual(0, len(a_task.notifier))
+        self.assertEqual(1, len(b_task.notifier))
         b_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler2)
         listeners = dict(list(b_task.notifier.listeners_iter()))
-        self.assertEqual(len(listeners[task.EVENT_UPDATE_PROGRESS]), 2)
-        self.assertEqual(len(a_task.notifier), 0)
+        self.assertEqual(2, len(listeners[task.EVENT_UPDATE_PROGRESS]))
+        self.assertEqual(0, len(a_task.notifier))
 
 
 class FunctorTaskTest(test.TestCase):
@@ -320,7 +343,7 @@ class FunctorTaskTest(test.TestCase):
     def test_creation_with_version(self):
         version = (2, 0)
         f_task = task.FunctorTask(lambda: None, version=version)
-        self.assertEqual(f_task.version, version)
+        self.assertEqual(version, f_task.version)
 
     def test_execute_not_callable(self):
         self.assertRaises(ValueError, task.FunctorTask, 2)

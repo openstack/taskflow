@@ -158,13 +158,22 @@ class Linker(object):
                         " decomposed into an empty graph" % (v, u, u))
                 for u in u_g.nodes_iter():
                     for v in v_g.nodes_iter():
-                        depends_on = u.provides & v.requires
+                        # This is using the intersection() method vs the &
+                        # operator since the latter doesn't work with frozen
+                        # sets (when used in combination with ordered sets).
+                        #
+                        # If this is not done the following happens...
+                        #
+                        # TypeError: unsupported operand type(s)
+                        # for &: 'frozenset' and 'OrderedSet'
+                        depends_on = u.provides.intersection(v.requires)
                         if depends_on:
+                            edge_attrs = {
+                                _EDGE_REASONS: frozenset(depends_on),
+                            }
                             _add_update_edges(graph,
                                               [u], [v],
-                                              attr_dict={
-                                                  _EDGE_REASONS: depends_on,
-                                              })
+                                              attr_dict=edge_attrs)
             else:
                 # Connect nodes with no predecessors in v to nodes with no
                 # successors in the *first* non-empty predecessor of v (thus
