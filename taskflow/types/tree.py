@@ -17,6 +17,7 @@
 #    under the License.
 
 import collections
+import itertools
 import os
 
 import six
@@ -118,7 +119,7 @@ class Node(object):
             yield node
             node = node.parent
 
-    def find(self, item):
+    def find(self, item, only_direct=False, include_self=True):
         """Returns the node for an item if it exists in this node.
 
         This will search not only this node but also any children nodes and
@@ -126,9 +127,19 @@ class Node(object):
         object.
 
         :param item: item to lookup.
+        :param only_direct: only look at current node and its direct children.
+        :param include_self: include the current node during searching.
+
         :returns: the node for an item if it exists in this node
         """
-        for n in self.dfs_iter(include_self=True):
+        if only_direct:
+            if include_self:
+                it = itertools.chain([self], self.reverse_iter())
+            else:
+                it = self.reverse_iter()
+        else:
+            it = self.dfs_iter(include_self=include_self)
+        for n in it:
             if n.item == item:
                 return n
         return None
