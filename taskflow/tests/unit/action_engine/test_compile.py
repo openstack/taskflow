@@ -37,7 +37,7 @@ class PatternCompileTest(test.TestCase):
         self.assertRaises(TypeError, compiler.PatternCompiler(r).compile)
 
     def test_wrong_object(self):
-        msg_regex = '^Unknown item .* requested to flatten'
+        msg_regex = '^Unknown object .* requested to compile'
         self.assertRaisesRegexp(TypeError, msg_regex,
                                 compiler.PatternCompiler(42).compile)
 
