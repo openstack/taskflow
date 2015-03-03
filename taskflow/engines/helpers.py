@@ -18,6 +18,7 @@ import contextlib
 import itertools
 import traceback
 
+from debtcollector import renames
 from oslo_utils import importutils
 from oslo_utils import reflection
 import six
@@ -26,7 +27,6 @@ import stevedore.driver
 from taskflow import exceptions as exc
 from taskflow import logging
 from taskflow.persistence import backends as p_backends
-from taskflow.utils import deprecation
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 
@@ -90,14 +90,14 @@ def _extract_engine(**kwargs):
             lambda frame: frame[0] in _FILE_NAMES,
             reversed(traceback.extract_stack(limit=3)))
         stacklevel = sum(1 for _frame in finder)
-        decorator = deprecation.renamed_kwarg('engine_conf', 'engine',
-                                              version="0.6",
-                                              removal_version="?",
-                                              # Three is added on since the
-                                              # decorator adds three of its own
-                                              # stack levels that we need to
-                                              # hop out of...
-                                              stacklevel=stacklevel + 3)
+        decorator = renames.renamed_kwarg('engine_conf', 'engine',
+                                          version="0.6",
+                                          removal_version="?",
+                                          # Three is added on since the
+                                          # decorator adds three of its own
+                                          # stack levels that we need to
+                                          # hop out of...
+                                          stacklevel=stacklevel + 3)
         return decorator(_compat_extract)(**kwargs)
     else:
         return _compat_extract(**kwargs)
