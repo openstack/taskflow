@@ -20,7 +20,6 @@ import threading
 from taskflow import exceptions as exc
 from taskflow import flow
 from taskflow import logging
-from taskflow import retry
 from taskflow import task
 from taskflow.types import graph as gr
 from taskflow.types import tree as tr
@@ -281,33 +280,21 @@ class PatternCompiler(object):
         self._freeze = freeze
         self._lock = threading.Lock()
         self._compilation = None
+        self._flatten_matchers = [
+            ((flow.Flow,), self._flatten_flow),
+            ((task.BaseTask,), self._flatten_task),
+        ]
 
     def _flatten(self, item, parent):
         """Flattens a item (pattern, task) into a graph + tree node."""
-        functor = self._find_flattener(item, parent)
+        functor = misc.match_type_handler(item, self._flatten_matchers)
+        if not functor:
+            raise TypeError("Unknown item '%s' (%s) requested to flatten"
+                            % (item, type(item)))
         self._pre_item_flatten(item)
         graph, node = functor(item, parent)
         self._post_item_flatten(item, graph, node)
         return graph, node
-
-    def _find_flattener(self, item, parent):
-        """Locates the flattening function to use to flatten the given item."""
-        if isinstance(item, flow.Flow):
-            return self._flatten_flow
-        elif isinstance(item, task.BaseTask):
-            return self._flatten_task
-        elif isinstance(item, retry.Retry):
-            if parent is None:
-                raise TypeError("Retry controller '%s' (%s) must only be used"
-                                " as a flow constructor parameter and not as a"
-                                " root component" % (item, type(item)))
-            else:
-                raise TypeError("Retry controller '%s' (%s) must only be used"
-                                " as a flow constructor parameter and not as a"
-                                " flow added component" % (item, type(item)))
-        else:
-            raise TypeError("Unknown item '%s' (%s) requested to flatten"
-                            % (item, type(item)))
 
     def _connect_retry(self, retry, graph):
         graph.add_node(retry)
