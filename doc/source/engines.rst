@@ -346,6 +346,47 @@ failures have occurred then the engine will have finished and if so desired the
 :doc:`persistence <persistence>` can be used to cleanup any details that were
 saved for this execution.
 
+Scoping
+=======
+
+During creation of flows it is also important to understand the lookup
+strategy (also typically known as `scope`_ resolution) that the engine you
+are using will internally use. For example when a task ``A`` provides
+result 'a' and a task ``B`` after ``A`` provides a different result 'a' and a
+task ``C`` after ``A`` and after ``B`` requires 'a' to run, which one will
+be selected?
+
+Default strategy
+----------------
+
+When a engine is executing it internally interacts with the
+:py:class:`~taskflow.storage.Storage` class
+and that class interacts with the a
+:py:class:`~taskflow.engines.action_engine.scopes.ScopeWalker` instance
+and the :py:class:`~taskflow.storage.Storage` class uses the following
+lookup order to find (or fail) a atoms requirement lookup/request:
+
+#. Injected atom specific arguments.
+#. Transient injected arguments.
+#. Non-transient injected arguments.
+#. First scope visited provider that produces the named result; note that
+   if multiple providers are found in the same scope the *first* (the scope
+   walkers yielded ordering defines what *first* means) that produced that
+   result *and* can be extracted without raising an error is selected as the
+   provider of the requested requirement.
+#. Fails with :py:class:`~taskflow.exceptions.NotFound` if unresolved at this
+   point (the ``cause`` attribute of this exception may have more details on
+   why the lookup failed).
+
+.. note::
+
+    To examine this this information when debugging it is recommended to
+    enable the ``BLATHER`` logging level (level 5). At this level the storage
+    and scope code/layers will log what is being searched for and what is
+    being found.
+
+.. _scope: http://en.wikipedia.org/wiki/Scope_%28computer_science%29
+
 Interfaces
 ==========
 
@@ -362,7 +403,8 @@ Implementations
 .. automodule:: taskflow.engines.action_engine.runner
 .. automodule:: taskflow.engines.action_engine.runtime
 .. automodule:: taskflow.engines.action_engine.scheduler
-.. automodule:: taskflow.engines.action_engine.scopes
+.. autoclass:: taskflow.engines.action_engine.scopes.ScopeWalker
+    :special-members: __iter__
 
 Hierarchy
 =========
