@@ -87,6 +87,18 @@ def find_monotonic(allow_time_time=False):
         return None
 
 
+def match_type_handler(item, type_handlers):
+    """Matches a given items type using the given match types + handlers.
+
+    Returns the handler if a type match occurs, otherwise none.
+    """
+    for (match_types, handler_func) in type_handlers:
+        if isinstance(item, match_types):
+            return handler_func
+    else:
+        return None
+
+
 def countdown_iter(start_at, decr=1):
     """Generator that decrements after each generation until <= zero.
 

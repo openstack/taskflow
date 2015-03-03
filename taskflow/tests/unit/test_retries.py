@@ -377,12 +377,12 @@ class RetryTest(utils.EngineTestBase):
     def test_run_just_retry(self):
         flow = utils.OneReturnRetry(provides='x')
         engine = self._make_engine(flow)
-        self.assertRaisesRegexp(TypeError, 'Retry controller', engine.run)
+        self.assertRaises(TypeError, engine.run)
 
     def test_use_retry_as_a_task(self):
         flow = lf.Flow('test').add(utils.OneReturnRetry(provides='x'))
         engine = self._make_engine(flow)
-        self.assertRaisesRegexp(TypeError, 'Retry controller', engine.run)
+        self.assertRaises(TypeError, engine.run)
 
     def test_resume_flow_that_had_been_interrupted_during_retrying(self):
         flow = lf.Flow('flow-1', retry.Times(3, 'r1')).add(

@@ -132,6 +132,10 @@ class Storage(object):
         self._transients = {}
         self._injected_args = {}
         self._lock = lock_utils.ReaderWriterLock()
+        self._ensure_matchers = [
+            ((task.BaseTask,), self._ensure_task),
+            ((retry.Retry,), self._ensure_retry),
+        ]
 
         # NOTE(imelnikov): failure serialization looses information,
         # so we cache failures here, in atom name -> failure mapping.
@@ -168,17 +172,14 @@ class Storage(object):
 
         Returns uuid for the atomdetail that is/was created.
         """
-        if isinstance(atom, task.BaseTask):
-            return self._ensure_task(atom.name,
-                                     misc.get_version_string(atom),
-                                     atom.save_as)
-        elif isinstance(atom, retry.Retry):
-            return self._ensure_retry(atom.name,
-                                      misc.get_version_string(atom),
-                                      atom.save_as)
+        functor = misc.match_type_handler(atom, self._ensure_matchers)
+        if not functor:
+            raise TypeError("Unknown item '%s' (%s) requested to ensure"
+                            % (atom, type(atom)))
         else:
-            raise TypeError("Object of type 'atom' expected not"
-                            " '%s' (%s)" % (atom, type(atom)))
+            return functor(atom.name,
+                           misc.get_version_string(atom),
+                           atom.save_as)
 
     def _ensure_task(self, task_name, task_version, result_mapping):
         """Ensures there is a taskdetail that corresponds to the task info.
