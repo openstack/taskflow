@@ -234,3 +234,17 @@ class Connection(base.Connection):
                 yield book
             except KeyError:
                 pass
+
+    def get_flow_details(self, fd_uuid):
+        try:
+            with self._lock.read_lock():
+                return self._memory.flow_details[fd_uuid]
+        except KeyError:
+            raise exc.NotFound("No flow details found '%s'" % fd_uuid)
+
+    def get_atom_details(self, ad_uuid):
+        try:
+            with self._lock.read_lock():
+                return self._memory.atom_details[ad_uuid]
+        except KeyError:
+            raise exc.NotFound("No atom details found '%s'" % ad_uuid)
