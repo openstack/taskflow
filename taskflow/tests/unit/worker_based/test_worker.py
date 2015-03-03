@@ -34,7 +34,7 @@ class TestWorker(test.MockTestCase):
         self.exchange = 'test-exchange'
         self.topic = 'test-topic'
         self.threads_count = 5
-        self.endpoint_count = 23
+        self.endpoint_count = 24
 
         # patch classes
         self.executor_mock, self.executor_inst_mock = self.patchClass(

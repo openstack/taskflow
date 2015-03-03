@@ -156,6 +156,40 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         self.assertRaises(exc.Empty, engine.run)
 
+    def test_overlap_parent_sibling_expected_result(self):
+        flow = lf.Flow('flow-1')
+        flow.add(utils.ProgressingTask(provides='source'))
+        flow.add(utils.TaskOneReturn(provides='source'))
+        subflow = lf.Flow('flow-2')
+        subflow.add(utils.AddOne())
+        flow.add(subflow)
+        engine = self._make_engine(flow)
+        engine.run()
+        results = engine.storage.fetch_all()
+        self.assertEqual(2, results['result'])
+
+    def test_overlap_parent_expected_result(self):
+        flow = lf.Flow('flow-1')
+        flow.add(utils.ProgressingTask(provides='source'))
+        subflow = lf.Flow('flow-2')
+        subflow.add(utils.TaskOneReturn(provides='source'))
+        subflow.add(utils.AddOne())
+        flow.add(subflow)
+        engine = self._make_engine(flow)
+        engine.run()
+        results = engine.storage.fetch_all()
+        self.assertEqual(2, results['result'])
+
+    def test_overlap_sibling_expected_result(self):
+        flow = lf.Flow('flow-1')
+        flow.add(utils.ProgressingTask(provides='source'))
+        flow.add(utils.TaskOneReturn(provides='source'))
+        flow.add(utils.AddOne())
+        engine = self._make_engine(flow)
+        engine.run()
+        results = engine.storage.fetch_all()
+        self.assertEqual(2, results['result'])
+
     def test_sequential_flow_one_task(self):
         flow = lf.Flow('flow-1').add(
             utils.ProgressingTask(name='task1')
