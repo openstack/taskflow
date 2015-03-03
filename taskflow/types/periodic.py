@@ -31,12 +31,17 @@ LOG = logging.getLogger(__name__)
 # which isn't *always* accurate but will suffice).
 _now = misc.find_monotonic(allow_time_time=True)
 
-# Attributes expected on periodic tagged/decorated functions or methods...
-_PERIODIC_ATTRS = tuple([
-    '_periodic',
-    '_periodic_spacing',
-    '_periodic_run_immediately',
-])
+
+def _check_attrs(obj):
+    """Checks that a periodic function/method has all the expected attributes.
+
+    This will return the expected attributes that were **not** found.
+    """
+    missing_attrs = []
+    for a in ('_periodic', '_periodic_spacing', '_periodic_run_immediately'):
+        if not hasattr(obj, a):
+            missing_attrs.append(a)
+    return missing_attrs
 
 
 def periodic(spacing, run_immediately=True):
@@ -133,12 +138,8 @@ class PeriodicWorker(object):
                 if name.startswith("_") and exclude_hidden:
                     continue
                 if reflection.is_bound_method(member):
-                    consume = True
-                    for attr_name in _PERIODIC_ATTRS:
-                        if not hasattr(member, attr_name):
-                            consume = False
-                            break
-                    if consume:
+                    missing_attrs = _check_attrs(member)
+                    if not missing_attrs:
                         callables.append(member)
         return cls(callables)
 
@@ -149,13 +150,13 @@ class PeriodicWorker(object):
         else:
             self._tombstone = tombstone
         self._callables = []
-        for cb in callables:
+        for i, cb in enumerate(callables, 1):
             if not six.callable(cb):
-                raise ValueError("Periodic callback must be callable")
-            for attr_name in _PERIODIC_ATTRS:
-                if not hasattr(cb, attr_name):
-                    raise ValueError("Periodic callback missing required"
-                                     " attribute '%s'" % attr_name)
+                raise ValueError("Periodic callback %s must be callable" % i)
+            missing_attrs = _check_attrs(cb)
+            if missing_attrs:
+                raise ValueError("Periodic callback %s missing required"
+                                 " attributes %s" % (i, missing_attrs))
             if cb._periodic:
                 self._callables.append(cb)
         self._immediates, self._schedule = _build(self._callables)
