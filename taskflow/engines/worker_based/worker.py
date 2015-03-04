@@ -31,36 +31,6 @@ from taskflow.utils import misc
 from taskflow.utils import threading_utils as tu
 from taskflow import version
 
-BANNER_TEMPLATE = string.Template("""
-TaskFlow v${version} WBE worker.
-Connection details:
-  Driver = $transport_driver
-  Exchange = $exchange
-  Topic = $topic
-  Transport = $transport_type
-  Uri = $connection_uri
-Powered by:
-  Executor = $executor_type
-  Thread count = $executor_thread_count
-Supported endpoints:$endpoints
-System details:
-  Hostname = $hostname
-  Pid = $pid
-  Platform = $platform
-  Python = $python
-  Thread id = $thread_id
-""".strip())
-BANNER_TEMPLATE.defaults = {
-    # These values may not be possible to fetch/known, default to unknown...
-    'pid': '???',
-    'hostname': '???',
-    'executor_thread_count': '???',
-    'endpoints': ' %s' % ([]),
-    # These are static (avoid refetching...)
-    'version': version.version_string(),
-    'python': sys.version.split("\n", 1)[0].strip(),
-}
-
 LOG = logging.getLogger(__name__)
 
 
@@ -87,6 +57,39 @@ class Worker(object):
     :param retry_options: retry specific options
                           (see: :py:attr:`~.proxy.Proxy.DEFAULT_RETRY_OPTIONS`)
     """
+
+    BANNER_TEMPLATE = string.Template("""
+TaskFlow v${version} WBE worker.
+Connection details:
+  Driver = $transport_driver
+  Exchange = $exchange
+  Topic = $topic
+  Transport = $transport_type
+  Uri = $connection_uri
+Powered by:
+  Executor = $executor_type
+  Thread count = $executor_thread_count
+Supported endpoints:$endpoints
+System details:
+  Hostname = $hostname
+  Pid = $pid
+  Platform = $platform
+  Python = $python
+  Thread id = $thread_id
+""".strip())
+
+    # See: http://bugs.python.org/issue13173 for why we are doing this...
+    BANNER_TEMPLATE.defaults = {
+        # These values may not be possible to fetch/known, default
+        # to ??? to represent that they are unknown...
+        'pid': '???',
+        'hostname': '???',
+        'executor_thread_count': '???',
+        'endpoints': ' %s' % ([]),
+        # These are static (avoid refetching...)
+        'version': version.version_string(),
+        'python': sys.version.split("\n", 1)[0].strip(),
+    }
 
     def __init__(self, exchange, topic, tasks,
                  executor=None, threads_count=None, url=None,
@@ -119,7 +122,10 @@ class Worker(object):
 
     def _generate_banner(self):
         """Generates a banner that can be useful to display before running."""
-        tpl_params = {}
+        try:
+            tpl_params = dict(self.BANNER_TEMPLATE.defaults)
+        except AttributeError:
+            tpl_params = {}
         connection_details = self._server.connection_details
         transport = connection_details.transport
         if transport.driver_version:
@@ -151,8 +157,7 @@ class Worker(object):
             pass
         tpl_params['platform'] = platform.platform()
         tpl_params['thread_id'] = tu.get_ident()
-        banner = BANNER_TEMPLATE.substitute(BANNER_TEMPLATE.defaults,
-                                            **tpl_params)
+        banner = self.BANNER_TEMPLATE.substitute(**tpl_params)
         # NOTE(harlowja): this is needed since the template in this file
         # will always have newlines that end with '\n' (even on different
         # platforms due to the way this source file is encoded) so we have
