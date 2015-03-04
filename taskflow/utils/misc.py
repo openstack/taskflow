@@ -239,6 +239,23 @@ def look_for(haystack, needles, extractor=None):
         return [needles[i] for (_hay_i, i) in sorted(matches)]
 
 
+def disallow_when_frozen(excp_cls):
+    """Frozen checking/raising method decorator."""
+
+    def decorator(f):
+
+        @six.wraps(f)
+        def wrapper(self, *args, **kwargs):
+            if self.frozen:
+                raise excp_cls()
+            else:
+                return f(self, *args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 def clamp(value, minimum, maximum, on_clamped=None):
     """Clamps a value to ensure its >= minimum and <= maximum."""
     if minimum > maximum:
