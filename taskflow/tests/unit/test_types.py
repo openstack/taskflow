@@ -136,6 +136,16 @@ class TreeTest(test.TestCase):
         root.freeze()
         self.assertRaises(tree.FrozenNode, root.add, "bird")
 
+    def test_find(self):
+        root = self._make_species()
+        self.assertIsNone(root.find('monkey', only_direct=True))
+        self.assertIsNotNone(root.find('monkey', only_direct=False))
+        self.assertIsNotNone(root.find('animal', only_direct=True))
+        self.assertIsNotNone(root.find('reptile', only_direct=True))
+        self.assertIsNone(root.find('animal', include_self=False))
+        self.assertIsNone(root.find('animal',
+                                    include_self=False, only_direct=True))
+
     def test_dfs_itr(self):
         root = self._make_species()
         things = list([n.item for n in root.dfs_iter(include_self=True)])
