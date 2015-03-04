@@ -113,6 +113,44 @@ class TreeTest(test.TestCase):
         root = tree.Node("josh")
         self.assertTrue(root.empty())
 
+    def test_removal(self):
+        root = self._make_species()
+        self.assertIsNotNone(root.remove('reptile'))
+        self.assertRaises(ValueError, root.remove, 'reptile')
+        self.assertIsNone(root.find('reptile'))
+
+    def test_removal_direct(self):
+        root = self._make_species()
+        self.assertRaises(ValueError, root.remove, 'human',
+                          only_direct=True)
+
+    def test_removal_self(self):
+        root = self._make_species()
+        n = root.find('horse')
+        self.assertIsNotNone(n.parent)
+        n.remove('horse', include_self=True)
+        self.assertIsNone(n.parent)
+        self.assertIsNone(root.find('horse'))
+
+    def test_disassociate(self):
+        root = self._make_species()
+        n = root.find('horse')
+        self.assertIsNotNone(n.parent)
+        c = n.disassociate()
+        self.assertEqual(1, c)
+        self.assertIsNone(n.parent)
+        self.assertIsNone(root.find('horse'))
+
+    def test_disassociate_many(self):
+        root = self._make_species()
+        n = root.find('horse')
+        n.parent.add(n)
+        n.parent.add(n)
+        c = n.disassociate()
+        self.assertEqual(3, c)
+        self.assertIsNone(n.parent)
+        self.assertIsNone(root.find('horse'))
+
     def test_not_empty(self):
         root = self._make_species()
         self.assertFalse(root.empty())

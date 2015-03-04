@@ -149,6 +149,44 @@ class Node(object):
                 return n
         return None
 
+    def disassociate(self):
+        """Removes this node from its parent (if any).
+
+        :returns: occurences of this node that were removed from its parent.
+        """
+        occurrences = 0
+        if self.parent is not None:
+            p = self.parent
+            self.parent = None
+            # Remove all instances of this node from its parent.
+            while True:
+                try:
+                    p._children.remove(self)
+                except ValueError:
+                    break
+                else:
+                    occurrences += 1
+        return occurrences
+
+    def remove(self, item, only_direct=False, include_self=True):
+        """Removes a item from this nodes children.
+
+        This will search not only this node but also any children nodes and
+        finally if nothing is found then a value error is raised instead of
+        the normally returned *removed* node object.
+
+        :param item: item to lookup.
+        :param only_direct: only look at current node and its direct children.
+        :param include_self: include the current node during searching.
+        """
+        node = self.find(item, only_direct=only_direct,
+                         include_self=include_self)
+        if node is None:
+            raise ValueError("Item '%s' not found to remove" % item)
+        else:
+            node.disassociate()
+            return node
+
     def __contains__(self, item):
         """Returns whether item exists in this node or this nodes children.
 
