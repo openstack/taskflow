@@ -163,12 +163,12 @@ Printing and logging listeners
 
 .. autoclass:: taskflow.listeners.printing.PrintingListener
 
-Timing listener
----------------
+Timing listeners
+----------------
 
-.. autoclass:: taskflow.listeners.timing.TimingListener
+.. autoclass:: taskflow.listeners.timing.DurationListener
 
-.. autoclass:: taskflow.listeners.timing.PrintingTimingListener
+.. autoclass:: taskflow.listeners.timing.PrintingDurationListener
 
 Claim listener
 --------------
