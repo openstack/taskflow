@@ -22,6 +22,8 @@ import threading
 import six
 from six.moves import _thread
 
+from taskflow.utils import misc
+
 
 if sys.version_info[0:2] == (2, 6):
     # This didn't return that was/wasn't set in 2.6, since we actually care
@@ -137,7 +139,8 @@ class ThreadBundle(object):
         """Creates & starts all associated threads (that are not running)."""
         count = 0
         with self._lock:
-            for i, (builder, thread, started) in enumerate(self._threads):
+            it = enumerate(self._threads)
+            for i, (builder, thread, started) in it:
                 if thread and started:
                     continue
                 if not thread:
@@ -157,7 +160,8 @@ class ThreadBundle(object):
         """Stops & joins all associated threads (that have been started)."""
         count = 0
         with self._lock:
-            for i, (builder, thread, started) in enumerate(self._threads):
+            it = misc.reverse_enumerate(self._threads)
+            for i, (builder, thread, started) in it:
                 if not thread or not started:
                     continue
                 self._trigger_callback(builder.before_join, thread)
