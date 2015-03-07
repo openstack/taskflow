@@ -18,6 +18,7 @@ import time
 
 import networkx as nx
 import six
+from six.moves import cPickle as pickle
 
 from taskflow import exceptions as excp
 from taskflow import test
@@ -610,6 +611,15 @@ class FSMTest(test.TestCase):
 
 
 class OrderedSetTest(test.TestCase):
+
+    def test_pickleable(self):
+        items = [10, 9, 8, 7]
+        s = sets.OrderedSet(items)
+        self.assertEqual(items, list(s))
+        s_bin = pickle.dumps(s)
+        s2 = pickle.loads(s_bin)
+        self.assertEqual(s, s2)
+        self.assertEqual(items, list(s2))
 
     def test_retain_ordering(self):
         items = [10, 9, 8, 7]

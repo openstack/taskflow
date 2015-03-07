@@ -66,6 +66,12 @@ class OrderedSet(collections.Set, collections.Hashable):
         for value in six.iterkeys(self._data):
             yield value
 
+    def __setstate__(self, items):
+        self.__init__(iterable=iter(items))
+
+    def __getstate__(self):
+        return tuple(self)
+
     def __repr__(self):
         return "%s(%s)" % (type(self).__name__, list(self))
 
