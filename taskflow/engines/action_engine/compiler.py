@@ -220,6 +220,11 @@ class _FlowCompiler(object):
             if n is not retry and flow.LINK_RETRY not in graph.node[n]:
                 graph.node[n][flow.LINK_RETRY] = retry
 
+    @staticmethod
+    def _occurence_detector(to_graph, from_graph):
+        return sum(1 for node in from_graph.nodes_iter()
+                   if node in to_graph)
+
     def _decompose_flow(self, flow, parent=None):
         """Decomposes a flow into a graph, tree node + decomposed subgraphs."""
         graph = gr.DiGraph(name=flow.name)
@@ -233,7 +238,12 @@ class _FlowCompiler(object):
             subgraph, _subnode = self._deep_compiler_func(item, parent=node)
             decomposed_members[item] = subgraph
             if subgraph.number_of_nodes():
-                graph = gr.merge_graphs([graph, subgraph])
+                graph = gr.merge_graphs(
+                    graph, subgraph,
+                    # We can specialize this to be simpler than the default
+                    # algorithm which creates overhead that we don't
+                    # need for our purposes...
+                    overlap_detector=self._occurence_detector)
         return graph, node, decomposed_members
 
     def compile(self, flow, parent=None):

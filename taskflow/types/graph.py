@@ -122,26 +122,35 @@ class DiGraph(nx.DiGraph):
                         queue.append(pred_pred)
 
 
-def merge_graphs(graphs, allow_overlaps=False):
-    """Merges a bunch of graphs into a single graph."""
-    if not graphs:
-        return None
-    graph = graphs[0]
-    for g in graphs[1:]:
+def merge_graphs(graph, *graphs, **kwargs):
+    """Merges a bunch of graphs into a new graph.
+
+    If no additional graphs are provided the first graph is
+    returned unmodified otherwise the merged graph is returned.
+    """
+    tmp_graph = graph
+    allow_overlaps = kwargs.get('allow_overlaps', False)
+    overlap_detector = kwargs.get('overlap_detector')
+    if overlap_detector is not None and not six.callable(overlap_detector):
+        raise ValueError("Overlap detection callback expected to be callable")
+    elif overlap_detector is None:
+        overlap_detector = (lambda to_graph, from_graph:
+                            len(to_graph.subgraph(from_graph.nodes_iter())))
+    for g in graphs:
         # This should ensure that the nodes to be merged do not already exist
         # in the graph that is to be merged into. This could be problematic if
         # there are duplicates.
         if not allow_overlaps:
             # Attempt to induce a subgraph using the to be merged graphs nodes
             # and see if any graph results.
-            overlaps = graph.subgraph(g.nodes_iter())
-            if len(overlaps):
+            overlaps = overlap_detector(graph, g)
+            if overlaps:
                 raise ValueError("Can not merge graph %s into %s since there "
                                  "are %s overlapping nodes (and we do not "
                                  "support merging nodes)" % (g, graph,
-                                                             len(overlaps)))
-        # Keep the target graphs name.
-        name = graph.name
+                                                             overlaps))
         graph = nx.algorithms.compose(graph, g)
-        graph.name = name
+    # Keep the first graphs name.
+    if graphs:
+        graph.name = tmp_graph.name
     return graph
