@@ -311,14 +311,16 @@ class Storage(object):
 
     def set_atom_intention(self, atom_name, intention):
         """Sets the intention of an atom given an atoms name."""
-        ad = self._atomdetail_by_name(atom_name)
-        ad.intention = intention
-        self._with_connection(self._save_atom_detail, ad)
+        with self._lock.write_lock():
+            ad = self._atomdetail_by_name(atom_name)
+            ad.intention = intention
+            self._with_connection(self._save_atom_detail, ad)
 
     def get_atom_intention(self, atom_name):
         """Gets the intention of an atom given an atoms name."""
-        ad = self._atomdetail_by_name(atom_name)
-        return ad.intention
+        with self._lock.read_lock():
+            ad = self._atomdetail_by_name(atom_name)
+            return ad.intention
 
     def get_atoms_states(self, atom_names):
         """Gets all atoms states given a set of names."""
