@@ -49,6 +49,11 @@ Periodic
 
 .. automodule:: taskflow.types.periodic
 
+Sets
+====
+
+.. automodule:: taskflow.types.sets
+
 Table
 =====
 
