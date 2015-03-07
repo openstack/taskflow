@@ -506,15 +506,34 @@ class Storage(object):
                 self._with_connection(self._save_atom_detail, ad)
 
     def inject_atom_args(self, atom_name, pairs):
-        """Add *transient* values into storage for a specific atom only.
+        """Add **transient** values into storage for a specific atom only.
 
         This method injects a dictionary/pairs of arguments for an atom so that
         when that atom is scheduled for execution it will have immediate access
         to these arguments.
 
-        NOTE(harlowja): injected atom arguments take precedence over arguments
-        provided by predecessor atoms or arguments provided by injecting into
-        the flow scope (using the inject() method).
+        .. note::
+
+            Injected atom arguments take precedence over arguments
+            provided by predecessor atoms or arguments provided by injecting
+            into the flow scope (using
+            the :py:meth:`~taskflow.storage.Storage.inject` method).
+
+        .. warning::
+
+            It should be noted that injected atom arguments (that are scoped
+            to the atom with the given name) *should* be serializable
+            whenever possible. This is a **requirement** for the
+            :doc:`worker based engine <workers>` which **must**
+            serialize (typically using ``json``) all
+            atom :py:meth:`~taskflow.atom.Atom.execute` and
+            :py:meth:`~taskflow.atom.Atom.revert` arguments to
+            be able to transmit those arguments to the target worker(s). If
+            the use-case being applied/desired is to later use the worker
+            based engine then it is highly recommended to ensure all injected
+            atoms (even transient ones) are serializable to avoid issues
+            that *may* appear later (when a object turned out to not actually
+            be serializable).
         """
         if atom_name not in self._atom_name_to_uuid:
             raise exceptions.NotFound("Unknown atom name: %s" % atom_name)
@@ -526,11 +545,27 @@ class Storage(object):
         """Add values into storage.
 
         This method should be used to put flow parameters (requirements that
-        are not satisfied by any task in the flow) into storage.
+        are not satisfied by any atom in the flow) into storage.
 
-        :param: transient save the data in-memory only instead of persisting
+        :param transient: save the data in-memory only instead of persisting
                 the data to backend storage (useful for resource-like objects
-                or similar objects which should *not* be persisted)
+                or similar objects which can **not** be persisted)
+
+        .. warning::
+
+            It should be noted that injected flow arguments (that are scoped
+            to all atoms in this flow) *should* be serializable whenever
+            possible. This is a **requirement** for
+            the :doc:`worker based engine <workers>` which **must**
+            serialize (typically using ``json``) all
+            atom :py:meth:`~taskflow.atom.Atom.execute` and
+            :py:meth:`~taskflow.atom.Atom.revert` arguments to
+            be able to transmit those arguments to the target worker(s). If
+            the use-case being applied/desired is to later use the worker
+            based engine then it is highly recommended to ensure all injected
+            atoms (even transient ones) are serializable to avoid issues
+            that *may* appear later (when a object turned out to not actually
+            be serializable).
         """
 
         def save_persistent():
