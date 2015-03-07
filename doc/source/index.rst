@@ -85,6 +85,21 @@ Miscellaneous
    types
    utils
 
+Bookshelf
+---------
+
+A useful collection of *relevant* links, documents, papers, similar
+projects, frameworks and libraries (and more).
+
+.. note::
+
+     Please feel free to submit your own additions and/or changes.
+
+.. toctree::
+   :maxdepth: 1
+
+   shelf
+
 Indices and tables
 ==================
 
