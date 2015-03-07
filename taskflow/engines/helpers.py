@@ -134,7 +134,7 @@ def load(flow, store=None, flow_detail=None, book=None,
 
     This function creates and prepares an engine to run the provided flow. All
     that is left after this returns is to run the engine with the
-    engines ``run()`` method.
+    engines :py:meth:`~taskflow.engines.base.Engine.run` method.
 
     Which engine to load is specified via the ``engine`` parameter. It
     can be a string that names the engine type to use, or a string that
@@ -143,7 +143,8 @@ def load(flow, store=None, flow_detail=None, book=None,
 
     Which storage backend to use is defined by the backend parameter. It
     can be backend itself, or a dictionary that is passed to
-    ``taskflow.persistence.backends.fetch()`` to obtain a viable backend.
+    :py:func:`~taskflow.persistence.backends.fetch` to obtain a
+    viable backend.
 
     :param flow: flow to load
     :param store: dict -- data to put to storage to satisfy flow requirements
@@ -198,7 +199,8 @@ def run(flow, store=None, flow_detail=None, book=None,
 
     The arguments are interpreted as for :func:`load() <load>`.
 
-    :returns: dictionary of all named results (see ``storage.fetch_all()``)
+    :returns: dictionary of all named
+              results (see :py:meth:`~.taskflow.storage.Storage.fetch_all`)
     """
     engine = load(flow, store=store, flow_detail=flow_detail, book=book,
                   engine_conf=engine_conf, backend=backend,
