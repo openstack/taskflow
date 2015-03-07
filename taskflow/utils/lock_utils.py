@@ -142,25 +142,17 @@ class ReaderWriterLock(object):
     @property
     def has_pending_writers(self):
         """Returns if there are writers waiting to become the *one* writer."""
-        self._cond.acquire()
-        try:
-            return bool(self._pending_writers)
-        finally:
-            self._cond.release()
+        return bool(self._pending_writers)
 
     def is_writer(self, check_pending=True):
         """Returns if the caller is the active writer or a pending writer."""
-        self._cond.acquire()
-        try:
-            me = self._current_thread()
-            if self._writer is not None and self._writer == me:
-                return True
-            if check_pending:
-                return me in self._pending_writers
-            else:
-                return False
-        finally:
-            self._cond.release()
+        me = self._current_thread()
+        if self._writer == me:
+            return True
+        if check_pending:
+            return me in self._pending_writers
+        else:
+            return False
 
     @property
     def owner(self):
@@ -177,11 +169,8 @@ class ReaderWriterLock(object):
 
     def is_reader(self):
         """Returns if the caller is one of the readers."""
-        self._cond.acquire()
-        try:
-            return self._current_thread() in self._readers
-        finally:
-            self._cond.release()
+        me = self._current_thread()
+        return me in self._readers
 
     @contextlib.contextmanager
     def read_lock(self):
