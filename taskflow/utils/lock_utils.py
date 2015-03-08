@@ -157,15 +157,14 @@ class ReaderWriterLock(object):
     @property
     def owner(self):
         """Returns whether the lock is locked by a writer or reader."""
-        self._cond.acquire()
-        try:
+        with self._cond:
+            # Obtain the lock to ensure we get a accurate view of the actual
+            # owner that isn't likely to change when we are reading it...
             if self._writer is not None:
                 return self.WRITER
             if self._readers:
                 return self.READER
             return None
-        finally:
-            self._cond.release()
 
     def is_reader(self):
         """Returns if the caller is one of the readers."""
@@ -186,8 +185,7 @@ class ReaderWriterLock(object):
             raise RuntimeError("Writer %s can not acquire a read lock"
                                " while holding/waiting for the write lock"
                                % me)
-        self._cond.acquire()
-        try:
+        with self._cond:
             while True:
                 # No active writer; we are good to become a reader.
                 if self._writer is None:
@@ -195,8 +193,6 @@ class ReaderWriterLock(object):
                     break
                 # An active writer; guess we have to wait.
                 self._cond.wait()
-        finally:
-            self._cond.release()
         try:
             yield self
         finally:
@@ -204,12 +200,9 @@ class ReaderWriterLock(object):
             # If the current thread acquired two read locks, then it will
             # still have to remove that other read lock; this allows for
             # basic reentrancy to be possible.
-            self._cond.acquire()
-            try:
+            with self._cond:
                 self._readers.remove(me)
                 self._cond.notify_all()
-            finally:
-                self._cond.release()
 
     @contextlib.contextmanager
     def write_lock(self):
@@ -227,8 +220,7 @@ class ReaderWriterLock(object):
             # Already the writer; this allows for basic reentrancy.
             yield self
         else:
-            self._cond.acquire()
-            try:
+            with self._cond:
                 self._pending_writers.append(me)
                 while True:
                     # No readers, and no active writer, am I next??
@@ -237,17 +229,12 @@ class ReaderWriterLock(object):
                             self._writer = self._pending_writers.popleft()
                             break
                     self._cond.wait()
-            finally:
-                self._cond.release()
             try:
                 yield self
             finally:
-                self._cond.acquire()
-                try:
+                with self._cond:
                     self._writer = None
                     self._cond.notify_all()
-                finally:
-                    self._cond.release()
 
 
 class MultiLock(object):
