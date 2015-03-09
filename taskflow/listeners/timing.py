@@ -18,6 +18,8 @@ from __future__ import absolute_import
 
 import itertools
 
+from debtcollector import moves
+
 from taskflow import exceptions as exc
 from taskflow.listeners import base
 from taskflow import logging
@@ -39,7 +41,7 @@ def _printer(message):
     print(message)
 
 
-class TimingListener(base.Listener):
+class DurationListener(base.Listener):
     """Listener that captures task duration.
 
     It records how long a task took to execute (or fail)
@@ -47,9 +49,9 @@ class TimingListener(base.Listener):
     to task metadata with key ``'duration'``.
     """
     def __init__(self, engine):
-        super(TimingListener, self).__init__(engine,
-                                             task_listen_for=WATCH_STATES,
-                                             flow_listen_for=[])
+        super(DurationListener, self).__init__(engine,
+                                               task_listen_for=WATCH_STATES,
+                                               flow_listen_for=[])
         self._timers = {}
 
     def deregister(self):
@@ -86,22 +88,32 @@ class TimingListener(base.Listener):
                 self._record_ending(timer, task_name)
 
 
-class PrintingTimingListener(TimingListener):
-    """Listener that prints the start & stop timing as well as recording it."""
+TimingListener = moves.moved_class(DurationListener,
+                                   'TimingListener', __name__,
+                                   version="0.8", removal_version="?")
+
+
+class PrintingDurationListener(DurationListener):
+    """Listener that prints the duration as well as recording it."""
 
     def __init__(self, engine, printer=None):
-        super(PrintingTimingListener, self).__init__(engine)
+        super(PrintingDurationListener, self).__init__(engine)
         if printer is None:
             self._printer = _printer
         else:
             self._printer = printer
 
     def _record_ending(self, timer, task_name):
-        super(PrintingTimingListener, self)._record_ending(timer, task_name)
+        super(PrintingDurationListener, self)._record_ending(timer, task_name)
         self._printer("It took task '%s' %0.2f seconds to"
                       " finish." % (task_name, timer.elapsed()))
 
     def _task_receiver(self, state, details):
-        super(PrintingTimingListener, self)._task_receiver(state, details)
+        super(PrintingDurationListener, self)._task_receiver(state, details)
         if state in STARTING_STATES:
             self._printer("'%s' task started." % (details['task_name']))
+
+
+PrintingTimingListener = moves.moved_class(
+    PrintingDurationListener, 'PrintingTimingListener', __name__,
+    version="0.8", removal_version="?")
