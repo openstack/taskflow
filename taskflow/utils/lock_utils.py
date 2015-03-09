@@ -163,8 +163,8 @@ class ReaderWriterLock(object):
     to exist for use-cases where it is useful to have such types of locks.
 
     Currently a reader can not escalate its read lock to a write lock and
-    a writer can not acquire a read lock while it owns or is waiting on
-    the write lock.
+    a writer can not acquire a read lock while it is waiting on the write
+    lock.
 
     In the future these restrictions may be relaxed.
 
@@ -232,18 +232,19 @@ class ReaderWriterLock(object):
 
         Will wait until no active or pending writers.
 
-        Raises a RuntimeError if an active or pending writer tries to acquire
+        Raises a RuntimeError if a pending writer tries to acquire
         a read lock.
         """
         me = self._current_thread()
-        if self.is_writer():
+        if me in self._pending_writers:
             raise RuntimeError("Writer %s can not acquire a read lock"
-                               " while holding/waiting for the write lock"
+                               " while waiting for the write lock"
                                % me)
         with self._cond:
             while True:
-                # No active writer; we are good to become a reader.
-                if self._writer is None:
+                # No active writer, or we are the writer;
+                # we are good to become a reader.
+                if self._writer is None or self._writer == me:
                     self._readers.append(me)
                     break
                 # An active writer; guess we have to wait.
