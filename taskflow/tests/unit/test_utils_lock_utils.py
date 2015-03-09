@@ -575,10 +575,11 @@ class ReadWriteLockTest(test.TestCase):
 
         def reader_func():
             with lock.read_lock():
-                pass
+                self.assertTrue(lock.is_writer())
+                self.assertTrue(lock.is_reader())
 
         with lock.write_lock():
-            self.assertRaises(RuntimeError, reader_func)
+            self.assertIsNone(reader_func())
             self.assertFalse(lock.is_reader())
 
         self.assertFalse(lock.is_reader())
