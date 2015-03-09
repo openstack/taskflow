@@ -64,15 +64,10 @@ def locked(*args, **kwargs):
     activates the given lock or list of locks as a context manager,
     automatically releasing that lock on exit.
 
-    NOTE(harlowja): if no attribute is provided then by default the attribute
-    named '_lock' is looked for in the instance object this decorator is
-    attached to.
-
-    NOTE(harlowja): when we get the wrapt module approved we can address the
-    correctness of this decorator with regards to classmethods, to keep sanity
-    and correctness it is recommended to avoid using this on classmethods, once
-    https://review.openstack.org/#/c/94754/ is merged this will be refactored
-    and that use-case can be provided in a correct manner.
+    NOTE(harlowja): if no attribute name is provided then by default the
+    attribute named '_lock' is looked for (this attribute is expected to be
+    the lock/list of locks object/s) in the instance object this decorator
+    is attached to.
     """
 
     def decorator(f):
@@ -86,6 +81,66 @@ def locked(*args, **kwargs):
             else:
                 lock = attr_value
             with lock:
+                return f(self, *args, **kwargs)
+
+        return wrapper
+
+    # This is needed to handle when the decorator has args or the decorator
+    # doesn't have args, python is rather weird here...
+    if kwargs or not args:
+        return decorator
+    else:
+        if len(args) == 1:
+            return decorator(args[0])
+        else:
+            return decorator
+
+
+def read_locked(*args, **kwargs):
+    """Acquires & releases a read lock around call into decorated method.
+
+    NOTE(harlowja): if no attribute name is provided then by default the
+    attribute named '_lock' is looked for (this attribute is expected to be
+    the rw-lock object) in the instance object this decorator is attached to.
+    """
+
+    def decorator(f):
+        attr_name = kwargs.get('lock', '_lock')
+
+        @six.wraps(f)
+        def wrapper(self, *args, **kwargs):
+            rw_lock = getattr(self, attr_name)
+            with rw_lock.read_lock():
+                return f(self, *args, **kwargs)
+
+        return wrapper
+
+    # This is needed to handle when the decorator has args or the decorator
+    # doesn't have args, python is rather weird here...
+    if kwargs or not args:
+        return decorator
+    else:
+        if len(args) == 1:
+            return decorator(args[0])
+        else:
+            return decorator
+
+
+def write_locked(*args, **kwargs):
+    """Acquires & releases a write lock around call into decorated method.
+
+    NOTE(harlowja): if no attribute name is provided then by default the
+    attribute named '_lock' is looked for (this attribute is expected to be
+    the rw-lock object) in the instance object this decorator is attached to.
+    """
+
+    def decorator(f):
+        attr_name = kwargs.get('lock', '_lock')
+
+        @six.wraps(f)
+        def wrapper(self, *args, **kwargs):
+            rw_lock = getattr(self, attr_name)
+            with rw_lock.write_lock():
                 return f(self, *args, **kwargs)
 
         return wrapper
