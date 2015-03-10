@@ -119,6 +119,11 @@ class Connection(object):
         pass
 
     @abc.abstractmethod
+    def get_flows_for_book(self, book_uuid):
+        """Return an iterable of flowdetails for a given logbook uuid."""
+        pass
+
+    @abc.abstractmethod
     def get_flow_details(self, fd_uuid):
         """Fetches a flowdetails object matching the given uuid."""
         pass

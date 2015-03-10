@@ -202,25 +202,25 @@ class Alchemist(object):
         atom_cls = logbook.atom_detail_class(row.pop('atom_type'))
         return atom_cls.from_dict(row)
 
-    def _atom_query_iter(self, conn, parent_uuid):
+    def atom_query_iter(self, conn, parent_uuid):
         q = (sql.select([self._tables.atomdetails]).
              where(self._tables.atomdetails.c.parent_uuid == parent_uuid))
         for row in conn.execute(q):
             yield self.convert_atom_detail(row)
 
-    def _flow_query_iter(self, conn, parent_uuid):
+    def flow_query_iter(self, conn, parent_uuid):
         q = (sql.select([self._tables.flowdetails]).
              where(self._tables.flowdetails.c.parent_uuid == parent_uuid))
         for row in conn.execute(q):
             yield self.convert_flow_detail(row)
 
     def populate_book(self, conn, book):
-        for fd in self._flow_query_iter(conn, book.uuid):
+        for fd in self.flow_query_iter(conn, book.uuid):
             book.add(fd)
             self.populate_flow_detail(conn, fd)
 
     def populate_flow_detail(self, conn, fd):
-        for ad in self._atom_query_iter(conn, fd.uuid):
+        for ad in self.atom_query_iter(conn, fd.uuid):
             fd.add(ad)
 
 
@@ -557,6 +557,19 @@ class Connection(base.Connection):
             raise exc.StorageFailure("Failed getting logbooks", e)
         for book in gathered:
             yield book
+
+    def get_flows_for_book(self, book_uuid):
+        gathered = []
+        try:
+            with contextlib.closing(self._engine.connect()) as conn:
+                for row in self._converter.flow_query_iter(conn, book_uuid):
+                    flow_details = self._converter.populate_flow_detail(conn,
+                                                                        row)
+                    gathered.append(flow_details)
+        except sa_exc.DBAPIError as e:
+            raise exc.StorageFailure("Failed getting flow details", e)
+        for flow_details in gathered:
+            yield flow_details
 
     def get_flow_details(self, fd_uuid):
         try:
