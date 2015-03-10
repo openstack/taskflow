@@ -92,9 +92,18 @@ class Engine(object):
         """Performs any pre-run, but post-compilation actions.
 
         NOTE(harlowja): During preparation it is currently assumed that the
-        underlying storage will be initialized, all final dependencies
-        will be verified, the tasks will be reset and the engine will enter
-        the PENDING state.
+        underlying storage will be initialized, the atoms will be reset and
+        the engine will enter the PENDING state.
+        """
+
+    @abc.abstractmethod
+    def validate(self):
+        """Performs any pre-run, post-prepare validation actions.
+
+        NOTE(harlowja): During validation all final dependencies
+        will be verified and ensured. This will by default check that all
+        atoms have satisfiable requirements (satisfied by some other
+        provider).
         """
 
     @abc.abstractmethod
@@ -105,8 +114,8 @@ class Engine(object):
     def suspend(self):
         """Attempts to suspend the engine.
 
-        If the engine is currently running tasks then this will attempt to
-        suspend future work from being started (currently active tasks can
+        If the engine is currently running atoms then this will attempt to
+        suspend future work from being started (currently active atoms can
         not currently be preempted) and move the engine into a suspend state
         which can then later be resumed from.
         """

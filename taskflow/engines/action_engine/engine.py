@@ -20,6 +20,7 @@ import threading
 
 from concurrent import futures
 from oslo_utils import excutils
+from oslo_utils import strutils
 import six
 
 from taskflow.engines.action_engine import compiler
@@ -119,6 +120,7 @@ class ActionEngine(base.Engine):
         """
         self.compile()
         self.prepare()
+        self.validate()
         runner = self._runtime.runner
         last_state = None
         with _start_stop(self._task_executor):
@@ -168,10 +170,34 @@ class ActionEngine(base.Engine):
 
     def _ensure_storage(self):
         """Ensure all contained atoms exist in the storage unit."""
+        transient = strutils.bool_from_string(
+            self._options.get('inject_transient', True))
         for node in self._compilation.execution_graph.nodes_iter():
             self.storage.ensure_atom(node)
             if node.inject:
-                self.storage.inject_atom_args(node.name, node.inject)
+                self.storage.inject_atom_args(node.name,
+                                              node.inject,
+                                              transient=transient)
+
+    @lock_utils.locked
+    def validate(self):
+        if not self._storage_ensured:
+            raise exc.InvalidState("Can not validate an engine"
+                                   " which has not has its storage"
+                                   " populated")
+        # At this point we can check to ensure all dependencies are either
+        # flow/task provided or storage provided, if there are still missing
+        # dependencies then this flow will fail at runtime (which we can avoid
+        # by failing at validation time).
+        missing = set()
+        fetch = self.storage.fetch_unsatisfied_args
+        for node in self._compilation.execution_graph.nodes_iter():
+            scope_walker = self._runtime.fetch_scopes_for(node)
+            missing.update(fetch(node.name, node.rebind,
+                                 scope_walker=scope_walker,
+                                 optional_args=node.optional))
+        if missing:
+            raise exc.MissingDependencies(self._flow, sorted(missing))
 
     @lock_utils.locked
     def prepare(self):
@@ -186,14 +212,6 @@ class ActionEngine(base.Engine):
             self._ensure_storage()
             self._change_state(states.SUSPENDED)
             self._storage_ensured = True
-        # At this point we can check to ensure all dependencies are either
-        # flow/task provided or storage provided, if there are still missing
-        # dependencies then this flow will fail at runtime (which we can avoid
-        # by failing at preparation time).
-        external_provides = set(self.storage.fetch_all().keys())
-        missing = self._flow.requires - external_provides
-        if missing:
-            raise exc.MissingDependencies(self._flow, sorted(missing))
         # Reset everything back to pending (if we were previously reverted).
         if self.storage.get_flow_state() == states.REVERTED:
             self._runtime.reset_all()

@@ -533,6 +533,31 @@ class StorageTestMixin(object):
         intention = s.get_atom_intention('my retry')
         self.assertEqual(intention, states.RETRY)
 
+    def test_inject_persistent_missing(self):
+        t = test_utils.ProgressingTask('my retry', requires=['x'])
+        s = self._get_storage()
+        s.ensure_atom(t)
+        missing = s.fetch_unsatisfied_args(t.name, t.rebind)
+        self.assertEqual(set(['x']), missing)
+        s.inject_atom_args(t.name, {'x': 2}, transient=False)
+        missing = s.fetch_unsatisfied_args(t.name, t.rebind)
+        self.assertEqual(set(), missing)
+        args = s.fetch_mapped_args(t.rebind, atom_name=t.name)
+        self.assertEqual(2, args['x'])
+
+    def test_inject_persistent_and_transient_missing(self):
+        t = test_utils.ProgressingTask('my retry', requires=['x'])
+        s = self._get_storage()
+        s.ensure_atom(t)
+        missing = s.fetch_unsatisfied_args(t.name, t.rebind)
+        self.assertEqual(set(['x']), missing)
+        s.inject_atom_args(t.name, {'x': 2}, transient=False)
+        s.inject_atom_args(t.name, {'x': 3}, transient=True)
+        missing = s.fetch_unsatisfied_args(t.name, t.rebind)
+        self.assertEqual(set(), missing)
+        args = s.fetch_mapped_args(t.rebind, atom_name=t.name)
+        self.assertEqual(3, args['x'])
+
 
 class StorageMemoryTest(StorageTestMixin, test.TestCase):
     def setUp(self):
