@@ -235,6 +235,29 @@ class TestTimingListener(test.TestCase, EngineMakerMixin):
                                             exc_info=True)
 
 
+class TestEventTimeListener(test.TestCase, EngineMakerMixin):
+    def test_event_time(self):
+        flow = lf.Flow('flow1').add(SleepyTask("task1", sleep_for=0.1))
+        engine = self._make_engine(flow)
+        with timing.EventTimeListener(engine):
+            engine.run()
+        t_uuid = engine.storage.get_atom_uuid("task1")
+        td = engine.storage._flowdetail.find(t_uuid)
+        self.assertIsNotNone(td)
+        self.assertIsNotNone(td.meta)
+        running_field = '%s-timestamp' % states.RUNNING
+        success_field = '%s-timestamp' % states.SUCCESS
+        self.assertIn(running_field, td.meta)
+        self.assertIn(success_field, td.meta)
+        td_duration = td.meta[success_field] - td.meta[running_field]
+        self.assertGreaterEqual(0.1, td_duration)
+        fd_meta = engine.storage._flowdetail.meta
+        self.assertIn(running_field, fd_meta)
+        self.assertIn(success_field, fd_meta)
+        fd_duration = fd_meta[success_field] - fd_meta[running_field]
+        self.assertGreaterEqual(0.1, fd_duration)
+
+
 class TestLoggingListeners(test.TestCase, EngineMakerMixin):
     def _make_logger(self, level=logging.DEBUG):
         log = logging.getLogger(
