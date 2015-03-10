@@ -760,6 +760,13 @@ class Storage(object):
         self._flowdetail.state = state
         self._with_connection(self._save_flow_detail)
 
+    @lock_utils.write_locked
+    def update_flow_metadata(self, update_with):
+        """Update flowdetails metadata and save it."""
+        if update_with:
+            self._flowdetail.meta.update(update_with)
+            self._with_connection(self._save_flow_detail)
+
     @lock_utils.read_locked
     def get_flow_state(self):
         """Get state from flow details."""
