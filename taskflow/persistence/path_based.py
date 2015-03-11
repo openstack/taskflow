@@ -36,9 +36,7 @@ class PathBasedBackend(base.Backend):
 
     def __init__(self, conf):
         super(PathBasedBackend, self).__init__(conf)
-        if conf is None:
-                conf = {}
-        self._path = conf.get('path', None)
+        self._path = self._conf.get('path', None)
 
     @property
     def path(self):
