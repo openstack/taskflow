@@ -23,6 +23,7 @@ from oslo_utils import reflection
 import six
 
 from taskflow import exceptions as exc
+from taskflow.utils import schema_utils as su
 
 
 def _copy_exc_info(exc_info):
@@ -132,6 +133,47 @@ class Failure(object):
     """
     DICT_VERSION = 1
 
+    #: Expected failure schema (in json schema format).
+    SCHEMA = {
+        "$ref": "#/definitions/cause",
+        "definitions": {
+            "cause": {
+                "type": "object",
+                'properties': {
+                    'version': {
+                        "type": "integer",
+                        "minimum": 0,
+                    },
+                    'exception_str': {
+                        "type": "string",
+                    },
+                    'traceback_str': {
+                        "type": "string",
+                    },
+                    'exc_type_names': {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                        },
+                        "minItems": 1,
+                    },
+                    'causes': {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/cause",
+                        },
+                    }
+                },
+                "required": [
+                    "exception_str",
+                    'traceback_str',
+                    'exc_type_names',
+                ],
+                "additionalProperties": True,
+            },
+        },
+    }
+
     def __init__(self, exc_info=None, **kwargs):
         if not kwargs:
             if exc_info is None:
@@ -168,6 +210,14 @@ class Failure(object):
     def from_exception(cls, exception):
         """Creates a failure object from a exception instance."""
         return cls((type(exception), exception, None))
+
+    @classmethod
+    def validate(cls, data):
+        try:
+            su.schema_validate(data, cls.SCHEMA)
+        except su.ValidationError as e:
+            raise exc.InvalidFormat("Failure data not of the"
+                                    " expected format: %s" % (e.message), e)
 
     def _matches(self, other):
         if self is other:

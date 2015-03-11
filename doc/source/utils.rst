@@ -48,6 +48,11 @@ Persistence
 
 .. automodule:: taskflow.utils.persistence_utils
 
+Schema
+~~~~~~
+
+.. automodule:: taskflow.utils.schema_utils
+
 Threading
 ~~~~~~~~~
 

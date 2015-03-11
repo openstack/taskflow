@@ -17,7 +17,6 @@
 import functools
 
 from oslo_utils import reflection
-import six
 
 from taskflow.engines.worker_based import dispatcher
 from taskflow.engines.worker_based import protocol as pr
@@ -93,32 +92,6 @@ class Server(object):
     @property
     def connection_details(self):
         return self._proxy.connection_details
-
-    @staticmethod
-    def _parse_request(task_cls, task_name, action, arguments, result=None,
-                       failures=None, **kwargs):
-        """Parse request before it can be further processed.
-
-        All `failure.Failure` objects that have been converted to dict on the
-        remote side will now converted back to `failure.Failure` objects.
-        """
-        # These arguments will eventually be given to the task executor
-        # so they need to be in a format it will accept (and using keyword
-        # argument names that it accepts)...
-        arguments = {
-            'arguments': arguments,
-        }
-        if result is not None:
-            data_type, data = result
-            if data_type == 'failure':
-                arguments['result'] = ft.Failure.from_dict(data)
-            else:
-                arguments['result'] = data
-        if failures is not None:
-            arguments['failures'] = {}
-            for key, data in six.iteritems(failures):
-                arguments['failures'][key] = ft.Failure.from_dict(data)
-        return (task_cls, task_name, action, arguments)
 
     @staticmethod
     def _parse_message(message):
@@ -201,9 +174,8 @@ class Server(object):
 
         # parse request to get task name, action and action arguments
         try:
-            bundle = self._parse_request(**request)
+            bundle = pr.Request.from_dict(request, task_uuid=task_uuid)
             task_cls, task_name, action, arguments = bundle
-            arguments['task_uuid'] = task_uuid
         except ValueError:
             with misc.capture_failure() as failure:
                 LOG.warn("Failed to parse request contents from message '%s'",

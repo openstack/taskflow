@@ -137,6 +137,36 @@ class FromExceptionTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 
 class FailureObjectTestCase(test.TestCase):
 
+    def test_invalids(self):
+        f = {
+            'exception_str': 'blah',
+            'traceback_str': 'blah',
+            'exc_type_names': [],
+        }
+        self.assertRaises(exceptions.InvalidFormat,
+                          failure.Failure.validate, f)
+        f = {
+            'exception_str': 'blah',
+            'exc_type_names': ['Exception'],
+        }
+        self.assertRaises(exceptions.InvalidFormat,
+                          failure.Failure.validate, f)
+        f = {
+            'exception_str': 'blah',
+            'traceback_str': 'blah',
+            'exc_type_names': ['Exception'],
+            'version': -1,
+        }
+        self.assertRaises(exceptions.InvalidFormat,
+                          failure.Failure.validate, f)
+
+    def test_valid_from_dict_to_dict(self):
+        f = _captured_failure('Woot!')
+        d_f = f.to_dict()
+        failure.Failure.validate(d_f)
+        f2 = failure.Failure.from_dict(d_f)
+        self.assertTrue(f.matches(f2))
+
     def test_dont_catch_base_exception(self):
         try:
             raise SystemExit()
@@ -358,6 +388,7 @@ class FailureCausesTest(test.TestCase):
 
         self.assertIsNotNone(f)
         d_f = f.to_dict()
+        failure.Failure.validate(d_f)
         f = failure.Failure.from_dict(d_f)
         self.assertEqual(2, len(f.causes))
         self.assertEqual("Still not working", f.causes[0].exception_str)
