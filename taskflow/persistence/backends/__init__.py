@@ -16,6 +16,7 @@
 
 import contextlib
 
+import six
 from stevedore import driver
 
 from taskflow import exceptions as exc
@@ -50,6 +51,8 @@ def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
     is {'a': 'b', 'c': 'd'} to the constructor of that persistence backend
     instance.
     """
+    if isinstance(conf, six.string_types):
+        conf = {'connection': conf}
     backend_name = conf['connection']
     try:
         uri = misc.parse_uri(backend_name)
