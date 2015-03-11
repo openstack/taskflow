@@ -29,6 +29,7 @@ from taskflow.engines.action_engine import runtime
 from taskflow.engines import base
 from taskflow import exceptions as exc
 from taskflow import states
+from taskflow import storage
 from taskflow.types import failure
 from taskflow.utils import lock_utils
 from taskflow.utils import misc
@@ -88,6 +89,29 @@ class ActionEngine(base.Engine):
             return self._compilation
         else:
             return None
+
+    @misc.cachedproperty
+    def storage(self):
+        """The storage unit for this engine.
+
+        NOTE(harlowja): the atom argument lookup strategy will change for
+        this storage unit after
+        :py:func:`~taskflow.engines.base.Engine.compile` has
+        completed (since **only** after compilation is the actual structure
+        known). Before :py:func:`~taskflow.engines.base.Engine.compile`
+        has completed the atom argument lookup strategy lookup will be
+        restricted to injected arguments **only** (this will **not** reflect
+        the actual runtime lookup strategy, which typically will be, but is
+        not always different).
+        """
+        def _scope_fetcher(atom_name):
+            if self._compiled:
+                return self._runtime.fetch_scopes_for(atom_name)
+            else:
+                return None
+        return storage.Storage(self._flow_detail,
+                               backend=self._backend,
+                               scope_fetcher=_scope_fetcher)
 
     def run(self):
         with lock_utils.try_lock(self._lock) as was_locked:
@@ -192,9 +216,7 @@ class ActionEngine(base.Engine):
         missing = set()
         fetch = self.storage.fetch_unsatisfied_args
         for node in self._compilation.execution_graph.nodes_iter():
-            scope_walker = self._runtime.fetch_scopes_for(node)
             missing.update(fetch(node.name, node.rebind,
-                                 scope_walker=scope_walker,
                                  optional_args=node.optional))
         if missing:
             raise exc.MissingDependencies(self._flow, sorted(missing))

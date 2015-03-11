@@ -44,8 +44,8 @@ def _revert_retry(retry, arguments):
 class RetryAction(base.Action):
     """An action that handles executing, state changes, ... of retry atoms."""
 
-    def __init__(self, storage, notifier, walker_factory):
-        super(RetryAction, self).__init__(storage, notifier, walker_factory)
+    def __init__(self, storage, notifier):
+        super(RetryAction, self).__init__(storage, notifier)
         self._executor = futures.SynchronousExecutor()
 
     @staticmethod
@@ -53,11 +53,9 @@ class RetryAction(base.Action):
         return isinstance(atom, retry_atom.Retry)
 
     def _get_retry_args(self, retry, addons=None):
-        scope_walker = self._walker_factory(retry)
         arguments = self._storage.fetch_mapped_args(
             retry.rebind,
             atom_name=retry.name,
-            scope_walker=scope_walker,
             optional_args=retry.optional
         )
         history = self._storage.get_retry_history(retry.name)

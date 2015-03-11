@@ -32,10 +32,9 @@ SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE)
 class Action(object):
     """An action that handles executing, state changes, ... of atoms."""
 
-    def __init__(self, storage, notifier, walker_factory):
+    def __init__(self, storage, notifier):
         self._storage = storage
         self._notifier = notifier
-        self._walker_factory = walker_factory
 
     @abc.abstractmethod
     def handles(self, atom):
