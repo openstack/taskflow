@@ -27,11 +27,20 @@ def _unsatisfied_requires(node, graph, *additional_provided):
     if not requires:
         return requires
     for provided in additional_provided:
-        requires = requires - provided
+        # This is using the difference() method vs the -
+        # operator since the latter doesn't work with frozen
+        # or regular sets (when used in combination with ordered
+        # sets).
+        #
+        # If this is not done the following happens...
+        #
+        # TypeError: unsupported operand type(s)
+        # for -: 'set' and 'OrderedSet'
+        requires = requires.difference(provided)
         if not requires:
             return requires
     for pred in graph.bfs_predecessors_iter(node):
-        requires = requires - pred.provides
+        requires = requires.difference(pred.provides)
         if not requires:
             return requires
     return requires

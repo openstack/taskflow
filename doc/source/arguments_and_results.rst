@@ -74,8 +74,8 @@ ignored during inference (as these names have special meaning/usage in python).
     ...     def execute(self, *args, **kwargs):
     ...         pass
     ...
-    >>> UniTask().requires
-    frozenset([])
+    >>> sorted(UniTask().requires)
+    []
 
 .. make vim sphinx highlighter* happy**
 
@@ -214,8 +214,8 @@ name of the value.
     ...    def execute(self):
     ...        return 42
     ...
-    >>> TheAnswerReturningTask(provides='the_answer').provides
-    frozenset(['the_answer'])
+    >>> sorted(TheAnswerReturningTask(provides='the_answer').provides)
+    ['the_answer']
 
 Returning a tuple
 +++++++++++++++++
