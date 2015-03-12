@@ -130,6 +130,22 @@ class PersistenceTestMixin(object):
         fd2 = lb2.find(fd.uuid)
         self.assertEqual(fd2.meta.get('test'), 43)
 
+    def test_flow_detail_lazy_fetch(self):
+        lb_id = uuidutils.generate_uuid()
+        lb_name = 'lb-%s' % (lb_id)
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td.version = '4.2'
+        fd.add(td)
+        lb.add(fd)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+        with contextlib.closing(self._get_connection()) as conn:
+            fd2 = conn.get_flow_details(fd.uuid, lazy=True)
+            self.assertEqual(0, len(fd2))
+            self.assertEqual(1, len(fd))
+
     def test_task_detail_save(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
@@ -238,6 +254,19 @@ class PersistenceTestMixin(object):
             self.assertEqual(1, len(lb2))
             self.assertEqual(1, len(lb))
             self.assertEqual(fd.name, lb2.find(fd.uuid).name)
+
+    def test_logbook_lazy_fetch(self):
+        lb_id = uuidutils.generate_uuid()
+        lb_name = 'lb-%s' % (lb_id)
+        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb.add(fd)
+        with contextlib.closing(self._get_connection()) as conn:
+            conn.save_logbook(lb)
+        with contextlib.closing(self._get_connection()) as conn:
+            lb2 = conn.get_logbook(lb_id, lazy=True)
+            self.assertEqual(0, len(lb2))
+            self.assertEqual(1, len(lb))
 
     def test_logbook_add_task_detail(self):
         lb_id = uuidutils.generate_uuid()

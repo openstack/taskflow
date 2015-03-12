@@ -147,7 +147,7 @@ class PathBasedConnection(base.Connection):
 
     def get_logbooks(self, lazy=False):
         for book_uuid in self._get_children(self.book_path):
-            yield self.get_logbook(book_uuid, lazy)
+            yield self.get_logbook(book_uuid, lazy=lazy)
 
     def get_logbook(self, book_uuid, lazy=False):
         book_path = self._join_path(self.book_path, book_uuid)

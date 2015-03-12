@@ -527,7 +527,7 @@ class Connection(base.Connection):
             raise exc.StorageFailure("Failed saving logbook"
                                      " '%s'" % book.uuid, e)
 
-    def get_logbook(self, book_uuid):
+    def get_logbook(self, book_uuid, lazy=False):
         try:
             logbooks = self._tables.logbooks
             with contextlib.closing(self._engine.connect()) as conn:
@@ -538,40 +538,42 @@ class Connection(base.Connection):
                     raise exc.NotFound("No logbook found with"
                                        " uuid '%s'" % book_uuid)
                 book = self._converter.convert_book(row)
-                self._converter.populate_book(conn, book)
+                if not lazy:
+                    self._converter.populate_book(conn, book)
                 return book
         except sa_exc.DBAPIError as e:
             raise exc.StorageFailure(
                 "Failed getting logbook '%s'" % book_uuid, e)
 
-    def get_logbooks(self):
+    def get_logbooks(self, lazy=False):
         gathered = []
         try:
             with contextlib.closing(self._engine.connect()) as conn:
                 q = sql.select([self._tables.logbooks])
                 for row in conn.execute(q):
                     book = self._converter.convert_book(row)
-                    self._converter.populate_book(conn, book)
+                    if not lazy:
+                        self._converter.populate_book(conn, book)
                     gathered.append(book)
         except sa_exc.DBAPIError as e:
             raise exc.StorageFailure("Failed getting logbooks", e)
         for book in gathered:
             yield book
 
-    def get_flows_for_book(self, book_uuid):
+    def get_flows_for_book(self, book_uuid, lazy=False):
         gathered = []
         try:
             with contextlib.closing(self._engine.connect()) as conn:
-                for row in self._converter.flow_query_iter(conn, book_uuid):
-                    flow_details = self._converter.populate_flow_detail(conn,
-                                                                        row)
-                    gathered.append(flow_details)
+                for fd in self._converter.flow_query_iter(conn, book_uuid):
+                    if not lazy:
+                        self._converter.populate_flow_detail(conn, fd)
+                    gathered.append(fd)
         except sa_exc.DBAPIError as e:
             raise exc.StorageFailure("Failed getting flow details", e)
         for flow_details in gathered:
             yield flow_details
 
-    def get_flow_details(self, fd_uuid):
+    def get_flow_details(self, fd_uuid, lazy=False):
         try:
             flowdetails = self._tables.flowdetails
             with self._engine.begin() as conn:
@@ -581,7 +583,10 @@ class Connection(base.Connection):
                 if not row:
                     raise exc.NotFound("No flow details found with uuid"
                                        " '%s'" % fd_uuid)
-                return self._converter.convert_flow_detail(row)
+                fd = self._converter.convert_flow_detail(row)
+                if not lazy:
+                    self._converter.populate_flow_detail(conn, fd)
+                return fd
         except sa_exc.SQLAlchemyError as e:
             raise exc.StorageFailure("Failed getting flow details with"
                                      " uuid '%s'" % fd_uuid, e)
@@ -600,6 +605,17 @@ class Connection(base.Connection):
         except sa_exc.SQLAlchemyError as e:
             raise exc.StorageFailure("Failed getting atom details with"
                                      " uuid '%s'" % ad_uuid, e)
+
+    def get_atoms_for_flow(self, fd_uuid):
+        gathered = []
+        try:
+            with contextlib.closing(self._engine.connect()) as conn:
+                for ad in self._converter.atom_query_iter(conn, fd_uuid):
+                    gathered.append(ad)
+        except sa_exc.DBAPIError as e:
+            raise exc.StorageFailure("Failed getting atom details", e)
+        for atom_details in gathered:
+            yield atom_details
 
     def close(self):
         pass

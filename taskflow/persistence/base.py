@@ -109,12 +109,12 @@ class Connection(object):
         pass
 
     @abc.abstractmethod
-    def get_logbook(self, book_uuid):
+    def get_logbook(self, book_uuid, lazy=False):
         """Fetches a logbook object matching the given uuid."""
         pass
 
     @abc.abstractmethod
-    def get_logbooks(self):
+    def get_logbooks(self, lazy=False):
         """Return an iterable of logbook objects."""
         pass
 
@@ -124,13 +124,18 @@ class Connection(object):
         pass
 
     @abc.abstractmethod
-    def get_flow_details(self, fd_uuid):
+    def get_flow_details(self, fd_uuid, lazy=False):
         """Fetches a flowdetails object matching the given uuid."""
         pass
 
     @abc.abstractmethod
     def get_atom_details(self, ad_uuid):
         """Fetches a atomdetails object matching the given uuid."""
+        pass
+
+    @abc.abstractmethod
+    def get_atoms_for_flow(self, fd_uuid):
+        """Return an iterable of atomdetails for a given flowdetails uuid."""
         pass
 
 
