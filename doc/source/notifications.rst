@@ -170,6 +170,8 @@ Timing listeners
 
 .. autoclass:: taskflow.listeners.timing.PrintingDurationListener
 
+.. autoclass:: taskflow.listeners.timing.EventTimeListener
+
 Claim listener
 --------------
 
@@ -191,6 +193,7 @@ Hierarchy
     taskflow.listeners.logging.DynamicLoggingListener
     taskflow.listeners.logging.LoggingListener
     taskflow.listeners.printing.PrintingListener
-    taskflow.listeners.timing.PrintingTimingListener
-    taskflow.listeners.timing.TimingListener
+    taskflow.listeners.timing.PrintingDurationListener
+    taskflow.listeners.timing.EventTimeListener
+    taskflow.listeners.timing.DurationListener
     :parts: 1
