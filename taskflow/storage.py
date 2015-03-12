@@ -644,11 +644,13 @@ class Storage(object):
     @lock_utils.read_locked
     def fetch(self, name, many_handler=None):
         """Fetch a named result."""
-        # By default we just return the first of many (unless provided
-        # a different callback that can translate many results into something
-        # more meaningful).
+        def _many_handler(values):
+            # By default we just return the first of many (unless provided
+            # a different callback that can translate many results into
+            # something more meaningful).
+            return values[0]
         if many_handler is None:
-            many_handler = lambda values: values[0]
+            many_handler = _many_handler
         try:
             providers = self._reverse_mapping[name]
         except KeyError:
@@ -758,12 +760,14 @@ class Storage(object):
         return missing
 
     @lock_utils.read_locked
-    def fetch_all(self):
+    def fetch_all(self, many_handler=None):
         """Fetch all named results known so far."""
-        def many_handler(values):
+        def _many_handler(values):
             if len(values) > 1:
                 return values
             return values[0]
+        if many_handler is None:
+            many_handler = _many_handler
         results = {}
         for name in six.iterkeys(self._reverse_mapping):
             try:
