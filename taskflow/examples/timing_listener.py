@@ -55,5 +55,5 @@ class VariableTask(task.Task):
 f = lf.Flow('root')
 f.add(VariableTask('a'), VariableTask('b'), VariableTask('c'))
 e = engines.load(f)
-with timing.PrintingTimingListener(e):
+with timing.PrintingDurationListener(e):
     e.run()

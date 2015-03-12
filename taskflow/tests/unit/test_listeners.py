@@ -202,14 +202,14 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
         self.assertEqual(1, ran_states.count(states.WAITING))
 
 
-class TestTimingListener(test.TestCase, EngineMakerMixin):
+class TestDurationListener(test.TestCase, EngineMakerMixin):
     def test_duration(self):
         with contextlib.closing(impl_memory.MemoryBackend()) as be:
             flow = lf.Flow("test")
             flow.add(SleepyTask("test-1", sleep_for=0.1))
             (lb, fd) = persistence_utils.temporary_flow_detail(be)
             e = self._make_engine(flow, fd, be)
-            with timing.TimingListener(e):
+            with timing.DurationListener(e):
                 e.run()
             t_uuid = e.storage.get_atom_uuid("test-1")
             td = fd.find(t_uuid)
@@ -225,11 +225,11 @@ class TestTimingListener(test.TestCase, EngineMakerMixin):
             flow.add(test_utils.TaskNoRequiresNoReturns("test-1"))
             (lb, fd) = persistence_utils.temporary_flow_detail(be)
             e = self._make_engine(flow, fd, be)
-            timing_listener = timing.TimingListener(e)
-            with mock.patch.object(timing_listener._engine.storage,
+            duration_listener = timing.DurationListener(e)
+            with mock.patch.object(duration_listener._engine.storage,
                                    'update_atom_metadata') as mocked_uam:
                 mocked_uam.side_effect = exc.StorageFailure('Woot!')
-                with timing_listener:
+                with duration_listener:
                     e.run()
         mocked_warn.assert_called_once_with(mock.ANY, mock.ANY, 'test-1',
                                             exc_info=True)
