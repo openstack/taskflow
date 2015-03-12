@@ -67,15 +67,15 @@ class Runtime(object):
     @misc.cachedproperty
     def retry_action(self):
         return ra.RetryAction(self._storage, self._atom_notifier,
-                              self._fetch_scopes_for)
+                              self.fetch_scopes_for)
 
     @misc.cachedproperty
     def task_action(self):
         return ta.TaskAction(self._storage,
-                             self._atom_notifier, self._fetch_scopes_for,
+                             self._atom_notifier, self.fetch_scopes_for,
                              self._task_executor)
 
-    def _fetch_scopes_for(self, atom):
+    def fetch_scopes_for(self, atom):
         """Fetches a tuple of the visible scopes for the given atom."""
         try:
             return self._scopes[atom]

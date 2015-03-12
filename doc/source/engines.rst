@@ -366,9 +366,10 @@ and that class interacts with the a
 and the :py:class:`~taskflow.storage.Storage` class uses the following
 lookup order to find (or fail) a atoms requirement lookup/request:
 
-#. Injected atom specific arguments.
-#. Transient injected arguments.
-#. Non-transient injected arguments.
+#. Transient injected atom specific arguments.
+#. Non-transient injected atom specific arguments.
+#. Transient injected arguments (flow specific).
+#. Non-transient injected arguments (flow specific).
 #. First scope visited provider that produces the named result; note that
    if multiple providers are found in the same scope the *first* (the scope
    walkers yielded ordering defines what *first* means) that produced that
