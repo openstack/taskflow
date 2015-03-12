@@ -17,8 +17,8 @@ Terminology
 -----------
 
 Client
-  Code or program or service that uses this library to define flows and
-  run them via engines.
+  Code or program or service (or user) that uses this library to define
+  flows and run them via engines.
 
 Transport + protocol
   Mechanism (and `protocol`_ on top of that mechanism) used to pass information
@@ -117,7 +117,7 @@ engine executor in the following manner:
 4. The executor gets the task request confirmation from the worker and the task
    request state changes from the ``PENDING`` to the ``RUNNING`` state. Once a
    task request is in the ``RUNNING`` state it can't be timed-out (considering
-   that task execution process may take unpredictable time).
+   that the task execution process may take an unpredictable amount of time).
 5. The executor gets the task execution result from the worker and passes it
    back to the executor and worker-based engine to finish task processing (this
    repeats for subsequent tasks).
@@ -128,7 +128,9 @@ engine executor in the following manner:
     json-serializable (they contain references to tracebacks which are not
     serializable), so they are converted to dicts before sending and converted
     from dicts after receiving on both executor & worker sides (this
-    translation is lossy since the traceback won't be fully retained).
+    translation is lossy since the traceback can't be fully retained, due
+    to its contents containing internal interpreter references and
+    details).
 
 Protocol
 ~~~~~~~~
@@ -405,11 +407,11 @@ Limitations
   locally to avoid transport overhead for very simple tasks (currently it will
   run even lightweight tasks remotely, which may be non-performant).
 * Fault detection, currently when a worker acknowledges a task the engine will
-  wait for the task result indefinitely (a task could take a very long time to
-  finish). In the future there needs to be a way to limit the duration of a
-  remote workers execution (and track there liveness) and possibly spawn
-  the task on a secondary worker if a timeout is reached (aka the first worker
-  has died or has stopped responding).
+  wait for the task result indefinitely (a task may take an indeterminate
+  amount of time to finish). In the future there needs to be a way to limit
+  the duration of a remote workers execution (and track there liveness) and
+  possibly spawn the task on a secondary worker if a timeout is reached (aka
+  the first worker has died or has stopped responding).
 
 Interfaces
 ==========
