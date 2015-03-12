@@ -200,6 +200,12 @@ class StorageTestMixin(object):
                                 "^Name 'xxx' is not mapped",
                                 s.fetch, 'xxx')
 
+    def test_flow_metadata_update(self):
+        s = self._get_storage()
+        update_with = {'test_data': True}
+        s.update_flow_metadata(update_with)
+        self.assertTrue(s._flowdetail.meta['test_data'])
+
     def test_task_metadata_update_with_none(self):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task'))
