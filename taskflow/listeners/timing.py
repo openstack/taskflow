@@ -121,7 +121,16 @@ PrintingTimingListener = moves.moved_class(
 
 
 class EventTimeListener(base.Listener):
-    """Writes task, flow, and retry event timestamps to atom metadata."""
+    """Listener that captures task, flow, and retry event timestamps.
+
+    It records how when an event is received (using unix time) to
+    storage. It saves the timestamps under keys (in atom or flow details
+    metadata) of the format ``{event}-timestamp`` where ``event`` is the
+    state/event name that has been received.
+
+    This information can be later extracted/examined to derive durations...
+    """
+
     def __init__(self, engine,
                  task_listen_for=base.DEFAULT_LISTEN_FOR,
                  flow_listen_for=base.DEFAULT_LISTEN_FOR,
