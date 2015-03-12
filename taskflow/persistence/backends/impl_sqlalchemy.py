@@ -180,7 +180,7 @@ def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
             raise
 
 
-class Alchemist(object):
+class _Alchemist(object):
     """Internal <-> external row <-> objects + other helper functions.
 
     NOTE(harlowja): for internal usage only.
@@ -343,7 +343,7 @@ class Connection(base.Connection):
         self._engine = backend.engine
         self._metadata = sa.MetaData()
         self._tables = tables.fetch(self._metadata)
-        self._converter = Alchemist(self._tables)
+        self._converter = _Alchemist(self._tables)
 
     @property
     def backend(self):
