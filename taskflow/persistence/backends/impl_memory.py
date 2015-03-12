@@ -26,17 +26,20 @@ from taskflow.utils import lock_utils
 
 
 class Filesystem(object):
-    """An in-memory tree filesystem-like structure."""
+    """An in-memory filesystem-like structure."""
 
-    @staticmethod
-    def _normpath(path):
-        if not path.startswith(os.sep):
+    #: Root path of the in-memory filesystem.
+    root_path = os.sep
+
+    @classmethod
+    def _normpath(cls, path):
+        if not path.startswith(cls.root_path):
             raise ValueError("This filesystem can only normalize absolute"
                              " paths: '%s' is not valid" % path)
         return os.path.normpath(path)
 
     def __init__(self):
-        self._root = tree.Node(os.sep)
+        self._root = tree.Node(self.root_path, value=None)
 
     def ensure_path(self, path):
         path = self._normpath(path)
@@ -49,7 +52,7 @@ class Filesystem(object):
             child_node = node.find(piece, only_direct=True,
                                    include_self=False)
             if child_node is None:
-                child_node = tree.Node(piece)
+                child_node = tree.Node(piece, value=None)
                 node.add(child_node)
             node = child_node
 
@@ -62,7 +65,7 @@ class Filesystem(object):
             node = node.find(piece, only_direct=True,
                              include_self=False)
             if node is None:
-                raise exc.NotFound("Item not found %s" % path)
+                raise exc.NotFound("Path '%s' not found" % path)
         return node
 
     def _get_item(self, path, links=None):
@@ -119,7 +122,7 @@ class Filesystem(object):
                                       only_direct=True,
                                       include_self=False)
         if child_node is None:
-            child_node = tree.Node(basename)
+            child_node = tree.Node(basename, value=None)
             parent_node.add(child_node)
         child_node.metadata['target'] = src_path
 
