@@ -16,9 +16,9 @@
 
 import collections
 
-from oslo.serialization import jsonutils
-from oslo.utils import timeutils
-from oslo.utils import uuidutils
+from oslo_serialization import jsonutils
+from oslo_utils import timeutils
+from oslo_utils import uuidutils
 from sqlalchemy import Table, Column, String, ForeignKey, DateTime, Enum
 from sqlalchemy import types
 
