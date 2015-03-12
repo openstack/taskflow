@@ -34,6 +34,7 @@ class ZkBackend(path_based.PathBasedBackend):
     """A zookeeper-backed backend.
 
     Example configuration::
+
         conf = {
             "hosts": "192.168.0.1:2181,192.168.0.2:2181,192.168.0.3:2181",
             "path": "/taskflow",
