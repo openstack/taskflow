@@ -18,8 +18,6 @@ import abc
 import threading
 
 from concurrent import futures
-import jsonschema
-from jsonschema import exceptions as schema_exc
 from oslo_utils import reflection
 from oslo_utils import timeutils
 import six
@@ -30,6 +28,7 @@ from taskflow import logging
 from taskflow.types import failure as ft
 from taskflow.types import timing as tt
 from taskflow.utils import lock_utils
+from taskflow.utils import schema_utils as su
 
 # NOTE(skudriashev): This is protocol states and events, which are not
 # related to task states.
@@ -98,12 +97,6 @@ NOTIFY = 'NOTIFY'
 REQUEST = 'REQUEST'
 RESPONSE = 'RESPONSE'
 
-# Special jsonschema validation types/adjustments.
-_SCHEMA_TYPES = {
-    # See: https://github.com/Julian/jsonschema/issues/148
-    'array': (list, tuple),
-}
-
 LOG = logging.getLogger(__name__)
 
 
@@ -166,8 +159,8 @@ class Notify(Message):
         else:
             schema = cls.SENDER_SCHEMA
         try:
-            jsonschema.validate(data, schema, types=_SCHEMA_TYPES)
-        except schema_exc.ValidationError as e:
+            su.schema_validate(data, schema)
+        except su.ValidationError as e:
             if response:
                 raise excp.InvalidFormat("%s message response data not of the"
                                          " expected format: %s"
@@ -358,11 +351,57 @@ class Request(Message):
     @classmethod
     def validate(cls, data):
         try:
-            jsonschema.validate(data, cls.SCHEMA, types=_SCHEMA_TYPES)
-        except schema_exc.ValidationError as e:
+            su.schema_validate(data, cls.SCHEMA)
+        except su.ValidationError as e:
             raise excp.InvalidFormat("%s message response data not of the"
                                      " expected format: %s"
                                      % (cls.TYPE, e.message), e)
+        else:
+            # Validate all failure dictionaries that *may* be present...
+            failures = []
+            if 'failures' in data:
+                failures.extend(six.itervalues(data['failures']))
+            result = data.get('result')
+            if result is not None:
+                result_data_type, result_data = result
+                if result_data_type == 'failure':
+                    failures.append(result_data)
+            for fail_data in failures:
+                ft.Failure.validate(fail_data)
+
+    @staticmethod
+    def from_dict(data, task_uuid=None):
+        """Parses **validated** data before it can be further processed.
+
+        All :py:class:`~taskflow.types.failure.Failure` objects that have been
+        converted to dict(s) on the remote side will now converted back
+        to py:class:`~taskflow.types.failure.Failure` objects.
+        """
+        task_cls = data['task_cls']
+        task_name = data['task_name']
+        action = data['action']
+        arguments = data.get('arguments', {})
+        result = data.get('result')
+        failures = data.get('failures')
+        # These arguments will eventually be given to the task executor
+        # so they need to be in a format it will accept (and using keyword
+        # argument names that it accepts)...
+        arguments = {
+            'arguments': arguments,
+        }
+        if task_uuid is not None:
+            arguments['task_uuid'] = task_uuid
+        if result is not None:
+            result_data_type, result_data = result
+            if result_data_type == 'failure':
+                arguments['result'] = ft.Failure.from_dict(result_data)
+            else:
+                arguments['result'] = result_data
+        if failures is not None:
+            arguments['failures'] = {}
+            for task, fail_data in six.iteritems(failures):
+                arguments['failures'][task] = ft.Failure.from_dict(fail_data)
+        return (task_cls, task_name, action, arguments)
 
 
 class Response(Message):
@@ -455,8 +494,12 @@ class Response(Message):
     @classmethod
     def validate(cls, data):
         try:
-            jsonschema.validate(data, cls.SCHEMA, types=_SCHEMA_TYPES)
-        except schema_exc.ValidationError as e:
+            su.schema_validate(data, cls.SCHEMA)
+        except su.ValidationError as e:
             raise excp.InvalidFormat("%s message response data not of the"
                                      " expected format: %s"
                                      % (cls.TYPE, e.message), e)
+        else:
+            state = data['state']
+            if state == FAILURE and 'result' in data:
+                ft.Failure.validate(data['result'])

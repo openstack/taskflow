@@ -108,7 +108,7 @@ class TestServer(test.MockTestCase):
 
     def test_parse_request(self):
         request = self.make_request()
-        bundle = server.Server._parse_request(**request)
+        bundle = pr.Request.from_dict(request)
         task_cls, task_name, action, task_args = bundle
         self.assertEqual((task_cls, task_name, action, task_args),
                          (self.task.name, self.task.name, self.task_action,
@@ -116,7 +116,7 @@ class TestServer(test.MockTestCase):
 
     def test_parse_request_with_success_result(self):
         request = self.make_request(action='revert', result=1)
-        bundle = server.Server._parse_request(**request)
+        bundle = pr.Request.from_dict(request)
         task_cls, task_name, action, task_args = bundle
         self.assertEqual((task_cls, task_name, action, task_args),
                          (self.task.name, self.task.name, 'revert',
@@ -126,7 +126,7 @@ class TestServer(test.MockTestCase):
     def test_parse_request_with_failure_result(self):
         a_failure = failure.Failure.from_exception(Exception('test'))
         request = self.make_request(action='revert', result=a_failure)
-        bundle = server.Server._parse_request(**request)
+        bundle = pr.Request.from_dict(request)
         task_cls, task_name, action, task_args = bundle
         self.assertEqual((task_cls, task_name, action, task_args),
                          (self.task.name, self.task.name, 'revert',
@@ -137,7 +137,7 @@ class TestServer(test.MockTestCase):
         failures = {'0': failure.Failure.from_exception(Exception('test1')),
                     '1': failure.Failure.from_exception(Exception('test2'))}
         request = self.make_request(action='revert', failures=failures)
-        bundle = server.Server._parse_request(**request)
+        bundle = pr.Request.from_dict(request)
         task_cls, task_name, action, task_args = bundle
         self.assertEqual(
             (task_cls, task_name, action, task_args),
