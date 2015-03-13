@@ -92,8 +92,6 @@ class Conductor(object):
                                           engine=self._engine,
                                           backend=self._persistence,
                                           **self._engine_options)
-        for listener in self._listeners_from_job(job, engine):
-            listener.register()
         return engine
 
     def _listeners_from_job(self, job, engine):
