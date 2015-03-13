@@ -98,13 +98,9 @@ System details:
         self._topic = topic
         self._executor = executor
         self._owns_executor = False
-        self._threads_count = -1
         if self._executor is None:
-            if threads_count is not None:
-                self._threads_count = int(threads_count)
-            else:
-                self._threads_count = tu.get_optimal_thread_count()
-            self._executor = futures.ThreadPoolExecutor(self._threads_count)
+            self._executor = futures.ThreadPoolExecutor(
+                max_workers=threads_count)
             self._owns_executor = True
         self._endpoints = self._derive_endpoints(tasks)
         self._exchange = exchange
@@ -139,8 +135,9 @@ System details:
         tpl_params['transport_type'] = transport.driver_type
         tpl_params['connection_uri'] = connection_details.uri
         tpl_params['executor_type'] = reflection.get_class_name(self._executor)
-        if self._threads_count != -1:
-            tpl_params['executor_thread_count'] = self._threads_count
+        threads_count = getattr(self._executor, 'max_workers', None)
+        if threads_count is not None:
+            tpl_params['executor_thread_count'] = threads_count
         if self._endpoints:
             pretty_endpoints = []
             for ep in self._endpoints:

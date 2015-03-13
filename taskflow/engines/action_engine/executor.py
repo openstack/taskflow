@@ -417,11 +417,8 @@ class ParallelTaskExecutor(TaskExecutor):
 
     def start(self):
         if self._own_executor:
-            if self._max_workers is not None:
-                max_workers = self._max_workers
-            else:
-                max_workers = threading_utils.get_optimal_thread_count()
-            self._executor = self._create_executor(max_workers=max_workers)
+            self._executor = self._create_executor(
+                max_workers=self._max_workers)
 
     def stop(self):
         if self._own_executor:

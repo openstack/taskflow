@@ -33,7 +33,6 @@ class TestWorker(test.MockTestCase):
         self.broker_url = 'test-url'
         self.exchange = 'test-exchange'
         self.topic = 'test-topic'
-        self.threads_count = 5
         self.endpoint_count = 24
 
         # patch classes
@@ -41,11 +40,6 @@ class TestWorker(test.MockTestCase):
             worker.futures, 'ThreadPoolExecutor', attach_as='executor')
         self.server_mock, self.server_inst_mock = self.patchClass(
             worker.server, 'Server')
-
-        # other mocking
-        self.threads_count_mock = self.patch(
-            'taskflow.engines.worker_based.worker.tu.get_optimal_thread_count')
-        self.threads_count_mock.return_value = self.threads_count
 
     def worker(self, reset_master_mock=False, **kwargs):
         worker_kwargs = dict(exchange=self.exchange,
@@ -62,7 +56,7 @@ class TestWorker(test.MockTestCase):
         self.worker()
 
         master_mock_calls = [
-            mock.call.executor_class(self.threads_count),
+            mock.call.executor_class(max_workers=None),
             mock.call.Server(self.topic, self.exchange,
                              self.executor_inst_mock, [],
                              url=self.broker_url,
@@ -70,7 +64,7 @@ class TestWorker(test.MockTestCase):
                              transport=mock.ANY,
                              retry_options=mock.ANY)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_banner_writing(self):
         buf = six.StringIO()
@@ -84,7 +78,7 @@ class TestWorker(test.MockTestCase):
         self.worker(threads_count=10)
 
         master_mock_calls = [
-            mock.call.executor_class(10),
+            mock.call.executor_class(max_workers=10),
             mock.call.Server(self.topic, self.exchange,
                              self.executor_inst_mock, [],
                              url=self.broker_url,
@@ -92,7 +86,7 @@ class TestWorker(test.MockTestCase):
                              transport=mock.ANY,
                              retry_options=mock.ANY)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_creation_with_custom_executor(self):
         executor_mock = mock.MagicMock(name='executor')
