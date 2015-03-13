@@ -20,9 +20,7 @@ import abc
 from debtcollector import moves
 import six
 
-from taskflow import storage
 from taskflow.types import notifier
-from taskflow.utils import misc
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -72,10 +70,9 @@ class Engine(object):
         """The options that were passed to this engine on construction."""
         return self._options
 
-    @misc.cachedproperty
+    @abc.abstractproperty
     def storage(self):
-        """The storage unit for this flow."""
-        return storage.Storage(self._flow_detail, backend=self._backend)
+        """The storage unit for this engine."""
 
     @abc.abstractmethod
     def compile(self):

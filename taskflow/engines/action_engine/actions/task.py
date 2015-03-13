@@ -28,8 +28,8 @@ LOG = logging.getLogger(__name__)
 class TaskAction(base.Action):
     """An action that handles scheduling, state changes, ... of task atoms."""
 
-    def __init__(self, storage, notifier, walker_factory, task_executor):
-        super(TaskAction, self).__init__(storage, notifier, walker_factory)
+    def __init__(self, storage, notifier, task_executor):
+        super(TaskAction, self).__init__(storage, notifier)
         self._task_executor = task_executor
 
     @staticmethod
@@ -100,11 +100,9 @@ class TaskAction(base.Action):
 
     def schedule_execution(self, task):
         self.change_state(task, states.RUNNING, progress=0.0)
-        scope_walker = self._walker_factory(task)
         arguments = self._storage.fetch_mapped_args(
             task.rebind,
             atom_name=task.name,
-            scope_walker=scope_walker,
             optional_args=task.optional
         )
         if task.notifier.can_be_registered(task_atom.EVENT_UPDATE_PROGRESS):
@@ -126,11 +124,9 @@ class TaskAction(base.Action):
 
     def schedule_reversion(self, task):
         self.change_state(task, states.REVERTING, progress=0.0)
-        scope_walker = self._walker_factory(task)
         arguments = self._storage.fetch_mapped_args(
             task.rebind,
             atom_name=task.name,
-            scope_walker=scope_walker,
             optional_args=task.optional
         )
         task_uuid = self._storage.get_atom_uuid(task.name)

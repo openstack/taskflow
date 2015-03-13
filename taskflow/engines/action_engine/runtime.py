@@ -66,24 +66,31 @@ class Runtime(object):
 
     @misc.cachedproperty
     def retry_action(self):
-        return ra.RetryAction(self._storage, self._atom_notifier,
-                              self.fetch_scopes_for)
+        return ra.RetryAction(self._storage,
+                              self._atom_notifier)
 
     @misc.cachedproperty
     def task_action(self):
         return ta.TaskAction(self._storage,
-                             self._atom_notifier, self.fetch_scopes_for,
+                             self._atom_notifier,
                              self._task_executor)
 
-    def fetch_scopes_for(self, atom):
+    def fetch_scopes_for(self, atom_name):
         """Fetches a tuple of the visible scopes for the given atom."""
         try:
-            return self._scopes[atom]
+            return self._scopes[atom_name]
         except KeyError:
-            walker = sc.ScopeWalker(self.compilation, atom,
-                                    names_only=True)
-            visible_to = tuple(walker)
-            self._scopes[atom] = visible_to
+            atom = None
+            for node in self.analyzer.iterate_all_nodes():
+                if node.name == atom_name:
+                    atom = node
+                    break
+            if atom is not None:
+                walker = sc.ScopeWalker(self.compilation, atom,
+                                        names_only=True)
+                self._scopes[atom_name] = visible_to = tuple(walker)
+            else:
+                visible_to = tuple([])
             return visible_to
 
     # Various helper methods used by the runtime components; not for public

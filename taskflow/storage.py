@@ -131,7 +131,7 @@ class Storage(object):
     with it must be avoided) that are *global* to the flow being executed.
     """
 
-    def __init__(self, flow_detail, backend=None):
+    def __init__(self, flow_detail, backend=None, scope_fetcher=None):
         self._result_mappings = {}
         self._reverse_mapping = {}
         self._backend = backend
@@ -143,6 +143,9 @@ class Storage(object):
             ((task.BaseTask,), self._ensure_task),
             ((retry.Retry,), self._ensure_retry),
         ]
+        if scope_fetcher is None:
+            scope_fetcher = lambda atom_name: None
+        self._scope_fetcher = scope_fetcher
 
         # NOTE(imelnikov): failure serialization looses information,
         # so we cache failures here, in atom name -> failure mapping.
@@ -698,7 +701,7 @@ class Storage(object):
                     non_default_providers.append(p)
             return default_providers, non_default_providers
 
-        def _locate_providers(name):
+        def _locate_providers(name, scope_walker=None):
             """Finds the accessible *potential* providers."""
             default_providers, non_default_providers = _fetch_providers(name)
             providers = []
@@ -728,6 +731,8 @@ class Storage(object):
             return providers
 
         ad = self._atomdetail_by_name(atom_name)
+        if scope_walker is None:
+            scope_walker = self._scope_fetcher(atom_name)
         if optional_args is None:
             optional_args = []
         injected_sources = [
@@ -749,7 +754,8 @@ class Storage(object):
                     continue
                 if name in source:
                     maybe_providers += 1
-            maybe_providers += len(_locate_providers(name))
+            providers = _locate_providers(name, scope_walker=scope_walker)
+            maybe_providers += len(providers)
             if maybe_providers:
                 LOG.blather("Atom %s will have %s potential providers"
                             " of %r <= %r", atom_name, maybe_providers,
@@ -797,7 +803,8 @@ class Storage(object):
                     " by %s but was unable to get at that providers"
                     " results" % (looking_for, provider), e)
 
-        def _locate_providers(looking_for, possible_providers):
+        def _locate_providers(looking_for, possible_providers,
+                              scope_walker=None):
             """Finds the accessible providers."""
             default_providers = []
             for p in possible_providers:
@@ -832,6 +839,8 @@ class Storage(object):
                 self._injected_args.get(atom_name, {}),
                 ad.meta.get(META_INJECTED, {}),
             ]
+            if scope_walker is None:
+                scope_walker = self._scope_fetcher(atom_name)
         else:
             injected_sources = []
         if not args_mapping:
@@ -869,7 +878,8 @@ class Storage(object):
                                               " produced output by any"
                                               " providers" % name)
                 # Reduce the possible providers to one that are allowed.
-                providers = _locate_providers(name, possible_providers)
+                providers = _locate_providers(name, possible_providers,
+                                              scope_walker=scope_walker)
                 if not providers:
                     raise exceptions.NotFound(
                         "Mapped argument %r <= %r was not produced"
