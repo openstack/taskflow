@@ -15,6 +15,7 @@
 #    under the License.
 
 import abc
+import collections
 import threading
 
 from concurrent import futures
@@ -169,6 +170,10 @@ class Notify(Message):
                 raise excp.InvalidFormat("%s message sender data not of the"
                                          " expected format: %s"
                                          % (cls.TYPE, e.message), e)
+
+
+_WorkUnit = collections.namedtuple('_WorkUnit', ['task_cls', 'task_name',
+                                                 'action', 'arguments'])
 
 
 class Request(Message):
@@ -371,7 +376,7 @@ class Request(Message):
 
     @staticmethod
     def from_dict(data, task_uuid=None):
-        """Parses **validated** data before it can be further processed.
+        """Parses **validated** data into a work unit.
 
         All :py:class:`~taskflow.types.failure.Failure` objects that have been
         converted to dict(s) on the remote side will now converted back
@@ -401,7 +406,7 @@ class Request(Message):
             arguments['failures'] = {}
             for task, fail_data in six.iteritems(failures):
                 arguments['failures'][task] = ft.Failure.from_dict(fail_data)
-        return (task_cls, task_name, action, arguments)
+        return _WorkUnit(task_cls, task_name, action, arguments)
 
 
 class Response(Message):
