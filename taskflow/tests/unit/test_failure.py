@@ -17,6 +17,8 @@
 import sys
 
 import six
+from six.moves import cPickle as pickle
+import testtools
 
 from taskflow import exceptions
 from taskflow import test
@@ -309,6 +311,101 @@ class NonAsciiExceptionsTestCase(test.TestCase):
         fail = failure.Failure.from_exception(ValueError(hi_ru))
         copied = fail.copy()
         self.assertEqual(fail, copied)
+
+
+@testtools.skipIf(not six.PY3, 'this test only works on python 3.x')
+class FailureCausesTest(test.TestCase):
+
+    @classmethod
+    def _raise_many(cls, messages):
+        if not messages:
+            return
+        msg = messages.pop(0)
+        e = RuntimeError(msg)
+        try:
+            cls._raise_many(messages)
+            raise e
+        except RuntimeError as e1:
+            six.raise_from(e, e1)
+
+    def test_causes(self):
+        f = None
+        try:
+            self._raise_many(["Still still not working",
+                              "Still not working", "Not working"])
+        except RuntimeError:
+            f = failure.Failure()
+
+        self.assertIsNotNone(f)
+        self.assertEqual(2, len(f.causes))
+        self.assertEqual("Still not working", f.causes[0].exception_str)
+        self.assertEqual("Not working", f.causes[1].exception_str)
+
+        f = f.causes[0]
+        self.assertEqual(1, len(f.causes))
+        self.assertEqual("Not working", f.causes[0].exception_str)
+
+        f = f.causes[0]
+        self.assertEqual(0, len(f.causes))
+
+    def test_causes_to_from_dict(self):
+        f = None
+        try:
+            self._raise_many(["Still still not working",
+                              "Still not working", "Not working"])
+        except RuntimeError:
+            f = failure.Failure()
+
+        self.assertIsNotNone(f)
+        d_f = f.to_dict()
+        f = failure.Failure.from_dict(d_f)
+        self.assertEqual(2, len(f.causes))
+        self.assertEqual("Still not working", f.causes[0].exception_str)
+        self.assertEqual("Not working", f.causes[1].exception_str)
+
+        f = f.causes[0]
+        self.assertEqual(1, len(f.causes))
+        self.assertEqual("Not working", f.causes[0].exception_str)
+
+        f = f.causes[0]
+        self.assertEqual(0, len(f.causes))
+
+    def test_causes_pickle(self):
+        f = None
+        try:
+            self._raise_many(["Still still not working",
+                              "Still not working", "Not working"])
+        except RuntimeError:
+            f = failure.Failure()
+
+        self.assertIsNotNone(f)
+        p_f = pickle.dumps(f)
+        f = pickle.loads(p_f)
+
+        self.assertEqual(2, len(f.causes))
+        self.assertEqual("Still not working", f.causes[0].exception_str)
+        self.assertEqual("Not working", f.causes[1].exception_str)
+
+        f = f.causes[0]
+        self.assertEqual(1, len(f.causes))
+        self.assertEqual("Not working", f.causes[0].exception_str)
+
+        f = f.causes[0]
+        self.assertEqual(0, len(f.causes))
+
+    def test_causes_supress_context(self):
+        f = None
+        try:
+            try:
+                self._raise_many(["Still still not working",
+                                  "Still not working", "Not working"])
+            except RuntimeError as e:
+                six.raise_from(e, None)
+        except RuntimeError:
+            f = failure.Failure()
+
+        self.assertIsNotNone(f)
+        self.assertEqual([], list(f.causes))
 
 
 class ExcInfoUtilsTest(test.TestCase):
