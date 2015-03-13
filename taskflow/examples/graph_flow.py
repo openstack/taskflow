@@ -80,12 +80,37 @@ store = {
     "y5": 9,
 }
 
+# This is the expected values that should be created.
+unexpected = 0
+expected = [
+    ('x1', 4),
+    ('x2', 12),
+    ('x3', 16),
+    ('x4', 21),
+    ('x5', 20),
+    ('x6', 41),
+    ('x7', 82),
+]
+
 result = taskflow.engines.run(
     flow, engine='serial', store=store)
 
 print("Single threaded engine result %s" % result)
+for (name, value) in expected:
+    actual = result.get(name)
+    if actual != value:
+        sys.stderr.write("%s != %s\n" % (actual, value))
+        unexpected += 1
 
 result = taskflow.engines.run(
     flow, engine='parallel', store=store)
 
 print("Multi threaded engine result %s" % result)
+for (name, value) in expected:
+    actual = result.get(name)
+    if actual != value:
+        sys.stderr.write("%s != %s\n" % (actual, value))
+        unexpected += 1
+
+if unexpected:
+    sys.exit(1)
