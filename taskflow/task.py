@@ -21,6 +21,7 @@ import copy
 
 from oslo_utils import reflection
 import six
+from six.moves import map as compat_map
 from six.moves import reduce as compat_reduce
 
 from taskflow import atom
@@ -239,13 +240,13 @@ class FunctorTask(BaseTask):
 
 
 class ReduceFunctorTask(BaseTask):
-    """General purpose Task to reduce a list by applying a function
+    """General purpose Task to reduce a list by applying a function.
 
-    This Task mimics the behavior of Python's built-in reduce function.  The
-    Task takes a functor (lambda or otherwise) and a list.  The list is
-    specified using the requires argument of the Task.  When executed, this
-    task calls reduce with the functor and list as arguments.  The resulting
-    value from the call to reduce is then returned after execution.
+    This Task mimics the behavior of Python's built-in ``reduce`` function. The
+    Task takes a functor (lambda or otherwise) and a list. The list is
+    specified using the ``requires`` argument of the Task. When executed, this
+    task calls ``reduce`` with the functor and list as arguments. The resulting
+    value from the call to ``reduce`` is then returned after execution.
     """
     def __init__(self, functor, requires, name=None, provides=None,
                  auto_extract=True, rebind=None, inject=None):
@@ -282,16 +283,16 @@ class ReduceFunctorTask(BaseTask):
 
 
 class MapFunctorTask(BaseTask):
-    """General purpose Task to map a function to a list
+    """General purpose Task to map a function to a list.
 
-    This Task mimics the behavior of Python's built-in map function.  The Task
-    takes a functor (lambda or otherwise) and a list.  The list is specified
-    using the requires argument of the Task.  When executed, this task calls
-    map with the functor and list as arguments.  The resulting list from the
-    call to map is then returned after execution.
+    This Task mimics the behavior of Python's built-in ``map`` function. The
+    Task takes a functor (lambda or otherwise) and a list. The list is
+    specified using the ``requires`` argument of the Task. When executed, this
+    task calls ``map`` with the functor and list as arguments. The resulting
+    list from the call to ``map`` is then returned after execution.
 
     Each value of the returned list can be bound to individual names using
-    the provides argument, following taskflow standard behavior.  Order is
+    the ``provides`` argument, following taskflow standard behavior. Order is
     preserved in the returned list.
     """
 
@@ -322,4 +323,4 @@ class MapFunctorTask(BaseTask):
 
     def execute(self, *args, **kwargs):
         l = [kwargs[r] for r in self.requires]
-        return list(map(self._functor, l))
+        return list(compat_map(self._functor, l))
