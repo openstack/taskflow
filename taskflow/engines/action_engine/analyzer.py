@@ -33,7 +33,7 @@ class Analyzer(object):
 
     def __init__(self, compilation, storage):
         self._storage = storage
-        self._graph = compilation.execution_graph
+        self._execution_graph = compilation.execution_graph
 
     def get_next_nodes(self, node=None):
         if node is None:
@@ -65,9 +65,9 @@ class Analyzer(object):
         otherwise it will examine the whole graph.
         """
         if node:
-            nodes = self._graph.successors(node)
+            nodes = self._execution_graph.successors(node)
         else:
-            nodes = self._graph.nodes_iter()
+            nodes = self._execution_graph.nodes_iter()
 
         available_nodes = []
         for node in nodes:
@@ -83,9 +83,9 @@ class Analyzer(object):
         node, otherwise it will examine the whole graph.
         """
         if node:
-            nodes = self._graph.predecessors(node)
+            nodes = self._execution_graph.predecessors(node)
         else:
-            nodes = self._graph.nodes_iter()
+            nodes = self._execution_graph.nodes_iter()
 
         available_nodes = []
         for node in nodes:
@@ -102,7 +102,7 @@ class Analyzer(object):
             return False
 
         task_names = []
-        for prev_task in self._graph.predecessors(task):
+        for prev_task in self._execution_graph.predecessors(task):
             task_names.append(prev_task.name)
 
         task_states = self._storage.get_atoms_states(task_names)
@@ -118,7 +118,7 @@ class Analyzer(object):
             return False
 
         task_names = []
-        for prev_task in self._graph.successors(task):
+        for prev_task in self._execution_graph.successors(task):
             task_names.append(prev_task.name)
 
         task_states = self._storage.get_atoms_states(task_names)
@@ -127,7 +127,7 @@ class Analyzer(object):
 
     def iterate_subgraph(self, retry):
         """Iterates a subgraph connected to given retry controller."""
-        for _src, dst in traversal.dfs_edges(self._graph, retry):
+        for _src, dst in traversal.dfs_edges(self._execution_graph, retry):
             yield dst
 
     def iterate_retries(self, state=None):
@@ -135,20 +135,20 @@ class Analyzer(object):
 
         If no state is provided it will yield back all retry controllers.
         """
-        for node in self._graph.nodes_iter():
+        for node in self._execution_graph.nodes_iter():
             if isinstance(node, retry_atom.Retry):
                 if not state or self.get_state(node) == state:
                     yield node
 
     def iterate_all_nodes(self):
-        for node in self._graph.nodes_iter():
+        for node in self._execution_graph.nodes_iter():
             yield node
 
     def find_atom_retry(self, atom):
-        return self._graph.node[atom].get('retry')
+        return self._execution_graph.node[atom].get('retry')
 
     def is_success(self):
-        for node in self._graph.nodes_iter():
+        for node in self._execution_graph.nodes_iter():
             if self.get_state(node) != st.SUCCESS:
                 return False
         return True
