@@ -221,39 +221,46 @@ are setup.
 Compiling
 ---------
 
-During this stage the flow will be converted into an internal graph
-representation using a
-:py:class:`~taskflow.engines.action_engine.compiler.Compiler` (the default
-implementation for patterns is the
+During this stage (see :py:func:`~taskflow.engines.base.Engine.compile`) the
+flow will be converted into an internal graph representation using a
+compiler (the default implementation for patterns is the
 :py:class:`~taskflow.engines.action_engine.compiler.PatternCompiler`). This
 class compiles/converts the flow objects and contained atoms into a
-`networkx`_ directed graph that contains the equivalent atoms defined in the
-flow and any nested flows & atoms as well as the constraints that are created
-by the application of the different flow patterns. This graph is then what will
-be analyzed & traversed during the engines execution. At this point a few
-helper object are also created and saved to internal engine variables (these
-object help in execution of atoms, analyzing the graph and performing other
-internal engine activities). At the finishing of this stage a
+`networkx`_ directed graph (and tree structure) that contains the equivalent
+atoms defined in the flow and any nested flows & atoms as well as the
+constraints that are created by the application of the different flow
+patterns. This graph (and tree) are what will be analyzed & traversed during
+the engines execution. At this point a few helper object are also created and
+saved to internal engine variables (these object help in execution of
+atoms, analyzing the graph and performing other internal engine
+activities). At the finishing of this stage a
 :py:class:`~taskflow.engines.action_engine.runtime.Runtime` object is created
 which contains references to all needed runtime components.
 
 Preparation
 -----------
 
-This stage starts by setting up the storage needed for all atoms in the
-previously created graph, ensuring that corresponding
-:py:class:`~taskflow.persistence.logbook.AtomDetail` (or subclass of) objects
-are created for each node in the graph. Once this is done final validation
-occurs on the requirements that are needed to start execution and what
-:py:class:`~taskflow.storage.Storage` provides.  If there is any atom or flow
-requirements not satisfied then execution will not be allowed to continue.
+This stage (see :py:func:`~taskflow.engines.base.Engine.prepare`) starts by
+setting up the storage needed for all atoms in the compiled graph, ensuring
+that corresponding :py:class:`~taskflow.persistence.logbook.AtomDetail` (or
+subclass of) objects are created for each node in the graph.
+
+Validation
+----------
+
+This stage (see :py:func:`~taskflow.engines.base.Engine.validate`) performs
+any final validation of the compiled (and now storage prepared) engine. It
+compares the requirements that are needed to start execution and
+what is currently provided or will be produced in the future. If there are
+*any* atom requirements that are not satisfied (no known current provider or
+future producer is found) then execution will **not** be allowed to continue.
 
 Execution
 ---------
 
 The graph (and helper objects) previously created are now used for guiding
-further execution. The flow is put into the ``RUNNING`` :doc:`state <states>`
-and a
+further execution (see :py:func:`~taskflow.engines.base.Engine.run`). The
+flow is put into the ``RUNNING`` :doc:`state <states>` and a
 :py:class:`~taskflow.engines.action_engine.runner.Runner` implementation
 object starts to take over and begins going through the stages listed
 below (for a more visual diagram/representation see
@@ -262,10 +269,10 @@ the :ref:`engine state diagram <engine states>`).
 .. note::
 
    The engine will respect the constraints imposed by the flow. For example,
-   if Engine is executing a :py:class:`.linear_flow.Flow` then it is
-   constrained by the dependency-graph which is linear in this case, and hence
-   using a Parallel Engine may not yield any benefits if one is looking for
-   concurrency.
+   if an engine is executing a :py:class:`~taskflow.patterns.linear_flow.Flow`
+   then it is constrained by the dependency graph which is linear in this
+   case, and hence using a parallel engine may not yield any benefits if one
+   is looking for concurrency.
 
 Resumption
 ^^^^^^^^^^
