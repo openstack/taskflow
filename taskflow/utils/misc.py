@@ -15,6 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import contextlib
 import datetime
 import errno
@@ -552,3 +553,17 @@ def capture_failure():
         raise RuntimeError("No active exception is being handled")
     else:
         yield failure.Failure(exc_info=exc_info)
+
+
+def is_iterable(obj):
+    """Tests an object to to determine whether it is iterable.
+
+    This function will test the specified object to determine whether it is
+    iterable. String types (both ``str`` and ``unicode``) are ignored and will
+    return False.
+
+    :param obj: object to be tested for iterable
+    :return: True if object is iterable and is not a string
+    """
+    return (not isinstance(obj, six.string_types) and
+            isinstance(obj, collections.Iterable))
