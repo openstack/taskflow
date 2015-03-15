@@ -209,7 +209,12 @@ class Failure(object):
     @classmethod
     def from_exception(cls, exception):
         """Creates a failure object from a exception instance."""
-        return cls((type(exception), exception, None))
+        exc_info = (
+            type(exception),
+            exception,
+            getattr(exception, '__traceback__', None)
+        )
+        return cls(exc_info=exc_info)
 
     @classmethod
     def validate(cls, data):
