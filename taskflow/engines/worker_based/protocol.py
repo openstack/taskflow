@@ -162,14 +162,15 @@ class Notify(Message):
         try:
             su.schema_validate(data, schema)
         except su.ValidationError as e:
+            cls_name = reflection.get_class_name(cls, fully_qualified=False)
             if response:
                 raise excp.InvalidFormat("%s message response data not of the"
                                          " expected format: %s"
-                                         % (cls.TYPE, e.message), e)
+                                         % (cls_name, e.message), e)
             else:
                 raise excp.InvalidFormat("%s message sender data not of the"
                                          " expected format: %s"
-                                         % (cls.TYPE, e.message), e)
+                                         % (cls_name, e.message), e)
 
 
 _WorkUnit = collections.namedtuple('_WorkUnit', ['task_cls', 'task_name',
@@ -358,9 +359,10 @@ class Request(Message):
         try:
             su.schema_validate(data, cls.SCHEMA)
         except su.ValidationError as e:
+            cls_name = reflection.get_class_name(cls, fully_qualified=False)
             raise excp.InvalidFormat("%s message response data not of the"
                                      " expected format: %s"
-                                     % (cls.TYPE, e.message), e)
+                                     % (cls_name, e.message), e)
         else:
             # Validate all failure dictionaries that *may* be present...
             failures = []
@@ -501,9 +503,10 @@ class Response(Message):
         try:
             su.schema_validate(data, cls.SCHEMA)
         except su.ValidationError as e:
+            cls_name = reflection.get_class_name(cls, fully_qualified=False)
             raise excp.InvalidFormat("%s message response data not of the"
                                      " expected format: %s"
-                                     % (cls.TYPE, e.message), e)
+                                     % (cls_name, e.message), e)
         else:
             state = data['state']
             if state == FAILURE and 'result' in data:
