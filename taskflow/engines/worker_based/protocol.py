@@ -106,7 +106,8 @@ class Message(object):
     """Base class for all message types."""
 
     def __str__(self):
-        return "<%s> %s" % (self.TYPE, self.to_dict())
+        cls_name = reflection.get_class_name(self, fully_qualified=False)
+        return "<%s> %s" % (cls_name, self.to_dict())
 
     @abc.abstractmethod
     def to_dict(self):
