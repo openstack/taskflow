@@ -21,6 +21,7 @@ from taskflow import logging
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
 from taskflow.utils import deprecation
+from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
 LOG = logging.getLogger(__name__)
@@ -88,11 +89,19 @@ class BlockingConductor(base.Conductor):
     def dispatching(self):
         return not self._dead.is_set()
 
+    def _listeners_from_job(self, job, engine):
+        listeners = super(BlockingConductor, self)._listeners_from_job(job,
+                                                                       engine)
+        listeners.append(logging_listener.LoggingListener(engine, log=LOG))
+        return listeners
+
     def _dispatch_job(self, job):
         engine = self._engine_from_job(job)
-        consume = True
-        with logging_listener.LoggingListener(engine, log=LOG):
+        listeners = self._listeners_from_job(job, engine)
+        with misc.ListenerStack(LOG) as stack:
+            stack.register(listeners)
             LOG.debug("Dispatching engine %s for job: %s", engine, job)
+            consume = True
             try:
                 engine.run()
             except excp.WrappedFailure as e:
@@ -117,7 +126,7 @@ class BlockingConductor(base.Conductor):
                          job, exc_info=True)
             else:
                 LOG.info("Job completed successfully: %s", job)
-        return async_utils.make_completed_future(consume)
+            return async_utils.make_completed_future(consume)
 
     def run(self):
         self._dead.clear()
