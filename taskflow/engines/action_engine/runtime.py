@@ -23,6 +23,7 @@ from taskflow.engines.action_engine import completer as co
 from taskflow.engines.action_engine import runner as ru
 from taskflow.engines.action_engine import scheduler as sched
 from taskflow.engines.action_engine import scopes as sc
+from taskflow import flow as flow_type
 from taskflow import states as st
 from taskflow import task
 from taskflow.utils import misc
@@ -61,6 +62,7 @@ class Runtime(object):
             'retry': self.retry_scheduler,
             'task': self.task_scheduler,
         }
+        execution_graph = self._compilation.execution_graph
         for atom in self.analyzer.iterate_all_nodes():
             metadata = {}
             walker = sc.ScopeWalker(self.compilation, atom, names_only=True)
@@ -72,10 +74,20 @@ class Runtime(object):
                 check_transition_handler = st.check_retry_transition
                 change_state_handler = change_state_handlers['retry']
                 scheduler = schedulers['retry']
+            edge_deciders = {}
+            for previous_atom in execution_graph.predecessors(atom):
+                # If there is any link function that says if this connection
+                # is able to run (or should not) ensure we retain it and use
+                # it later as needed.
+                u_v_data = execution_graph.adj[previous_atom][atom]
+                u_v_decider = u_v_data.get(flow_type.LINK_DECIDER)
+                if u_v_decider is not None:
+                    edge_deciders[previous_atom.name] = u_v_decider
             metadata['scope_walker'] = walker
             metadata['check_transition_handler'] = check_transition_handler
             metadata['change_state_handler'] = change_state_handler
             metadata['scheduler'] = scheduler
+            metadata['edge_deciders'] = edge_deciders
             self._atom_cache[atom.name] = metadata
 
     @property
@@ -129,6 +141,14 @@ class Runtime(object):
         metadata = self._atom_cache[atom.name]
         check_transition_handler = metadata['check_transition_handler']
         return check_transition_handler(current_state, target_state)
+
+    def fetch_edge_deciders(self, atom):
+        """Fetches the edge deciders for the given atom."""
+        # This does not check if the name exists (since this is only used
+        # internally to the engine, and is not exposed to atoms that will
+        # not exist and therefore doesn't need to handle that case).
+        metadata = self._atom_cache[atom.name]
+        return metadata['edge_deciders']
 
     def fetch_scheduler(self, atom):
         """Fetches the cached specific scheduler for the given atom."""

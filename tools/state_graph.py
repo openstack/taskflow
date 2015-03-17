@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import mock
+
 import optparse
 import os
 import sys
@@ -37,10 +39,10 @@ from taskflow.types import fsm
 # actually be running it...).
 class DummyRuntime(object):
     def __init__(self):
-        self.analyzer = None
-        self.completer = None
-        self.scheduler = None
-        self.storage = None
+        self.analyzer = mock.MagicMock()
+        self.completer = mock.MagicMock()
+        self.scheduler = mock.MagicMock()
+        self.storage = mock.MagicMock()
 
 
 def clean_event(name):
@@ -130,7 +132,7 @@ def main():
                               list(states._ALLOWED_RETRY_TRANSITIONS))
     elif options.engines:
         source_type = "Engines"
-        r = runner.Runner(DummyRuntime(), None)
+        r = runner.Runner(DummyRuntime(), mock.MagicMock())
         source, memory = r.build()
         internal_states.extend(runner._META_STATES)
         ordering = 'out'

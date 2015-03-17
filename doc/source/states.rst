@@ -124,6 +124,11 @@ or if needed will wait for all of the atoms it depends on to complete.
   An engine running a task also transitions the task to the ``PENDING`` state
   after it was reverted and its containing flow was restarted or retried.
 
+
+**IGNORE** - When a conditional decision has been made to skip (not
+execute) the task the engine will transition the task to
+the ``IGNORE`` state.
+
 **RUNNING** - When an engine running the task starts to execute the task, the
 engine will transition the task to the ``RUNNING`` state, and the task will
 stay in this state until the tasks :py:meth:`~taskflow.task.BaseTask.execute`
@@ -170,6 +175,10 @@ flow that the retry is associated with by consulting its
 
   An engine running a retry also transitions the retry to the ``PENDING`` state
   after it was reverted and its associated flow was restarted or retried.
+
+**IGNORE** - When a conditional decision has been made to skip (not
+execute) the retry the engine will transition the retry to
+the ``IGNORE`` state.
 
 **RUNNING** - When an engine starts to execute the retry, the engine
 transitions the retry to the ``RUNNING`` state, and the retry stays in this

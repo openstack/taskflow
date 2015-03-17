@@ -16,6 +16,8 @@
 
 import collections
 
+import six
+
 from taskflow import exceptions as exc
 from taskflow import flow
 from taskflow.types import graph as gr
@@ -66,16 +68,20 @@ class Flow(flow.Flow):
     #: Extracts the unsatisified symbol requirements of a single node.
     _unsatisfied_requires = staticmethod(_unsatisfied_requires)
 
-    def link(self, u, v):
+    def link(self, u, v, decider=None):
         """Link existing node u as a runtime dependency of existing node v."""
         if not self._graph.has_node(u):
             raise ValueError("Node '%s' not found to link from" % (u))
         if not self._graph.has_node(v):
             raise ValueError("Node '%s' not found to link to" % (v))
-        self._swap(self._link(u, v, manual=True))
+        if decider is not None:
+            if not six.callable(decider):
+                raise ValueError("Decider boolean callback must be callable")
+        self._swap(self._link(u, v, manual=True, decider=decider))
         return self
 
-    def _link(self, u, v, graph=None, reason=None, manual=False):
+    def _link(self, u, v, graph=None,
+              reason=None, manual=False, decider=None):
         mutable_graph = True
         if graph is None:
             graph = self._graph
@@ -85,6 +91,8 @@ class Flow(flow.Flow):
         attrs = graph.get_edge_data(u, v)
         if not attrs:
             attrs = {}
+        if decider is not None:
+            attrs[flow.LINK_DECIDER] = decider
         if manual:
             attrs[flow.LINK_MANUAL] = True
         if reason is not None:
@@ -281,9 +289,9 @@ class TargetedFlow(Flow):
         self._subgraph = None
         return self
 
-    def link(self, u, v):
+    def link(self, u, v, decider=None):
         """Link existing node u as a runtime dependency of existing node v."""
-        super(TargetedFlow, self).link(u, v)
+        super(TargetedFlow, self).link(u, v, decider=decider)
         # reset cached subgraph, in case it was affected
         self._subgraph = None
         return self

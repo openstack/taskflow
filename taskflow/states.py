@@ -40,10 +40,11 @@ REVERTING = REVERTING
 SUCCESS = SUCCESS
 RUNNING = RUNNING
 RETRYING = 'RETRYING'
+IGNORE = 'IGNORE'
 
 # Atom intentions.
 EXECUTE = 'EXECUTE'
-IGNORE = 'IGNORE'
+IGNORE = IGNORE
 REVERT = 'REVERT'
 RETRY = 'RETRY'
 INTENTIONS = (EXECUTE, IGNORE, REVERT, RETRY)
@@ -160,6 +161,7 @@ def check_flow_transition(old_state, new_state):
 
 _ALLOWED_TASK_TRANSITIONS = frozenset((
     (PENDING, RUNNING),       # run it!
+    (PENDING, IGNORE),        # skip it!
 
     (RUNNING, SUCCESS),       # the task finished successfully
     (RUNNING, FAILURE),       # the task failed
@@ -171,6 +173,7 @@ _ALLOWED_TASK_TRANSITIONS = frozenset((
     (REVERTING, FAILURE),     # revert failed
 
     (REVERTED, PENDING),      # try again
+    (IGNORE, PENDING),        # try again
 ))
 
 
