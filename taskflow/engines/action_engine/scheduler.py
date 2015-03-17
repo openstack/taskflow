@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import weakref
+
 from taskflow import exceptions as excp
 from taskflow import retry as retry_atom
 from taskflow import states as st
@@ -23,7 +25,7 @@ from taskflow.types import failure
 
 class _RetryScheduler(object):
     def __init__(self, runtime):
-        self._runtime = runtime
+        self._runtime = weakref.proxy(runtime)
         self._retry_action = runtime.retry_action
         self._storage = runtime.storage
 

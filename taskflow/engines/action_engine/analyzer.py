@@ -31,9 +31,9 @@ class Analyzer(object):
     the rest of the runtime system.
     """
 
-    def __init__(self, compilation, storage):
-        self._storage = storage
-        self._execution_graph = compilation.execution_graph
+    def __init__(self, runtime):
+        self._storage = runtime.storage
+        self._execution_graph = runtime.compilation.execution_graph
 
     def get_next_nodes(self, node=None):
         if node is None:

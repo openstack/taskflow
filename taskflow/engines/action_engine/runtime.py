@@ -50,7 +50,7 @@ class Runtime(object):
 
     @misc.cachedproperty
     def analyzer(self):
-        return an.Analyzer(self._compilation, self._storage)
+        return an.Analyzer(self)
 
     @misc.cachedproperty
     def runner(self):

@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import weakref
+
 from taskflow.engines.action_engine import executor as ex
 from taskflow import retry as retry_atom
 from taskflow import states as st
@@ -25,7 +27,7 @@ class Completer(object):
     """Completes atoms using actions to complete them."""
 
     def __init__(self, runtime):
-        self._runtime = runtime
+        self._runtime = weakref.proxy(runtime)
         self._analyzer = runtime.analyzer
         self._retry_action = runtime.retry_action
         self._storage = runtime.storage
