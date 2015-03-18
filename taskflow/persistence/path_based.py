@@ -45,6 +45,8 @@ class PathBasedBackend(base.Backend):
 
 @six.add_metaclass(abc.ABCMeta)
 class PathBasedConnection(base.Connection):
+    """Base class for path based backend connections."""
+
     def __init__(self, backend):
         self._backend = backend
         self._book_path = self._join_path(backend.path, "books")
@@ -187,7 +189,8 @@ class PathBasedConnection(base.Connection):
     def _do_update_flow_details(self, flow_detail, transaction,
                                 ignore_missing=False):
         flow_path = self._get_obj_path(flow_detail)
-        self._update_object(flow_detail, transaction, ignore_missing)
+        self._update_object(flow_detail, transaction,
+                            ignore_missing=ignore_missing)
         for atom_details in flow_detail:
             atom_path = self._get_obj_path(atom_details)
             link_path = self._join_path(flow_path, atom_details.uuid)
@@ -198,7 +201,7 @@ class PathBasedConnection(base.Connection):
     def update_flow_details(self, flow_detail, ignore_missing=False):
         with self._transaction() as transaction:
             return self._do_update_flow_details(flow_detail, transaction,
-                                                ignore_missing)
+                                                ignore_missing=ignore_missing)
 
     def get_atoms_for_flow(self, flow_uuid):
         flow_path = self._join_path(self.flow_path, flow_uuid)
@@ -213,7 +216,7 @@ class PathBasedConnection(base.Connection):
     def update_atom_details(self, atom_detail, ignore_missing=False):
         with self._transaction() as transaction:
             return self._update_object(atom_detail, transaction,
-                                       ignore_missing)
+                                       ignore_missing=ignore_missing)
 
     def _do_destroy_logbook(self, book_uuid, transaction):
         book_path = self._join_path(self.book_path, book_uuid)

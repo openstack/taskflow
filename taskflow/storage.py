@@ -22,6 +22,7 @@ import six
 
 from taskflow import exceptions
 from taskflow import logging
+from taskflow.persistence.backends import impl_memory
 from taskflow.persistence import logbook
 from taskflow import retry
 from taskflow import states
@@ -121,6 +122,10 @@ class Storage(object):
     atom_details, flow_details) for use by engines. This makes it easier to
     interact with the underlying storage & backend mechanism through this
     interface rather than accessing those objects directly.
+
+    NOTE(harlowja): if no backend is provided then a in-memory backend will
+    be automatically used and the provided flow detail object will be placed
+    into it for the duration of this objects existence.
     """
 
     injector_name = '_TaskFlow_INJECTOR'
@@ -134,6 +139,13 @@ class Storage(object):
     def __init__(self, flow_detail, backend=None, scope_fetcher=None):
         self._result_mappings = {}
         self._reverse_mapping = {}
+        if backend is None:
+            # Err on the likely-hood that most people don't make there
+            # objects able to be deepcopyable (resources, locks and such
+            # can't be deepcopied)...
+            backend = impl_memory.MemoryBackend({'deep_copy': False})
+            with contextlib.closing(backend.get_connection()) as conn:
+                conn.update_flow_details(flow_detail, ignore_missing=True)
         self._backend = backend
         self._flowdetail = flow_detail
         self._transients = {}
@@ -169,11 +181,9 @@ class Storage(object):
                                      dict((name, name) for name in names))
 
     def _with_connection(self, functor, *args, **kwargs):
-        # NOTE(harlowja): Activate the given function with a backend
-        # connection, if a backend is provided in the first place, otherwise
-        # don't call the function.
-        if self._backend is None:
-            return
+        # Run the given functor with a backend connection as its first
+        # argument (providing the additional positional arguments and keyword
+        # arguments as subsequent arguments).
         with contextlib.closing(self._backend.get_connection()) as conn:
             functor(conn, *args, **kwargs)
 
