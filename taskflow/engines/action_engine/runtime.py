@@ -38,7 +38,7 @@ class Runtime(object):
         self._task_executor = task_executor
         self._storage = storage
         self._compilation = compilation
-        self._scopes = {}
+        self._walkers_to_names = {}
 
     @property
     def compilation(self):
@@ -76,9 +76,9 @@ class Runtime(object):
                              self._task_executor)
 
     def fetch_scopes_for(self, atom_name):
-        """Fetches a tuple of the visible scopes for the given atom."""
+        """Fetches a walker of the visible scopes for the given atom."""
         try:
-            return self._scopes[atom_name]
+            return self._walkers_to_names[atom_name]
         except KeyError:
             atom = None
             for node in self.analyzer.iterate_all_nodes():
@@ -88,10 +88,10 @@ class Runtime(object):
             if atom is not None:
                 walker = sc.ScopeWalker(self.compilation, atom,
                                         names_only=True)
-                self._scopes[atom_name] = visible_to = tuple(walker)
+                self._walkers_to_names[atom_name] = walker
             else:
-                visible_to = tuple([])
-            return visible_to
+                walker = None
+            return walker
 
     # Various helper methods used by the runtime components; not for public
     # consumption...
