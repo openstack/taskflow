@@ -21,24 +21,23 @@ from taskflow import logging
 LOG = logging.getLogger(__name__)
 
 
-def _extract_atoms(node, idx=-1):
+def _extract_atoms_iter(node, idx=-1):
     # Always go left to right, since right to left is the pattern order
     # and we want to go backwards and not forwards through that ordering...
     if idx == -1:
         children_iter = node.reverse_iter()
     else:
         children_iter = reversed(node[0:idx])
-    atoms = []
     for child in children_iter:
         if isinstance(child.item, flow_type.Flow):
-            atoms.extend(_extract_atoms(child))
+            for atom in _extract_atoms_iter(child):
+                yield atom
         elif isinstance(child.item, atom_type.Atom):
-            atoms.append(child.item)
+            yield child.item
         else:
             raise TypeError(
                 "Unknown extraction item '%s' (%s)" % (child.item,
                                                        type(child.item)))
-    return atoms
 
 
 class ScopeWalker(object):
@@ -63,7 +62,7 @@ class ScopeWalker(object):
         self._predecessors = None
 
     #: Function that extracts the *associated* atoms of a given tree node.
-    _extract_atoms = staticmethod(_extract_atoms)
+    _extract_atoms_iter = staticmethod(_extract_atoms_iter)
 
     def __iter__(self):
         """Iterates over the visible scopes.
@@ -115,11 +114,13 @@ class ScopeWalker(object):
             except KeyError:
                 visible = []
                 removals = set()
-                for a in self._extract_atoms(parent, idx=last_idx):
-                    if a in predecessors:
-                        predecessors.remove(a)
-                        removals.add(a)
-                        visible.append(a)
+                for atom in self._extract_atoms_iter(parent, idx=last_idx):
+                    if atom in predecessors:
+                        predecessors.remove(atom)
+                        removals.add(atom)
+                        visible.append(atom)
+                    if not predecessors:
+                        break
                 self._level_cache[lvl] = (visible, removals)
                 if LOG.isEnabledFor(logging.BLATHER):
                     visible_names = [a.name for a in visible]
