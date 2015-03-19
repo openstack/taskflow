@@ -271,6 +271,11 @@ class Storage(object):
         # This never changes (so no read locking needed).
         return self._flowdetail.uuid
 
+    @property
+    def backend(self):
+        # This never changes (so no read locking needed).
+        return self._backend
+
     def _save_flow_detail(self, conn):
         # NOTE(harlowja): we need to update our contained flow detail if
         # the result of the update actually added more (aka another process
