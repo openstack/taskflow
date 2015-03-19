@@ -21,7 +21,6 @@ import os
 import shutil
 
 from oslo_serialization import jsonutils
-import six
 
 from taskflow import exceptions as exc
 from taskflow.persistence import path_based
@@ -57,6 +56,7 @@ class DirBackend(path_based.PathBasedBackend):
     def __init__(self, conf):
         super(DirBackend, self).__init__(conf)
         self.file_cache = {}
+        self.encoding = self._conf.get('encoding', 'utf-8')
         if not self._path:
             raise ValueError("Empty path is disallowed")
         self._path = os.path.abspath(self._path)
@@ -77,13 +77,14 @@ class Connection(path_based.PathBasedConnection):
         cache_info = self.backend.file_cache.setdefault(filename, {})
         if not cache_info or mtime > cache_info.get('mtime', 0):
             with open(filename, 'rb') as fp:
-                cache_info['data'] = fp.read().decode('utf-8')
+                cache_info['data'] = misc.binary_decode(
+                    fp.read(), encoding=self.backend.encoding)
                 cache_info['mtime'] = mtime
         return cache_info['data']
 
     def _write_to(self, filename, contents):
-        if isinstance(contents, six.text_type):
-            contents = contents.encode('utf-8')
+        contents = misc.binary_encode(contents,
+                                      encoding=self.backend.encoding)
         with open(filename, 'wb') as fp:
             fp.write(contents)
         self.backend.file_cache.pop(filename, None)
