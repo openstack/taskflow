@@ -263,16 +263,19 @@ class Storage(object):
 
     @property
     def flow_name(self):
+        """The flow detail name this storage unit is associated with."""
         # This never changes (so no read locking needed).
         return self._flowdetail.name
 
     @property
     def flow_uuid(self):
+        """The flow detail uuid this storage unit is associated with."""
         # This never changes (so no read locking needed).
         return self._flowdetail.uuid
 
     @property
     def backend(self):
+        """The backend this storage unit is associated with."""
         # This never changes (so no read locking needed).
         return self._backend
 
