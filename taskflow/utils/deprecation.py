@@ -17,7 +17,6 @@
 import warnings
 
 from oslo_utils import reflection
-import six
 
 
 def deprecation(message, stacklevel=None):
@@ -129,43 +128,6 @@ def _generate_message(prefix, postfix=None, message=None,
     if message:
         message_components.append(": %s" % message)
     return ''.join(message_components)
-
-
-def removed_kwarg(old_name, message=None,
-                  version=None, removal_version=None, stacklevel=3):
-    """Decorates a kwarg accepting function to deprecate a removed kwarg."""
-
-    prefix = "Using the '%s' argument is deprecated" % old_name
-    out_message = _generate_message(prefix, postfix=None,
-                                    message=message, version=version,
-                                    removal_version=removal_version)
-
-    def decorator(f):
-
-        @six.wraps(f)
-        def wrapper(*args, **kwargs):
-            if old_name in kwargs:
-                deprecation(out_message, stacklevel=stacklevel)
-            return f(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
-def removed_module(module_name, replacement_name=None, message=None,
-                   version=None, removal_version=None, stacklevel=4):
-    """Deprecates a module that will be removed/replaced in the future."""
-    prefix = "The '%s' module usage is deprecated" % module_name
-    if replacement_name:
-        postfix = ", please use %s instead" % replacement_name
-    else:
-        postfix = None
-    out_message = _generate_message(prefix,
-                                    postfix=postfix, message=message,
-                                    version=version,
-                                    removal_version=removal_version)
-    deprecation(out_message, stacklevel=stacklevel)
 
 
 def moved_proxy_class(new_class, old_class_name, old_module_name,

@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from debtcollector import removals
 import six
 
 from taskflow.conductors import base
@@ -20,7 +21,6 @@ from taskflow.listeners import logging as logging_listener
 from taskflow import logging
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
-from taskflow.utils import deprecation
 from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
@@ -67,8 +67,7 @@ class BlockingConductor(base.Conductor):
             raise ValueError("Invalid timeout literal: %s" % (wait_timeout))
         self._dead = threading_utils.Event()
 
-    @deprecation.removed_kwarg('timeout',
-                               version="0.8", removal_version="?")
+    @removals.removed_kwarg('timeout', version="0.8", removal_version="?")
     def stop(self, timeout=None):
         """Requests the conductor to stop dispatching.
 

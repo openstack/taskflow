@@ -15,14 +15,15 @@
 #    under the License.
 
 from debtcollector import moves
+from debtcollector import removals
 
 from taskflow.conductors.backends import impl_blocking
-from taskflow.utils import deprecation
 
 # TODO(harlowja): remove this module soon...
-deprecation.removed_module(__name__,
-                           replacement_name="the conductor entrypoints",
-                           version="0.8", removal_version="?")
+removals.removed_module(__name__,
+                        replacement="the conductor entrypoints",
+                        version="0.8", removal_version="?",
+                        stacklevel=4)
 
 # TODO(harlowja): remove this proxy/legacy class soon...
 SingleThreadedConductor = moves.moved_class(
