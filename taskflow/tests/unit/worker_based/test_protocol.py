@@ -21,9 +21,9 @@ from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import exceptions as excp
 from taskflow import test
+from taskflow.test import mock
 from taskflow.tests import utils
 from taskflow.types import failure
-from taskflow.types import timing
 
 
 class TestProtocolValidation(test.TestCase):
@@ -94,8 +94,6 @@ class TestProtocol(test.TestCase):
 
     def setUp(self):
         super(TestProtocol, self).setUp()
-        timing.StopWatch.set_now_override()
-        self.addCleanup(timing.StopWatch.clear_overrides)
         self.task = utils.DummyTask()
         self.task_uuid = 'task-uuid'
         self.task_action = 'execute'
@@ -164,21 +162,27 @@ class TestProtocol(test.TestCase):
             failures={self.task.name: a_failure.to_dict()})
         self.assertEqual(request.to_dict(), expected)
 
-    def test_pending_not_expired(self):
+    @mock.patch('oslo_utils.timeutils.now')
+    def test_pending_not_expired(self, now):
+        now.return_value = 0
         req = self.request()
-        timing.StopWatch.set_offset_override(self.timeout - 1)
+        now.return_value = self.timeout - 1
         self.assertFalse(req.expired)
 
-    def test_pending_expired(self):
+    @mock.patch('oslo_utils.timeutils.now')
+    def test_pending_expired(self, now):
+        now.return_value = 0
         req = self.request()
-        timing.StopWatch.set_offset_override(self.timeout + 1)
+        now.return_value = self.timeout + 1
         self.assertTrue(req.expired)
 
-    def test_running_not_expired(self):
+    @mock.patch('oslo_utils.timeutils.now')
+    def test_running_not_expired(self, now):
+        now.return_value = 0
         request = self.request()
         request.transition(pr.PENDING)
         request.transition(pr.RUNNING)
-        timing.StopWatch.set_offset_override(self.timeout + 1)
+        now.return_value = self.timeout + 1
         self.assertFalse(request.expired)
 
     def test_set_result(self):

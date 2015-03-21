@@ -14,21 +14,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo.utils import reflection
+from oslo_utils import reflection
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import types as worker_types
 from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils
-from taskflow.types import timing
 
 
 class TestRequestCache(test.TestCase):
 
     def setUp(self):
         super(TestRequestCache, self).setUp()
-        self.addCleanup(timing.StopWatch.clear_overrides)
         self.task = utils.DummyTask()
         self.task_uuid = 'task-uuid'
         self.task_action = 'execute'
@@ -45,7 +43,8 @@ class TestRequestCache(test.TestCase):
         request_kwargs.update(kwargs)
         return pr.Request(**request_kwargs)
 
-    def test_requests_cache_expiry(self):
+    @mock.patch('oslo_utils.timeutils.now')
+    def test_requests_cache_expiry(self, now):
         # Mock out the calls the underlying objects will soon use to return
         # times that we can control more easily...
         overrides = [
@@ -53,7 +52,7 @@ class TestRequestCache(test.TestCase):
             1,
             self.timeout + 1,
         ]
-        timing.StopWatch.set_now_override(overrides)
+        now.side_effect = overrides
 
         cache = worker_types.RequestsCache()
         cache[self.task_uuid] = self.request()

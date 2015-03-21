@@ -28,7 +28,6 @@ from taskflow.types import latch
 from taskflow.types import periodic
 from taskflow.types import sets
 from taskflow.types import table
-from taskflow.types import timing as tt
 from taskflow.types import tree
 from taskflow.utils import threading_utils as tu
 
@@ -274,128 +273,6 @@ class TreeTest(test.TestCase):
         things = list([n.item for n in root.bfs_iter(include_self=False)])
         self.assertEqual(['reptile', 'mammal', 'primate',
                           'horse', 'human', 'monkey'], things)
-
-
-class StopWatchTest(test.TestCase):
-    def setUp(self):
-        super(StopWatchTest, self).setUp()
-        tt.StopWatch.set_now_override(now=0)
-        self.addCleanup(tt.StopWatch.clear_overrides)
-
-    def test_leftover_no_duration(self):
-        watch = tt.StopWatch()
-        watch.start()
-        self.assertRaises(RuntimeError, watch.leftover)
-        self.assertRaises(RuntimeError, watch.leftover, return_none=False)
-        self.assertIsNone(watch.leftover(return_none=True))
-
-    def test_no_states(self):
-        watch = tt.StopWatch()
-        self.assertRaises(RuntimeError, watch.stop)
-        self.assertRaises(RuntimeError, watch.resume)
-
-    def test_bad_expiry(self):
-        self.assertRaises(ValueError, tt.StopWatch, -1)
-
-    def test_backwards(self):
-        watch = tt.StopWatch(0.1)
-        watch.start()
-        tt.StopWatch.advance_time_seconds(0.5)
-        self.assertTrue(watch.expired())
-
-        tt.StopWatch.advance_time_seconds(-1.0)
-        self.assertFalse(watch.expired())
-        self.assertEqual(0.0, watch.elapsed())
-
-    def test_expiry(self):
-        watch = tt.StopWatch(0.1)
-        watch.start()
-        tt.StopWatch.advance_time_seconds(0.2)
-        self.assertTrue(watch.expired())
-
-    def test_not_expired(self):
-        watch = tt.StopWatch(0.1)
-        watch.start()
-        tt.StopWatch.advance_time_seconds(0.05)
-        self.assertFalse(watch.expired())
-
-    def test_no_expiry(self):
-        watch = tt.StopWatch(0.1)
-        self.assertRaises(RuntimeError, watch.expired)
-
-    def test_elapsed(self):
-        watch = tt.StopWatch()
-        watch.start()
-        tt.StopWatch.advance_time_seconds(0.2)
-        # NOTE(harlowja): Allow for a slight variation by using 0.19.
-        self.assertGreaterEqual(0.19, watch.elapsed())
-
-    def test_no_elapsed(self):
-        watch = tt.StopWatch()
-        self.assertRaises(RuntimeError, watch.elapsed)
-
-    def test_no_leftover(self):
-        watch = tt.StopWatch()
-        self.assertRaises(RuntimeError, watch.leftover)
-        watch = tt.StopWatch(1)
-        self.assertRaises(RuntimeError, watch.leftover)
-
-    def test_pause_resume(self):
-        watch = tt.StopWatch()
-        watch.start()
-        tt.StopWatch.advance_time_seconds(0.05)
-        watch.stop()
-        elapsed = watch.elapsed()
-        self.assertAlmostEqual(elapsed, watch.elapsed())
-        watch.resume()
-        tt.StopWatch.advance_time_seconds(0.05)
-        self.assertNotEqual(elapsed, watch.elapsed())
-
-    def test_context_manager(self):
-        with tt.StopWatch() as watch:
-            tt.StopWatch.advance_time_seconds(0.05)
-        self.assertGreater(0.01, watch.elapsed())
-
-    def test_splits(self):
-        watch = tt.StopWatch()
-        watch.start()
-        self.assertEqual(0, len(watch.splits))
-
-        watch.split()
-        self.assertEqual(1, len(watch.splits))
-        self.assertEqual(watch.splits[0].elapsed,
-                         watch.splits[0].length)
-
-        tt.StopWatch.advance_time_seconds(0.05)
-        watch.split()
-        splits = watch.splits
-        self.assertEqual(2, len(splits))
-        self.assertNotEqual(splits[0].elapsed, splits[1].elapsed)
-        self.assertEqual(splits[1].length,
-                         splits[1].elapsed - splits[0].elapsed)
-
-        watch.stop()
-        self.assertEqual(2, len(watch.splits))
-
-        watch.start()
-        self.assertEqual(0, len(watch.splits))
-
-    def test_elapsed_maximum(self):
-        watch = tt.StopWatch()
-        watch.start()
-
-        tt.StopWatch.advance_time_seconds(1)
-        self.assertEqual(1, watch.elapsed())
-
-        tt.StopWatch.advance_time_seconds(10)
-        self.assertEqual(11, watch.elapsed())
-        self.assertEqual(1, watch.elapsed(maximum=1))
-
-        watch.stop()
-        self.assertEqual(11, watch.elapsed())
-        tt.StopWatch.advance_time_seconds(10)
-        self.assertEqual(11, watch.elapsed())
-        self.assertEqual(0, watch.elapsed(maximum=-1))
 
 
 class TableTest(test.TestCase):
