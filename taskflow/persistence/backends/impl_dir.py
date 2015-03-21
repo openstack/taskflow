@@ -60,6 +60,7 @@ class DirBackend(path_based.PathBasedBackend):
         if not self._path:
             raise ValueError("Empty path is disallowed")
         self._path = os.path.abspath(self._path)
+        self.lock = lock_utils.ReaderWriterLock()
 
     def get_connection(self):
         return Connection(self)
@@ -132,8 +133,10 @@ class Connection(path_based.PathBasedConnection):
 
     @contextlib.contextmanager
     def _transaction(self):
-        """This backend doesn't support transactions"""
-        yield
+        """This just wraps a global write-lock."""
+        lock = self.backend.lock.write_lock
+        with lock():
+            yield
 
     def validate(self):
         with _storagefailure_wrapper():

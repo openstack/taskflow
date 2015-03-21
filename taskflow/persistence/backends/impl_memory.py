@@ -211,7 +211,7 @@ class Connection(path_based.PathBasedConnection):
 
     @contextlib.contextmanager
     def _transaction(self):
-        """This just wraps a global write-lock"""
+        """This just wraps a global write-lock."""
         with self._memory_lock(write=True):
             yield
 
