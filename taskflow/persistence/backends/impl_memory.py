@@ -46,6 +46,8 @@ class FakeFilesystem(object):
     >>> del fs['/a/b/c']
     >>> fs.ls("/a/b")
     []
+    >>> fs.get("/a/b/c", 'blob')
+    'blob'
     """
 
     #: Root path of the in-memory filesystem.
@@ -92,6 +94,13 @@ class FakeFilesystem(object):
             if node is None:
                 raise exc.NotFound("Path '%s' not found" % path)
         return node
+
+    def get(self, path, default=None):
+        """Fetch the value of given path (and return default if not found)."""
+        try:
+            return self._get_item(path)
+        except exc.NotFound:
+            return default
 
     def _get_item(self, path, links=None):
         node = self._fetch_node(path)
