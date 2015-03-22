@@ -17,11 +17,11 @@
 import heapq
 import inspect
 
+from debtcollector import removals
 from oslo_utils import reflection
 import six
 
 from taskflow import logging
-from taskflow.utils import deprecation
 from taskflow.utils import misc
 from taskflow.utils import threading_utils as tu
 
@@ -143,7 +143,7 @@ class PeriodicWorker(object):
                         callables.append(member)
         return cls(callables)
 
-    @deprecation.removed_kwarg('tombstone', version="0.8", removal_version="?")
+    @removals.removed_kwarg('tombstone', version="0.8", removal_version="?")
     def __init__(self, callables, tombstone=None):
         if tombstone is None:
             self._tombstone = tu.Event()
