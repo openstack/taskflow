@@ -25,7 +25,7 @@ from taskflow.types import tree
 from taskflow.utils import lock_utils
 
 
-class Filesystem(object):
+class FakeFilesystem(object):
     """An in-memory filesystem-like structure."""
 
     #: Root path of the in-memory filesystem.
@@ -156,7 +156,7 @@ class MemoryBackend(path_based.PathBasedBackend):
         super(MemoryBackend, self).__init__(conf)
         if self._path is None:
             self._path = os.sep
-        self.memory = Filesystem()
+        self.memory = FakeFilesystem()
         self.lock = lock_utils.ReaderWriterLock()
 
     def get_connection(self):
