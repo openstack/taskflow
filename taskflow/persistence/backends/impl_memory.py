@@ -38,8 +38,12 @@ class FakeFilesystem(object):
                              " paths: '%s' is not valid" % path)
         return os.path.normpath(path)
 
-    def __init__(self):
+    def __init__(self, deep_copy=True):
         self._root = tree.Node(self.root_path, value=None)
+        if deep_copy:
+            self._copier = copy.deepcopy
+        else:
+            self._copier = copy.copy
 
     def ensure_path(self, path):
         path = self._normpath(path)
@@ -83,7 +87,7 @@ class FakeFilesystem(object):
                 links.append(path)
             return self._get_item(path, links=links)
         else:
-            return copy.deepcopy(node.metadata['value'])
+            return self._copier(node.metadata['value'])
 
     def ls(self, path):
         return [node.item for node in self._fetch_node(path)]
@@ -131,7 +135,7 @@ class FakeFilesystem(object):
 
     def __setitem__(self, path, value):
         path = self._normpath(path)
-        value = copy.deepcopy(value)
+        value = self._copier(value)
         try:
             item_node = self._fetch_node(path)
             item_node.metadata.update(value=value)
@@ -156,7 +160,8 @@ class MemoryBackend(path_based.PathBasedBackend):
         super(MemoryBackend, self).__init__(conf)
         if self._path is None:
             self._path = os.sep
-        self.memory = FakeFilesystem()
+        self.memory = FakeFilesystem(deep_copy=self._conf.get('deep_copy',
+                                                              True))
         self.lock = lock_utils.ReaderWriterLock()
 
     def get_connection(self):
