@@ -16,6 +16,7 @@
 
 import contextlib
 
+from taskflow import exceptions as exc
 from taskflow.persistence import backends
 from taskflow.persistence.backends import impl_memory
 from taskflow import test
@@ -45,3 +46,64 @@ class MemoryPersistenceTest(test.TestCase, base.PersistenceTestMixin):
         conf = {'connection': 'memory'}  # note no colon
         with contextlib.closing(backends.fetch(conf)) as be:
             self.assertIsInstance(be, impl_memory.MemoryBackend)
+
+
+class MemoryFilesystemTest(test.TestCase):
+
+    @staticmethod
+    def _get_item_path(fs, path):
+        # TODO(harlowja): is there a better way to do this??
+        return fs[path]
+
+    @staticmethod
+    def _del_item_path(fs, path):
+        # TODO(harlowja): is there a better way to do this??
+        del fs[path]
+
+    def test_set_get_ls(self):
+        fs = impl_memory.FakeFilesystem()
+        fs['/d'] = 'd'
+        fs['/c'] = 'c'
+        fs['/d/b'] = 'db'
+        self.assertEqual(2, len(fs.ls('/')))
+        self.assertEqual(1, len(fs.ls('/d')))
+        self.assertEqual('d', fs['/d'])
+        self.assertEqual('c', fs['/c'])
+        self.assertEqual('db', fs['/d/b'])
+
+    def test_ensure_path(self):
+        fs = impl_memory.FakeFilesystem()
+        pieces = ['a', 'b', 'c']
+        path = "/" + "/".join(pieces)
+        fs.ensure_path(path)
+        path = fs.root_path
+        for i, p in enumerate(pieces):
+            if i == 0:
+                path += p
+            else:
+                path += "/" + p
+            self.assertIsNone(fs[path])
+
+    def test_not_found(self):
+        fs = impl_memory.FakeFilesystem()
+        self.assertRaises(exc.NotFound, self._get_item_path, fs, '/c')
+
+    def test_del_root_not_allowed(self):
+        fs = impl_memory.FakeFilesystem()
+        self.assertRaises(ValueError, self._del_item_path, fs, '/')
+
+    def test_link_loop_raises(self):
+        fs = impl_memory.FakeFilesystem()
+        fs['/b'] = 'c'
+        fs.symlink('/b', '/b')
+        self.assertRaises(ValueError, self._get_item_path, fs, '/b')
+
+    def test_ensure_linked_delete(self):
+        fs = impl_memory.FakeFilesystem()
+        fs['/b'] = 'd'
+        fs.symlink('/b', '/c')
+        self.assertEqual('d', fs['/b'])
+        self.assertEqual('d', fs['/c'])
+        del fs['/b']
+        self.assertRaises(exc.NotFound, self._get_item_path, fs, '/c')
+        self.assertRaises(exc.NotFound, self._get_item_path, fs, '/b')
