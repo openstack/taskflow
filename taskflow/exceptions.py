@@ -18,6 +18,7 @@ import os
 import sys
 import traceback
 
+from oslo_utils import reflection
 import six
 
 
@@ -76,35 +77,51 @@ class TaskFlowException(Exception):
     def cause(self):
         return self._cause
 
-    def pformat(self, indent=2, indent_text=" "):
+    def __str__(self):
+        return self.pformat()
+
+    def _get_message(self):
+        # We must *not* call into the __str__ method as that will reactivate
+        # the pformat method, which will end up badly (and doesn't look
+        # pretty at all); so be careful...
+        return self.args[0]
+
+    def pformat(self, indent=2, indent_text=" ", show_root_class=False):
         """Pretty formats a taskflow exception + any connected causes."""
         if indent < 0:
-            raise ValueError("indent must be greater than or equal to zero")
-        return os.linesep.join(self._pformat(self, [], 0,
-                                             indent=indent,
-                                             indent_text=indent_text))
-
-    @classmethod
-    def _pformat(cls, excp, lines, current_indent, indent=2, indent_text=" "):
-        line_prefix = indent_text * current_indent
-        for line in traceback.format_exception_only(type(excp), excp):
-            # We'll add our own newlines on at the end of formatting.
-            #
-            # NOTE(harlowja): the reason we don't search for os.linesep is
-            # that the traceback module seems to only use '\n' (for some
-            # reason).
-            if line.endswith("\n"):
-                line = line[0:-1]
-            lines.append(line_prefix + line)
-        try:
-            cause = excp.cause
-        except AttributeError:
-            pass
-        else:
-            if cause is not None:
-                cls._pformat(cause, lines, current_indent + indent,
-                             indent=indent, indent_text=indent_text)
-        return lines
+            raise ValueError("Provided 'indent' must be greater than"
+                             " or equal to zero instead of %s" % indent)
+        buf = six.StringIO()
+        if show_root_class:
+            buf.write(reflection.get_class_name(self, fully_qualified=False))
+            buf.write(": ")
+        buf.write(self._get_message())
+        active_indent = indent
+        next_up = self.cause
+        while next_up is not None:
+            buf.write(os.linesep)
+            if isinstance(next_up, TaskFlowException):
+                buf.write(indent_text * active_indent)
+                buf.write(reflection.get_class_name(next_up,
+                                                    fully_qualified=False))
+                buf.write(": ")
+                buf.write(next_up._get_message())
+            else:
+                lines = traceback.format_exception_only(type(next_up), next_up)
+                for i, line in enumerate(lines):
+                    buf.write(indent_text * active_indent)
+                    if line.endswith("\n"):
+                        # We'll add our own newlines on...
+                        line = line[0:-1]
+                    buf.write(line)
+                    if i + 1 != len(lines):
+                        buf.write(os.linesep)
+            active_indent += indent
+            try:
+                next_up = next_up.cause
+            except AttributeError:
+                next_up = None
+        return buf.getvalue()
 
 
 # Errors related to storage or operations on storage units.
