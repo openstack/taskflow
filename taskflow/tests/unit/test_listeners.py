@@ -258,6 +258,18 @@ class TestEventTimeListener(test.TestCase, EngineMakerMixin):
         self.assertGreaterEqual(0.1, fd_duration)
 
 
+class TestCapturingListeners(test.TestCase, EngineMakerMixin):
+    def test_basic_do_not_capture(self):
+        flow = lf.Flow("test")
+        flow.add(test_utils.ProgressingTask("task1"))
+        e = self._make_engine(flow)
+        with test_utils.CaptureListener(e, capture_task=False) as capturer:
+            e.run()
+        expected = ['test.f RUNNING',
+                    'test.f SUCCESS']
+        self.assertEqual(expected, capturer.values)
+
+
 class TestLoggingListeners(test.TestCase, EngineMakerMixin):
     def _make_logger(self, level=logging.DEBUG):
         log = logging.getLogger(
