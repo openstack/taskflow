@@ -114,6 +114,10 @@ class FakeFilesystem(object):
         """Return list of all children of the given path."""
         return [node.item for node in self._fetch_node(path)]
 
+    def clear(self):
+        for node in list(self._root.reverse_iter()):
+            node.disassociate()
+
     def _iter_pieces(self, path, include_root=False):
         if path == self._root.item:
             # Check for this directly as the following doesn't work with

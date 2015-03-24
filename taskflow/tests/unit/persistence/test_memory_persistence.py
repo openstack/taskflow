@@ -84,6 +84,17 @@ class MemoryFilesystemTest(test.TestCase):
                 path += "/" + p
             self.assertIsNone(fs[path])
 
+    def test_clear(self):
+        fs = impl_memory.FakeFilesystem()
+        paths = ['/b', '/c', '/a/b/c']
+        for p in paths:
+            fs.ensure_path(p)
+        for p in paths:
+            self.assertIsNone(self._get_item_path(fs, p))
+        fs.clear()
+        for p in paths:
+            self.assertRaises(exc.NotFound, self._get_item_path, fs, p)
+
     def test_not_found(self):
         fs = impl_memory.FakeFilesystem()
         self.assertRaises(exc.NotFound, self._get_item_path, fs, '/c')
