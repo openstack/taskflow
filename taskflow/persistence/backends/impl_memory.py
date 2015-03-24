@@ -110,9 +110,25 @@ class FakeFilesystem(object):
         else:
             return self._copier(node.metadata['value'])
 
-    def ls(self, path):
+    def ls(self, path, recursive=False):
         """Return list of all children of the given path."""
-        return [node.item for node in self._fetch_node(path)]
+        if not recursive:
+            return [node.item for node in self._fetch_node(path)]
+        else:
+            paths = []
+            node = self._fetch_node(path)
+            for child in node.bfs_iter():
+                # Reconstruct the child's path...
+                hops = [child.item]
+                for parent in child.path_iter(include_self=False):
+                    hops.append(parent.item)
+                hops.reverse()
+                # This avoids getting '//a/b' (duplicated sep at start)...
+                child_path = pp.sep.join(hops)
+                if child_path.startswith("//"):
+                    child_path = child_path[1:]
+                paths.append(child_path)
+            return paths
 
     def _iter_pieces(self, path, include_root=False):
         if path == self._root.item:
