@@ -17,7 +17,7 @@
 
 import contextlib
 import copy
-import os
+import posixpath as pp
 
 from taskflow import exceptions as exc
 from taskflow.persistence import path_based
@@ -29,14 +29,14 @@ class FakeFilesystem(object):
     """An in-memory filesystem-like structure."""
 
     #: Root path of the in-memory filesystem.
-    root_path = os.sep
+    root_path = pp.sep
 
     @classmethod
     def _normpath(cls, path):
         if not path.startswith(cls.root_path):
             raise ValueError("This filesystem can only normalize absolute"
                              " paths: '%s' is not valid" % path)
-        return os.path.normpath(path)
+        return pp.normpath(path)
 
     def __init__(self, deep_copy=True):
         self._root = tree.Node(self.root_path, value=None)
@@ -98,11 +98,11 @@ class FakeFilesystem(object):
             # split correctly:
             #
             # >>> path = "/"
-            # path.split(os.sep)
+            # path.split(pp.sep)
             # ['', '']
             parts = []
         else:
-            parts = path.split(os.sep)[1:]
+            parts = path.split(pp.sep)[1:]
         if include_root:
             parts.insert(0, self._root.item)
         for piece in parts:
@@ -120,7 +120,7 @@ class FakeFilesystem(object):
     def symlink(self, src_path, dest_path):
         dest_path = self._normpath(dest_path)
         src_path = self._normpath(src_path)
-        dirname, basename = os.path.split(dest_path)
+        dirname, basename = pp.split(dest_path)
         parent_node = self._fetch_node(dirname)
         child_node = parent_node.find(basename,
                                       only_direct=True,
@@ -140,7 +140,7 @@ class FakeFilesystem(object):
             item_node = self._fetch_node(path)
             item_node.metadata.update(value=value)
         except exc.NotFound:
-            dirname, basename = os.path.split(path)
+            dirname, basename = pp.split(path)
             parent_node = self._fetch_node(dirname)
             parent_node.add(tree.Node(basename, value=value))
 
@@ -159,7 +159,7 @@ class MemoryBackend(path_based.PathBasedBackend):
     def __init__(self, conf=None):
         super(MemoryBackend, self).__init__(conf)
         if self._path is None:
-            self._path = os.sep
+            self._path = pp.sep
         self.memory = FakeFilesystem(deep_copy=self._conf.get('deep_copy',
                                                               True))
         self.lock = lock_utils.ReaderWriterLock()
@@ -191,7 +191,7 @@ class Connection(path_based.PathBasedConnection):
                 raise exc.StorageFailure("Storage backend internal error", e)
 
     def _join_path(self, *parts):
-        return os.path.join(*parts)
+        return pp.join(*parts)
 
     def _get_item(self, path):
         with self._memory_lock():
