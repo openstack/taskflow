@@ -26,7 +26,27 @@ from taskflow.utils import lock_utils
 
 
 class FakeFilesystem(object):
-    """An in-memory filesystem-like structure."""
+    """An in-memory filesystem-like structure.
+
+    This filesystem uses posix style paths **only** so users must be careful
+    to use the ``posixpath`` module instead of the ``os.path`` one which will
+    vary depending on the operating system which the active python is running
+    in (the decision to use ``posixpath`` was to avoid the path variations
+    which are not relevant in an implementation of a in-memory fake
+    filesystem).
+
+    Example usage:
+
+    >>> from taskflow.persistence.backends import impl_memory
+    >>> fs = impl_memory.FakeFilesystem()
+    >>> fs.ensure_path('/a/b/c')
+    >>> fs['/a/b/c'] = 'd'
+    >>> print(fs['/a/b/c'])
+    d
+    >>> del fs['/a/b/c']
+    >>> fs.ls("/a/b")
+    []
+    """
 
     #: Root path of the in-memory filesystem.
     root_path = pp.sep
@@ -46,6 +66,7 @@ class FakeFilesystem(object):
             self._copier = copy.copy
 
     def ensure_path(self, path):
+        """Ensure the path (and parents) exists."""
         path = self._normpath(path)
         # Ignore the root path as we already checked for that; and it
         # will always exist/can't be removed anyway...
@@ -90,6 +111,7 @@ class FakeFilesystem(object):
             return self._copier(node.metadata['value'])
 
     def ls(self, path):
+        """Return list of all children of the given path."""
         return [node.item for node in self._fetch_node(path)]
 
     def _iter_pieces(self, path, include_root=False):
@@ -115,9 +137,11 @@ class FakeFilesystem(object):
         node.disassociate()
 
     def pformat(self):
+        """Pretty format this in-memory filesystem."""
         return self._root.pformat()
 
     def symlink(self, src_path, dest_path):
+        """Link the destionation path to the source path."""
         dest_path = self._normpath(dest_path)
         src_path = self._normpath(src_path)
         dirname, basename = pp.split(dest_path)
