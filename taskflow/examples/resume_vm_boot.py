@@ -44,7 +44,7 @@ from taskflow.utils import persistence_utils as p_utils
 
 import example_utils as eu  # noqa
 
-# INTRO: This examples shows how a hierarchy of flows can be used to create a
+# INTRO: These examples show how a hierarchy of flows can be used to create a
 # vm in a reliable & resumable manner using taskflow + a miniature version of
 # what nova does while booting a vm.
 

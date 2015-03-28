@@ -38,7 +38,7 @@ ANY = notifier.Notifier.ANY
 import example_utils as eu  # noqa
 
 
-# INTRO: This examples shows how a graph flow and linear flow can be used
+# INTRO: This example shows how a graph flow and linear flow can be used
 # together to execute dependent & non-dependent tasks by going through the
 # steps required to build a simplistic car (an assembly line if you will). It
 # also shows how raw functions can be wrapped into a task object instead of

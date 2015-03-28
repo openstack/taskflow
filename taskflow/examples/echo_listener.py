@@ -31,8 +31,8 @@ from taskflow.patterns import linear_flow as lf
 from taskflow import task
 
 # INTRO: This example walks through a miniature workflow which will do a
-# simple echo operation; during this execution a listener is assocated with
-# the engine to recieve all notifications about what the flow has performed,
+# simple echo operation; during this execution a listener is associated with
+# the engine to receive all notifications about what the flow has performed,
 # this example dumps that output to the stdout for viewing (at debug level
 # to show all the information which is possible).
 

@@ -33,10 +33,10 @@ from taskflow.persistence import backends as persistence_backends
 from taskflow import task
 from taskflow.utils import persistence_utils
 
-# INTRO: This examples shows how to run a engine using the engine iteration
+# INTRO: These examples show how to run an engine using the engine iteration
 # capability, in between iterations other activities occur (in this case a
 # value is output to stdout); but more complicated actions can occur at the
-# boundary when a engine yields its current state back to the caller.
+# boundary when an engine yields its current state back to the caller.
 
 
 class EchoNameTask(task.Task):

@@ -91,7 +91,7 @@ subclasses are provided:
 .. note::
 
     They are *similar* to exception handlers but are made to be *more* capable
-    due to there ability to *dynamically* choose a reconciliation strategy,
+    due to their ability to *dynamically* choose a reconciliation strategy,
     which allows for these atoms to influence subsequent execution(s) and the
     inputs any associated atoms require.
 

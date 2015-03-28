@@ -111,11 +111,11 @@ def calculate(engine_conf):
     # an image bitmap file.
 
     # And unordered flow is used here since the mandelbrot calculation is an
-    # example of a embarrassingly parallel computation that we can scatter
+    # example of an embarrassingly parallel computation that we can scatter
     # across as many workers as possible.
     flow = uf.Flow("mandelbrot")
 
-    # These symbols will be automatically given to tasks as input to there
+    # These symbols will be automatically given to tasks as input to their
     # execute method, in this case these are constants used in the mandelbrot
     # calculation.
     store = {

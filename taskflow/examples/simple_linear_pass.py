@@ -31,7 +31,7 @@ from taskflow import engines
 from taskflow.patterns import linear_flow
 from taskflow import task
 
-# INTRO: This examples shows how a task (in a linear/serial workflow) can
+# INTRO: This example shows how a task (in a linear/serial workflow) can
 # produce an output that can be then consumed/used by a downstream task.
 
 

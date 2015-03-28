@@ -416,7 +416,7 @@ the following history (printed as a list)::
 At this point (since the implementation returned ``RETRY``) the
 |retry.execute| method will be called again and it will receive the same
 history and it can then return a value that subseqent tasks can use to alter
-there behavior.
+their behavior.
 
 If instead the |retry.execute| method itself raises an exception,
 the |retry.revert| method of the implementation will be called and

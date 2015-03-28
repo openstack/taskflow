@@ -409,7 +409,7 @@ Limitations
 * Fault detection, currently when a worker acknowledges a task the engine will
   wait for the task result indefinitely (a task may take an indeterminate
   amount of time to finish). In the future there needs to be a way to limit
-  the duration of a remote workers execution (and track there liveness) and
+  the duration of a remote workers execution (and track their liveness) and
   possibly spawn the task on a secondary worker if a timeout is reached (aka
   the first worker has died or has stopped responding).
 

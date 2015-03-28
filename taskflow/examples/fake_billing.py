@@ -36,8 +36,8 @@ from taskflow.patterns import linear_flow as lf
 from taskflow import task
 from taskflow.utils import misc
 
-# INTRO: This example walks through a miniature workflow which simulates a
-# the reception of a API request, creation of a database entry, driver
+# INTRO: This example walks through a miniature workflow which simulates
+# the reception of an API request, creation of a database entry, driver
 # activation (which invokes a 'fake' webservice) and final completion.
 #
 # This example also shows how a function/object (in this class the url sending)

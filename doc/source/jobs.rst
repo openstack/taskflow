@@ -43,7 +43,7 @@ Jobboards
   jobboards implement the same interface and semantics so that the backend
   usage is as transparent as possible. This allows deployers or developers of a
   service that uses TaskFlow to select a jobboard implementation that fits
-  their setup (and there intended usage) best.
+  their setup (and their intended usage) best.
 
 High level architecture
 =======================
@@ -218,7 +218,7 @@ Dual-engine jobs
 ----------------
 
 **What:** Since atoms and engines are not currently `preemptable`_ we can not
-force a engine (or the threads/remote workers... it is using to run) to stop
+force an engine (or the threads/remote workers... it is using to run) to stop
 working on an atom (it is general bad behavior to force code to stop without
 its consent anyway) if it has already started working on an atom (short of
 doing a ``kill -9`` on the running interpreter).  This could cause problems

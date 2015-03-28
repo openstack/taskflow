@@ -37,7 +37,7 @@ from taskflow import task
 from taskflow.utils import persistence_utils
 
 
-# INTRO: This examples shows how to run a set of engines at the same time, each
+# INTRO: This example shows how to run a set of engines at the same time, each
 # running in different engines using a single thread of control to iterate over
 # each engine (which causes that engine to advanced to its next state during
 # each iteration).

@@ -36,7 +36,7 @@ from taskflow import task
 # and have variable run time tasks run and show how the listener will print
 # out how long those tasks took (when they started and when they finished).
 #
-# This shows how timing metrics can be gathered (or attached onto a engine)
+# This shows how timing metrics can be gathered (or attached onto an engine)
 # after a workflow has been constructed, making it easy to gather metrics
 # dynamically for situations where this kind of information is applicable (or
 # even adding this information on at a later point in the future when your

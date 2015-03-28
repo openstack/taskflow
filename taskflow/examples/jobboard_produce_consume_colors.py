@@ -40,7 +40,7 @@ from taskflow.utils import threading_utils
 # In this example we show how a jobboard can be used to post work for other
 # entities to work on. This example creates a set of jobs using one producer
 # thread (typically this would be split across many machines) and then having
-# other worker threads with there own jobboards select work using a given
+# other worker threads with their own jobboards select work using a given
 # filters [red/blue] and then perform that work (and consuming or abandoning
 # the job after it has been completed or failed).
 
@@ -66,7 +66,7 @@ PRODUCER_UNITS = 10
 
 # How many units of work are expected to be produced (used so workers can
 # know when to stop running and shutdown, typically this would not be a
-# a value but we have to limit this examples execution time to be less than
+# a value but we have to limit this example's execution time to be less than
 # infinity).
 EXPECTED_UNITS = PRODUCER_UNITS * PRODUCERS
 
