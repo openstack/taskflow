@@ -203,6 +203,17 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
 
 
 class TestDurationListener(test.TestCase, EngineMakerMixin):
+    def test_deregister(self):
+        """Verify that register and deregister don't blow up"""
+        with contextlib.closing(impl_memory.MemoryBackend()) as be:
+            flow = lf.Flow("test")
+            flow.add(SleepyTask("test-1", sleep_for=0.1))
+            (lb, fd) = persistence_utils.temporary_flow_detail(be)
+            e = self._make_engine(flow, fd, be)
+            l = timing.DurationListener(e)
+            l.register()
+            l.deregister()
+
     def test_duration(self):
         with contextlib.closing(impl_memory.MemoryBackend()) as be:
             flow = lf.Flow("test")

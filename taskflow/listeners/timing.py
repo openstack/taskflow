@@ -56,7 +56,7 @@ class DurationListener(base.Listener):
         self._timers = {}
 
     def deregister(self):
-        super(TimingListener, self).deregister()
+        super(DurationListener, self).deregister()
         # There should be none that still exist at deregistering time, so log a
         # warning if there were any that somehow still got left behind...
         leftover_timers = len(self._timers)
