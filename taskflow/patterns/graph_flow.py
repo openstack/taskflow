@@ -22,7 +22,6 @@ from taskflow.types import graph as gr
 
 
 def _unsatisfied_requires(node, graph, *additional_provided):
-    """Extracts the unsatisified symbol requirements of a single node."""
     requires = set(node.requires)
     if not requires:
         return requires
@@ -63,6 +62,9 @@ class Flow(flow.Flow):
         super(Flow, self).__init__(name, retry)
         self._graph = gr.DiGraph()
         self._graph.freeze()
+
+    #: Extracts the unsatisified symbol requirements of a single node.
+    _unsatisfied_requires = staticmethod(_unsatisfied_requires)
 
     def link(self, u, v):
         """Link existing node u as a runtime dependency of existing node v."""
@@ -153,8 +155,8 @@ class Flow(flow.Flow):
                 provided[value].append(self._retry)
 
         for item in self._graph.nodes_iter():
-            for value in _unsatisfied_requires(item, self._graph,
-                                               retry_provides):
+            for value in self._unsatisfied_requires(item, self._graph,
+                                                    retry_provides):
                 required[value].append(item)
             for value in item.provides:
                 provided[value].append(item)
@@ -168,8 +170,8 @@ class Flow(flow.Flow):
 
             # Try to find a valid provider.
             if resolve_requires:
-                for value in _unsatisfied_requires(item, tmp_graph,
-                                                   retry_provides):
+                for value in self._unsatisfied_requires(item, tmp_graph,
+                                                        retry_provides):
                     if value in provided:
                         providers = provided[value]
                         if len(providers) > 1:
@@ -232,7 +234,8 @@ class Flow(flow.Flow):
             retry_provides.update(self._retry.provides)
         g = self._get_subgraph()
         for item in g.nodes_iter():
-            requires.update(_unsatisfied_requires(item, g, retry_provides))
+            requires.update(self._unsatisfied_requires(item, g,
+                                                       retry_provides))
         return frozenset(requires)
 
 
