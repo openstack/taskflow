@@ -178,7 +178,7 @@ using your desired execution model.
     supported. This is mainly due to the `futures backport`_ and
     the `multiprocessing`_ module that exist in older versions of python not
     being as up to date (with important fixes such as :pybug:`4892`,
-    :pybug:`6721`, :pybug:`9205`, :pybug:`11635`, :pybug:`16284`,
+    :pybug:`6721`, :pybug:`9205`, :pybug:`16284`,
     :pybug:`22393` and others...) as the most recent python version (which
     themselves have a variety of ongoing/recent bugs).
 
