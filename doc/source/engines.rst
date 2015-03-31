@@ -327,7 +327,7 @@ categories, one for if that atom failed and one for if it did not. If the atom
 failed it may be set to a new intention such as ``RETRY`` or
 ``REVERT`` (other atoms that were predecessors of this failing atom may also
 have there intention altered). Once this intention adjustment has happened a
-new round of :ref:`scheduling <scheduling>`  occurs and this process repeats
+new round of :ref:`scheduling <scheduling>` occurs and this process repeats
 until the engine succeeds or fails (if the process running the engine dies the
 above stages will be restarted and resuming will occur).
 
@@ -335,8 +335,8 @@ above stages will be restarted and resuming will occur).
 
     If the engine is suspended while the engine is going through the above
     stages this will stop any further scheduling stages from occurring and
-    all currently executing atoms will be allowed to finish (and their results
-    will be saved).
+    all currently executing work will be allowed to finish (see
+    :ref:`suspension <suspension>`).
 
 Finishing
 ---------
@@ -352,6 +352,37 @@ occurred will be reraised (the failure objects are wrapped exceptions). If no
 failures have occurred then the engine will have finished and if so desired the
 :doc:`persistence <persistence>` can be used to cleanup any details that were
 saved for this execution.
+
+Special cases
+=============
+
+.. _suspension:
+
+Suspension
+----------
+
+Each engine implements a :py:func:`~taskflow.engines.base.Engine.suspend`
+method that can be used to *externally* (or in the future *internally*) request
+that the engine stop :ref:`scheduling <scheduling>` new work. By default what
+this performs is a transition of the flow state from ``RUNNING`` into a
+``SUSPENDING`` state (which will later transition into a ``SUSPENDED`` state).
+Since an engine may be remotely executing atoms (or locally executing them)
+and there is currently no preemption what occurs is that the engines
+:py:class:`~taskflow.engines.action_engine.runner.Runner` state machine will
+detect this transition into ``SUSPENDING`` has occurred and the state
+machine will avoid scheduling new work (it will though let active work
+continue). After the current work has finished the engine will
+transition from ``SUSPENDING`` into ``SUSPENDED`` and return from its
+:py:func:`~taskflow.engines.base.Engine.run` method.
+
+
+.. note::
+
+    When :py:func:`~taskflow.engines.base.Engine.run`  is returned from at that
+    point there *may* (but does not have to be, depending on what was active
+    when :py:func:`~taskflow.engines.base.Engine.suspend` was called) be
+    unfinished work in the flow that was not finished (but which can be
+    resumed at a later point in time).
 
 Scoping
 =======
