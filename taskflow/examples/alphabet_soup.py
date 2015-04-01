@@ -38,7 +38,7 @@ from taskflow import task
 
 
 # In this example we show how a simple linear set of tasks can be executed
-# using local processes (and not threads or remote workers) with minimial (if
+# using local processes (and not threads or remote workers) with minimal (if
 # any) modification to those tasks to make them safe to run in this mode.
 #
 # This is useful since it allows further scaling up your workflows when thread

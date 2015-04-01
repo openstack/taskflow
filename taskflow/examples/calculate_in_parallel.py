@@ -30,7 +30,7 @@ from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 
-# INTRO: This examples shows how a linear flow and a unordered flow can be
+# INTRO: These examples show how a linear flow and an unordered flow can be
 # used together to execute calculations in parallel and then use the
 # result for the next task/s. The adder task is used for all calculations
 # and argument bindings are used to set correct parameters for each task.

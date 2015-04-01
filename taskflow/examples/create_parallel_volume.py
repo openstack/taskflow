@@ -35,7 +35,7 @@ from taskflow.listeners import printing
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
 
-# INTRO: This examples shows how unordered_flow can be used to create a large
+# INTRO: These examples show how unordered_flow can be used to create a large
 # number of fake volumes in parallel (or serially, depending on a constant that
 # can be easily changed).
 

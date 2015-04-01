@@ -34,7 +34,7 @@ from taskflow.utils import eventlet_utils
 
 
 # INTRO: This is the defacto hello world equivalent for taskflow; it shows how
-# a overly simplistic workflow can be created that runs using different
+# an overly simplistic workflow can be created that runs using different
 # engines using different styles of execution (all can be used to run in
 # parallel if a workflow is provided that is parallelizable).
 

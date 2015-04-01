@@ -36,10 +36,10 @@ from taskflow.utils import threading_utils
 
 ANY = notifier.Notifier.ANY
 
-# INTRO: This examples shows how to use a remote workers event notification
+# INTRO: These examples show how to use a remote worker's event notification
 # attribute to proxy back task event notifications to the controlling process.
 #
-# In this case a simple set of events are triggered by a worker running a
+# In this case a simple set of events is triggered by a worker running a
 # task (simulated to be remote by using a kombu memory transport and threads).
 # Those events that the 'remote worker' produces will then be proxied back to
 # the task that the engine is running 'remotely', and then they will be emitted
@@ -113,10 +113,10 @@ if __name__ == "__main__":
     workers = []
 
     # These topics will be used to request worker information on; those
-    # workers will respond with there capabilities which the executing engine
+    # workers will respond with their capabilities which the executing engine
     # will use to match pending tasks to a matched worker, this will cause
     # the task to be sent for execution, and the engine will wait until it
-    # is finished (a response is recieved) and then the engine will either
+    # is finished (a response is received) and then the engine will either
     # continue with other tasks, do some retry/failure resolution logic or
     # stop (and potentially re-raise the remote workers failure)...
     worker_topics = []

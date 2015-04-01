@@ -27,9 +27,9 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
-# INTRO: this examples shows a simplistic map/reduce implementation where
+# INTRO: These examples show a simplistic map/reduce implementation where
 # a set of mapper(s) will sum a series of input numbers (in parallel) and
-# return there individual summed result. A reducer will then use those
+# return their individual summed result. A reducer will then use those
 # produced values and perform a final summation and this result will then be
 # printed (and verified to ensure the calculation was as expected).
 

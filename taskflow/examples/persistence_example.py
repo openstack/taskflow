@@ -68,15 +68,15 @@ class ByeTask(task.Task):
         print("Bye!")
 
 
-# This generates your flow structure (at this stage nothing is ran).
+# This generates your flow structure (at this stage nothing is run).
 def make_flow(blowup=False):
     flow = lf.Flow("hello-world")
     flow.add(HiTask(), ByeTask(blowup))
     return flow
 
 
-# Persist the flow and task state here, if the file/dir exists already blowup
-# if not don't blowup, this allows a user to see both the modes and to see
+# Persist the flow and task state here, if the file/dir exists already blow up
+# if not don't blow up, this allows a user to see both the modes and to see
 # what is stored in each case.
 if eu.SQLALCHEMY_AVAILABLE:
     persist_path = os.path.join(tempfile.gettempdir(), "persisting.db")
@@ -91,8 +91,8 @@ else:
     blowup = True
 
 with eu.get_backend(backend_uri) as backend:
-    # Make a flow that will blowup if the file doesn't exist previously, if it
-    # did exist, assume we won't blowup (and therefore this shows the undo
+    # Make a flow that will blow up if the file didn't exist previously, if it
+    # did exist, assume we won't blow up (and therefore this shows the undo
     # and redo that a flow will go through).
     book = logbook.LogBook("my-test")
     flow = make_flow(blowup=blowup)

@@ -39,7 +39,7 @@ from taskflow.utils import persistence_utils as p_utils
 
 import example_utils  # noqa
 
-# INTRO: This examples shows how a hierarchy of flows can be used to create a
+# INTRO: These examples show how a hierarchy of flows can be used to create a
 # pseudo-volume in a reliable & resumable manner using taskflow + a miniature
 # version of what cinder does while creating a volume (very miniature).
 

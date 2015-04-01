@@ -41,8 +41,8 @@ from taskflow import task
 # taskflow provides via tasks and flows makes it possible for you to easily at
 # a later time hook in a persistence layer (and then gain the functionality
 # that offers) when you decide the complexity of adding that layer in
-# is 'worth it' for your applications usage pattern (which certain applications
-# may not need).
+# is 'worth it' for your application's usage pattern (which certain
+# applications may not need).
 
 
 class CallJim(task.Task):

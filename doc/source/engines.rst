@@ -29,7 +29,7 @@ Why they exist
 An engine being *the* core component which actually makes your flows progress
 is likely a new concept for many programmers so let's describe how it operates
 in more depth and some of the reasoning behind why it exists. This will
-hopefully make it more clear on there value add to the TaskFlow library user.
+hopefully make it more clear on their value add to the TaskFlow library user.
 
 First though let us discuss something most are familiar already with; the
 difference between `declarative`_ and `imperative`_ programming models. The
@@ -57,7 +57,7 @@ declarative model) allows for the following functionality to become possible:
   accomplished allows for a *natural* way of resuming by allowing the engine to
   track the current state and know at which point a workflow is in and how to
   get back into that state when resumption occurs.
-* Enhancing scalability: When a engine is responsible for executing your
+* Enhancing scalability: When an engine is responsible for executing your
   desired work it becomes possible to alter the *how* in the future by creating
   new types of execution backends (for example the `worker`_ model which does
   not execute locally). Without the decoupling of the *what* and the *how* it
@@ -203,7 +203,7 @@ For further information, please refer to the the following:
 How they run
 ============
 
-To provide a peek into the general process that a engine goes through when
+To provide a peek into the general process that an engine goes through when
 running lets break it apart a little and describe what one of the engine types
 does while executing (for this we will look into the
 :py:class:`~taskflow.engines.action_engine.engine.ActionEngine` engine type).
@@ -299,7 +299,7 @@ Scheduling
 
 This stage selects which atoms are eligible to run by using a
 :py:class:`~taskflow.engines.action_engine.scheduler.Scheduler` implementation
-(the default implementation looks at there intention, checking if predecessor
+(the default implementation looks at their intention, checking if predecessor
 atoms have ran and so-on, using a
 :py:class:`~taskflow.engines.action_engine.analyzer.Analyzer` helper
 object as needed) and submits those atoms to a previously provided compatible
@@ -335,7 +335,7 @@ above stages will be restarted and resuming will occur).
 
     If the engine is suspended while the engine is going through the above
     stages this will stop any further scheduling stages from occurring and
-    all currently executing atoms will be allowed to finish (and there results
+    all currently executing atoms will be allowed to finish (and their results
     will be saved).
 
 Finishing
@@ -366,7 +366,7 @@ be selected?
 Default strategy
 ----------------
 
-When a engine is executing it internally interacts with the
+When an engine is executing it internally interacts with the
 :py:class:`~taskflow.storage.Storage` class
 and that class interacts with the a
 :py:class:`~taskflow.engines.action_engine.scopes.ScopeWalker` instance

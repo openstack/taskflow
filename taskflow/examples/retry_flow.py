@@ -32,7 +32,7 @@ from taskflow import task
 
 # INTRO: In this example we create a retry controller that receives a phone
 # directory and tries different phone numbers. The next task tries to call Jim
-# using the given number. If if is not a Jim's number, the tasks raises an
+# using the given number. If it is not a Jim's number, the task raises an
 # exception and retry controller takes the next number from the phone
 # directory and retries the call.
 #

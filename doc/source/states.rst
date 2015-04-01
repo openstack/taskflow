@@ -121,7 +121,7 @@ or if needed will wait for all of the atoms it depends on to complete.
 
 .. note::
 
-  A engine running a task also transitions the task to the ``PENDING`` state
+  An engine running a task also transitions the task to the ``PENDING`` state
   after it was reverted and its containing flow was restarted or retried.
 
 **RUNNING** - When an engine running the task starts to execute the task, the
@@ -168,10 +168,10 @@ flow that the retry is associated with by consulting its
 
 .. note::
 
-  A engine running a retry also transitions the retry to the ``PENDING`` state
+  An engine running a retry also transitions the retry to the ``PENDING`` state
   after it was reverted and its associated flow was restarted or retried.
 
-**RUNNING** - When a engine starts to execute the retry, the engine
+**RUNNING** - When an engine starts to execute the retry, the engine
 transitions the retry to the ``RUNNING`` state, and the retry stays in this
 state until its :py:meth:`~taskflow.retry.Retry.execute` method returns.
 

@@ -70,7 +70,7 @@ from a previous run) they will begin executing only after any dependent inputs
 are ready. This is done by analyzing the execution graph and looking at
 predecessor :py:class:`~taskflow.persistence.logbook.AtomDetail` outputs and
 states (which may have been persisted in a past run). This will result in
-either using there previous information or by running those predecessors and
+either using their previous information or by running those predecessors and
 saving their output to the :py:class:`~taskflow.persistence.logbook.FlowDetail`
 and :py:class:`~taskflow.persistence.base.Backend` objects. This
 execution, analysis and interaction with the storage objects continues (what is
@@ -81,7 +81,7 @@ will have succeeded or failed in its attempt to run the workflow).
 **Post-execution:** Typically when an engine is done running the logbook would
 be discarded (to avoid creating a stockpile of useless data) and the backend
 storage would be told to delete any contents for a given execution. For certain
-use-cases though it may be advantageous to retain logbooks and there contents.
+use-cases though it may be advantageous to retain logbooks and their contents.
 
 A few scenarios come to mind:
 
