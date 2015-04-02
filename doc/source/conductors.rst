@@ -53,11 +53,9 @@ claimable state.
 
 #. Forcefully delete jobs that have been failing continuously after a given
    number of conductor attempts. This can be either done manually or
-   automatically via scripts (or other associated monitoring).
+   automatically via scripts (or other associated monitoring) or via
+   the jobboards :py:func:`~taskflow.jobs.base.JobBoard.trash` method.
 #. Resolve the internal error's cause (storage backend failure, other...).
-#. Help implement `jobboard garbage binning`_.
-
-.. _jobboard garbage binning: https://blueprints.launchpad.net/taskflow/+spec/jobboard-garbage-bin
 
 Interfaces
 ==========
