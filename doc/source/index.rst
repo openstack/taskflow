@@ -91,8 +91,8 @@ Miscellaneous
 Bookshelf
 ---------
 
-A useful collection of *relevant* links, documents, papers, similar
-projects, frameworks and libraries (and more).
+A useful collection of links, documents, papers, similar
+projects, frameworks and libraries.
 
 .. note::
 
