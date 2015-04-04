@@ -249,9 +249,13 @@ parent_uuid  VARCHAR   False
     ``results`` will contain. This size limit will restrict how many prior
     failures a retry atom can contain. More information and a future fix
     will be posted to bug `1416088`_ (for the meantime try to ensure that
-    your retry units history does not grow beyond ~80 prior results).
+    your retry units history does not grow beyond ~80 prior results). This
+    truncation can also be avoided by providing ``mysql_sql_mode`` as
+    ``traditional`` when selecting your mysql + sqlalchemy based
+    backend (see the `mysql modes`_ documentation for what this implies).
 
 .. _1416088: http://bugs.launchpad.net/taskflow/+bug/1416088
+.. _mysql modes: http://dev.mysql.com/doc/refman/5.0/en/sql-mode.html
 
 Zookeeper
 ---------
