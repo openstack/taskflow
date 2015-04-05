@@ -17,11 +17,13 @@ and *ideal* is that deployers or developers of a service that use TaskFlow can
 select an engine that suites their setup best without modifying the code of
 said service.
 
-Engines usually have different capabilities and configuration, but all of them
-**must** implement the same interface and preserve the semantics of patterns
-(e.g. parts of a :py:class:`.linear_flow.Flow`
-are run one after another, in order, even if the selected engine is *capable*
-of running tasks in parallel).
+.. note::
+
+    Engines usually have different capabilities and configuration, but all of
+    them **must** implement the same interface and preserve the semantics of
+    patterns (e.g. parts of a :py:class:`.linear_flow.Flow`
+    are run one after another, in order, even if the selected
+    engine is *capable* of running tasks in parallel).
 
 Why they exist
 --------------
