@@ -70,14 +70,9 @@ e.run()
 print("---------")
 print("After run")
 print("---------")
-entries = [os.path.join(backend.memory.root_path, child)
-           for child in backend.memory.ls(backend.memory.root_path)]
-while entries:
-    path = entries.pop()
+for path in backend.memory.ls(backend.memory.root_path, recursive=True):
     value = backend.memory[path]
     if value:
         print("%s -> %s" % (path, value))
     else:
         print("%s" % (path))
-    entries.extend(os.path.join(path, child)
-                   for child in backend.memory.ls(path))
