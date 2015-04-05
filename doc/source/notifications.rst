@@ -1,6 +1,6 @@
-===========================
+---------------------------
 Notifications and listeners
-===========================
+---------------------------
 
 .. testsetup::
 
@@ -10,9 +10,8 @@ Notifications and listeners
     from taskflow.types import notifier
     ANY = notifier.Notifier.ANY
 
---------
 Overview
---------
+========
 
 Engines provide a way to receive notification on task and flow state
 transitions, which is useful for monitoring, logging, metrics, debugging
@@ -27,9 +26,8 @@ TaskFlow also comes with a set of predefined :ref:`listeners <listeners>`, and
 provides means to write your own listeners, which can be more convenient than
 using raw callbacks.
 
---------------------------------------
 Receiving notifications with callbacks
---------------------------------------
+======================================
 
 Flow notifications
 ------------------
@@ -106,9 +104,8 @@ A basic example is:
 
 .. _listeners:
 
----------
 Listeners
----------
+=========
 
 TaskFlow comes with a set of predefined listeners -- helper classes that can be
 used to do various actions on flow and/or tasks transitions. You can also
@@ -147,15 +144,16 @@ For example, this is how you can use
    <taskflow.engines.action_engine.engine.SerialActionEngine object at ...> has moved task 'DogTalk' (...) into state 'SUCCESS' from state 'RUNNING' with result 'dog' (failure=False)
    <taskflow.engines.action_engine.engine.SerialActionEngine object at ...> has moved flow 'cat-dog' (...) into state 'SUCCESS' from state 'RUNNING'
 
-Basic listener
---------------
+Interfaces
+==========
 
-.. autoclass:: taskflow.listeners.base.Listener
+.. automodule:: taskflow.listeners.base
+
+Implementations
+===============
 
 Printing and logging listeners
 ------------------------------
-
-.. autoclass:: taskflow.listeners.base.DumpingListener
 
 .. autoclass:: taskflow.listeners.logging.LoggingListener
 
@@ -183,7 +181,7 @@ Capturing listener
 .. autoclass:: taskflow.listeners.capturing.CaptureListener
 
 Hierarchy
----------
+=========
 
 .. inheritance-diagram::
     taskflow.listeners.base.DumpingListener
