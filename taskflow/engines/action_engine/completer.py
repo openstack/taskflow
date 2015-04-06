@@ -14,13 +14,80 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import abc
 import weakref
 
+from oslo_utils import reflection
+import six
+
 from taskflow.engines.action_engine import executor as ex
+from taskflow import logging
 from taskflow import retry as retry_atom
 from taskflow import states as st
 from taskflow import task as task_atom
 from taskflow.types import failure
+
+LOG = logging.getLogger(__name__)
+
+
+@six.add_metaclass(abc.ABCMeta)
+class _Strategy(object):
+    """Local/internal helper strategy base object"""
+
+    def __init__(self, runtime):
+        self._runtime = runtime
+
+    def __str__(self):
+        base = reflection.get_class_name(self, fully_qualified=False)
+        return base + "(strategy=%s)" % (self.strategy.name)
+
+
+class _RevertAndRetry(_Strategy):
+    """Sets the *associated* subflow for revert to be later retried."""
+
+    strategy = retry_atom.RETRY
+
+    def __init__(self, runtime, retry):
+        super(_RevertAndRetry, self).__init__(runtime)
+        self._retry = retry
+
+    def apply(self):
+        tweaked = self._runtime.reset_nodes([self._retry], state=None,
+                                            intention=st.RETRY)
+        tweaked.extend(self._runtime.reset_subgraph(self._retry, state=None,
+                                                    intention=st.REVERT))
+        return tweaked
+
+
+class _RevertAll(_Strategy):
+    """Sets *all* nodes/atoms to the ``REVERT`` intention."""
+
+    strategy = retry_atom.REVERT_ALL
+
+    def __init__(self, runtime):
+        super(_RevertAll, self).__init__(runtime)
+        self._analyzer = runtime.analyzer
+
+    def apply(self):
+        return self._runtime.reset_nodes(self._analyzer.iterate_all_nodes(),
+                                         state=None, intention=st.REVERT)
+
+
+class _Revert(_Strategy):
+    """Sets atom and *associated* nodes to the ``REVERT`` intention."""
+
+    strategy = retry_atom.REVERT
+
+    def __init__(self, runtime, atom):
+        super(_Revert, self).__init__(runtime)
+        self._atom = atom
+
+    def apply(self):
+        tweaked = self._runtime.reset_nodes([self._atom], state=None,
+                                            intention=st.REVERT)
+        tweaked.extend(self._runtime.reset_subgraph(self._atom, state=None,
+                                                    intention=st.REVERT))
+        return tweaked
 
 
 class Completer(object):
@@ -32,6 +99,7 @@ class Completer(object):
         self._retry_action = runtime.retry_action
         self._storage = runtime.storage
         self._task_action = runtime.task_action
+        self._undefined_resolver = _RevertAll(self._runtime)
 
     def _complete_task(self, task, event, result):
         """Completes the given task, processes task failure."""
@@ -77,6 +145,32 @@ class Completer(object):
                 return True
         return False
 
+    def _determine_resolution(self, atom, failure):
+        """Determines which resolution strategy to activate/apply."""
+        retry = self._analyzer.find_atom_retry(atom)
+        if retry is not None:
+            # Ask retry controller what to do in case of failure.
+            strategy = self._retry_action.on_failure(retry, atom, failure)
+            if strategy == retry_atom.RETRY:
+                return _RevertAndRetry(self._runtime, retry)
+            elif strategy == retry_atom.REVERT:
+                # Ask parent retry and figure out what to do...
+                parent_resolver = self._determine_resolution(retry, failure)
+                # Ok if the parent resolver says something not REVERT, and
+                # it isn't just using the undefined resolver, assume the
+                # parent knows best.
+                if parent_resolver is not self._undefined_resolver:
+                    if parent_resolver.strategy != retry_atom.REVERT:
+                        return parent_resolver
+                return _Revert(self._runtime, retry)
+            elif strategy == retry_atom.REVERT_ALL:
+                return _RevertAll(self._runtime)
+            else:
+                raise ValueError("Unknown atom failure resolution"
+                                 " action/strategy '%s'" % strategy)
+        else:
+            return self._undefined_resolver
+
     def _process_atom_failure(self, atom, failure):
         """Processes atom failure & applies resolution strategies.
 
@@ -86,30 +180,15 @@ class Completer(object):
         then adjust the needed other atoms intentions, and states, ... so that
         the failure can be worked around.
         """
-        retry = self._analyzer.find_atom_retry(atom)
-        if retry is not None:
-            # Ask retry controller what to do in case of failure
-            action = self._retry_action.on_failure(retry, atom, failure)
-            if action == retry_atom.RETRY:
-                # Prepare just the surrounding subflow for revert to be later
-                # retried...
-                self._storage.set_atom_intention(retry.name, st.RETRY)
-                self._runtime.reset_subgraph(retry, state=None,
-                                             intention=st.REVERT)
-            elif action == retry_atom.REVERT:
-                # Ask parent checkpoint.
-                self._process_atom_failure(retry, failure)
-            elif action == retry_atom.REVERT_ALL:
-                # Prepare all flow for revert
-                self._revert_all()
-            else:
-                raise ValueError("Unknown atom failure resolution"
-                                 " action '%s'" % action)
+        resolver = self._determine_resolution(atom, failure)
+        LOG.debug("Applying resolver '%s' to resolve failure '%s'"
+                  " of atom '%s'", resolver, failure, atom)
+        tweaked = resolver.apply()
+        # Only show the tweaked node list when blather is on, otherwise
+        # just show the amount/count of nodes tweaks...
+        if LOG.isEnabledFor(logging.BLATHER):
+            LOG.blather("Modified/tweaked %s nodes while applying"
+                        " resolver '%s'", tweaked, resolver)
         else:
-            # Prepare all flow for revert
-            self._revert_all()
-
-    def _revert_all(self):
-        """Attempts to set all nodes to the REVERT intention."""
-        self._runtime.reset_nodes(self._analyzer.iterate_all_nodes(),
-                                  state=None, intention=st.REVERT)
+            LOG.debug("Modified/tweaked %s nodes while applying"
+                      " resolver '%s'", len(tweaked), resolver)

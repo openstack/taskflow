@@ -125,9 +125,9 @@ class Analyzer(object):
         return all(state in (st.PENDING, st.REVERTED)
                    for state, intention in six.itervalues(task_states))
 
-    def iterate_subgraph(self, retry):
-        """Iterates a subgraph connected to given retry controller."""
-        for _src, dst in traversal.dfs_edges(self._execution_graph, retry):
+    def iterate_subgraph(self, atom):
+        """Iterates a subgraph connected to given atom."""
+        for _src, dst in traversal.dfs_edges(self._execution_graph, atom):
             yield dst
 
     def iterate_retries(self, state=None):
