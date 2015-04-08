@@ -19,6 +19,8 @@ import contextlib
 import copy
 import posixpath as pp
 
+import six
+
 from taskflow import exceptions as exc
 from taskflow.persistence import path_based
 from taskflow.types import tree
@@ -161,9 +163,16 @@ class FakeFilesystem(object):
             raise ValueError("Can not delete '%s'" % self._root.item)
         node.disassociate()
 
+    @staticmethod
+    def _stringify_node(node):
+        if 'target' in node.metadata:
+            return "%s (link to %s)" % (node.item, node.metadata['target'])
+        else:
+            return six.text_type(node.item)
+
     def pformat(self):
         """Pretty format this in-memory filesystem."""
-        return self._root.pformat()
+        return self._root.pformat(stringify_node=self._stringify_node)
 
     def symlink(self, src_path, dest_path):
         """Link the destionation path to the source path."""

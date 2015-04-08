@@ -200,7 +200,7 @@ class Node(object):
         # NOTE(harlowja): 0 is the right most index, len - 1 is the left most
         return self._children[index]
 
-    def pformat(self):
+    def pformat(self, stringify_node=None):
         """Recursively formats a node into a nice string representation.
 
         **Example**::
@@ -220,24 +220,29 @@ class Node(object):
             |__Mobile
             |__Mail
         """
-        def _inner_pformat(node, level):
+        def _inner_pformat(node, level, stringify_node):
             if level == 0:
-                yield six.text_type(node.item)
+                yield stringify_node(node)
                 prefix = self.STARTING_PREFIX
             else:
-                yield self.HORIZONTAL_CONN + six.text_type(node.item)
+                yield self.HORIZONTAL_CONN + stringify_node(node)
                 prefix = self.EMPTY_SPACE_SEP * len(self.HORIZONTAL_CONN)
             child_count = node.child_count()
             for (i, child) in enumerate(node):
-                for (j, text) in enumerate(_inner_pformat(child, level + 1)):
+                for (j, text) in enumerate(_inner_pformat(child,
+                                                          level + 1,
+                                                          stringify_node)):
                     if j == 0 or i + 1 < child_count:
                         text = prefix + self.VERTICAL_CONN + text
                     else:
                         text = prefix + self.EMPTY_SPACE_SEP + text
                     yield text
+        if stringify_node is None:
+            # Default to making a unicode string out of the nodes item...
+            stringify_node = lambda node: six.text_type(node.item)
         expected_lines = self.child_count(only_direct=False)
         accumulator = six.StringIO()
-        for i, line in enumerate(_inner_pformat(self, 0)):
+        for i, line in enumerate(_inner_pformat(self, 0, stringify_node)):
             accumulator.write(line)
             if i < expected_lines:
                 accumulator.write(self.LINE_SEP)
