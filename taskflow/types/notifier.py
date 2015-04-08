@@ -37,7 +37,7 @@ class _Listener(object):
                                the event (thus avoiding the invocation of
                                the actual callback)
         :param args: non-keyworded arguments
-        :type args: list
+        :type args: list/iterable/tuple
         :param kwargs: key-value pair arguments
         :type kwargs: dictionary
         """
@@ -46,7 +46,10 @@ class _Listener(object):
         if not args:
             self._args = ()
         else:
-            self._args = args[:]
+            if not isinstance(args, tuple):
+                self._args = tuple(args)
+            else:
+                self._args = args
         if not kwargs:
             self._kwargs = {}
         else:
@@ -54,10 +57,12 @@ class _Listener(object):
 
     @property
     def kwargs(self):
+        """Dictionary of keyword arguments to use in future calls."""
         return self._kwargs
 
     @property
     def args(self):
+        """Tuple of positional arguments to use in future calls."""
         return self._args
 
     def __call__(self, event_type, details):
