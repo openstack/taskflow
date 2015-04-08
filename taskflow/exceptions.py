@@ -98,7 +98,9 @@ class TaskFlowException(Exception):
         buf.write(self._get_message())
         active_indent = indent
         next_up = self.cause
-        while next_up is not None:
+        seen = []
+        while next_up is not None and next_up not in seen:
+            seen.append(next_up)
             buf.write(os.linesep)
             if isinstance(next_up, TaskFlowException):
                 buf.write(indent_text * active_indent)

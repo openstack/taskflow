@@ -14,6 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import string
+
 import six
 import testtools
 
@@ -55,6 +57,19 @@ class TestExceptions(test.TestCase):
         self.assertIsInstance(capture, exc.TaskFlowException)
         self.assertIsNotNone(capture.cause)
         self.assertIsInstance(capture.cause, IOError)
+
+    def test_no_looping(self):
+        causes = []
+        for a in string.ascii_lowercase:
+            try:
+                cause = causes[-1]
+            except IndexError:
+                cause = None
+            causes.append(exc.TaskFlowException('%s broken' % a, cause=cause))
+        e = causes[0]
+        last_e = causes[-1]
+        e._cause = last_e
+        self.assertIsNotNone(e.pformat())
 
     def test_pformat_str(self):
         ex = None
