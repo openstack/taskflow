@@ -116,11 +116,13 @@ class TaskFlowException(Exception):
                     buf.write(line)
                     if i + 1 != len(lines):
                         buf.write(os.linesep)
+            if not isinstance(next_up, TaskFlowException):
+                # Don't go deeper into non-taskflow exceptions... as we
+                # don't know if there exception 'cause' attributes are even
+                # useable objects...
+                break
             active_indent += indent
-            try:
-                next_up = next_up.cause
-            except AttributeError:
-                next_up = None
+            next_up = getattr(next_up, 'cause', None)
         return buf.getvalue()
 
 
