@@ -141,6 +141,10 @@ class FakeFilesystem(object):
                 paths.append(child_path)
             return paths
 
+    def clear(self):
+        for node in list(self._root.reverse_iter()):
+            node.disassociate()
+
     def _iter_pieces(self, path, include_root=False):
         if path == self._root.item:
             # Check for this directly as the following doesn't work with
