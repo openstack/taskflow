@@ -37,6 +37,15 @@ class FakeFilesystem(object):
     which are not relevant in an implementation of a in-memory fake
     filesystem).
 
+    **Not** thread-safe when a single filesystem is mutated at the same
+    time by multiple threads. For example having multiple threads call into
+    :meth:`~taskflow.persistence.backends.impl_memory.FakeFilesystem.clear`
+    at the same time could potentially end badly. It is thread-safe when only
+    :meth:`~taskflow.persistence.backends.impl_memory.FakeFilesystem.get`
+    or other read-only actions (like calling into
+    :meth:`~taskflow.persistence.backends.impl_memory.FakeFilesystem.ls`)
+    are occuring at the same time.
+
     Example usage:
 
     >>> from taskflow.persistence.backends import impl_memory
@@ -142,6 +151,7 @@ class FakeFilesystem(object):
             return paths
 
     def clear(self):
+        """Remove all nodes (except the root) from this filesystem."""
         for node in list(self._root.reverse_iter()):
             node.disassociate()
 
