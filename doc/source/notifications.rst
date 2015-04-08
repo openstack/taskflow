@@ -14,8 +14,8 @@ Overview
 ========
 
 Engines provide a way to receive notification on task and flow state
-transitions, which is useful for monitoring, logging, metrics, debugging
-and plenty of other tasks.
+transitions (see :doc:`states <states>`), which is useful for
+monitoring, logging, metrics, debugging and plenty of other tasks.
 
 To receive these notifications you should register a callback with
 an instance of the :py:class:`~taskflow.types.notifier.Notifier`
