@@ -176,6 +176,18 @@ Summation mapper(s) and reducer (in parallel)
     :linenos:
     :lines: 16-
 
+Sharing a thread pool executor (in parallel)
+============================================
+
+.. note::
+
+    Full source located at :example:`share_engine_thread`
+
+.. literalinclude:: ../../taskflow/examples/share_engine_thread.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Storing & emitting a bill
 =========================
 
