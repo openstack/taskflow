@@ -25,8 +25,8 @@ import six
 LOG = logging.getLogger(__name__)
 
 
-class _Listener(object):
-    """Internal helper that represents a notification listener/target."""
+class Listener(object):
+    """Immutable helper that represents a notification listener/target."""
 
     def __init__(self, callback, args=None, kwargs=None, details_filter=None):
         """Initialize members
@@ -66,6 +66,12 @@ class _Listener(object):
         return self._args
 
     def __call__(self, event_type, details):
+        """Activate the target callback with the given event + details.
+
+        NOTE(harlowja): if a details filter callback exists and it returns
+        a falsey value when called with the provided ``details``, then the
+        target callback will **not** be called.
+        """
         if self._details_filter is not None:
             if not self._details_filter(details):
                 return
@@ -101,7 +107,7 @@ class _Listener(object):
             return self._details_filter is None
 
     def __eq__(self, other):
-        if isinstance(other, _Listener):
+        if isinstance(other, Listener):
             return self.is_equivalent(other._callback,
                                       details_filter=other._details_filter)
         else:
@@ -234,9 +240,9 @@ class Notifier(object):
                     raise KeyError("Reserved key '%s' not allowed in "
                                    "kwargs" % k)
         self._topics[event_type].append(
-            _Listener(callback,
-                      args=args, kwargs=kwargs,
-                      details_filter=details_filter))
+            Listener(callback,
+                     args=args, kwargs=kwargs,
+                     details_filter=details_filter))
 
     def deregister(self, event_type, callback, details_filter=None):
         """Remove a single listener bound to event ``event_type``.
@@ -266,7 +272,13 @@ class Notifier(object):
         return c
 
     def listeners_iter(self):
-        """Return an iterator over the mapping of event => listeners bound."""
+        """Return an iterator over the mapping of event => listeners bound.
+
+        NOTE(harlowja): Each listener in the yielded (event, listeners)
+        tuple is an instance of the :py:class:`~.Listener`  type, which
+        itself wraps a provided callback (and its details filter
+        callback, if any).
+        """
         for event_type, listeners in six.iteritems(self._topics):
             if listeners:
                 yield (event_type, listeners)

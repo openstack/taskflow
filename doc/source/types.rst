@@ -43,6 +43,7 @@ Notifier
 ========
 
 .. automodule:: taskflow.types.notifier
+    :special-members: __call__
 
 Periodic
 ========
