@@ -97,7 +97,10 @@ class Runtime(object):
     # consumption...
 
     def reset_nodes(self, nodes, state=st.PENDING, intention=st.EXECUTE):
+        tweaked = []
         for node in nodes:
+            if state or intention:
+                tweaked.append((node, state, intention))
             if state:
                 if self.task_action.handles(node):
                     self.task_action.change_state(node, state,
@@ -109,14 +112,15 @@ class Runtime(object):
                                     % (node, type(node)))
             if intention:
                 self.storage.set_atom_intention(node.name, intention)
+        return tweaked
 
     def reset_all(self, state=st.PENDING, intention=st.EXECUTE):
-        self.reset_nodes(self.analyzer.iterate_all_nodes(),
-                         state=state, intention=intention)
+        return self.reset_nodes(self.analyzer.iterate_all_nodes(),
+                                state=state, intention=intention)
 
     def reset_subgraph(self, node, state=st.PENDING, intention=st.EXECUTE):
-        self.reset_nodes(self.analyzer.iterate_subgraph(node),
-                         state=state, intention=intention)
+        return self.reset_nodes(self.analyzer.iterate_subgraph(node),
+                                state=state, intention=intention)
 
     def retry_subflow(self, retry):
         self.storage.set_atom_intention(retry.name, st.EXECUTE)
