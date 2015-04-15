@@ -71,7 +71,7 @@ def map_color(internal_states, state):
         return 'red'
     if state == states.REVERTED:
         return 'darkorange'
-    if state == states.SUCCESS:
+    if state in (states.SUCCESS, states.COMPLETE):
         return 'green'
     return None
 
@@ -96,6 +96,10 @@ def main():
                       action='store_true',
                       help="use wbe request transitions",
                       default=False)
+    parser.add_option("-j", "--jobs", dest="jobs",
+                      action='store_true',
+                      help="use job transitions",
+                      default=False)
     parser.add_option("-T", "--format", dest="format",
                       help="output in given format",
                       default='svg')
@@ -109,9 +113,10 @@ def main():
         options.retries,
         options.tasks,
         options.wbe_requests,
+        options.jobs,
     ]
     if sum([int(i) for i in types]) > 1:
-        parser.error("Only one of task/retry/engines/wbe requests"
+        parser.error("Only one of task/retry/engines/wbe requests/jobs"
                      " may be specified.")
 
     internal_states = list()
@@ -135,6 +140,10 @@ def main():
         source_type = "WBE requests"
         source = make_machine(protocol.WAITING,
                               list(protocol._ALLOWED_TRANSITIONS), [])
+    elif options.jobs:
+        source_type = "Jobs"
+        source = make_machine(states.UNCLAIMED,
+                              list(states._ALLOWED_JOB_TRANSITIONS), [])
     else:
         source_type = "Flow"
         source = make_machine(states.PENDING,
