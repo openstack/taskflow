@@ -56,9 +56,19 @@ class Listener(object):
             self._kwargs = kwargs.copy()
 
     @property
+    def callback(self):
+        """Callback (can not be none) to call with event + details."""
+        return self._callback
+
+    @property
+    def details_filter(self):
+        """Callback (may be none) to call to discard events + details."""
+        return self._details_filter
+
+    @property
     def kwargs(self):
         """Dictionary of keyword arguments to use in future calls."""
-        return self._kwargs
+        return self._kwargs.copy()
 
     @property
     def args(self):
