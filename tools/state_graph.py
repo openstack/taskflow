@@ -22,8 +22,9 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-# To get this installed you may have to follow:
-# https://code.google.com/p/pydot/issues/detail?id=93 (until fixed).
+# To get this installed you have to do the following:
+#
+# $ pip install pydot2
 import pydot
 
 from taskflow.engines.action_engine import runner
