@@ -53,6 +53,21 @@ SCHEDULING = 'SCHEDULING'
 WAITING = 'WAITING'
 ANALYZING = 'ANALYZING'
 
+# Job state transitions
+# See: http://docs.openstack.org/developer/taskflow/states.html
+
+_ALLOWED_JOB_TRANSITIONS = frozenset((
+    # Job is being claimed.
+    (UNCLAIMED, CLAIMED),
+
+    # Job has been lost (or manually unclaimed/abandoned).
+    (CLAIMED, UNCLAIMED),
+
+    # Job has been finished.
+    (CLAIMED, COMPLETE),
+))
+
+
 # Flow state transitions
 # See: http://docs.openstack.org/developer/taskflow/states.html
 

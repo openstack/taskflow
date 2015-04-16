@@ -194,3 +194,26 @@ already in the ``FAILURE`` state then this is a no-op).
 **RETRYING** - If flow that is associated with the current retry was failed and
 reverted, the engine prepares the flow for the next run and transitions the
 retry to the ``RETRYING`` state.
+
+Jobs
+====
+
+.. image:: img/job_states.svg
+   :width: 500px
+   :align: center
+   :alt: Job state transitions
+
+**UNCLAIMED** - A job (with details about what work is to be completed) has
+been initially posted (by some posting entity) for work on by some other
+entity (for example a :doc:`conductor <conductors>`). This can also be a state
+that is entered when some owning entity has manually abandoned (or
+lost ownership of) a previously claimed job.
+
+**CLAIMED** - A job that is *actively* owned by some entity; typically that
+ownership is tied to jobs persistent data via some ephemeral connection so
+that the job ownership is lost (typically automatically or after some
+timeout) if that ephemeral connection is lost.
+
+**COMPLETE** - The work defined in the job has been finished by its owning
+entity and the job can no longer be processed (and it *may* be removed at
+some/any point in the future).
