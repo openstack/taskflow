@@ -68,6 +68,22 @@ _ALLOWED_JOB_TRANSITIONS = frozenset((
 ))
 
 
+def check_job_transition(old_state, new_state):
+    """Check that job can transition from old_state to new_state.
+
+    If transition can be performed, it returns True. If transition
+    should be ignored, it returns False. If transition is not
+    valid, it raises an InvalidState exception.
+    """
+    if old_state == new_state:
+        return False
+    pair = (old_state, new_state)
+    if pair in _ALLOWED_JOB_TRANSITIONS:
+        return True
+    raise exc.InvalidState("Job transition from '%s' to '%s' is not allowed"
+                           % pair)
+
+
 # Flow state transitions
 # See: http://docs.openstack.org/developer/taskflow/states.html
 
@@ -135,7 +151,7 @@ def check_flow_transition(old_state, new_state):
         return True
     if pair in _IGNORED_FLOW_TRANSITIONS:
         return False
-    raise exc.InvalidState("Flow transition from %s to %s is not allowed"
+    raise exc.InvalidState("Flow transition from '%s' to '%s' is not allowed"
                            % pair)
 
 
