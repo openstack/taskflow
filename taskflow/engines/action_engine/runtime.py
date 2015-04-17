@@ -98,18 +98,23 @@ class Runtime(object):
 
     def reset_nodes(self, nodes, state=st.PENDING, intention=st.EXECUTE):
         tweaked = []
+        node_state_handlers = [
+            (self.task_action, {'progress': 0.0}),
+            (self.retry_action, {}),
+        ]
         for node in nodes:
             if state or intention:
                 tweaked.append((node, state, intention))
             if state:
-                if self.task_action.handles(node):
-                    self.task_action.change_state(node, state,
-                                                  progress=0.0)
-                elif self.retry_action.handles(node):
-                    self.retry_action.change_state(node, state)
-                else:
-                    raise TypeError("Unknown how to reset atom '%s' (%s)"
-                                    % (node, type(node)))
+                handled = False
+                for h, kwargs in node_state_handlers:
+                    if h.handles(node):
+                        h.change_state(node, state, **kwargs)
+                        handled = True
+                        break
+                if not handled:
+                    raise TypeError("Unknown how to reset state of"
+                                    " node '%s' (%s)" % (node, type(node)))
             if intention:
                 self.storage.set_atom_intention(node.name, intention)
         return tweaked
