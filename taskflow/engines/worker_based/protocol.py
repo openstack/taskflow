@@ -165,13 +165,17 @@ class Notify(Message):
         except su.ValidationError as e:
             cls_name = reflection.get_class_name(cls, fully_qualified=False)
             if response:
-                raise excp.InvalidFormat("%s message response data not of the"
-                                         " expected format: %s"
-                                         % (cls_name, e.message), e)
+                excp.raise_with_cause(excp.InvalidFormat,
+                                      "%s message response data not of the"
+                                      " expected format: %s" % (cls_name,
+                                                                e.message),
+                                      cause=e)
             else:
-                raise excp.InvalidFormat("%s message sender data not of the"
-                                         " expected format: %s"
-                                         % (cls_name, e.message), e)
+                excp.raise_with_cause(excp.InvalidFormat,
+                                      "%s message sender data not of the"
+                                      " expected format: %s" % (cls_name,
+                                                                e.message),
+                                      cause=e)
 
 
 _WorkUnit = collections.namedtuple('_WorkUnit', ['task_cls', 'task_name',
@@ -361,9 +365,11 @@ class Request(Message):
             su.schema_validate(data, cls.SCHEMA)
         except su.ValidationError as e:
             cls_name = reflection.get_class_name(cls, fully_qualified=False)
-            raise excp.InvalidFormat("%s message response data not of the"
-                                     " expected format: %s"
-                                     % (cls_name, e.message), e)
+            excp.raise_with_cause(excp.InvalidFormat,
+                                  "%s message response data not of the"
+                                  " expected format: %s" % (cls_name,
+                                                            e.message),
+                                  cause=e)
         else:
             # Validate all failure dictionaries that *may* be present...
             failures = []
@@ -505,9 +511,11 @@ class Response(Message):
             su.schema_validate(data, cls.SCHEMA)
         except su.ValidationError as e:
             cls_name = reflection.get_class_name(cls, fully_qualified=False)
-            raise excp.InvalidFormat("%s message response data not of the"
-                                     " expected format: %s"
-                                     % (cls_name, e.message), e)
+            excp.raise_with_cause(excp.InvalidFormat,
+                                  "%s message response data not of the"
+                                  " expected format: %s" % (cls_name,
+                                                            e.message),
+                                  cause=e)
         else:
             state = data['state']
             if state == FAILURE and 'result' in data:

@@ -257,10 +257,11 @@ class Connection(path_based.PathBasedConnection):
         with lock():
             try:
                 yield
-            except exc.TaskFlowException as e:
+            except exc.TaskFlowException:
                 raise
-            except Exception as e:
-                raise exc.StorageFailure("Storage backend internal error", e)
+            except Exception:
+                exc.raise_with_cause(exc.StorageFailure,
+                                     "Storage backend internal error")
 
     def _join_path(self, *parts):
         return pp.join(*parts)
