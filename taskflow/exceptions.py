@@ -46,6 +46,8 @@ def raise_with_cause(exc_cls, message, *args, **kwargs):
     :param kwargs: any additional keyword arguments to pass to the
                    exceptions constructor.
     """
+    if not issubclass(exc_cls, TaskFlowException):
+        raise ValueError("Subclass of taskflow exception is required")
     if 'cause' not in kwargs:
         exc_type, exc, exc_tb = sys.exc_info()
         if exc is not None:
