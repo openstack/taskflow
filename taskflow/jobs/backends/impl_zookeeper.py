@@ -94,6 +94,7 @@ class ZookeeperJob(base.Job):
         basename = k_paths.basename(self._path)
         self._root = self._path[0:-len(basename)]
         self._sequence = int(basename[len(JOB_PREFIX):])
+        self._last_state = None
 
     @property
     def lock_path(self):
@@ -188,6 +189,13 @@ class ZookeeperJob(base.Job):
 
     @property
     def state(self):
+        current_state = self._fetch_state()
+        if self._last_state is not None:
+            states.check_job_transition(self._last_state, current_state)
+        self._last_state = current_state
+        return current_state
+
+    def _fetch_state(self):
         owner = self.board.find_owner(self)
         job_data = {}
         try:
