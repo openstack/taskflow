@@ -200,7 +200,7 @@ Additional *configuration* parameters:
 * ``handler``: a class that provides ``kazoo.handlers``-like interface; it will
   be used internally by `kazoo`_ to perform asynchronous operations, useful
   when your program uses eventlet and you want to instruct kazoo to use an
-  eventlet compatible handler (such as the `eventlet handler`_).
+  eventlet compatible handler.
 
 .. note::
 
@@ -278,5 +278,4 @@ Hierarchy
 .. _paradigm shift: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts#Workflow_ownership_transfer
 .. _zookeeper: http://zookeeper.apache.org/
 .. _kazoo: http://kazoo.readthedocs.org/
-.. _eventlet handler: https://pypi.python.org/pypi/kazoo-eventlet-handler/
 .. _stevedore: http://stevedore.readthedocs.org/
