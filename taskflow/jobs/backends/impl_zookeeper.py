@@ -381,12 +381,16 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         self._connected = False
 
     def _emit(self, state, details):
-        # Submit the work to the executor to avoid blocking the kazoo queue.
+        # Submit the work to the executor to avoid blocking the kazoo threads
+        # and queue(s)...
+        worker = self._worker
+        if worker is None:
+            return
         try:
-            self._worker.submit(self.notifier.notify, state, details)
-        except (AttributeError, RuntimeError):
-            # Notification thread is shutdown or non-existent, either case we
-            # just want to skip submitting a notification...
+            worker.submit(self.notifier.notify, state, details)
+        except RuntimeError:
+            # Notification thread is shutdown just skip submitting a
+            # notification...
             pass
 
     @property
