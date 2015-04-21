@@ -20,6 +20,7 @@ import errno
 import os
 import shutil
 
+import cachetools
 import fasteners
 from oslo_serialization import jsonutils
 
@@ -54,12 +55,22 @@ class DirBackend(path_based.PathBasedBackend):
     Example configuration::
 
         conf = {
-            "path": "/tmp/taskflow",
+            "path": "/tmp/taskflow",  # save data to this root directory
+            "max_cache_size": 1024,  # keep up-to 1024 entries in memory
         }
     """
+
     def __init__(self, conf):
         super(DirBackend, self).__init__(conf)
-        self.file_cache = {}
+        max_cache_size = self._conf.get('max_cache_size')
+        if max_cache_size is not None:
+            max_cache_size = int(max_cache_size)
+            if max_cache_size < 1:
+                raise ValueError("Maximum cache size must be greater than"
+                                 " or equal to one")
+            self.file_cache = cachetools.LRUCache(max_cache_size)
+        else:
+            self.file_cache = {}
         self.encoding = self._conf.get('encoding', 'utf-8')
         if not self._path:
             raise ValueError("Empty path is disallowed")
