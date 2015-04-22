@@ -225,12 +225,34 @@ class ActionEngine(base.Engine):
                         execution_graph.number_of_edges(),
                         nx.density(execution_graph))
         missing = set()
-        fetch = self.storage.fetch_unsatisfied_args
+        # Attempt to retain a chain of what was missing (so that the final
+        # raised exception for the flow has the nodes that had missing
+        # dependencies).
+        last_cause = None
+        last_node = None
+        missing_nodes = 0
+        fetch_func = self.storage.fetch_unsatisfied_args
         for node in execution_graph.nodes_iter():
-            missing.update(fetch(node.name, node.rebind,
-                                 optional_args=node.optional))
+            node_missing = fetch_func(node.name, node.rebind,
+                                      optional_args=node.optional)
+            if node_missing:
+                cause = exc.MissingDependencies(node,
+                                                sorted(node_missing),
+                                                cause=last_cause)
+                last_cause = cause
+                last_node = node
+                missing_nodes += 1
+                missing.update(node_missing)
         if missing:
-            raise exc.MissingDependencies(self._flow, sorted(missing))
+            # For when a task is provided (instead of a flow) and that
+            # task is the only item in the graph and its missing deps, avoid
+            # re-wrapping it in yet another exception...
+            if missing_nodes == 1 and last_node is self._flow:
+                raise last_cause
+            else:
+                raise exc.MissingDependencies(self._flow,
+                                              sorted(missing),
+                                              cause=last_cause)
 
     @lock_utils.locked
     def prepare(self):

@@ -651,6 +651,26 @@ class EngineGraphFlowTest(utils.EngineTestBase):
         self.assertIsInstance(graph, gr.DiGraph)
 
 
+class EngineMissingDepsTest(utils.EngineTestBase):
+    def test_missing_deps_deep(self):
+        flow = gf.Flow('missing-many').add(
+            utils.TaskOneReturn(name='task1',
+                                requires=['a', 'b', 'c']),
+            utils.TaskMultiArgOneReturn(name='task2',
+                                        rebind=['e', 'f', 'g']))
+        engine = self._make_engine(flow)
+        engine.compile()
+        engine.prepare()
+        self.assertRaises(exc.MissingDependencies, engine.validate)
+        c_e = None
+        try:
+            engine.validate()
+        except exc.MissingDependencies as e:
+            c_e = e
+        self.assertIsNotNone(c_e)
+        self.assertIsNotNone(c_e.cause)
+
+
 class EngineCheckingTaskTest(utils.EngineTestBase):
     # FIXME: this test uses a inner class that workers/process engines can't
     # get to, so we need to do something better to make this test useful for
@@ -682,6 +702,7 @@ class SerialEngineTest(EngineTaskTest,
                        EngineLinearAndUnorderedExceptionsTest,
                        EngineOptionalRequirementsTest,
                        EngineGraphFlowTest,
+                       EngineMissingDepsTest,
                        EngineCheckingTaskTest,
                        test.TestCase):
     def _make_engine(self, flow,
@@ -707,6 +728,7 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
                                     EngineLinearAndUnorderedExceptionsTest,
                                     EngineOptionalRequirementsTest,
                                     EngineGraphFlowTest,
+                                    EngineMissingDepsTest,
                                     EngineCheckingTaskTest,
                                     test.TestCase):
     _EXECUTOR_WORKERS = 2
@@ -744,6 +766,7 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
                                      EngineLinearAndUnorderedExceptionsTest,
                                      EngineOptionalRequirementsTest,
                                      EngineGraphFlowTest,
+                                     EngineMissingDepsTest,
                                      EngineCheckingTaskTest,
                                      test.TestCase):
 
@@ -764,6 +787,7 @@ class ParallelEngineWithProcessTest(EngineTaskTest,
                                     EngineLinearAndUnorderedExceptionsTest,
                                     EngineOptionalRequirementsTest,
                                     EngineGraphFlowTest,
+                                    EngineMissingDepsTest,
                                     test.TestCase):
     _EXECUTOR_WORKERS = 2
 
@@ -789,6 +813,7 @@ class WorkerBasedEngineTest(EngineTaskTest,
                             EngineLinearAndUnorderedExceptionsTest,
                             EngineOptionalRequirementsTest,
                             EngineGraphFlowTest,
+                            EngineMissingDepsTest,
                             test.TestCase):
     def setUp(self):
         super(WorkerBasedEngineTest, self).setUp()
