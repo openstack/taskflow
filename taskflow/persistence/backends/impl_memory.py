@@ -65,11 +65,18 @@ class FakeFilesystem(object):
     root_path = pp.sep
 
     @classmethod
-    def _normpath(cls, path):
+    def normpath(cls, path):
+        """Return a normalized absolutized version of the pathname path."""
         if not path.startswith(cls.root_path):
-            raise ValueError("This filesystem can only normalize absolute"
-                             " paths: '%s' is not valid" % path)
+            raise ValueError("This filesystem can only normalize"
+                             " paths that start with %s: '%s' is not"
+                             " valid" % (cls.root_path, path))
         return pp.normpath(path)
+
+    @staticmethod
+    def join(*pieces):
+        """Join many path segments together."""
+        return pp.sep.join(pieces)
 
     def __init__(self, deep_copy=True):
         self._root = tree.Node(self.root_path, value=None)
@@ -80,7 +87,7 @@ class FakeFilesystem(object):
 
     def ensure_path(self, path):
         """Ensure the path (and parents) exists."""
-        path = self._normpath(path)
+        path = self.normpath(path)
         # Ignore the root path as we already checked for that; and it
         # will always exist/can't be removed anyway...
         if path == self._root.item:
@@ -96,7 +103,7 @@ class FakeFilesystem(object):
 
     def _fetch_node(self, path):
         node = self._root
-        path = self._normpath(path)
+        path = self.normpath(path)
         if path == self._root.item:
             return node
         for piece in self._iter_pieces(path):
@@ -144,7 +151,7 @@ class FakeFilesystem(object):
                     hops.append(parent.item)
                 hops.reverse()
                 # This avoids getting '//a/b' (duplicated sep at start)...
-                child_path = pp.sep.join(hops)
+                child_path = self.join(*hops)
                 if child_path.startswith("//"):
                     child_path = child_path[1:]
                 paths.append(child_path)
@@ -190,8 +197,8 @@ class FakeFilesystem(object):
 
     def symlink(self, src_path, dest_path):
         """Link the destionation path to the source path."""
-        dest_path = self._normpath(dest_path)
-        src_path = self._normpath(src_path)
+        dest_path = self.normpath(dest_path)
+        src_path = self.normpath(src_path)
         dirname, basename = pp.split(dest_path)
         parent_node = self._fetch_node(dirname)
         child_node = parent_node.find(basename,
@@ -206,7 +213,7 @@ class FakeFilesystem(object):
         return self._get_item(path)
 
     def __setitem__(self, path, value):
-        path = self._normpath(path)
+        path = self.normpath(path)
         value = self._copier(value)
         try:
             item_node = self._fetch_node(path)
