@@ -95,8 +95,31 @@ subclasses are provided:
     which allows for these atoms to influence subsequent execution(s) and the
     inputs any associated atoms require.
 
-Examples
---------
+Area of influence
+-----------------
+
+Each retry atom is associated with a flow and it can *influence* how the
+atoms (or nested flows) contained in that that flow retry or revert (using
+the previously mentioned patterns and decision enumerations):
+
+*For example:*
+
+.. image:: img/area_of_influence.svg
+   :width: 325px
+   :align: left
+   :alt: Retry area of influence
+
+In this diagram retry controller (1) will be consulted if task ``A``, ``B``
+or ``C`` fail and retry controller (2) decides to delegate its retry decision
+to retry controller (1). If retry controller (2) does **not** decide to
+delegate its retry decision to retry controller (1) then retry
+controller (1) will be oblivious of any decisions. If any of
+task ``1``, ``2`` or ``3`` fail then only retry controller (1) will be
+consulted to determine the strategy/pattern to apply to resolve there
+associated failure.
+
+Usage examples
+--------------
 
 .. testsetup::
 
