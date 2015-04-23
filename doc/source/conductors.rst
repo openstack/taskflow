@@ -2,6 +2,10 @@
 Conductors
 ----------
 
+.. image:: img/conductor.png
+   :width: 97px
+   :alt: Conductor
+
 Overview
 ========
 
@@ -18,14 +22,14 @@ They are responsible for the following:
   tasks and flows to be executed).
 * Dispatching the engine using the provided :doc:`persistence <persistence>`
   layer and engine configuration.
-* Completing or abandoning the claimed job (depending on dispatching and
-  execution outcome).
+* Completing or abandoning the claimed :doc:`job <jobs>` (depending on
+  dispatching and execution outcome).
 * *Rinse and repeat*.
 
 .. note::
 
      They are inspired by and have similar responsibilities
-     as `railroad conductors`_.
+     as `railroad conductors`_ or `musical conductors`_.
 
 Considerations
 ==============
@@ -76,4 +80,5 @@ Hierarchy
     taskflow.conductors.backends.impl_blocking
     :parts: 1
 
+.. _musical conductors: http://en.wikipedia.org/wiki/Conducting
 .. _railroad conductors: http://en.wikipedia.org/wiki/Conductor_%28transportation%29
