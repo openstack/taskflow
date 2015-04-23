@@ -28,6 +28,7 @@ import types
 
 import enum
 from oslo_serialization import jsonutils
+from oslo_serialization import msgpackutils
 from oslo_utils import encodeutils
 from oslo_utils import importutils
 from oslo_utils import netutils
@@ -285,19 +286,7 @@ def binary_decode(data, encoding='utf-8', errors='strict'):
                                        errors=errors)
 
 
-def decode_json(raw_data, root_types=(dict,)):
-    """Parse raw data to get JSON object.
-
-    Decodes a JSON from a given raw data binary and checks that the root
-    type of that decoded object is in the allowed set of types (by
-    default a JSON object/dict should be the root type).
-    """
-    try:
-        data = jsonutils.loads(binary_decode(raw_data))
-    except UnicodeDecodeError as e:
-        raise ValueError("Expected UTF-8 decodable data: %s" % e)
-    except ValueError as e:
-        raise ValueError("Expected JSON decodable data: %s" % e)
+def _check_decoded_type(data, root_types=(dict,)):
     if root_types:
         if not isinstance(root_types, tuple):
             root_types = tuple(root_types)
@@ -310,6 +299,40 @@ def decode_json(raw_data, root_types=(dict,)):
                 raise ValueError("Expected %s root types not '%s'"
                                  % (list(root_types), type(data)))
     return data
+
+
+def decode_msgpack(raw_data, root_types=(dict,)):
+    """Parse raw data to get decoded object.
+
+    Decodes a msgback encoded 'blob' from a given raw data binary string and
+    checks that the root type of that decoded object is in the allowed set of
+    types (by default a dict should be the root type).
+    """
+    try:
+        data = msgpackutils.loads(raw_data)
+    except Exception as e:
+        # TODO(harlowja): fix this when msgpackutils exposes the msgpack
+        # exceptions so that we can avoid catching just exception...
+        raise ValueError("Expected msgpack decodable data: %s" % e)
+    else:
+        return _check_decoded_type(data, root_types=root_types)
+
+
+def decode_json(raw_data, root_types=(dict,)):
+    """Parse raw data to get decoded object.
+
+    Decodes a JSON encoded 'blob' from a given raw data binary string and
+    checks that the root type of that decoded object is in the allowed set of
+    types (by default a dict should be the root type).
+    """
+    try:
+        data = jsonutils.loads(binary_decode(raw_data))
+    except UnicodeDecodeError as e:
+        raise ValueError("Expected UTF-8 decodable data: %s" % e)
+    except ValueError as e:
+        raise ValueError("Expected JSON decodable data: %s" % e)
+    else:
+        return _check_decoded_type(data, root_types=root_types)
 
 
 class cachedproperty(object):

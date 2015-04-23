@@ -41,37 +41,17 @@ from taskflow.utils import misc
 LOG = logging.getLogger(__name__)
 
 
-def check_who(meth):
-    """Decorator that checks the expected owner type & value restrictions."""
-
-    @six.wraps(meth)
-    def wrapper(self, job, who, *args, **kwargs):
-        if not isinstance(who, six.string_types):
-            raise TypeError("Job applicant must be a string type")
-        if len(who) == 0:
-            raise ValueError("Job applicant must be non-empty")
-        return meth(self, job, who, *args, **kwargs)
-
-    return wrapper
-
-
 class ZookeeperJob(base.Job):
     """A zookeeper job."""
 
-    def __init__(self, name, board, client, backend, path,
+    def __init__(self, board, name, client, path,
                  uuid=None, details=None, book=None, book_data=None,
-                 created_on=None):
-        super(ZookeeperJob, self).__init__(name, uuid=uuid, details=details)
-        self._board = board
-        self._book = book
-        if not book_data:
-            book_data = {}
-        self._book_data = book_data
+                 created_on=None, backend=None):
+        super(ZookeeperJob, self).__init__(board, name,
+                                           uuid=uuid, details=details,
+                                           backend=backend,
+                                           book=book, book_data=book_data)
         self._client = client
-        self._backend = backend
-        if all((self._book, self._book_data)):
-            raise ValueError("Only one of 'book_data' or 'book'"
-                             " can be provided")
         self._path = k_paths.normpath(path)
         self._lock_path = self._path + board.LOCK_POSTFIX
         self._created_on = created_on
@@ -82,10 +62,12 @@ class ZookeeperJob(base.Job):
 
     @property
     def lock_path(self):
+        """Path the job lock/claim and owner znode is stored."""
         return self._lock_path
 
     @property
     def path(self):
+        """Path the job data znode is stored."""
         return self._path
 
     @property
@@ -155,27 +137,7 @@ class ZookeeperJob(base.Job):
         return self._created_on
 
     @property
-    def board(self):
-        return self._board
-
-    def _load_book(self):
-        book_uuid = self.book_uuid
-        if self._backend is not None and book_uuid is not None:
-            # TODO(harlowja): we are currently limited by assuming that the
-            # job posted has the same backend as this loader (to start this
-            # seems to be a ok assumption, and can be adjusted in the future
-            # if we determine there is a use-case for multi-backend loaders,
-            # aka a registry of loaders).
-            with contextlib.closing(self._backend.get_connection()) as conn:
-                return conn.get_logbook(book_uuid)
-        # No backend to fetch from or no uuid specified
-        return None
-
-    @property
     def state(self):
-        return self._fetch_state()
-
-    def _fetch_state(self):
         owner = self.board.find_owner(self)
         job_data = {}
         try:
@@ -217,30 +179,6 @@ class ZookeeperJob(base.Job):
     def __hash__(self):
         return hash(self.path)
 
-    @property
-    def book(self):
-        if self._book is None:
-            self._book = self._load_book()
-        return self._book
-
-    @property
-    def book_uuid(self):
-        if self._book:
-            return self._book.uuid
-        if self._book_data:
-            return self._book_data.get('uuid')
-        else:
-            return None
-
-    @property
-    def book_name(self):
-        if self._book:
-            return self._book.name
-        if self._book_data:
-            return self._book_data.get('name')
-        else:
-            return None
-
 
 class ZookeeperJobBoardIterator(six.Iterator):
     """Iterator over a zookeeper jobboard that iterates over potential jobs.
@@ -273,6 +211,7 @@ class ZookeeperJobBoardIterator(six.Iterator):
 
     @property
     def board(self):
+        """The board this iterator was created from."""
         return self._board
 
     def __iter__(self):
@@ -310,28 +249,32 @@ class ZookeeperJobBoardIterator(six.Iterator):
 
 
 class ZookeeperJobBoard(base.NotifyingJobBoard):
-    """A jobboard backend by zookeeper.
+    """A jobboard backed by `zookeeper`_.
 
     Powered by the `kazoo <http://kazoo.readthedocs.org/>`_ library.
 
     This jobboard creates *sequenced* persistent znodes in a directory in
-    zookeeper (that directory defaults to ``/taskflow/jobs``) and uses
-    zookeeper watches to notify other jobboards that the job which was posted
-    using the :meth:`.post` method (this creates a znode with contents/details
-    in json). The users of those jobboard(s) (potentially on disjoint sets of
-    machines) can then iterate over the available jobs and decide if they want
+    zookeeper and uses zookeeper watches to notify other jobboards of
+    jobs which were posted using the :meth:`.post` method (this creates a
+    znode with job contents/details encoded in `json`_). The users of these
+    jobboard(s) (potentially on disjoint sets of machines) can then iterate
+    over the available jobs and decide if they want
     to attempt to claim one of the jobs they have iterated over. If so they
     will then attempt to contact zookeeper and they will attempt to create a
     ephemeral znode using the name of the persistent znode + ".lock" as a
     postfix. If the entity trying to use the jobboard to :meth:`.claim` the
     job is able to create a ephemeral znode with that name then it will be
     allowed (and expected) to perform whatever *work* the contents of that
-    job described. Once finished the ephemeral znode and persistent znode may
-    be deleted (if successfully completed) in a single transaction or if not
-    successful (or the entity that claimed the znode dies) the ephemeral
-    znode will be released (either manually by using :meth:`.abandon` or
-    automatically by zookeeper when the ephemeral node and associated session
-    is deemed to have been lost).
+    job described. Once the claiming entity is finished the ephemeral znode
+    and persistent znode will be deleted (if successfully completed) in a
+    single transaction. If the claiming entity is not successful (or the
+    entity that claimed the znode dies) the ephemeral znode will be
+    released (either manually by using :meth:`.abandon` or automatically by
+    zookeeper when the ephemeral node and associated session is deemed to
+    have been lost).
+
+    .. _zookeeper: http://zookeeper.apache.org/
+    .. _json: http://json.org/
     """
 
     #: Transaction support was added in 3.4.0 so we need at least that version.
@@ -366,11 +309,9 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         self._path = path
         self._trash_path = self._path.replace(k_paths.basename(self._path),
                                               self.TRASH_FOLDER)
-        # The backend to load the full logbooks from, since whats sent over
-        # the zookeeper data connection is only the logbook uuid and name, and
-        # not currently the full logbook (later when a zookeeper backend
-        # appears we can likely optimize for that backend usage by directly
-        # reading from the path where the data is stored, if we want).
+        # The backend to load the full logbooks from, since what is sent over
+        # the data connection is only the logbook uuid and name, and not the
+        # full logbook.
         self._persistence = persistence
         # Misc. internal details
         self._known_jobs = {}
@@ -401,10 +342,12 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
 
     @property
     def path(self):
+        """Path where all job znodes will be stored."""
         return self._path
 
     @property
     def trash_path(self):
+        """Path where all trashed job znodes will be stored."""
         return self._trash_path
 
     @property
@@ -476,8 +419,9 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                 # jobs information into the known job set (if it's already
                 # existing then just leave it alone).
                 if path not in self._known_jobs:
-                    job = ZookeeperJob(job_data['name'], self,
-                                       self._client, self._persistence, path,
+                    job = ZookeeperJob(self, job_data['name'],
+                                       self._client, path,
+                                       backend=self._persistence,
                                        uuid=job_data['uuid'],
                                        book_data=job_data.get("book"),
                                        details=job_data.get("details", {}),
@@ -536,46 +480,31 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                 self._process_child(path, request)
 
     def post(self, name, book=None, details=None):
-
-        def format_posting(job_uuid):
-            posting = {
-                'uuid': job_uuid,
-                'name': name,
-            }
-            if details:
-                posting['details'] = details
-            else:
-                posting['details'] = {}
-            if book is not None:
-                posting['book'] = {
-                    'name': book.name,
-                    'uuid': book.uuid,
-                }
-            return posting
-
         # NOTE(harlowja): Jobs are not ephemeral, they will persist until they
         # are consumed (this may change later, but seems safer to do this until
         # further notice).
         job_uuid = uuidutils.generate_uuid()
+        job_posting = base.format_posting(job_uuid, name,
+                                          book=book, details=details)
+        raw_job_posting = misc.binary_encode(jsonutils.dumps(job_posting))
         with self._wrap(job_uuid, None,
-                        "Posting failure: %s", ensure_known=False):
-            job_posting = format_posting(job_uuid)
-            job_posting = misc.binary_encode(jsonutils.dumps(job_posting))
+                        fail_msg_tpl="Posting failure: %s",
+                        ensure_known=False):
             job_path = self._client.create(self._job_base,
-                                           value=job_posting,
+                                           value=raw_job_posting,
                                            sequence=True,
                                            ephemeral=False)
-            job = ZookeeperJob(name, self, self._client,
-                               self._persistence, job_path,
-                               book=book, details=details,
-                               uuid=job_uuid)
+            job = ZookeeperJob(self, name, self._client, job_path,
+                               backend=self._persistence,
+                               book=book, details=details, uuid=job_uuid,
+                               book_data=job_posting.get('book'))
             with self._job_cond:
                 self._known_jobs[job_path] = job
                 self._job_cond.notify_all()
             self._emit(base.POSTED, details={'job': job})
             return job
 
-    @check_who
+    @base.check_who
     def claim(self, job, who):
         def _unclaimable_try_find_owner(cause):
             try:
@@ -589,7 +518,8 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             excp.raise_with_cause(excp.UnclaimableJob,
                                   message, cause=cause)
 
-        with self._wrap(job.uuid, job.path, "Claiming failure: %s"):
+        with self._wrap(job.uuid, job.path,
+                        fail_msg_tpl="Claiming failure: %s"):
             # NOTE(harlowja): post as json which will allow for future changes
             # more easily than a raw string/text.
             value = jsonutils.dumps({
@@ -653,7 +583,9 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             excp.raise_with_cause(excp.JobFailure, fail_msg_tpl % (job_uuid))
 
     def find_owner(self, job):
-        with self._wrap(job.uuid, job.path, "Owner query failure: %s"):
+        with self._wrap(job.uuid, job.path,
+                        fail_msg_tpl="Owner query failure: %s",
+                        ensure_known=False):
             try:
                 self._client.sync(job.lock_path)
                 raw_data, _lock_stat = self._client.get(job.lock_path)
@@ -669,14 +601,15 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         return (misc.decode_json(lock_data), lock_stat,
                 misc.decode_json(job_data), job_stat)
 
-    @check_who
+    @base.check_who
     def consume(self, job, who):
-        with self._wrap(job.uuid, job.path, "Consumption failure: %s"):
+        with self._wrap(job.uuid, job.path,
+                        fail_msg_tpl="Consumption failure: %s"):
             try:
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                excp.raise_with_cause(excp.JobFailure,
+                excp.raise_with_cause(excp.NotFound,
                                       "Can not consume a job %s"
                                       " which we can not determine"
                                       " the owner of" % (job.uuid))
@@ -690,14 +623,15 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             kazoo_utils.checked_commit(txn)
             self._remove_job(job.path)
 
-    @check_who
+    @base.check_who
     def abandon(self, job, who):
-        with self._wrap(job.uuid, job.path, "Abandonment failure: %s"):
+        with self._wrap(job.uuid, job.path,
+                        fail_msg_tpl="Abandonment failure: %s"):
             try:
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                excp.raise_with_cause(excp.JobFailure,
+                excp.raise_with_cause(excp.NotFound,
                                       "Can not abandon a job %s"
                                       " which we can not determine"
                                       " the owner of" % (job.uuid))
@@ -709,14 +643,15 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             txn.delete(job.lock_path, version=lock_stat.version)
             kazoo_utils.checked_commit(txn)
 
-    @check_who
+    @base.check_who
     def trash(self, job, who):
-        with self._wrap(job.uuid, job.path, "Trash failure: %s"):
+        with self._wrap(job.uuid, job.path,
+                        fail_msg_tpl="Trash failure: %s"):
             try:
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                excp.raise_with_cause(excp.JobFailure,
+                excp.raise_with_cause(excp.NotFound,
                                       "Can not trash a job %s"
                                       " which we can not determine"
                                       " the owner of" % (job.uuid))

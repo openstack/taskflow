@@ -14,6 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
+import threading
+
+from kazoo.recipe import watchers
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 import six
@@ -24,13 +28,14 @@ from zake import utils as zake_utils
 from taskflow.jobs.backends import impl_zookeeper
 from taskflow import states
 from taskflow import test
+from taskflow.test import mock
 from taskflow.tests.unit.jobs import base
 from taskflow.tests import utils as test_utils
 from taskflow.utils import kazoo_utils
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils as p_utils
 
-
+FLUSH_PATH_TPL = '/taskflow/flush-test/%s'
 TEST_PATH_TPL = '/taskflow/board-test/%s'
 ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
     impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
@@ -38,9 +43,81 @@ TRASH_FOLDER = impl_zookeeper.ZookeeperJobBoard.TRASH_FOLDER
 LOCK_POSTFIX = impl_zookeeper.ZookeeperJobBoard.LOCK_POSTFIX
 
 
+class ZookeeperBoardTestMixin(base.BoardTestMixin):
+    def close_client(self, client):
+        kazoo_utils.finalize_client(client)
+
+    @contextlib.contextmanager
+    def flush(self, client, path=None):
+        # This uses the linearity guarantee of zookeeper (and associated
+        # libraries) to create a temporary node, wait until a watcher notifies
+        # it's created, then yield back for more work, and then at the end of
+        # that work delete the created node. This ensures that the operations
+        # done in the yield of this context manager will be applied and all
+        # watchers will have fired before this context manager exits.
+        if not path:
+            path = FLUSH_PATH_TPL % uuidutils.generate_uuid()
+        created = threading.Event()
+        deleted = threading.Event()
+
+        def on_created(data, stat):
+            if stat is not None:
+                created.set()
+                return False  # cause this watcher to cease to exist
+
+        def on_deleted(data, stat):
+            if stat is None:
+                deleted.set()
+                return False  # cause this watcher to cease to exist
+
+        watchers.DataWatch(client, path, func=on_created)
+        client.create(path, makepath=True)
+        if not created.wait(test_utils.WAIT_TIMEOUT):
+            raise RuntimeError("Could not receive creation of %s in"
+                               " the alloted timeout of %s seconds"
+                               % (path, test_utils.WAIT_TIMEOUT))
+        try:
+            yield
+        finally:
+            watchers.DataWatch(client, path, func=on_deleted)
+            client.delete(path, recursive=True)
+            if not deleted.wait(test_utils.WAIT_TIMEOUT):
+                raise RuntimeError("Could not receive deletion of %s in"
+                                   " the alloted timeout of %s seconds"
+                                   % (path, test_utils.WAIT_TIMEOUT))
+
+    def test_posting_no_post(self):
+        with base.connect_close(self.board):
+            with mock.patch.object(self.client, 'create') as create_func:
+                create_func.side_effect = IOError("Unable to post")
+                self.assertRaises(IOError, self.board.post,
+                                  'test', p_utils.temporary_log_book())
+            self.assertEqual(0, self.board.job_count)
+
+    def test_board_iter(self):
+        with base.connect_close(self.board):
+            it = self.board.iterjobs()
+            self.assertEqual(it.board, self.board)
+            self.assertFalse(it.only_unclaimed)
+            self.assertFalse(it.ensure_fresh)
+
+    @mock.patch("taskflow.jobs.backends.impl_zookeeper.misc."
+                "millis_to_datetime")
+    def test_posting_dates(self, mock_dt):
+        epoch = misc.millis_to_datetime(0)
+        mock_dt.return_value = epoch
+
+        with base.connect_close(self.board):
+            j = self.board.post('test', p_utils.temporary_log_book())
+            self.assertEqual(epoch, j.created_on)
+            self.assertEqual(epoch, j.last_modified)
+
+        self.assertTrue(mock_dt.called)
+
+
 @testtools.skipIf(not ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
-class ZookeeperJobboardTest(test.TestCase, base.BoardTestMixin):
-    def _create_board(self, persistence=None):
+class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
+    def create_board(self, persistence=None):
 
         def cleanup_path(client, path):
             if not client.connected:
@@ -52,39 +129,39 @@ class ZookeeperJobboardTest(test.TestCase, base.BoardTestMixin):
         board = impl_zookeeper.ZookeeperJobBoard('test-board', {'path': path},
                                                  client=client,
                                                  persistence=persistence)
-        self.addCleanup(kazoo_utils.finalize_client, client)
+        self.addCleanup(self.close_client, client)
         self.addCleanup(cleanup_path, client, path)
         self.addCleanup(board.close)
         return (client, board)
 
     def setUp(self):
         super(ZookeeperJobboardTest, self).setUp()
-        self.client, self.board = self._create_board()
+        self.client, self.board = self.create_board()
 
 
-class ZakeJobboardTest(test.TestCase, base.BoardTestMixin):
-    def _create_board(self, persistence=None):
+class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
+    def create_board(self, persistence=None):
         client = fake_client.FakeClient()
         board = impl_zookeeper.ZookeeperJobBoard('test-board', {},
                                                  client=client,
                                                  persistence=persistence)
         self.addCleanup(board.close)
-        self.addCleanup(kazoo_utils.finalize_client, client)
+        self.addCleanup(self.close_client, client)
         return (client, board)
 
     def setUp(self):
         super(ZakeJobboardTest, self).setUp()
-        self.client, self.board = self._create_board()
+        self.client, self.board = self.create_board()
         self.bad_paths = [self.board.path, self.board.trash_path]
         self.bad_paths.extend(zake_utils.partition_path(self.board.path))
 
     def test_posting_owner_lost(self):
 
         with base.connect_close(self.board):
-            with base.flush(self.client):
+            with self.flush(self.client):
                 j = self.board.post('test', p_utils.temporary_log_book())
             self.assertEqual(states.UNCLAIMED, j.state)
-            with base.flush(self.client):
+            with self.flush(self.client):
                 self.board.claim(j, self.board.name)
             self.assertEqual(states.CLAIMED, j.state)
 
@@ -102,10 +179,10 @@ class ZakeJobboardTest(test.TestCase, base.BoardTestMixin):
     def test_posting_state_lock_lost(self):
 
         with base.connect_close(self.board):
-            with base.flush(self.client):
+            with self.flush(self.client):
                 j = self.board.post('test', p_utils.temporary_log_book())
             self.assertEqual(states.UNCLAIMED, j.state)
-            with base.flush(self.client):
+            with self.flush(self.client):
                 self.board.claim(j, self.board.name)
             self.assertEqual(states.CLAIMED, j.state)
 
@@ -123,14 +200,14 @@ class ZakeJobboardTest(test.TestCase, base.BoardTestMixin):
     def test_trashing_claimed_job(self):
 
         with base.connect_close(self.board):
-            with base.flush(self.client):
+            with self.flush(self.client):
                 j = self.board.post('test', p_utils.temporary_log_book())
             self.assertEqual(states.UNCLAIMED, j.state)
-            with base.flush(self.client):
+            with self.flush(self.client):
                 self.board.claim(j, self.board.name)
             self.assertEqual(states.CLAIMED, j.state)
 
-            with base.flush(self.client):
+            with self.flush(self.client):
                 self.board.trash(j, self.board.name)
 
             trashed = []
