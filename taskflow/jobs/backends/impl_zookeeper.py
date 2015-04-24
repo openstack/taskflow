@@ -665,7 +665,8 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                raise excp.JobFailure("Can not consume a job %s"
+                excp.raise_with_cause(excp.JobFailure,
+                                      "Can not consume a job %s"
                                       " which we can not determine"
                                       " the owner of" % (job.uuid))
             if lock_data.get("owner") != who:
@@ -685,7 +686,8 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                raise excp.JobFailure("Can not abandon a job %s"
+                excp.raise_with_cause(excp.JobFailure,
+                                      "Can not abandon a job %s"
                                       " which we can not determine"
                                       " the owner of" % (job.uuid))
             if lock_data.get("owner") != who:
@@ -703,17 +705,16 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                raise excp.JobFailure("Can not trash a job %s"
+                excp.raise_with_cause(excp.JobFailure,
+                                      "Can not trash a job %s"
                                       " which we can not determine"
                                       " the owner of" % (job.uuid))
             if lock_data.get("owner") != who:
                 raise excp.JobFailure("Can not trash a job %s"
                                       " which is not owned by %s"
                                       % (job.uuid, who))
-
             trash_path = job.path.replace(self.path, self.trash_path)
             value = misc.binary_encode(jsonutils.dumps(data))
-
             txn = self._client.transaction()
             txn.create(trash_path, value=value)
             txn.delete(job.lock_path, version=lock_stat.version)
