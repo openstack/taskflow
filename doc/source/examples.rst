@@ -330,3 +330,15 @@ Jobboard producer/consumer (simple)
     :language: python
     :linenos:
     :lines: 16-
+
+Conductor simulating a CI pipeline
+==================================
+
+.. note::
+
+    Full source located at :example:`tox_conductor`
+
+.. literalinclude:: ../../taskflow/examples/tox_conductor.py
+    :language: python
+    :linenos:
+    :lines: 16-
