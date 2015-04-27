@@ -32,11 +32,13 @@ from taskflow.utils import persistence_utils as p_utils
 
 
 TEST_PATH_TPL = '/taskflow/board-test/%s'
-_ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
-    impl_zookeeper.MIN_ZK_VERSION)
+ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
+    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
+TRASH_FOLDER = impl_zookeeper.ZookeeperJobBoard.TRASH_FOLDER
+LOCK_POSTFIX = impl_zookeeper.ZookeeperJobBoard.LOCK_POSTFIX
 
 
-@testtools.skipIf(not _ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
+@testtools.skipIf(not ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
 class ZookeeperJobboardTest(test.TestCase, base.BoardTestMixin):
     def _create_board(self, persistence=None):
 
@@ -137,10 +139,10 @@ class ZakeJobboardTest(test.TestCase, base.BoardTestMixin):
             for (path, value) in paths:
                 if path in self.bad_paths:
                     continue
-                if path.find(impl_zookeeper.TRASH_FOLDER) > -1:
+                if path.find(TRASH_FOLDER) > -1:
                     trashed.append(path)
                 elif (path.find(self.board._job_base) > -1
-                        and not path.endswith(impl_zookeeper.LOCK_POSTFIX)):
+                        and not path.endswith(LOCK_POSTFIX)):
                     jobs.append(path)
 
             self.assertEqual(len(trashed), 1)
