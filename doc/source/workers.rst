@@ -413,10 +413,14 @@ Limitations
   possibly spawn the task on a secondary worker if a timeout is reached (aka
   the first worker has died or has stopped responding).
 
-Interfaces
-==========
+Implementations
+===============
 
 .. automodule:: taskflow.engines.worker_based.engine
+
+Components
+----------
+
 .. automodule:: taskflow.engines.worker_based.proxy
 .. automodule:: taskflow.engines.worker_based.worker
 

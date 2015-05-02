@@ -39,16 +39,16 @@ def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
 
     NOTE(harlowja): to aid in making it easy to specify configuration and
     options to a backend the configuration (which is typical just a dictionary)
-    can also be a uri string that identifies the entrypoint name and any
+    can also be a URI string that identifies the entrypoint name and any
     configuration specific to that backend.
 
-    For example, given the following configuration uri:
+    For example, given the following configuration URI::
 
-    mysql://<not-used>/?a=b&c=d
+        mysql://<not-used>/?a=b&c=d
 
     This will look for the entrypoint named 'mysql' and will provide
-    a configuration object composed of the uris parameters, in this case that
-    is {'a': 'b', 'c': 'd'} to the constructor of that persistence backend
+    a configuration object composed of the URI's components, in this case that
+    is ``{'a': 'b', 'c': 'd'}`` to the constructor of that persistence backend
     instance.
     """
     if isinstance(conf, six.string_types):

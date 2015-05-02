@@ -15,8 +15,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-"""Implementation of a SQLAlchemy storage backend."""
-
 from __future__ import absolute_import
 
 import contextlib
