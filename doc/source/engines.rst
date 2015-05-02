@@ -436,10 +436,14 @@ Interfaces
 Implementations
 ===============
 
+.. automodule:: taskflow.engines.action_engine.engine
+
+Components
+----------
+
 .. automodule:: taskflow.engines.action_engine.analyzer
 .. automodule:: taskflow.engines.action_engine.compiler
 .. automodule:: taskflow.engines.action_engine.completer
-.. automodule:: taskflow.engines.action_engine.engine
 .. automodule:: taskflow.engines.action_engine.executor
 .. automodule:: taskflow.engines.action_engine.runner
 .. automodule:: taskflow.engines.action_engine.runtime

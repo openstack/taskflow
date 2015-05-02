@@ -265,6 +265,9 @@ Interfaces
 Implementations
 ===============
 
+Zookeeper
+---------
+
 .. automodule:: taskflow.jobs.backends.impl_zookeeper
 
 Hierarchy

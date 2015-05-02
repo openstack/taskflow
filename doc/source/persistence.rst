@@ -176,7 +176,7 @@ concept everyone is familiar with).
     See :py:class:`~taskflow.persistence.backends.impl_dir.DirBackend`
     for implementation details.
 
-Sqlalchemy
+SQLAlchemy
 ----------
 
 **Connection**: ``'mysql'`` or ``'postgres'`` or ``'sqlite'``
@@ -288,9 +288,24 @@ Interfaces
 Implementations
 ===============
 
-.. automodule:: taskflow.persistence.backends.impl_dir
+Memory
+------
+
 .. automodule:: taskflow.persistence.backends.impl_memory
+
+Files
+-----
+
+.. automodule:: taskflow.persistence.backends.impl_dir
+
+SQLAlchemy
+----------
+
 .. automodule:: taskflow.persistence.backends.impl_sqlalchemy
+
+Zookeeper
+---------
+
 .. automodule:: taskflow.persistence.backends.impl_zookeeper
 
 Storage

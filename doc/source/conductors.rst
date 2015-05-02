@@ -65,11 +65,14 @@ Interfaces
 ==========
 
 .. automodule:: taskflow.conductors.base
+.. automodule:: taskflow.conductors.backends
 
 Implementations
 ===============
 
-.. automodule:: taskflow.conductors.backends
+Blocking
+--------
+
 .. automodule:: taskflow.conductors.backends.impl_blocking
 
 Hierarchy
