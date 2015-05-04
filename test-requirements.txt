@@ -9,7 +9,7 @@ testtools>=0.9.36,!=1.2.0
 testscenarios>=0.4
 
 # Used for testing the WBE engine.
-kombu>=2.5.0
+kombu>=3.0.7
 
 # Used for testing zookeeper & backends.
 zake>=0.1.6 # Apache-2.0
