@@ -15,6 +15,7 @@
 #    under the License.
 
 import functools
+import sys
 import threading
 
 from concurrent import futures as _futures
@@ -22,6 +23,7 @@ from concurrent.futures import process as _process
 from concurrent.futures import thread as _thread
 from oslo_utils import importutils
 from oslo_utils import reflection
+import six
 
 greenpatcher = importutils.try_import('eventlet.patcher')
 greenpool = importutils.try_import('eventlet.greenpool')
@@ -175,8 +177,15 @@ class _WorkItem(object):
             return
         try:
             result = self.fn(*self.args, **self.kwargs)
-        except BaseException as e:
-            self.future.set_exception(e)
+        except BaseException:
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            try:
+                if six.PY2:
+                    self.future.set_exception_info(exc_value, exc_tb)
+                else:
+                    self.future.set_exception(exc_value)
+            finally:
+                del(exc_type, exc_value, exc_tb)
         else:
             self.future.set_result(result)
 

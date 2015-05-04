@@ -30,13 +30,10 @@ _DONE_STATES = frozenset([
 ])
 
 
-def make_completed_future(result, exception=False):
-    """Make a future completed with a given result."""
+def make_completed_future(result):
+    """Make and return a future completed with a given result."""
     future = futures.Future()
-    if exception:
-        future.set_exception(result)
-    else:
-        future.set_result(result)
+    future.set_result(result)
     return future
 
 
