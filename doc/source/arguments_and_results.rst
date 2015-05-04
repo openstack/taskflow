@@ -84,7 +84,7 @@ Rebinding
 ---------
 
 **Why:** There are cases when the value you want to pass to a task/retry is
-stored with a name other then the corresponding arguments name. That's when the
+stored with a name other than the corresponding arguments name. That's when the
 ``rebind`` constructor parameter comes in handy. Using it the flow author
 can instruct the engine to fetch a value from storage by one name, but pass it
 to a tasks/retrys ``execute`` method with another name. There are two possible
