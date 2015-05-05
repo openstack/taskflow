@@ -320,22 +320,23 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     Powered by the `kazoo <http://kazoo.readthedocs.org/>`_ library.
 
     This jobboard creates *sequenced* persistent znodes in a directory in
-    zookeeper (that directory defaults ``/taskflow/jobs``) and uses zookeeper
-    watches to notify other jobboards that the job which was posted using the
-    :meth:`.post` method (this creates a znode with contents/details in json)
-    The users of those jobboard(s) (potentially on disjoint sets of machines)
-    can then iterate over the available jobs and decide if they want to attempt
-    to claim one of the jobs they have iterated over. If so they will then
-    attempt to contact zookeeper and will attempt to create a ephemeral znode
-    using the name of the persistent znode + ".lock" as a postfix. If the
-    entity trying to use the jobboard to :meth:`.claim` the job is able to
-    create a ephemeral znode with that name then it will be allowed (and
-    expected) to perform whatever *work* the contents of that job that it
-    locked described. Once finished the ephemeral znode and persistent znode
-    may be deleted (if successfully completed) in a single transcation or if
-    not successfull (or the entity that claimed the znode dies) the ephemeral
+    zookeeper (that directory defaults to ``/taskflow/jobs``) and uses
+    zookeeper watches to notify other jobboards that the job which was posted
+    using the :meth:`.post` method (this creates a znode with contents/details
+    in json). The users of those jobboard(s) (potentially on disjoint sets of
+    machines) can then iterate over the available jobs and decide if they want
+    to attempt to claim one of the jobs they have iterated over. If so they
+    will then attempt to contact zookeeper and they will attempt to create a
+    ephemeral znode using the name of the persistent znode + ".lock" as a
+    postfix. If the entity trying to use the jobboard to :meth:`.claim` the
+    job is able to create a ephemeral znode with that name then it will be
+    allowed (and expected) to perform whatever *work* the contents of that
+    job described. Once finished the ephemeral znode and persistent znode may
+    be deleted (if successfully completed) in a single transaction or if not
+    successful (or the entity that claimed the znode dies) the ephemeral
     znode will be released (either manually by using :meth:`.abandon` or
-    automatically by zookeeper the ephemeral is deemed to be lost).
+    automatically by zookeeper when the ephemeral node and associated session
+    is deemed to have been lost).
     """
 
     #: Transaction support was added in 3.4.0 so we need at least that version.
@@ -350,6 +351,9 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     #: Znode **prefix** that job entries have.
     JOB_PREFIX = 'job'
 
+    #: Default znode path used for jobs (data, locks...).
+    DEFAULT_PATH = "/taskflow/jobs"
+
     def __init__(self, name, conf,
                  client=None, persistence=None, emit_notifications=True):
         super(ZookeeperJobBoard, self).__init__(name, conf)
@@ -359,7 +363,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         else:
             self._client = kazoo_utils.make_client(self._conf)
             self._owned = True
-        path = str(conf.get("path", "/taskflow/jobs"))
+        path = str(conf.get("path", self.DEFAULT_PATH))
         if not path:
             raise ValueError("Empty zookeeper path is disallowed")
         if not k_paths.isabs(path):
