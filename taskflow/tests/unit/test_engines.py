@@ -149,6 +149,53 @@ class EngineOptionalRequirementsTest(utils.EngineTestBase):
         self.assertEqual(result, {'a': 3, 'b': 7, 'result': 3000})
 
 
+class EngineMultipleResultsTest(utils.EngineTestBase):
+    def test_fetch_with_a_single_result(self):
+        flow = lf.Flow("flow")
+        flow.add(utils.TaskOneReturn(provides='x'))
+
+        engine = self._make_engine(flow)
+        engine.run()
+        result = engine.storage.fetch('x')
+        self.assertEqual(result, 1)
+
+    def test_fetch_with_two_results(self):
+        flow = lf.Flow("flow")
+        flow.add(utils.TaskOneReturn(provides='x'))
+
+        engine = self._make_engine(flow, store={'x': 0})
+        engine.run()
+        result = engine.storage.fetch('x')
+        self.assertEqual(result, 0)
+
+    def test_fetch_all_with_a_single_result(self):
+        flow = lf.Flow("flow")
+        flow.add(utils.TaskOneReturn(provides='x'))
+
+        engine = self._make_engine(flow)
+        engine.run()
+        result = engine.storage.fetch_all()
+        self.assertEqual(result, {'x': 1})
+
+    def test_fetch_all_with_two_results(self):
+        flow = lf.Flow("flow")
+        flow.add(utils.TaskOneReturn(provides='x'))
+
+        engine = self._make_engine(flow, store={'x': 0})
+        engine.run()
+        result = engine.storage.fetch_all()
+        self.assertEqual(result, {'x': [0, 1]})
+
+    def test_task_can_update_value(self):
+        flow = lf.Flow("flow")
+        flow.add(utils.TaskOneArgOneReturn(requires='x', provides='x'))
+
+        engine = self._make_engine(flow, store={'x': 0})
+        engine.run()
+        result = engine.storage.fetch_all()
+        self.assertEqual(result, {'x': [0, 1]})
+
+
 class EngineLinearFlowTest(utils.EngineTestBase):
 
     def test_run_empty_flow(self):
@@ -697,6 +744,7 @@ class EngineCheckingTaskTest(utils.EngineTestBase):
 
 
 class SerialEngineTest(EngineTaskTest,
+                       EngineMultipleResultsTest,
                        EngineLinearFlowTest,
                        EngineParallelFlowTest,
                        EngineLinearAndUnorderedExceptionsTest,
@@ -723,6 +771,7 @@ class SerialEngineTest(EngineTaskTest,
 
 
 class ParallelEngineWithThreadsTest(EngineTaskTest,
+                                    EngineMultipleResultsTest,
                                     EngineLinearFlowTest,
                                     EngineParallelFlowTest,
                                     EngineLinearAndUnorderedExceptionsTest,
@@ -761,6 +810,7 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
 
 @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
 class ParallelEngineWithEventletTest(EngineTaskTest,
+                                     EngineMultipleResultsTest,
                                      EngineLinearFlowTest,
                                      EngineParallelFlowTest,
                                      EngineLinearAndUnorderedExceptionsTest,
@@ -782,6 +832,7 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
 
 
 class ParallelEngineWithProcessTest(EngineTaskTest,
+                                    EngineMultipleResultsTest,
                                     EngineLinearFlowTest,
                                     EngineParallelFlowTest,
                                     EngineLinearAndUnorderedExceptionsTest,
@@ -808,6 +859,7 @@ class ParallelEngineWithProcessTest(EngineTaskTest,
 
 
 class WorkerBasedEngineTest(EngineTaskTest,
+                            EngineMultipleResultsTest,
                             EngineLinearFlowTest,
                             EngineParallelFlowTest,
                             EngineLinearAndUnorderedExceptionsTest,
