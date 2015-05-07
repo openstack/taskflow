@@ -97,12 +97,12 @@ class ZkConnection(path_based.PathBasedConnection):
         except k_exc.SessionExpiredError:
             exc.raise_with_cause(exc.StorageFailure,
                                  "Storage backend session has expired")
-        except k_exc.NoNodeError as e:
+        except k_exc.NoNodeError:
             exc.raise_with_cause(exc.NotFound,
-                                 "Storage backend node not found: %s" % e)
-        except k_exc.NodeExistsError as e:
+                                 "Storage backend node not found")
+        except k_exc.NodeExistsError:
             exc.raise_with_cause(exc.Duplicate,
-                                 "Storage backend duplicate node: %s" % e)
+                                 "Storage backend duplicate node")
         except (k_exc.KazooException, k_exc.ZookeeperError):
             exc.raise_with_cause(exc.StorageFailure,
                                  "Storage backend internal error")
