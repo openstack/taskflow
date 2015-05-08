@@ -495,15 +495,15 @@ class RetryDetail(AtomDetail):
     def last_results(self):
         try:
             return self.results[-1][0]
-        except IndexError as e:
-            raise exc.NotFound("Last results not found", e)
+        except IndexError:
+            exc.raise_with_cause(exc.NotFound, "Last results not found")
 
     @property
     def last_failures(self):
         try:
             return self.results[-1][1]
-        except IndexError as e:
-            raise exc.NotFound("Last failures not found", e)
+        except IndexError:
+            exc.raise_with_cause(exc.NotFound, "Last failures not found")
 
     def put(self, state, result):
         # Do not clean retry history (only on reset does this happen).

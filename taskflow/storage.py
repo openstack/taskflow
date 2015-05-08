@@ -94,7 +94,8 @@ def _item_from_single(provider, container, looking_for):
     try:
         return _item_from(container, provider.index)
     except _EXTRACTION_EXCEPTIONS:
-        raise exceptions.NotFound(
+        exceptions.raise_with_cause(
+            exceptions.NotFound,
             "Unable to find result %r, expected to be able to find it"
             " created by %s but was unable to perform successful"
             " extraction" % (looking_for, provider))
@@ -311,7 +312,8 @@ class Storage(object):
         try:
             ad = self._flowdetail.find(self._atom_name_to_uuid[atom_name])
         except KeyError:
-            raise exceptions.NotFound("Unknown atom name: %s" % atom_name)
+            exceptions.raise_with_cause(exceptions.NotFound,
+                                        "Unknown atom name: %s" % atom_name)
         else:
             # TODO(harlowja): we need to figure out how to get away from doing
             # these kinds of type checks in general (since they likely mean
@@ -484,10 +486,11 @@ class Storage(object):
             retry_name, expected_type=logbook.RetryDetail, clone=True)
         try:
             failures = clone.last_failures
-        except exceptions.NotFound as e:
-            raise exceptions.StorageFailure("Unable to fetch most recent"
-                                            " retry failures so new retry"
-                                            " failure can be inserted", e)
+        except exceptions.NotFound:
+            exceptions.raise_with_cause(exceptions.StorageFailure,
+                                        "Unable to fetch most recent retry"
+                                        " failures so new retry failure can"
+                                        " be inserted")
         else:
             if failed_atom_name not in failures:
                 failures[failed_atom_name] = failure
@@ -695,9 +698,9 @@ class Storage(object):
         try:
             providers = self._reverse_mapping[name]
         except KeyError:
-            raise exceptions.NotFound("Name %r is not mapped as a"
-                                      " produced output by any"
-                                      " providers" % name)
+            exceptions.raise_with_cause(exceptions.NotFound,
+                                        "Name %r is not mapped as a produced"
+                                        " output by any providers" % name)
         values = []
         for provider in providers:
             if provider.name is _TRANSIENT_PROVIDER:
@@ -839,11 +842,13 @@ class Storage(object):
             """Gets the results saved for a given provider."""
             try:
                 return self._get(provider.name, only_last=True)
-            except exceptions.NotFound as e:
-                raise exceptions.NotFound(
-                    "Expected to be able to find output %r produced"
-                    " by %s but was unable to get at that providers"
-                    " results" % (looking_for, provider), e)
+            except exceptions.NotFound:
+                exceptions.raise_with_cause(exceptions.NotFound,
+                                            "Expected to be able to find"
+                                            " output %r produced by %s but was"
+                                            " unable to get at that providers"
+                                            " results" % (looking_for,
+                                                          provider))
 
         def _locate_providers(looking_for, possible_providers,
                               scope_walker=None):
