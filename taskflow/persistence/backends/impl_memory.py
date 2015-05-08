@@ -17,6 +17,7 @@
 
 import contextlib
 import copy
+import itertools
 import posixpath as pp
 
 import six
@@ -196,9 +197,8 @@ class FakeFilesystem(object):
         node = self._fetch_node(path, normalized=True)
         if node is self._root:
             raise ValueError("Can not delete '%s'" % self._root.item)
-        removals = [path]
-        removals.extend(child.metadata['path'] for child in node.bfs_iter())
-        for path in removals:
+        child_gen = (child.metadata['path'] for child in node.bfs_iter())
+        for path in itertools.chain([path], child_gen):
             self._reverse_mapping.pop(path, None)
         node.disassociate()
 
