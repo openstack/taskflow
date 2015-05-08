@@ -448,7 +448,12 @@ class TaskDetail(AtomDetail):
     def copy(self):
         """Copies/clones this task detail."""
         clone = copy.copy(self)
-        clone.results = copy.copy(self.results)
+        # Just directly assign to the clone (do **not** copy).
+        #
+        # See: https://bugs.launchpad.net/taskflow/+bug/1452978 for
+        # what happens if this is cloned/copied (even using copy.copy to
+        # try to do a shallow copy).
+        clone.results = self.results
         if self.meta:
             clone.meta = self.meta.copy()
         if self.version:
