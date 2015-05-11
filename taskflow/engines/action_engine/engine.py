@@ -66,6 +66,13 @@ class ActionEngine(base.Engine):
     """
     _compiler_factory = compiler.PatternCompiler
 
+    NO_RERAISING_STATES = frozenset([states.SUSPENDED, states.SUCCESS])
+    """
+    States that if the engine stops in will **not** cause any potential
+    failures to be reraised. States **not** in this list will cause any
+    failure/s that were captured (if any) to get reraised.
+    """
+
     def __init__(self, flow, flow_detail, backend, options):
         super(ActionEngine, self).__init__(flow, flow_detail, backend, options)
         self._runtime = None
@@ -178,7 +185,7 @@ class ActionEngine(base.Engine):
                 ignorable_states = getattr(runner, 'ignorable_states', [])
                 if last_state and last_state not in ignorable_states:
                     self._change_state(last_state)
-                    if last_state not in [states.SUSPENDED, states.SUCCESS]:
+                    if last_state not in self.NO_RERAISING_STATES:
                         failures = self.storage.get_failures()
                         failure.Failure.reraise_if_any(failures.values())
 
