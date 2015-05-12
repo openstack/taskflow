@@ -115,6 +115,11 @@ class ThreadPoolExecutor(_thread.ThreadPoolExecutor):
             super(ThreadPoolExecutor, self).submit)
 
     @property
+    def max_workers(self):
+        """The max number of workers that this executor will ever have."""
+        return self._max_workers
+
+    @property
     def statistics(self):
         """:class:`.ExecutorStatistics` about the executors executions."""
         return self._gatherer.statistics
@@ -152,6 +157,11 @@ class ProcessPoolExecutor(_process.ProcessPoolExecutor):
     def alive(self):
         """Accessor to determine if the executor is alive/active."""
         return not self._shutdown_thread
+
+    @property
+    def max_workers(self):
+        """The max number of workers that this executor will ever have."""
+        return self._max_workers
 
     @property
     def statistics(self):
