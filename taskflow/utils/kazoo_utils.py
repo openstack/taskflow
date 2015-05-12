@@ -109,13 +109,7 @@ def checked_commit(txn):
 def finalize_client(client):
     """Stops and closes a client, even if it wasn't started."""
     client.stop()
-    try:
-        client.close()
-    except TypeError:
-        # NOTE(harlowja): https://github.com/python-zk/kazoo/issues/167
-        #
-        # This can be removed after that one is fixed/merged.
-        pass
+    client.close()
 
 
 def check_compatible(client, min_version=None, max_version=None):
