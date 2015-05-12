@@ -437,38 +437,6 @@ def get_duplicate_keys(iterable, key=None):
     return duplicates
 
 
-class ListenerStack(object):
-    """Listeners that are deregistered on context manager exit.
-
-    TODO(harlowja): replace this with ``contextlib.ExitStack`` or equivalent
-    in the future (that code is in python3.2+ and in a few backports that
-    provide nearly equivalent functionality). When/if
-    https://review.openstack.org/#/c/164222/ merges we should be able to
-    remove this since listeners are already context managers.
-    """
-
-    def __init__(self, log):
-        self._registered = []
-        self._log = log
-
-    def register(self, listeners):
-        for listener in listeners:
-            listener.register()
-            self._registered.append(listener)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, tb):
-        while self._registered:
-            listener = self._registered.pop()
-            try:
-                listener.deregister()
-            except Exception:
-                self._log.warn("Failed deregistering listener '%s'",
-                               listener, exc_info=True)
-
-
 class ExponentialBackoff(object):
     """An iterable object that will yield back an exponential delay sequence.
 

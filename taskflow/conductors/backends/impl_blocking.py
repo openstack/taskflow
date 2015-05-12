@@ -12,6 +12,11 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+try:
+    from contextlib import ExitStack  # noqa
+except ImportError:
+    from contextlib2 import ExitStack  # noqa
+
 from debtcollector import removals
 import six
 
@@ -21,7 +26,6 @@ from taskflow.listeners import logging as logging_listener
 from taskflow import logging
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
-from taskflow.utils import misc
 from taskflow.utils import threading_utils
 
 LOG = logging.getLogger(__name__)
@@ -97,8 +101,9 @@ class BlockingConductor(base.Conductor):
     def _dispatch_job(self, job):
         engine = self._engine_from_job(job)
         listeners = self._listeners_from_job(job, engine)
-        with misc.ListenerStack(LOG) as stack:
-            stack.register(listeners)
+        with ExitStack() as stack:
+            for listener in listeners:
+                stack.enter_context(listener)
             LOG.debug("Dispatching engine %s for job: %s", engine, job)
             consume = True
             try:
