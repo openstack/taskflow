@@ -16,17 +16,13 @@ zake>=0.1.6 # Apache-2.0
 kazoo>=1.3.1,!=2.1
 
 # Used for testing database persistence backends.
-#
-# NOTE(harlowja): SQLAlchemy isn't listed here currently but is
-# listed in our tox.ini files so that we can test multiple varying SQLAlchemy
-# versions to ensure a wider range of compatibility.
-#
-# Explict mysql drivers are also not listed here so that we can test against
-# PyMySQL or MySQL-python depending on the python version the tests are being
-# ran in (MySQL-python is currently preferred for 2.x environments, since
-# it has been used in openstack for the longest).
+SQLAlchemy>=0.9.7,<=0.9.99
 alembic>=0.7.2
 psycopg2
+PyMySQL>=0.6.2
+
+# Used for making sure we still work with eventlet.
+eventlet>=0.17.3
 
 # Docs build jobs need these packages.
 sphinx>=1.1.2,!=1.2.0,!=1.3b1,<1.3
