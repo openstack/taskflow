@@ -80,6 +80,9 @@ class FakeFilesystem(object):
                              " valid" % (cls.root_path, path))
         return pp.normpath(path)
 
+    #: Split a pathname into a tuple of ``(head, tail)``.
+    split = staticmethod(pp.split)
+
     @staticmethod
     def join(*pieces):
         """Join many path segments together."""
@@ -217,7 +220,7 @@ class FakeFilesystem(object):
         """Link the destionation path to the source path."""
         dest_path = self.normpath(dest_path)
         src_path = self.normpath(src_path)
-        dirname, basename = pp.split(dest_path)
+        dirname, basename = self.split(dest_path)
         parent_node = self._fetch_node(dirname, normalized=True)
         child_node = parent_node.find(basename,
                                       only_direct=True,
@@ -236,7 +239,7 @@ class FakeFilesystem(object):
             item_node = self._fetch_node(path, normalized=True)
             item_node.metadata.update(value=value)
         except exc.NotFound:
-            dirname, basename = pp.split(path)
+            dirname, basename = self.split(path)
             parent_node = self._fetch_node(dirname, normalized=True)
             self._insert_child(parent_node, basename, value=value)
 
