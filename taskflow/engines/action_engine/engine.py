@@ -312,7 +312,7 @@ class _ExecutorTextMatch(collections.namedtuple('_ExecutorTextMatch',
 class ParallelActionEngine(ActionEngine):
     """Engine that runs tasks in parallel manner.
 
-    Supported keyword arguments:
+    Supported option keys:
 
     * ``executor``: a object that implements a :pep:`3148` compatible executor
       interface; it will be used for scheduling tasks. The following
