@@ -138,12 +138,12 @@ class FakeFilesystem(object):
     def get(self, path, default=None):
         """Fetch the value of given path (and return default if not found)."""
         try:
-            return self._get_item(path)
+            return self._get_item(self.normpath(path))
         except exc.NotFound:
             return default
 
     def _get_item(self, path, links=None):
-        node = self._fetch_node(path)
+        node = self._fetch_node(path, normalized=True)
         if 'target' in node.metadata:
             # Follow the link (and watch out for loops)...
             path = node.metadata['target']
@@ -227,7 +227,7 @@ class FakeFilesystem(object):
         child_node.metadata['target'] = src_path
 
     def __getitem__(self, path):
-        return self._get_item(path)
+        return self._get_item(self.normpath(path))
 
     def __setitem__(self, path, value):
         path = self.normpath(path)
