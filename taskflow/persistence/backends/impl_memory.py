@@ -20,6 +20,7 @@ import copy
 import itertools
 import posixpath as pp
 
+from debtcollector import removals
 import fasteners
 import six
 
@@ -166,13 +167,63 @@ class FakeFilesystem(object):
         else:
             return self._copier(node.metadata['value'])
 
-    def ls(self, path, recursive=False):
-        """Return list of all children of the given path."""
-        if not recursive:
-            return [node.item for node in self._fetch_node(path)]
+    def _up_to_root_selector(self, root_node, child_node):
+        # Build the path from the child to the root and stop at the
+        # root, and then form a path string...
+        path_pieces = [child_node.item]
+        for parent_node in child_node.path_iter(include_self=False):
+            if parent_node is root_node:
+                break
+            path_pieces.append(parent_node.item)
+        if len(path_pieces) > 1:
+            path_pieces.reverse()
+        return self.join(*path_pieces)
+
+    @staticmethod
+    def _metadata_path_selector(root_node, child_node):
+        return child_node.metadata['path']
+
+    def ls_r(self, path, absolute=False):
+        """Return list of all children of the given path (recursively)."""
+        node = self._fetch_node(path)
+        if absolute:
+            selector_func = self._metadata_path_selector
         else:
-            node = self._fetch_node(path)
-            return [child.metadata['path'] for child in node.bfs_iter()]
+            selector_func = self._up_to_root_selector
+        return [selector_func(node, child_node)
+                for child_node in node.bfs_iter()]
+
+    @removals.removed_kwarg('recursive', version="0.11", removal_version="?")
+    def ls(self, path, recursive=False):
+        """Return list of all children of the given path.
+
+        NOTE(harlowja): if ``recursive`` is passed in as truthy then the
+        absolute path is **always** returned (not the relative path). If
+        ``recursive`` is left as the default or falsey then the
+        relative path is **always** returned.
+
+        This is documented in bug `1458114`_ and the existing behavior is
+        being maintained, to get a recursive version that is absolute (or is
+        not absolute) it is recommended to use the :py:meth:`.ls_r` method
+        instead.
+
+        .. deprecated:: 0.11
+
+          In a future release the ``recursive`` keyword argument will
+          be removed (so preferring and moving to the :py:meth:`.ls_r` should
+          occur earlier rather than later).
+
+        .. _1458114: https://bugs.launchpad.net/taskflow/+bug/1458114
+        """
+        node = self._fetch_node(path)
+        if recursive:
+            selector_func = self._metadata_path_selector
+            child_node_it = node.bfs_iter()
+        else:
+            selector_func = self._up_to_root_selector
+            child_node_it = iter(node)
+        return [selector_func(node, child_node)
+                for child_node in child_node_it]
 
     def clear(self):
         """Remove all nodes (except the root) from this filesystem."""
