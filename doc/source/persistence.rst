@@ -283,6 +283,10 @@ Interfaces
 
 .. automodule:: taskflow.persistence.backends
 .. automodule:: taskflow.persistence.base
+
+Models
+======
+
 .. automodule:: taskflow.persistence.logbook
 
 Implementations
