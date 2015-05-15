@@ -283,6 +283,7 @@ Interfaces
 
 .. automodule:: taskflow.persistence.backends
 .. automodule:: taskflow.persistence.base
+.. automodule:: taskflow.persistence.path_based
 
 Models
 ======
