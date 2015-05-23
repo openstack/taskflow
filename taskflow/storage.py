@@ -16,6 +16,7 @@
 
 import contextlib
 
+import fasteners
 from oslo_utils import reflection
 from oslo_utils import uuidutils
 import six
@@ -28,7 +29,6 @@ from taskflow import retry
 from taskflow import states
 from taskflow import task
 from taskflow.types import failure
-from taskflow.utils import lock_utils
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -150,7 +150,7 @@ class Storage(object):
         self._flowdetail = flow_detail
         self._transients = {}
         self._injected_args = {}
-        self._lock = lock_utils.ReaderWriterLock()
+        self._lock = fasteners.ReaderWriterLock()
         self._ensure_matchers = [
             ((task.BaseTask,), self._ensure_task),
             ((retry.Retry,), self._ensure_retry),
@@ -334,46 +334,46 @@ class Storage(object):
         original_atom_detail.update(conn.update_atom_details(atom_detail))
         return original_atom_detail
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_atom_uuid(self, atom_name):
         """Gets an atoms uuid given a atoms name."""
         source, _clone = self._atomdetail_by_name(atom_name)
         return source.uuid
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def set_atom_state(self, atom_name, state):
         """Sets an atoms state."""
         source, clone = self._atomdetail_by_name(atom_name, clone=True)
         clone.state = state
         self._with_connection(self._save_atom_detail, source, clone)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_atom_state(self, atom_name):
         """Gets the state of an atom given an atoms name."""
         source, _clone = self._atomdetail_by_name(atom_name)
         return source.state
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def set_atom_intention(self, atom_name, intention):
         """Sets the intention of an atom given an atoms name."""
         source, clone = self._atomdetail_by_name(atom_name, clone=True)
         clone.intention = intention
         self._with_connection(self._save_atom_detail, source, clone)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_atom_intention(self, atom_name):
         """Gets the intention of an atom given an atoms name."""
         source, _clone = self._atomdetail_by_name(atom_name)
         return source.intention
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_atoms_states(self, atom_names):
         """Gets all atoms states given a set of names."""
         return dict((name, (self.get_atom_state(name),
                             self.get_atom_intention(name)))
                     for name in atom_names)
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def _update_atom_metadata(self, atom_name, update_with,
                               expected_type=None):
         source, clone = self._atomdetail_by_name(atom_name,
@@ -417,7 +417,7 @@ class Storage(object):
         self._update_atom_metadata(task_name, update_with,
                                    expected_type=logbook.TaskDetail)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_task_progress(self, task_name):
         """Get the progress of a task given a tasks name.
 
@@ -431,7 +431,7 @@ class Storage(object):
         except KeyError:
             return 0.0
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_task_progress_details(self, task_name):
         """Get the progress details of a task given a tasks name.
 
@@ -463,7 +463,7 @@ class Storage(object):
                 LOG.warning("Atom %s did not supply result "
                             "with index %r (name %s)", atom_name, index, name)
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def save(self, atom_name, data, state=states.SUCCESS):
         """Put result for atom with id 'uuid' to storage."""
         source, clone = self._atomdetail_by_name(atom_name, clone=True)
@@ -477,7 +477,7 @@ class Storage(object):
         else:
             self._check_all_results_provided(result.name, data)
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def save_retry_failure(self, retry_name, failed_atom_name, failure):
         """Save subflow failure to retry controller history."""
         source, clone = self._atomdetail_by_name(
@@ -493,7 +493,7 @@ class Storage(object):
                 failures[failed_atom_name] = failure
                 self._with_connection(self._save_atom_detail, source, clone)
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def cleanup_retry_history(self, retry_name, state):
         """Cleanup history of retry atom with given name."""
         source, clone = self._atomdetail_by_name(
@@ -502,7 +502,7 @@ class Storage(object):
         clone.results = []
         self._with_connection(self._save_atom_detail, source, clone)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def _get(self, atom_name, only_last=False):
         source, _clone = self._atomdetail_by_name(atom_name)
         if source.failure is not None:
@@ -525,7 +525,7 @@ class Storage(object):
         """Gets the results for an atom with a given name from storage."""
         return self._get(atom_name)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_failures(self):
         """Get list of failures that happened with this flow.
 
@@ -537,7 +537,7 @@ class Storage(object):
         """Returns True if there are failed tasks in the storage."""
         return bool(self._failures)
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def reset(self, atom_name, state=states.PENDING):
         """Reset atom with given name (if the atom is not in a given state)."""
         if atom_name == self.injector_name:
@@ -605,7 +605,7 @@ class Storage(object):
             else:
                 save_persistent()
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def inject(self, pairs, transient=False):
         """Add values into storage.
 
@@ -682,7 +682,7 @@ class Storage(object):
                 if provider not in entries:
                     entries.append(provider)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def fetch(self, name, many_handler=None):
         """Fetch a named result."""
         def _many_handler(values):
@@ -717,7 +717,7 @@ class Storage(object):
         else:
             return many_handler(values)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def fetch_unsatisfied_args(self, atom_name, args_mapping,
                                scope_walker=None, optional_args=None):
         """Fetch unsatisfied atom arguments using an atoms argument mapping.
@@ -803,7 +803,7 @@ class Storage(object):
                 missing.discard(bound_name)
         return missing
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def fetch_all(self, many_handler=None):
         """Fetch all named results known so far."""
         def _many_handler(values):
@@ -820,7 +820,7 @@ class Storage(object):
                 pass
         return results
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def fetch_mapped_args(self, args_mapping,
                           atom_name=None, scope_walker=None,
                           optional_args=None):
@@ -934,14 +934,14 @@ class Storage(object):
                             bound_name, name, value, provider)
         return mapped_args
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def set_flow_state(self, state):
         """Set flow details state and save it."""
         source, clone = self._fetch_flowdetail(clone=True)
         clone.state = state
         self._with_connection(self._save_flow_detail, source, clone)
 
-    @lock_utils.write_locked
+    @fasteners.write_locked
     def update_flow_metadata(self, update_with):
         """Update flowdetails metadata and save it."""
         if update_with:
@@ -949,7 +949,7 @@ class Storage(object):
             clone.meta.update(update_with)
             self._with_connection(self._save_flow_detail, source, clone)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_flow_state(self):
         """Get state from flow details."""
         source = self._flowdetail
@@ -971,14 +971,14 @@ class Storage(object):
                 failure = ad.failure
         return retry.History(ad.results, failure=failure)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_retry_history(self, retry_name):
         """Fetch a single retrys history."""
         source, _clone = self._atomdetail_by_name(
             retry_name, expected_type=logbook.RetryDetail)
         return self._translate_into_history(source)
 
-    @lock_utils.read_locked
+    @fasteners.read_locked
     def get_retry_histories(self):
         """Fetch all retrys histories."""
         histories = []
