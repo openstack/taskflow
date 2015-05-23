@@ -60,6 +60,12 @@ class DirBackend(path_based.PathBasedBackend):
         }
     """
 
+    DEFAULT_FILE_ENCODING = 'utf-8'
+    """
+    Default encoding used when decoding or encoding files into or from
+    text/unicode into binary or binary into text/unicode.
+    """
+
     def __init__(self, conf):
         super(DirBackend, self).__init__(conf)
         max_cache_size = self._conf.get('max_cache_size')
@@ -71,7 +77,7 @@ class DirBackend(path_based.PathBasedBackend):
             self.file_cache = cachetools.LRUCache(max_cache_size)
         else:
             self.file_cache = {}
-        self.encoding = self._conf.get('encoding', 'utf-8')
+        self.encoding = self._conf.get('encoding', self.DEFAULT_FILE_ENCODING)
         if not self._path:
             raise ValueError("Empty path is disallowed")
         self._path = os.path.abspath(self._path)
