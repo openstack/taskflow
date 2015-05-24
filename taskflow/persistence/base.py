@@ -36,12 +36,10 @@ class Backend(object):
     @abc.abstractmethod
     def get_connection(self):
         """Return a Connection instance based on the configuration settings."""
-        pass
 
     @abc.abstractmethod
     def close(self):
         """Closes any resources this backend has open."""
-        pass
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -51,22 +49,18 @@ class Connection(object):
     @abc.abstractproperty
     def backend(self):
         """Returns the backend this connection is associated with."""
-        pass
 
     @abc.abstractmethod
     def close(self):
         """Closes any resources this connection has open."""
-        pass
 
     @abc.abstractmethod
     def upgrade(self):
         """Migrate the persistence backend to the most recent version."""
-        pass
 
     @abc.abstractmethod
     def clear_all(self):
         """Clear all entries from this backend."""
-        pass
 
     @abc.abstractmethod
     def validate(self):
@@ -76,7 +70,6 @@ class Connection(object):
         backend specific exception should be raised that will indicate why the
         failure occurred.
         """
-        pass
 
     @abc.abstractmethod
     def update_atom_details(self, atom_detail):
@@ -86,7 +79,6 @@ class Connection(object):
         been created by saving a flow details with the given atom detail inside
         of it.
         """
-        pass
 
     @abc.abstractmethod
     def update_flow_details(self, flow_detail):
@@ -96,47 +88,38 @@ class Connection(object):
         been created by saving a logbook with the given flow detail inside
         of it.
         """
-        pass
 
     @abc.abstractmethod
     def save_logbook(self, book):
         """Saves a logbook, and all its contained information."""
-        pass
 
     @abc.abstractmethod
     def destroy_logbook(self, book_uuid):
         """Deletes/destroys a logbook matching the given uuid."""
-        pass
 
     @abc.abstractmethod
     def get_logbook(self, book_uuid, lazy=False):
         """Fetches a logbook object matching the given uuid."""
-        pass
 
     @abc.abstractmethod
     def get_logbooks(self, lazy=False):
         """Return an iterable of logbook objects."""
-        pass
 
     @abc.abstractmethod
     def get_flows_for_book(self, book_uuid):
         """Return an iterable of flowdetails for a given logbook uuid."""
-        pass
 
     @abc.abstractmethod
     def get_flow_details(self, fd_uuid, lazy=False):
         """Fetches a flowdetails object matching the given uuid."""
-        pass
 
     @abc.abstractmethod
     def get_atom_details(self, ad_uuid):
         """Fetches a atomdetails object matching the given uuid."""
-        pass
 
     @abc.abstractmethod
     def get_atoms_for_flow(self, fd_uuid):
         """Return an iterable of atomdetails for a given flowdetails uuid."""
-        pass
 
 
 def _format_atom(atom_detail):
