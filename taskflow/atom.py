@@ -28,7 +28,6 @@ from oslo_utils import reflection
 import six
 from six.moves import zip as compat_zip
 
-from taskflow import exceptions
 from taskflow.types import sets
 from taskflow.utils import misc
 
@@ -162,10 +161,6 @@ class Atom(object):
     some action that furthers the overall flows progress. It usually also
     produces some of its own named output as a result of this process.
 
-    NOTE(harlowja): there can be no intersection between what this atom
-    requires and what it produces (since this would be an impossible
-    dependency to satisfy).
-
     :param name: Meaningful name for this atom, should be something that is
                  distinguishable and understandable for notification,
                  debugging, storing and any other similar purposes.
@@ -229,12 +224,6 @@ class Atom(object):
             inject_keys = frozenset(six.iterkeys(self.inject))
             self.requires -= inject_keys
             self.optional -= inject_keys
-        out_of_order = self.provides.intersection(self.requires)
-        if out_of_order:
-            raise exceptions.DependencyFailure(
-                "Atom %(item)s provides %(oo)s that are required "
-                "by this atom"
-                % dict(item=self.name, oo=sorted(out_of_order)))
 
     @abc.abstractmethod
     def execute(self, *args, **kwargs):
