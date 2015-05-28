@@ -204,10 +204,10 @@ class _MachineBuilder(object):
             LOG.debug("Entering new state '%s' in response to event '%s'",
                       new_state, event)
 
-        # NOTE(harlowja): when ran in debugging mode it is quite useful
+        # NOTE(harlowja): when ran in blather mode it is quite useful
         # to track the various state transitions as they happen...
         watchers = {}
-        if LOG.isEnabledFor(logging.DEBUG):
+        if LOG.isEnabledFor(logging.BLATHER):
             watchers['on_exit'] = on_exit
             watchers['on_enter'] = on_enter
 
