@@ -89,6 +89,13 @@ class DummyTask(task.Task):
         pass
 
 
+class AddOneSameProvidesRequires(task.Task):
+    default_provides = 'value'
+
+    def execute(self, value):
+        return value + 1
+
+
 class AddOne(task.Task):
     default_provides = 'result'
 
