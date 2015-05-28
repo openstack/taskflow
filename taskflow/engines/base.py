@@ -93,12 +93,25 @@ class Engine(object):
         """
 
     @abc.abstractmethod
+    def reset(self):
+        """Reset back to the ``PENDING`` state.
+
+        If a flow had previously ended up (from a prior engine
+        :py:func:`.run`) in the ``FAILURE``, ``SUCCESS`` or ``REVERTED``
+        states (or for some reason it ended up in an intermediary state) it
+        can be desireable to make it possible to run it again. Calling this
+        method enables that to occur (without causing a state transition
+        failure, which would typically occur if :py:meth:`.run` is called
+        directly without doing a reset).
+        """
+
+    @abc.abstractmethod
     def prepare(self):
         """Performs any pre-run, but post-compilation actions.
 
         NOTE(harlowja): During preparation it is currently assumed that the
         underlying storage will be initialized, the atoms will be reset and
-        the engine will enter the PENDING state.
+        the engine will enter the ``PENDING`` state.
         """
 
     @abc.abstractmethod

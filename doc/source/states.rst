@@ -50,10 +50,11 @@ Flow
    :align: center
    :alt: Flow state transitions
 
-**PENDING** - A flow starts its execution lifecycle in this state (it has no
-state prior to being ran by an engine, since flow(s) are just pattern(s)
-that define the semantics and ordering of their contents and flows gain
-state only when they are executed).
+**PENDING** - A flow starts (or
+via :py:meth:`~taskflow.engines.base.Engine.reset`) its execution lifecycle
+in this state (it has no state prior to being ran by an engine, since
+flow(s) are just pattern(s) that define the semantics and ordering of their
+contents and flows gain state only when they are executed).
 
 **RUNNING** - In this state the engine running a flow progresses through the
 flow.
