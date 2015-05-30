@@ -75,6 +75,9 @@ class FakeFilesystem(object):
     @classmethod
     def normpath(cls, path):
         """Return a normalized absolutized version of the pathname path."""
+        if not path:
+            raise ValueError("This filesystem can only normalize paths"
+                             " that are not empty")
         if not path.startswith(cls.root_path):
             raise ValueError("This filesystem can only normalize"
                              " paths that start with %s: '%s' is not"

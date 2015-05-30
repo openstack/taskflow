@@ -128,6 +128,12 @@ class MemoryFilesystemTest(test.TestCase):
         fs = impl_memory.FakeFilesystem()
         self.assertRaises(exc.NotFound, self._get_item_path, fs, '/c')
 
+    def test_bad_norms(self):
+        fs = impl_memory.FakeFilesystem()
+        self.assertRaises(ValueError, fs.normpath, '')
+        self.assertRaises(ValueError, fs.normpath, 'abc/c')
+        self.assertRaises(ValueError, fs.normpath, '../c')
+
     def test_del_root_not_allowed(self):
         fs = impl_memory.FakeFilesystem()
         self.assertRaises(ValueError, self._del_item_path, fs, '/')
