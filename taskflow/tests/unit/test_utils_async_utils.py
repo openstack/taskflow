@@ -74,13 +74,6 @@ class MakeCompletedFutureTest(test.TestCase):
         self.assertTrue(future.done())
         self.assertIs(future.result(), result)
 
-    def test_make_completed_future_exception(self):
-        result = IOError("broken")
-        future = au.make_completed_future(result, exception=True)
-        self.assertTrue(future.done())
-        self.assertRaises(IOError, future.result)
-        self.assertIsNotNone(future.exception())
-
 
 class AsyncUtilsSynchronousTest(test.TestCase,
                                 WaitForAnyTestsMixin):
