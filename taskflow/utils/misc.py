@@ -124,21 +124,29 @@ def reverse_enumerate(items):
 def merge_uri(uri, conf):
     """Merges a parsed uri into the given configuration dictionary.
 
-    Merges the username, password, hostname, and query params of a uri into
-    the given configuration (it does not overwrite the configuration keys if
-    they already exist) and returns the adjusted configuration.
+    Merges the username, password, hostname, port, and query parameters of
+    a URI into the given configuration dictionary (it does **not** overwrite
+    existing configuration keys if they already exist) and returns the merged
+    configuration.
 
     NOTE(harlowja): does not merge the path, scheme or fragment.
     """
-    for (k, v) in [('username', uri.username), ('password', uri.password)]:
-        if not v:
-            continue
-        conf.setdefault(k, v)
-    if uri.hostname:
-        hostname = uri.hostname
-        if uri.port is not None:
-            hostname += ":%s" % (uri.port)
-        conf.setdefault('hostname', hostname)
+    uri_port = uri.port
+    specials = [
+        ('username', uri.username, lambda v: bool(v)),
+        ('password', uri.password, lambda v: bool(v)),
+        # NOTE(harlowja): A different check function is used since 0 is
+        # false (when bool(v) is applied), and that is a valid port...
+        ('port', uri_port, lambda v: v is not None),
+    ]
+    hostname = uri.hostname
+    if hostname:
+        if uri_port is not None:
+            hostname += ":%s" % (uri_port)
+        specials.append(('hostname', hostname, lambda v: bool(v)))
+    for (k, v, is_not_empty_value_func) in specials:
+        if is_not_empty_value_func(v):
+            conf.setdefault(k, v)
     for (k, v) in six.iteritems(uri.params()):
         conf.setdefault(k, v)
     return conf
