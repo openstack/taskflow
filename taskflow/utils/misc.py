@@ -88,14 +88,18 @@ def find_monotonic(allow_time_time=False):
         return None
 
 
-def match_type_handler(item, type_handlers):
-    """Matches a given items type using the given match types + handlers.
+def match_type(obj, matchers):
+    """Matches a given object using the given matchers list/iterable.
 
-    Returns the handler if a type match occurs, otherwise none.
+    NOTE(harlowja): each element of the provided list/iterable must be
+    tuple of (valid types, result).
+
+    Returns the result (the second element of the provided tuple) if a type
+    match occurs, otherwise none if no matches are found.
     """
-    for (match_types, handler_func) in type_handlers:
-        if isinstance(item, match_types):
-            return handler_func
+    for (match_types, match_result) in matchers:
+        if isinstance(obj, match_types):
+            return match_result
     else:
         return None
 

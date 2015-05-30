@@ -152,8 +152,8 @@ class Storage(object):
         self._injected_args = {}
         self._lock = lock_utils.ReaderWriterLock()
         self._ensure_matchers = [
-            ((task.BaseTask,), self._ensure_task),
-            ((retry.Retry,), self._ensure_retry),
+            ((task.BaseTask,), (logbook.TaskDetail, 'Task')),
+            ((retry.Retry,), (logbook.RetryDetail, 'Retry')),
         ]
         if scope_fetcher is None:
             scope_fetcher = lambda atom_name: None
@@ -191,73 +191,47 @@ class Storage(object):
 
         Returns uuid for the atomdetail that is/was created.
         """
-        functor = misc.match_type_handler(atom, self._ensure_matchers)
-        if not functor:
-            raise TypeError("Unknown item '%s' (%s) requested to ensure"
+        match = misc.match_type(atom, self._ensure_matchers)
+        if not match:
+            raise TypeError("Unknown atom '%s' (%s) requested to ensure"
                             % (atom, type(atom)))
         else:
-            return functor(atom.name,
-                           misc.get_version_string(atom),
-                           atom.save_as)
+            detail_cls, kind = match
+            atom_id = self._ensure_atom_detail(kind, detail_cls, atom.name,
+                                               misc.get_version_string(atom),
+                                               atom.save_as)
+            return atom_id
 
-    def _ensure_task(self, task_name, task_version, result_mapping):
-        """Ensures there is a taskdetail that corresponds to the task info.
+    def _ensure_atom_detail(self, kind, detail_cls,
+                            atom_name, atom_version, result_mapping):
+        """Ensures there is a atomdetail that corresponds to the given atom.
 
-        If task does not exist, adds a record for it. Added task will have
-        PENDING state. Sets result mapping for the task from result_mapping
+        If atom does not exist, adds a record for it. Added atom will have
+        PENDING state. Sets result mapping for the atom from result_mapping
         argument.
 
-        Returns uuid for the task details corresponding to the task with
+        Returns uuid for the atomdetails corresponding to the atom with
         given name.
         """
-        if not task_name:
-            raise ValueError("Task name must be non-empty")
+        if not atom_name:
+            raise ValueError("%s name must be non-empty" % (kind))
         with self._lock.write_lock():
             try:
-                task_id = self._atom_name_to_uuid[task_name]
+                atom_id = self._atom_name_to_uuid[atom_name]
             except KeyError:
-                task_id = uuidutils.generate_uuid()
-                self._create_atom_detail(logbook.TaskDetail, task_name,
-                                         task_id, task_version)
+                atom_id = uuidutils.generate_uuid()
+                self._create_atom_detail(detail_cls, atom_name,
+                                         atom_id, atom_version=atom_version)
             else:
-                ad = self._flowdetail.find(task_id)
-                if not isinstance(ad, logbook.TaskDetail):
+                ad = self._flowdetail.find(atom_id)
+                if not isinstance(ad, detail_cls):
                     raise exceptions.Duplicate(
-                        "Atom detail %s already exists in flow detail %s." %
-                        (task_name, self._flowdetail.name))
-            self._set_result_mapping(task_name, result_mapping)
-        return task_id
+                        "Atom detail '%s' already exists in flow"
+                        " detail '%s'" % (atom_name, self._flowdetail.name))
+            self._set_result_mapping(atom_name, result_mapping)
+        return atom_id
 
-    def _ensure_retry(self, retry_name, retry_version, result_mapping):
-        """Ensures there is a retrydetail that corresponds to the retry info.
-
-        If retry does not exist, adds a record for it. Added retry
-        will have PENDING state. Sets result mapping for the retry from
-        result_mapping argument. Initializes retry result as an empty
-        collections of results and failures history.
-
-        Returns uuid for the retry details corresponding to the retry
-        with given name.
-        """
-        if not retry_name:
-            raise ValueError("Retry name must be non-empty")
-        with self._lock.write_lock():
-            try:
-                retry_id = self._atom_name_to_uuid[retry_name]
-            except KeyError:
-                retry_id = uuidutils.generate_uuid()
-                self._create_atom_detail(logbook.RetryDetail, retry_name,
-                                         retry_id, retry_version)
-            else:
-                ad = self._flowdetail.find(retry_id)
-                if not isinstance(ad, logbook.RetryDetail):
-                    raise exceptions.Duplicate(
-                        "Atom detail %s already exists in flow detail %s." %
-                        (retry_name, self._flowdetail.name))
-            self._set_result_mapping(retry_name, result_mapping)
-        return retry_id
-
-    def _create_atom_detail(self, detail_cls, name, uuid, task_version=None):
+    def _create_atom_detail(self, detail_cls, name, uuid, atom_version=None):
         """Add the atom detail to flow detail.
 
         Atom becomes known to storage by that name and uuid.
@@ -265,7 +239,7 @@ class Storage(object):
         """
         ad = detail_cls(name, uuid)
         ad.state = states.PENDING
-        ad.version = task_version
+        ad.version = atom_version
         # Add the atom detail to the clone, which upon success will be
         # updated into the contained flow detail; if it does not get saved
         # then no update will happen.
