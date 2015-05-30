@@ -347,11 +347,9 @@ class TaskExecutor(object):
 
     def start(self):
         """Prepare to execute tasks."""
-        pass
 
     def stop(self):
         """Finalize task executor."""
-        pass
 
 
 class SerialTaskExecutor(TaskExecutor):
