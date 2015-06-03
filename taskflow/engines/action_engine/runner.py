@@ -51,37 +51,47 @@ class _MachineMemory(object):
         self.done = set()
 
 
-class _MachineBuilder(object):
-    """State machine *builder* that the runner uses.
+class Runner(object):
+    """State machine *builder* + *runner* that powers the engine components.
 
-    NOTE(harlowja): the machine states that this build will for are::
+    NOTE(harlowja): the machine (states and events that will trigger
+    transitions) that this builds is represented by the following
+    table::
 
-    +--------------+------------------+------------+----------+---------+
-         Start     |      Event       |    End     | On Enter | On Exit
-    +--------------+------------------+------------+----------+---------+
-       ANALYZING   |    completed     | GAME_OVER  |          |
-       ANALYZING   |  schedule_next   | SCHEDULING |          |
-       ANALYZING   |  wait_finished   |  WAITING   |          |
-       FAILURE[$]  |                  |            |          |
-       GAME_OVER   |      failed      |  FAILURE   |          |
-       GAME_OVER   |     reverted     |  REVERTED  |          |
-       GAME_OVER   |     success      |  SUCCESS   |          |
-       GAME_OVER   |    suspended     | SUSPENDED  |          |
-        RESUMING   |  schedule_next   | SCHEDULING |          |
-      REVERTED[$]  |                  |            |          |
-       SCHEDULING  |  wait_finished   |  WAITING   |          |
-       SUCCESS[$]  |                  |            |          |
-      SUSPENDED[$] |                  |            |          |
-      UNDEFINED[^] |      start       |  RESUMING  |          |
-        WAITING    | examine_finished | ANALYZING  |          |
-    +--------------+------------------+------------+----------+---------+
+        +--------------+------------------+------------+----------+---------+
+             Start     |      Event       |    End     | On Enter | On Exit
+        +--------------+------------------+------------+----------+---------+
+           ANALYZING   |    completed     | GAME_OVER  |          |
+           ANALYZING   |  schedule_next   | SCHEDULING |          |
+           ANALYZING   |  wait_finished   |  WAITING   |          |
+           FAILURE[$]  |                  |            |          |
+           GAME_OVER   |      failed      |  FAILURE   |          |
+           GAME_OVER   |     reverted     |  REVERTED  |          |
+           GAME_OVER   |     success      |  SUCCESS   |          |
+           GAME_OVER   |    suspended     | SUSPENDED  |          |
+            RESUMING   |  schedule_next   | SCHEDULING |          |
+          REVERTED[$]  |                  |            |          |
+           SCHEDULING  |  wait_finished   |  WAITING   |          |
+           SUCCESS[$]  |                  |            |          |
+          SUSPENDED[$] |                  |            |          |
+          UNDEFINED[^] |      start       |  RESUMING  |          |
+            WAITING    | examine_finished | ANALYZING  |          |
+        +--------------+------------------+------------+----------+---------+
 
     Between any of these yielded states (minus ``GAME_OVER`` and ``UNDEFINED``)
     if the engine has been suspended or the engine has failed (due to a
     non-resolveable task failure or scheduling failure) the machine will stop
     executing new tasks (currently running tasks will be allowed to complete)
     and this machines run loop will be broken.
+
+    NOTE(harlowja): If the runtimes scheduler component is able to schedule
+    tasks in parallel, this enables parallel running and/or reversion.
     """
+
+    # Informational states this action yields while running, not useful to
+    # have the engine record but useful to provide to end-users when doing
+    # execution iterations.
+    ignorable_states = (st.SCHEDULING, st.WAITING, st.RESUMING, st.ANALYZING)
 
     def __init__(self, runtime, waiter):
         self._analyzer = runtime.analyzer
@@ -91,9 +101,12 @@ class _MachineBuilder(object):
         self._waiter = waiter
 
     def runnable(self):
+        """Checks if the storage says the flow is still runnable/running."""
         return self._storage.get_flow_state() == st.RUNNING
 
     def build(self, timeout=None):
+        """Builds a state-machine (that can be/is used during running)."""
+
         memory = _MachineMemory()
         if timeout is None:
             timeout = _WAITING_TIMEOUT
@@ -244,38 +257,9 @@ class _MachineBuilder(object):
         m.freeze()
         return (m, memory)
 
-
-class Runner(object):
-    """Runner that iterates while executing nodes using the given runtime.
-
-    This runner acts as the action engine run loop/state-machine, it resumes
-    the workflow, schedules all task it can for execution using the runtimes
-    scheduler and analyzer components, and than waits on returned futures and
-    then activates the runtimes completion component to finish up those tasks
-    and so on...
-
-    NOTE(harlowja): If the runtimes scheduler component is able to schedule
-    tasks in parallel, this enables parallel running and/or reversion.
-    """
-
-    # Informational states this action yields while running, not useful to
-    # have the engine record but useful to provide to end-users when doing
-    # execution iterations.
-    ignorable_states = (st.SCHEDULING, st.WAITING, st.RESUMING, st.ANALYZING)
-
-    def __init__(self, runtime, waiter):
-        self._builder = _MachineBuilder(runtime, waiter)
-
-    @property
-    def builder(self):
-        return self._builder
-
-    def runnable(self):
-        return self._builder.runnable()
-
     def run_iter(self, timeout=None):
-        """Runs the nodes using a built state machine."""
-        machine, memory = self.builder.build(timeout=timeout)
+        """Runs iteratively using a locally built state machine."""
+        machine, memory = self.build(timeout=timeout)
         for (_prior_state, new_state) in machine.run_iter(_START):
             # NOTE(harlowja): skip over meta-states.
             if new_state not in _META_STATES:

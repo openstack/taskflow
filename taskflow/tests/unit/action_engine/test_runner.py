@@ -174,7 +174,7 @@ class RunnerTest(test.TestCase, _RunnerTestMixin):
                          rt.storage.get_atom_state(sad_tasks[0].name))
 
 
-class RunnerBuilderTest(test.TestCase, _RunnerTestMixin):
+class RunnerBuildTest(test.TestCase, _RunnerTestMixin):
     def test_builder_manual_process(self):
         flow = lf.Flow("root")
         tasks = test_utils.make_many(
@@ -182,8 +182,8 @@ class RunnerBuilderTest(test.TestCase, _RunnerTestMixin):
         flow.add(*tasks)
 
         rt = self._make_runtime(flow, initial_state=st.RUNNING)
-        machine, memory = rt.runner.builder.build()
-        self.assertTrue(rt.runner.builder.runnable())
+        machine, memory = rt.runner.build()
+        self.assertTrue(rt.runner.runnable())
         self.assertRaises(fsm.NotInitialized, machine.process_event, 'poke')
 
         # Should now be pending...
@@ -251,8 +251,8 @@ class RunnerBuilderTest(test.TestCase, _RunnerTestMixin):
         flow.add(*tasks)
 
         rt = self._make_runtime(flow, initial_state=st.RUNNING)
-        machine, memory = rt.runner.builder.build()
-        self.assertTrue(rt.runner.builder.runnable())
+        machine, memory = rt.runner.build()
+        self.assertTrue(rt.runner.runnable())
 
         transitions = list(machine.run_iter('start'))
         self.assertEqual((runner._UNDEFINED, st.RESUMING), transitions[0])
@@ -265,8 +265,8 @@ class RunnerBuilderTest(test.TestCase, _RunnerTestMixin):
         flow.add(*tasks)
 
         rt = self._make_runtime(flow, initial_state=st.RUNNING)
-        machine, memory = rt.runner.builder.build()
-        self.assertTrue(rt.runner.builder.runnable())
+        machine, memory = rt.runner.build()
+        self.assertTrue(rt.runner.runnable())
 
         transitions = list(machine.run_iter('start'))
         self.assertEqual((runner._GAME_OVER, st.FAILURE), transitions[-1])
@@ -278,8 +278,8 @@ class RunnerBuilderTest(test.TestCase, _RunnerTestMixin):
         flow.add(*tasks)
 
         rt = self._make_runtime(flow, initial_state=st.RUNNING)
-        machine, memory = rt.runner.builder.build()
-        self.assertTrue(rt.runner.builder.runnable())
+        machine, memory = rt.runner.build()
+        self.assertTrue(rt.runner.runnable())
 
         transitions = list(machine.run_iter('start'))
         self.assertEqual((runner._GAME_OVER, st.REVERTED), transitions[-1])
@@ -292,7 +292,7 @@ class RunnerBuilderTest(test.TestCase, _RunnerTestMixin):
         flow.add(*tasks)
 
         rt = self._make_runtime(flow, initial_state=st.RUNNING)
-        machine, memory = rt.runner.builder.build()
+        machine, memory = rt.runner.build()
         transitions = list(machine.run_iter('start'))
 
         occurrences = dict((t, transitions.count(t)) for t in transitions)
