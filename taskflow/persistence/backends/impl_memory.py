@@ -20,12 +20,12 @@ import copy
 import itertools
 import posixpath as pp
 
+import fasteners
 import six
 
 from taskflow import exceptions as exc
 from taskflow.persistence import path_based
 from taskflow.types import tree
-from taskflow.utils import lock_utils
 
 
 class FakeInode(tree.Node):
@@ -264,7 +264,7 @@ class MemoryBackend(path_based.PathBasedBackend):
             self._path = pp.sep
         self.memory = FakeFilesystem(deep_copy=self._conf.get('deep_copy',
                                                               True))
-        self.lock = lock_utils.ReaderWriterLock()
+        self.lock = fasteners.ReaderWriterLock()
 
     def get_connection(self):
         return Connection(self)

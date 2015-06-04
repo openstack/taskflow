@@ -16,6 +16,9 @@ six>=1.9.0
 # Enum library made for <= python 3.3
 enum34
 
+# For reader/writer + interprocess locks.
+fasteners>=0.5 # Apache-2.0
+
 # Very nice graph library
 networkx>=1.8
 
