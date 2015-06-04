@@ -15,11 +15,11 @@
 import abc
 import threading
 
+import fasteners
 import six
 
 from taskflow import engines
 from taskflow import exceptions as excp
-from taskflow.utils import lock_utils
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -109,13 +109,13 @@ class Conductor(object):
         #                listener factories over the jobboard
         return []
 
-    @lock_utils.locked
+    @fasteners.locked
     def connect(self):
         """Ensures the jobboard is connected (noop if it is already)."""
         if not self._jobboard.connected:
             self._jobboard.connect()
 
-    @lock_utils.locked
+    @fasteners.locked
     def close(self):
         """Closes the contained jobboard, disallowing further use."""
         self._jobboard.close()

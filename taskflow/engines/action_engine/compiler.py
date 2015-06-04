@@ -17,13 +17,14 @@
 import collections
 import threading
 
+import fasteners
+
 from taskflow import exceptions as exc
 from taskflow import flow
 from taskflow import logging
 from taskflow import task
 from taskflow.types import graph as gr
 from taskflow.types import tree as tr
-from taskflow.utils import lock_utils
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -423,7 +424,7 @@ class PatternCompiler(object):
                 # Indent it so that it's slightly offset from the above line.
                 LOG.blather("  %s", line)
 
-    @lock_utils.locked
+    @fasteners.locked
     def compile(self):
         """Compiles the contained item into a compiled equivalent."""
         if self._compilation is None:

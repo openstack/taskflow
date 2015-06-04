@@ -19,6 +19,7 @@ import contextlib
 import threading
 
 from concurrent import futures
+import fasteners
 import networkx as nx
 from oslo_utils import excutils
 from oslo_utils import strutils
@@ -33,7 +34,6 @@ from taskflow import logging
 from taskflow import states
 from taskflow import storage
 from taskflow.types import failure
-from taskflow.utils import lock_utils
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -125,7 +125,7 @@ class ActionEngine(base.Engine):
                                scope_fetcher=_scope_fetcher)
 
     def run(self):
-        with lock_utils.try_lock(self._lock) as was_locked:
+        with fasteners.try_lock(self._lock) as was_locked:
             if not was_locked:
                 raise exc.ExecutionFailure("Engine currently locked, please"
                                            " try again later")
@@ -214,7 +214,7 @@ class ActionEngine(base.Engine):
                                               node.inject,
                                               transient=transient)
 
-    @lock_utils.locked
+    @fasteners.locked
     def validate(self):
         if not self._storage_ensured:
             raise exc.InvalidState("Can not validate an engine"
@@ -261,7 +261,7 @@ class ActionEngine(base.Engine):
                                               sorted(missing),
                                               cause=last_cause)
 
-    @lock_utils.locked
+    @fasteners.locked
     def prepare(self):
         if not self._compiled:
             raise exc.InvalidState("Can not prepare an engine"
@@ -283,7 +283,7 @@ class ActionEngine(base.Engine):
     def _compiler(self):
         return self._compiler_factory(self._flow)
 
-    @lock_utils.locked
+    @fasteners.locked
     def compile(self):
         if self._compiled:
             return
