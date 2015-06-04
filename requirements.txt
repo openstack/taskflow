@@ -17,7 +17,7 @@ six>=1.9.0
 enum34
 
 # For reader/writer + interprocess locks.
-fasteners>=0.5 # Apache-2.0
+fasteners>=0.5  # Apache-2.0
 
 # Very nice graph library
 networkx>=1.8
