@@ -33,7 +33,7 @@ class TestWorker(test.MockTestCase):
         self.broker_url = 'test-url'
         self.exchange = 'test-exchange'
         self.topic = 'test-topic'
-        self.endpoint_count = 24
+        self.endpoint_count = 25
 
         # patch classes
         self.executor_mock, self.executor_inst_mock = self.patchClass(
