@@ -70,7 +70,7 @@ e.run()
 print("---------")
 print("After run")
 print("---------")
-for path in backend.memory.ls(backend.memory.root_path, recursive=True):
+for path in backend.memory.ls_r(backend.memory.root_path, absolute=True):
     value = backend.memory[path]
     if value:
         print("%s -> %s" % (path, value))
