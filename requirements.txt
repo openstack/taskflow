@@ -23,7 +23,7 @@ fasteners>=0.5  # Apache-2.0
 networkx>=1.8
 
 # For contextlib new additions/compatibility for <= python 3.3
-contextlib2>=0.4.0
+contextlib2>=0.4.0 # PSF License
 
 # Used for backend storage engine loading.
 stevedore>=1.3.0  # Apache-2.0
@@ -32,7 +32,7 @@ stevedore>=1.3.0  # Apache-2.0
 futures>=3.0
 
 # Used for structured input validation
-jsonschema>=2.0.0,<3.0.0
+jsonschema>=2.0.0,<3.0.0,!=2.5.0
 
 # For common utilities
 oslo.utils>=1.4.0                       # Apache-2.0
