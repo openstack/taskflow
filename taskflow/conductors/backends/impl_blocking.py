@@ -56,6 +56,16 @@ class BlockingConductor(base.Conductor):
     upon the jobboard capabilities to automatically abandon these jobs.
     """
 
+    START_FINISH_EVENTS_EMITTED = tuple([
+        'compilation', 'preparation',
+        'validation', 'running',
+    ])
+    """Events will be emitted for the start and finish of each engine
+       activity defined above, the actual event name that can be registered
+       to subscribe to will be ``${event}_start`` and ``${event}_end`` where
+       the ``${event}`` in this pseudo-variable will be one of these events.
+    """
+
     def __init__(self, name, jobboard,
                  persistence=None, engine=None,
                  engine_options=None, wait_timeout=None):
@@ -105,10 +115,24 @@ class BlockingConductor(base.Conductor):
         with ExitStack() as stack:
             for listener in listeners:
                 stack.enter_context(listener)
-            LOG.debug("Dispatching engine %s for job: %s", engine, job)
+            LOG.debug("Dispatching engine for job '%s'", job)
             consume = True
             try:
-                engine.run()
+                for stage_func, event_name in [(engine.compile, 'compilation'),
+                                               (engine.prepare, 'preparation'),
+                                               (engine.validate, 'validation'),
+                                               (engine.run, 'running')]:
+                    self._notifier.notify("%s_start" % event_name, {
+                        'job': job,
+                        'engine': engine,
+                        'conductor': self,
+                    })
+                    stage_func()
+                    self._notifier.notify("%s_end" % event_name, {
+                        'job': job,
+                        'engine': engine,
+                        'conductor': self,
+                    })
             except excp.WrappedFailure as e:
                 if all((f.check(*NO_CONSUME_EXCEPTIONS) for f in e)):
                     consume = False

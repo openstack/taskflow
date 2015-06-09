@@ -34,6 +34,7 @@ from taskflow.patterns import linear_flow as lf
 from taskflow.persistence import backends as persistence_backends
 from taskflow.persistence import logbook
 from taskflow import task
+from taskflow.types import timing
 
 from oslo_utils import uuidutils
 
@@ -61,10 +62,11 @@ HOW_MANY_BOTTLES = 99
 
 
 class TakeABottleDown(task.Task):
-    def execute(self):
+    def execute(self, bottles_left):
         sys.stdout.write('Take one down, ')
         sys.stdout.flush()
         time.sleep(TAKE_DOWN_DELAY)
+        return bottles_left - 1
 
 
 class PassItAround(task.Task):
@@ -82,16 +84,49 @@ class Conclusion(task.Task):
 
 def make_bottles(count):
     s = lf.Flow("bottle-song")
-    for bottle in reversed(list(range(1, count + 1))):
-        take_bottle = TakeABottleDown("take-bottle-%s" % bottle)
+
+    take_bottle = TakeABottleDown("take-bottle-%s" % count,
+                                  inject={'bottles_left': count},
+                                  provides='bottles_left')
+    pass_it = PassItAround("pass-%s-around" % count)
+    next_bottles = Conclusion("next-bottles-%s" % (count - 1))
+    s.add(take_bottle, pass_it, next_bottles)
+
+    for bottle in reversed(list(range(1, count))):
+        take_bottle = TakeABottleDown("take-bottle-%s" % bottle,
+                                      provides='bottles_left')
         pass_it = PassItAround("pass-%s-around" % bottle)
-        next_bottles = Conclusion("next-bottles-%s" % (bottle - 1),
-                                  inject={"bottles_left": bottle - 1})
+        next_bottles = Conclusion("next-bottles-%s" % (bottle - 1))
         s.add(take_bottle, pass_it, next_bottles)
+
     return s
 
 
 def run_conductor():
+    event_watches = {}
+
+    # This will be triggered by the conductor doing various activities
+    # with engines, and is quite nice to be able to see the various timing
+    # segments (which is useful for debugging, or watching, or figuring out
+    # where to optimize).
+    def on_conductor_event(event, details):
+        print("Event '%s' has been received..." % event)
+        print("Details = %s" % details)
+        if event.endswith("_start"):
+            w = timing.StopWatch()
+            w.start()
+            base_event = event[0:-len("_start")]
+            event_watches[base_event] = w
+        if event.endswith("_end"):
+            base_event = event[0:-len("_end")]
+            try:
+                w = event_watches.pop(base_event)
+                w.stop()
+                print("It took %0.3f seconds for event '%s' to finish"
+                      % (w.elapsed(), base_event))
+            except KeyError:
+                pass
+
     print("Starting conductor with pid: %s" % ME)
     my_name = "conductor-%s" % ME
     persist_backend = persistence_backends.fetch(PERSISTENCE_URI)
@@ -104,6 +139,7 @@ def run_conductor():
         with contextlib.closing(job_backend):
             cond = conductor_backends.fetch('blocking', my_name, job_backend,
                                             persistence=persist_backend)
+            cond.notifier.register(cond.notifier.ANY, on_conductor_event)
             # Run forever, and kill -9 or ctrl-c me...
             try:
                 cond.run()
