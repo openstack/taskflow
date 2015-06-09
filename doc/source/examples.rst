@@ -342,3 +342,16 @@ Conductor simulating a CI pipeline
     :language: python
     :linenos:
     :lines: 16-
+
+
+Conductor running 99 bottles of beer song requests
+==================================================
+
+.. note::
+
+    Full source located at :example:`99_bottles`
+
+.. literalinclude:: ../../taskflow/examples/99_bottles.py
+    :language: python
+    :linenos:
+    :lines: 16-
