@@ -95,7 +95,7 @@ def iter_examples():
         name, ext = os.path.splitext(filename)
         if ext != ".py":
             continue
-        if not any(name.endswith(i) for i in ("utils", "no_test")):
+        if not name.endswith('utils'):
             safe_name = safe_filename(name)
             if safe_name:
                 yield name, safe_name
