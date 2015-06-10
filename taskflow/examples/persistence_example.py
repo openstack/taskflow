@@ -31,7 +31,7 @@ sys.path.insert(0, self_dir)
 
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow import task
 from taskflow.utils import persistence_utils as p_utils
 
@@ -94,7 +94,7 @@ with eu.get_backend(backend_uri) as backend:
     # Make a flow that will blow up if the file didn't exist previously, if it
     # did exist, assume we won't blow up (and therefore this shows the undo
     # and redo that a flow will go through).
-    book = logbook.LogBook("my-test")
+    book = models.LogBook("my-test")
     flow = make_flow(blowup=blowup)
     eu.print_wrapped("Running")
     try:

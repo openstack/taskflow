@@ -18,7 +18,7 @@ import abc
 
 import six
 
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -125,5 +125,5 @@ class Connection(object):
 def _format_atom(atom_detail):
     return {
         'atom': atom_detail.to_dict(),
-        'type': logbook.atom_detail_type(atom_detail),
+        'type': models.atom_detail_type(atom_detail),
     }

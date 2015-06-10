@@ -24,7 +24,7 @@ import six
 from taskflow import exceptions
 from taskflow import logging
 from taskflow.persistence.backends import impl_memory
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow import retry
 from taskflow import states
 from taskflow import task
@@ -153,8 +153,8 @@ class Storage(object):
         self._injected_args = {}
         self._lock = fasteners.ReaderWriterLock()
         self._ensure_matchers = [
-            ((task.BaseTask,), (logbook.TaskDetail, 'Task')),
-            ((retry.Retry,), (logbook.RetryDetail, 'Retry')),
+            ((task.BaseTask,), (models.TaskDetail, 'Task')),
+            ((retry.Retry,), (models.RetryDetail, 'Retry')),
         ]
         if scope_fetcher is None:
             scope_fetcher = lambda atom_name: None
@@ -171,7 +171,7 @@ class Storage(object):
                                        for ad in self._flowdetail)
         try:
             source, _clone = self._atomdetail_by_name(
-                self.injector_name, expected_type=logbook.TaskDetail)
+                self.injector_name, expected_type=models.TaskDetail)
         except exceptions.NotFound:
             pass
         else:
@@ -399,7 +399,7 @@ class Storage(object):
             else:
                 update_with[META_PROGRESS_DETAILS] = None
         self._update_atom_metadata(task_name, update_with,
-                                   expected_type=logbook.TaskDetail)
+                                   expected_type=models.TaskDetail)
 
     @fasteners.read_locked
     def get_task_progress(self, task_name):
@@ -409,7 +409,7 @@ class Storage(object):
         :returns: current task progress value
         """
         source, _clone = self._atomdetail_by_name(
-            task_name, expected_type=logbook.TaskDetail)
+            task_name, expected_type=models.TaskDetail)
         try:
             return source.meta[META_PROGRESS]
         except KeyError:
@@ -424,7 +424,7 @@ class Storage(object):
                  dict
         """
         source, _clone = self._atomdetail_by_name(
-            task_name, expected_type=logbook.TaskDetail)
+            task_name, expected_type=models.TaskDetail)
         try:
             return source.meta[META_PROGRESS_DETAILS]
         except KeyError:
@@ -468,7 +468,7 @@ class Storage(object):
     def save_retry_failure(self, retry_name, failed_atom_name, failure):
         """Save subflow failure to retry controller history."""
         source, clone = self._atomdetail_by_name(
-            retry_name, expected_type=logbook.RetryDetail, clone=True)
+            retry_name, expected_type=models.RetryDetail, clone=True)
         try:
             failures = clone.last_failures
         except exceptions.NotFound:
@@ -485,7 +485,7 @@ class Storage(object):
     def cleanup_retry_history(self, retry_name, state):
         """Cleanup history of retry atom with given name."""
         source, clone = self._atomdetail_by_name(
-            retry_name, expected_type=logbook.RetryDetail, clone=True)
+            retry_name, expected_type=models.RetryDetail, clone=True)
         clone.state = state
         clone.results = []
         self._with_connection(self._save_atom_detail, source, clone)
@@ -625,7 +625,7 @@ class Storage(object):
             try:
                 source, clone = self._atomdetail_by_name(
                     self.injector_name,
-                    expected_type=logbook.TaskDetail,
+                    expected_type=models.TaskDetail,
                     clone=True)
             except exceptions.NotFound:
                 # Ensure we have our special task detail...
@@ -633,7 +633,7 @@ class Storage(object):
                 # TODO(harlowja): get this removed when
                 # https://review.openstack.org/#/c/165645/ merges.
                 source = self._create_atom_detail(self.injector_name,
-                                                  logbook.TaskDetail,
+                                                  models.TaskDetail,
                                                   atom_state=None)
                 fd_source, fd_clone = self._fetch_flowdetail(clone=True)
                 fd_clone.add(source)
@@ -974,7 +974,7 @@ class Storage(object):
     def get_retry_history(self, retry_name):
         """Fetch a single retrys history."""
         source, _clone = self._atomdetail_by_name(
-            retry_name, expected_type=logbook.RetryDetail)
+            retry_name, expected_type=models.RetryDetail)
         return self._translate_into_history(source)
 
     @fasteners.read_locked
@@ -982,7 +982,7 @@ class Storage(object):
         """Fetch all retrys histories."""
         histories = []
         for ad in self._flowdetail:
-            if isinstance(ad, logbook.RetryDetail):
+            if isinstance(ad, models.RetryDetail):
                 histories.append((ad.name,
                                   self._translate_into_history(ad)))
         return histories

@@ -42,7 +42,7 @@ from taskflow import engines
 from taskflow.jobs import backends as boards
 from taskflow.patterns import linear_flow
 from taskflow.persistence import backends as persistence
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow import task
 from taskflow.utils import threading_utils
 
@@ -145,9 +145,9 @@ def generate_reviewer(client, saver, name=NAME):
 
     def make_save_book(saver, review_id):
         # Record what we want to happen (sometime in the future).
-        book = logbook.LogBook("book_%s" % review_id)
-        detail = logbook.FlowDetail("flow_%s" % review_id,
-                                    uuidutils.generate_uuid())
+        book = models.LogBook("book_%s" % review_id)
+        detail = models.FlowDetail("flow_%s" % review_id,
+                                   uuidutils.generate_uuid())
         book.add(detail)
         # Associate the factory method we want to be called (in the future)
         # with the book, so that the conductor will be able to call into

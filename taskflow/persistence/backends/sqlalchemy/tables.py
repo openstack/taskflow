@@ -22,7 +22,7 @@ from oslo_utils import uuidutils
 from sqlalchemy import Table, Column, String, ForeignKey, DateTime, Enum
 from sqlalchemy import types
 
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow import states
 
 Tables = collections.namedtuple('Tables',
@@ -92,7 +92,7 @@ def fetch(metadata):
                                default=uuidutils.generate_uuid),
                         Column('failure', Json),
                         Column('results', Json),
-                        Column('atom_type', Enum(*logbook.ATOM_TYPES,
+                        Column('atom_type', Enum(*models.ATOM_TYPES,
                                                  name='atom_types')),
                         Column('intention', Enum(*states.INTENTIONS,
                                                  name='intentions')))

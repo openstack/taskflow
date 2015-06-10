@@ -19,7 +19,7 @@ import six
 
 from taskflow import exceptions as exc
 from taskflow.persistence import base
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -60,23 +60,23 @@ class PathBasedConnection(base.Connection):
 
     @staticmethod
     def _serialize(obj):
-        if isinstance(obj, logbook.LogBook):
+        if isinstance(obj, models.LogBook):
             return obj.to_dict(marshal_time=True)
-        elif isinstance(obj, logbook.FlowDetail):
+        elif isinstance(obj, models.FlowDetail):
             return obj.to_dict()
-        elif isinstance(obj, logbook.AtomDetail):
+        elif isinstance(obj, models.AtomDetail):
             return base._format_atom(obj)
         else:
             raise exc.StorageFailure("Invalid storage class %s" % type(obj))
 
     @staticmethod
     def _deserialize(cls, data):
-        if issubclass(cls, logbook.LogBook):
+        if issubclass(cls, models.LogBook):
             return cls.from_dict(data, unmarshal_time=True)
-        elif issubclass(cls, logbook.FlowDetail):
+        elif issubclass(cls, models.FlowDetail):
             return cls.from_dict(data)
-        elif issubclass(cls, logbook.AtomDetail):
-            atom_class = logbook.atom_detail_class(data['type'])
+        elif issubclass(cls, models.AtomDetail):
+            atom_class = models.atom_detail_class(data['type'])
             return atom_class.from_dict(data['atom'])
         else:
             raise exc.StorageFailure("Invalid storage class %s" % cls)
@@ -130,11 +130,11 @@ class PathBasedConnection(base.Connection):
         """Context manager that yields a transaction"""
 
     def _get_obj_path(self, obj):
-        if isinstance(obj, logbook.LogBook):
+        if isinstance(obj, models.LogBook):
             path = self.book_path
-        elif isinstance(obj, logbook.FlowDetail):
+        elif isinstance(obj, models.FlowDetail):
             path = self.flow_path
-        elif isinstance(obj, logbook.AtomDetail):
+        elif isinstance(obj, models.AtomDetail):
             path = self.atom_path
         else:
             raise exc.StorageFailure("Invalid storage class %s" % type(obj))
@@ -159,7 +159,7 @@ class PathBasedConnection(base.Connection):
     def get_logbook(self, book_uuid, lazy=False):
         book_path = self._join_path(self.book_path, book_uuid)
         book_data = self._get_item(book_path)
-        book = self._deserialize(logbook.LogBook, book_data)
+        book = self._deserialize(models.LogBook, book_data)
         if not lazy:
             for flow_details in self.get_flows_for_book(book_uuid):
                 book.add(flow_details)
@@ -185,7 +185,7 @@ class PathBasedConnection(base.Connection):
     def get_flow_details(self, flow_uuid, lazy=False):
         flow_path = self._join_path(self.flow_path, flow_uuid)
         flow_data = self._get_item(flow_path)
-        flow_details = self._deserialize(logbook.FlowDetail, flow_data)
+        flow_details = self._deserialize(models.FlowDetail, flow_data)
         if not lazy:
             for atom_details in self.get_atoms_for_flow(flow_uuid):
                 flow_details.add(atom_details)
@@ -216,7 +216,7 @@ class PathBasedConnection(base.Connection):
     def get_atom_details(self, atom_uuid):
         atom_path = self._join_path(self.atom_path, atom_uuid)
         atom_data = self._get_item(atom_path)
-        return self._deserialize(logbook.AtomDetail, atom_data)
+        return self._deserialize(models.AtomDetail, atom_data)
 
     def update_atom_details(self, atom_detail, ignore_missing=False):
         with self._transaction() as transaction:

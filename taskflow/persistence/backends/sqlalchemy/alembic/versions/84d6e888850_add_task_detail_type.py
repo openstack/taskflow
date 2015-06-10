@@ -29,11 +29,11 @@ down_revision = '1c783c0c2875'
 from alembic import op
 import sqlalchemy as sa
 
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 
 
 def upgrade():
-    atom_types = sa.Enum(*logbook.ATOM_TYPES, name='atom_types')
+    atom_types = sa.Enum(*models.ATOM_TYPES, name='atom_types')
     column = sa.Column('atom_type', atom_types)
     bind = op.get_bind()
     impl = atom_types.dialect_impl(bind.dialect)

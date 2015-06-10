@@ -30,7 +30,7 @@ Definitions
 Jobs
   A :py:class:`job <taskflow.jobs.base.Job>` consists of a unique identifier,
   name, and a reference to a :py:class:`logbook
-  <taskflow.persistence.logbook.LogBook>` which contains the details of the
+  <taskflow.persistence.models.LogBook>` which contains the details of the
   work that has been or should be/will be completed to finish the work that has
   been created for that job.
 

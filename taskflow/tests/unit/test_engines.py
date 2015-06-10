@@ -26,7 +26,7 @@ from taskflow import exceptions as exc
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow import states
 from taskflow import task
 from taskflow import test
@@ -493,7 +493,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
 
         # Create FlowDetail as if we already run task1
         lb, fd = p_utils.temporary_flow_detail(self.backend)
-        td = logbook.TaskDetail(name='task1', uuid='42')
+        td = models.TaskDetail(name='task1', uuid='42')
         td.state = states.SUCCESS
         td.results = 17
         fd.add(td)
