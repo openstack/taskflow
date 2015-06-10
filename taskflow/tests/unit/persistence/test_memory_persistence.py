@@ -194,7 +194,44 @@ class MemoryFilesystemTest(test.TestCase):
 
     def test_del_root_not_allowed(self):
         fs = impl_memory.FakeFilesystem()
-        self.assertRaises(ValueError, self._del_item_path, fs, '/')
+        self.assertRaises(ValueError, fs.delete, "/", recursive=False)
+
+    def test_del_no_children_allowed(self):
+        fs = impl_memory.FakeFilesystem()
+        fs['/a'] = 'a'
+        self.assertEqual(1, len(fs.ls_r("/")))
+        fs.delete("/a")
+        self.assertEqual(0, len(fs.ls("/")))
+
+    def test_del_many_children_not_allowed(self):
+        fs = impl_memory.FakeFilesystem()
+        fs['/a'] = 'a'
+        fs['/a/b'] = 'b'
+        self.assertRaises(ValueError, fs.delete, "/", recursive=False)
+
+    def test_del_with_children_not_allowed(self):
+        fs = impl_memory.FakeFilesystem()
+        fs['/a'] = 'a'
+        fs['/a/b'] = 'b'
+        self.assertRaises(ValueError, fs.delete, "/a", recursive=False)
+
+    def test_del_many_children_allowed(self):
+        fs = impl_memory.FakeFilesystem()
+        fs['/a'] = 'a'
+        fs['/a/b'] = 'b'
+        self.assertEqual(2, len(fs.ls_r("/")))
+        fs.delete("/a", recursive=True)
+        self.assertEqual(0, len(fs.ls("/")))
+
+    def test_del_many_children_allowed_not_recursive(self):
+        fs = impl_memory.FakeFilesystem()
+        fs['/a'] = 'a'
+        fs['/a/b'] = 'b'
+        self.assertEqual(2, len(fs.ls_r("/")))
+        fs.delete("/a/b", recursive=False)
+        self.assertEqual(1, len(fs.ls("/")))
+        fs.delete("/a", recursive=False)
+        self.assertEqual(0, len(fs.ls("/")))
 
     def test_link_loop_raises(self):
         fs = impl_memory.FakeFilesystem()
