@@ -18,6 +18,7 @@ import heapq
 import inspect
 
 from debtcollector import removals
+import monotonic
 from oslo_utils import reflection
 import six
 
@@ -26,10 +27,6 @@ from taskflow.utils import misc
 from taskflow.utils import threading_utils as tu
 
 LOG = logging.getLogger(__name__)
-
-# Find a monotonic providing time (or fallback to using time.time()
-# which isn't *always* accurate but will suffice).
-_now = misc.find_monotonic(allow_time_time=True)
 
 
 def _check_attrs(obj):
@@ -81,7 +78,7 @@ class _Schedule(object):
 
     def push_next(self, cb, index, now=None):
         if now is None:
-            now = _now()
+            now = monotonic.monotonic()
         self.push(now + cb._periodic_spacing, index)
 
     def __len__(self):
@@ -103,7 +100,7 @@ def _build(callables):
             immediates.append(i)
         else:
             if now is None:
-                now = _now()
+                now = monotonic.monotonic()
             schedule.push_next(cb, i, now=now)
     return immediates, schedule
 
@@ -187,7 +184,7 @@ class PeriodicWorker(object):
                 # minimum item from the heap, where the minimum should be
                 # the callable that needs to run next and has the lowest
                 # next desired run time).
-                now = _now()
+                now = monotonic.monotonic()
                 next_run, index = self._schedule.pop()
                 when_next = next_run - now
                 if when_next <= 0:
