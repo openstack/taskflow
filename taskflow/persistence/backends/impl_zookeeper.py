@@ -40,10 +40,12 @@ class ZkBackend(path_based.PathBasedBackend):
             "path": "/taskflow",
         }
     """
+
+    #: Default path used when none is provided.
+    DEFAULT_PATH = '/taskflow'
+
     def __init__(self, conf, client=None):
         super(ZkBackend, self).__init__(conf)
-        if not self._path:
-            self._path = '/taskflow'
         if not paths.isabs(self._path):
             raise ValueError("Zookeeper path must be absolute")
         if client is not None:

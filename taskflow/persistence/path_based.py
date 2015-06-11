@@ -34,9 +34,14 @@ class PathBasedBackend(base.Backend):
     the contents of those objects for later reading and writing.
     """
 
+    #: Default path used when none is provided.
+    DEFAULT_PATH = None
+
     def __init__(self, conf):
         super(PathBasedBackend, self).__init__(conf)
         self._path = self._conf.get('path', None)
+        if not self._path:
+            self._path = self.DEFAULT_PATH
 
     @property
     def path(self):
