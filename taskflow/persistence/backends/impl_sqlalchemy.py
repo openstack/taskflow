@@ -108,6 +108,12 @@ DEFAULT_TXN_ISOLATION_LEVELS = {
 }
 
 
+def _log_statements(log_level, conn, cursor, statement, parameters, *args):
+    if LOG.isEnabledFor(log_level):
+        LOG.log(log_level, "Running statement '%s' with parameters %s",
+                statement, parameters)
+
+
 def _in_any(reason, err_haystack):
     """Checks if any elements of the haystack are in the given reason."""
     for err in err_haystack:
@@ -290,6 +296,13 @@ class SQLAlchemyBackend(base.Backend):
         # or engine arg overrides make sure we merge them in.
         engine_args.update(conf.pop('engine_args', {}))
         engine = sa.create_engine(sql_connection, **engine_args)
+        log_statements = conf.pop('log_statements', False)
+        if _as_bool(log_statements):
+            log_statements_level = conf.pop("log_statements_level",
+                                            logging.BLATHER)
+            sa.event.listen(engine, "before_cursor_execute",
+                            functools.partial(_log_statements,
+                                              log_statements_level))
         checkin_yield = conf.pop('checkin_yield',
                                  eventlet_utils.EVENTLET_AVAILABLE)
         if _as_bool(checkin_yield):
