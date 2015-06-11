@@ -52,10 +52,6 @@ def _safe_unmarshal_time(when):
     return timeutils.unmarshall_time(when)
 
 
-def _was_failure(state, result):
-    return state == states.FAILURE and isinstance(result, ft.Failure)
-
-
 def _fix_meta(data):
     # Handle the case where older schemas allowed this to be non-dict by
     # correcting this case by replacing it with a dictionary when a non-dict
@@ -434,6 +430,11 @@ class AtomDetail(object):
         self.meta = {}
         self.version = None
 
+    @staticmethod
+    def _was_failure(state, result):
+        # Internal helper method...
+        return state == states.FAILURE and isinstance(result, ft.Failure)
+
     @property
     def last_results(self):
         """Gets the atoms last result.
@@ -601,13 +602,29 @@ class TaskDetail(AtomDetail):
         will be set to ``None``). In either case the ``state``
         attribute will be set to the provided state.
         """
-        self.state = state
-        if _was_failure(state, result):
-            self.failure = result
-            self.results = None
+        was_altered = False
+        if self.state != state:
+            self.state = state
+            was_altered = True
+        if self._was_failure(state, result):
+            if self.failure != result:
+                self.failure = result
+                was_altered = True
+            if self.results is not None:
+                self.results = None
+                was_altered = True
         else:
-            self.results = result
-            self.failure = None
+            # We don't really have the ability to determine equality of
+            # task (user) results at the current time, without making
+            # potentially bad guesses, so assume the task detail always needs
+            # to be saved if they are not exactly equivalent...
+            if self.results is not result:
+                self.results = result
+                was_altered = True
+            if self.failure is not None:
+                self.failure = None
+                was_altered = True
+        return was_altered
 
     def merge(self, other, deep_copy=False):
         """Merges the current task detail with the given one.
@@ -763,11 +780,12 @@ class RetryDetail(AtomDetail):
         """
         # Do not clean retry history (only on reset does this happen).
         self.state = state
-        if _was_failure(state, result):
+        if self._was_failure(state, result):
             self.failure = result
         else:
             self.results.append((result, {}))
             self.failure = None
+        return True
 
     @classmethod
     def from_dict(cls, data):

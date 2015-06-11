@@ -169,7 +169,6 @@ class Storage(object):
 
         self._atom_name_to_uuid = dict((ad.name, ad.uuid)
                                        for ad in self._flowdetail)
-
         try:
             source, _clone = self._atomdetail_by_name(
                 self.injector_name, expected_type=logbook.TaskDetail)
@@ -320,8 +319,9 @@ class Storage(object):
     def set_atom_state(self, atom_name, state):
         """Sets an atoms state."""
         source, clone = self._atomdetail_by_name(atom_name, clone=True)
-        clone.state = state
-        self._with_connection(self._save_atom_detail, source, clone)
+        if source.state != state:
+            clone.state = state
+            self._with_connection(self._save_atom_detail, source, clone)
 
     @fasteners.read_locked
     def get_atom_state(self, atom_name):
@@ -333,8 +333,9 @@ class Storage(object):
     def set_atom_intention(self, atom_name, intention):
         """Sets the intention of an atom given an atoms name."""
         source, clone = self._atomdetail_by_name(atom_name, clone=True)
-        clone.intention = intention
-        self._with_connection(self._save_atom_detail, source, clone)
+        if source.intention != intention:
+            clone.intention = intention
+            self._with_connection(self._save_atom_detail, source, clone)
 
     @fasteners.read_locked
     def get_atom_intention(self, atom_name):
@@ -441,10 +442,13 @@ class Storage(object):
 
     @fasteners.write_locked
     def save(self, atom_name, data, state=states.SUCCESS):
-        """Put result for atom with id 'uuid' to storage."""
+        """Save result for named atom into storage with given state."""
         source, clone = self._atomdetail_by_name(atom_name, clone=True)
-        clone.put(state, data)
-        result = self._with_connection(self._save_atom_detail, source, clone)
+        if clone.put(state, data):
+            result = self._with_connection(self._save_atom_detail,
+                                           source, clone)
+        else:
+            result = clone
         if state == states.FAILURE and isinstance(data, failure.Failure):
             # NOTE(imelnikov): failure serialization looses information,
             # so we cache failures here, in atom name -> failure mapping so
