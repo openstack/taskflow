@@ -215,6 +215,15 @@ class LoggingBase(moves.moved_class(DumpingListener,
                                     'LoggingBase', __name__,
                                     version="0.6", removal_version="?")):
 
+    """Legacy logging base.
+
+     .. deprecated:: 0.6
+
+         This class is **deprecated** and is present for backward
+         compatibility **only**, its replacement
+         :py:class:`.DumpingListener` should be used going forward.
+    """
+
     def _dump(self, message, *args, **kwargs):
         self._log(message, *args, **kwargs)
 

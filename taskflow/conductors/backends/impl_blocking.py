@@ -81,10 +81,12 @@ class BlockingConductor(base.Conductor):
         The method returns immediately regardless of whether the conductor has
         been stopped.
 
-        :param timeout: This parameter is **deprecated** and is present for
-                        backward compatibility **only**. In order to wait for
-                        the conductor to gracefully shut down, :meth:`wait`
-                        should be used instead.
+        .. deprecated:: 0.8
+
+            The ``timeout`` parameter is **deprecated** and is present for
+            backward compatibility **only**. In order to wait for the
+            conductor to gracefully shut down, :py:meth:`wait` should be used
+            instead.
         """
         self._wait_timeout.interrupt()
 
