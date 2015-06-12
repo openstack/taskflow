@@ -92,11 +92,11 @@ engine = taskflow.engines.load(flow, store={
 })
 
 # This is where we attach our callback functions to the 2 different
-# notification objects that an engine exposes. The usage of a '*' (kleene star)
+# notification objects that an engine exposes. The usage of a ANY (kleene star)
 # here means that we want to be notified on all state changes, if you want to
 # restrict to a specific state change, just register that instead.
 engine.notifier.register(ANY, flow_watch)
-engine.task_notifier.register(ANY, task_watch)
+engine.atom_notifier.register(ANY, task_watch)
 
 # And now run!
 engine.run()
