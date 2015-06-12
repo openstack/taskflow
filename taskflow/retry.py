@@ -241,15 +241,20 @@ class Times(Retry):
     """Retries subflow given number of times. Returns attempt number."""
 
     def __init__(self, attempts=1, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None):
+                 auto_extract=True, rebind=None, revert_all=False):
         super(Times, self).__init__(name, provides, requires,
                                     auto_extract, rebind)
         self._attempts = attempts
 
+        if revert_all:
+            self._revert_action = REVERT_ALL
+        else:
+            self._revert_action = REVERT
+
     def on_failure(self, history, *args, **kwargs):
         if len(history) < self._attempts:
             return RETRY
-        return REVERT
+        return self._revert_action
 
     def execute(self, history, *args, **kwargs):
         return len(history) + 1
@@ -257,6 +262,16 @@ class Times(Retry):
 
 class ForEachBase(Retry):
     """Base class for retries that iterate over a given collection."""
+
+    def __init__(self, name=None, provides=None, requires=None,
+                 auto_extract=True, rebind=None, revert_all=False):
+        super(ForEachBase, self).__init__(name, provides, requires,
+                                          auto_extract, rebind)
+
+        if revert_all:
+            self._revert_action = REVERT_ALL
+        else:
+            self._revert_action = REVERT
 
     def _get_next_value(self, values, history):
         # Fetches the next resolution result to try, removes overlapping
@@ -272,7 +287,7 @@ class ForEachBase(Retry):
         try:
             self._get_next_value(values, history)
         except exc.NotFound:
-            return REVERT
+            return self._revert_action
         else:
             return RETRY
 
@@ -285,9 +300,9 @@ class ForEach(ForEachBase):
     """
 
     def __init__(self, values, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None):
+                 auto_extract=True, rebind=None, revert_all=False):
         super(ForEach, self).__init__(name, provides, requires,
-                                      auto_extract, rebind)
+                                      auto_extract, rebind, revert_all)
         self._values = values
 
     def on_failure(self, history, *args, **kwargs):
@@ -306,6 +321,12 @@ class ParameterizedForEach(ForEachBase):
     storage) as a parameter and returns the next element of that collection on
     each try.
     """
+
+    def __init__(self, name=None, provides=None, requires=None,
+                 auto_extract=True, rebind=None, revert_all=False):
+        super(ParameterizedForEach, self).__init__(name, provides, requires,
+                                                   auto_extract, rebind,
+                                                   revert_all)
 
     def on_failure(self, values, history, *args, **kwargs):
         return self._on_failure(values, history)
