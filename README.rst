@@ -1,11 +1,11 @@
 TaskFlow
 ========
 
-.. image:: https://pypip.in/version/taskflow/badge.svg
+.. image:: https://img.shields.io/pypi/v/taskflow.svg
     :target: https://pypi.python.org/pypi/taskflow/
     :alt: Latest Version
 
-.. image:: https://pypip.in/download/taskflow/badge.svg?period=month
+.. image:: https://img.shields.io/pypi/dm/taskflow.svg
     :target: https://pypi.python.org/pypi/taskflow/
     :alt: Downloads
 
