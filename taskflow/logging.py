@@ -32,6 +32,7 @@ CRITICAL = logging.CRITICAL
 DEBUG = logging.DEBUG
 ERROR = logging.ERROR
 FATAL = logging.FATAL
+INFO = logging.INFO
 NOTSET = logging.NOTSET
 WARN = logging.WARN
 WARNING = logging.WARNING
