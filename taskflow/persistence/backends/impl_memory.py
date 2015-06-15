@@ -274,14 +274,13 @@ class FakeFilesystem(object):
         """Link the destionation path to the source path."""
         dest_path = self.normpath(dest_path)
         src_path = self.normpath(src_path)
-        dirname, basename = self.split(dest_path)
-        parent_node = self._fetch_node(dirname, normalized=True)
-        child_node = parent_node.find(basename,
-                                      only_direct=True,
-                                      include_self=False)
-        if child_node is None:
-            child_node = self._insert_child(parent_node, basename)
-        child_node.metadata['target'] = src_path
+        try:
+            dest_node = self._fetch_node(dest_path, normalized=True)
+        except exc.NotFound:
+            parent_path, basename = self.split(dest_path)
+            parent_node = self._fetch_node(parent_path, normalized=True)
+            dest_node = self._insert_child(parent_node, basename)
+        dest_node.metadata['target'] = src_path
 
     def __getitem__(self, path):
         return self._get_item(self.normpath(path))
@@ -290,11 +289,11 @@ class FakeFilesystem(object):
         path = self.normpath(path)
         value = self._copier(value)
         try:
-            item_node = self._fetch_node(path, normalized=True)
-            item_node.metadata.update(value=value)
+            node = self._fetch_node(path, normalized=True)
+            node.metadata.update(value=value)
         except exc.NotFound:
-            dirname, basename = self.split(path)
-            parent_node = self._fetch_node(dirname, normalized=True)
+            parent_path, basename = self.split(path)
+            parent_node = self._fetch_node(parent_path, normalized=True)
             self._insert_child(parent_node, basename, value=value)
 
 
