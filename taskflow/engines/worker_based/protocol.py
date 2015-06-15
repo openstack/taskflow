@@ -19,6 +19,7 @@ import collections
 import threading
 
 from concurrent import futures
+import fasteners
 from oslo_utils import reflection
 from oslo_utils import timeutils
 import six
@@ -28,7 +29,6 @@ from taskflow import exceptions as excp
 from taskflow import logging
 from taskflow.types import failure as ft
 from taskflow.types import timing as tt
-from taskflow.utils import lock_utils
 from taskflow.utils import schema_utils as su
 
 # NOTE(skudriashev): This is protocol states and events, which are not
@@ -336,7 +336,7 @@ class Request(Message):
                         new_state, exc_info=True)
         return moved
 
-    @lock_utils.locked
+    @fasteners.locked
     def transition(self, new_state):
         """Transitions the request to a new state.
 

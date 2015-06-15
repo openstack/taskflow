@@ -33,11 +33,6 @@ Kombu
 
 .. automodule:: taskflow.utils.kombu_utils
 
-Locks
-~~~~~
-
-.. automodule:: taskflow.utils.lock_utils
-
 Miscellaneous
 ~~~~~~~~~~~~~
 

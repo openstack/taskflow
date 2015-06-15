@@ -21,6 +21,7 @@ import sys
 import threading
 
 from concurrent import futures
+import fasteners
 from kazoo import exceptions as k_exceptions
 from kazoo.protocol import paths as k_paths
 from kazoo.recipe import watchers
@@ -35,7 +36,6 @@ from taskflow import logging
 from taskflow import states
 from taskflow.types import timing as tt
 from taskflow.utils import kazoo_utils
-from taskflow.utils import lock_utils
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -762,7 +762,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     def connected(self):
         return self._connected and self._client.connected
 
-    @lock_utils.locked(lock='_open_close_lock')
+    @fasteners.locked(lock='_open_close_lock')
     def close(self):
         if self._owned:
             LOG.debug("Stopping client")
@@ -776,7 +776,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         LOG.debug("Stopped & cleared local state")
         self._connected = False
 
-    @lock_utils.locked(lock='_open_close_lock')
+    @fasteners.locked(lock='_open_close_lock')
     def connect(self, timeout=10.0):
 
         def try_clean():
