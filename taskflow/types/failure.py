@@ -19,11 +19,15 @@ import os
 import sys
 import traceback
 
+from oslo_utils import encodeutils
 from oslo_utils import reflection
 import six
 
 from taskflow import exceptions as exc
+from taskflow.utils import mixins
 from taskflow.utils import schema_utils as su
+
+_exception_message = encodeutils.exception_to_unicode
 
 
 def _copy_exc_info(exc_info):
@@ -65,7 +69,7 @@ def _are_equal_exc_info_tuples(ei1, ei2):
     if ei1[0] is not ei2[0]:
         return False
     if not all((type(ei1[1]) == type(ei2[1]),
-                exc.exception_message(ei1[1]) == exc.exception_message(ei2[1]),
+                _exception_message(ei1[1]) == _exception_message(ei2[1]),
                 repr(ei1[1]) == repr(ei2[1]))):
         return False
     if ei1[2] == ei2[2]:
@@ -75,7 +79,7 @@ def _are_equal_exc_info_tuples(ei1, ei2):
     return tb1 == tb2
 
 
-class Failure(object):
+class Failure(mixins.StrMixin):
     """An immutable object that represents failure.
 
     Failure objects encapsulate exception information so that they can be
@@ -191,7 +195,7 @@ class Failure(object):
             if not self._exc_type_names:
                 raise TypeError("Invalid exception type '%s' (%s)"
                                 % (exc_info[0], type(exc_info[0])))
-            self._exception_str = exc.exception_message(self._exc_info[1])
+            self._exception_str = _exception_message(self._exc_info[1])
             self._traceback_str = ''.join(
                 traceback.format_tb(self._exc_info[2]))
             self._causes = kwargs.pop('causes', None)
@@ -387,7 +391,7 @@ class Failure(object):
             self._causes = tuple(self._extract_causes_iter(self.exception))
             return self._causes
 
-    def __str__(self):
+    def __unicode__(self):
         return self.pformat()
 
     def pformat(self, traceback=False):
