@@ -15,9 +15,9 @@
 #    under the License.
 
 import os
-import sys
 import traceback
 
+from oslo_utils import excutils
 from oslo_utils import reflection
 import six
 
@@ -48,12 +48,7 @@ def raise_with_cause(exc_cls, message, *args, **kwargs):
     """
     if not issubclass(exc_cls, TaskFlowException):
         raise ValueError("Subclass of taskflow exception is required")
-    if 'cause' not in kwargs:
-        exc_type, exc, exc_tb = sys.exc_info()
-        if exc is not None:
-            kwargs['cause'] = exc
-        del(exc_type, exc, exc_tb)
-    six.raise_from(exc_cls(message, *args, **kwargs), kwargs.get('cause'))
+    excutils.raise_with_cause(exc_cls, message, *args, **kwargs)
 
 
 class TaskFlowException(Exception):
