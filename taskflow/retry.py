@@ -238,7 +238,20 @@ class AlwaysRevertAll(Retry):
 
 
 class Times(Retry):
-    """Retries subflow given number of times. Returns attempt number."""
+    """Retries subflow given number of times. Returns attempt number.
+
+    :param attempts: number of attempts to retry the associated subflow
+                     before giving up
+    :type attempts: int
+    :param revert_all: when provided this will cause the full flow to revert
+                       when the number of attempts that have been tried
+                       has been reached (when false, it will only locally
+                       revert the associated subflow)
+    :type revert_all: bool
+
+    Further arguments are interpreted as defined in the
+    :py:class:`~taskflow.atom.Atom` constructor.
+    """
 
     def __init__(self, attempts=1, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None, revert_all=False):
@@ -297,6 +310,21 @@ class ForEach(ForEachBase):
 
     Accepts a collection of decision strategies on construction and returns the
     next element of the collection on each try.
+
+    :param values: values collection to iterate over and provide to
+                   atoms other in the flow as a result of this functions
+                   :py:meth:`~taskflow.atom.Atom.execute` method, which
+                   other dependent atoms can consume (for example, to alter
+                   their own behavior)
+    :type values: list
+    :param revert_all: when provided this will cause the full flow to revert
+                       when the number of attempts that have been tried
+                       has been reached (when false, it will only locally
+                       revert the associated subflow)
+    :type revert_all: bool
+
+    Further arguments are interpreted as defined in the
+    :py:class:`~taskflow.atom.Atom` constructor.
     """
 
     def __init__(self, values, name=None, provides=None, requires=None,
@@ -320,6 +348,15 @@ class ParameterizedForEach(ForEachBase):
     Accepts a collection of decision strategies from a predecessor (or from
     storage) as a parameter and returns the next element of that collection on
     each try.
+
+    :param revert_all: when provided this will cause the full flow to revert
+                       when the number of attempts that have been tried
+                       has been reached (when false, it will only locally
+                       revert the associated subflow)
+    :type revert_all: bool
+
+    Further arguments are interpreted as defined in the
+    :py:class:`~taskflow.atom.Atom` constructor.
     """
 
     def __init__(self, name=None, provides=None, requires=None,
