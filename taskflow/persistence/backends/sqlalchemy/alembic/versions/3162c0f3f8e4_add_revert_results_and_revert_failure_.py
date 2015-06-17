@@ -14,26 +14,29 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import abc
+"""Add 'revert_results' and 'revert_failure' atom detail column.
 
-import six
+Revision ID: 3162c0f3f8e4
+Revises: 589dccdf2b6e
+Create Date: 2015-06-17 15:52:56.575245
 
-from taskflow import states
+"""
+
+# revision identifiers, used by Alembic.
+revision = '3162c0f3f8e4'
+down_revision = '589dccdf2b6e'
+
+from alembic import op
+import sqlalchemy as sa
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Action(object):
-    """An action that handles executing, state changes, ... of atoms."""
+def upgrade():
+    op.add_column('atomdetails',
+                  sa.Column('revert_results', sa.Text(), nullable=True))
+    op.add_column('atomdetails',
+                  sa.Column('revert_failure', sa.Text(), nullable=True))
 
-    NO_RESULT = object()
-    """
-    Sentinel use to represent lack of any result (none can be a valid result)
-    """
 
-    #: States that are expected to have a result to save...
-    SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE,
-                          states.REVERTED, states.REVERT_FAILURE)
-
-    def __init__(self, storage, notifier):
-        self._storage = storage
-        self._notifier = notifier
+def downgrade():
+    op.drop_column('atomdetails', 'revert_results')
+    op.drop_column('atomdetails', 'revert_failure')

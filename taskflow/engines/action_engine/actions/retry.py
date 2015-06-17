@@ -60,19 +60,21 @@ class RetryAction(base.Action):
             arguments.update(addons)
         return arguments
 
-    def change_state(self, retry, state, result=base.NO_RESULT):
+    def change_state(self, retry, state, result=base.Action.NO_RESULT):
         old_state = self._storage.get_atom_state(retry.name)
-        if state in base.SAVE_RESULT_STATES:
+        if state in self.SAVE_RESULT_STATES:
             save_result = None
-            if result is not base.NO_RESULT:
+            if result is not self.NO_RESULT:
                 save_result = result
             self._storage.save(retry.name, save_result, state)
-        elif state == states.REVERTED:
-            self._storage.cleanup_retry_history(retry.name, state)
+            # TODO(harlowja): combine this with the save to avoid a call
+            # back into the persistence layer...
+            if state == states.REVERTED:
+                self._storage.cleanup_retry_history(retry.name, state)
         else:
             if state == old_state:
                 # NOTE(imelnikov): nothing really changed, so we should not
-                # write anything to storage and run notifications
+                # write anything to storage and run notifications.
                 return
             self._storage.set_atom_state(retry.name, state)
         retry_uuid = self._storage.get_atom_uuid(retry.name)
@@ -81,7 +83,7 @@ class RetryAction(base.Action):
             'retry_uuid': retry_uuid,
             'old_state': old_state,
         }
-        if result is not base.NO_RESULT:
+        if result is not self.NO_RESULT:
             details['result'] = result
         self._notifier.notify(state, details)
 
@@ -106,9 +108,9 @@ class RetryAction(base.Action):
         def _on_done_callback(fut):
             result = fut.result()[-1]
             if isinstance(result, failure.Failure):
-                self.change_state(retry, states.FAILURE)
+                self.change_state(retry, states.REVERT_FAILURE, result=result)
             else:
-                self.change_state(retry, states.REVERTED)
+                self.change_state(retry, states.REVERTED, result=result)
 
         self.change_state(retry, states.REVERTING)
         arg_addons = {

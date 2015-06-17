@@ -152,6 +152,7 @@ class Completer(object):
             if event == ex.EXECUTED:
                 self._process_atom_failure(node, result)
             else:
+                # Reverting failed, always retain the failure...
                 return True
         return False
 

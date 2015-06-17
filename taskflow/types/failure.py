@@ -291,13 +291,15 @@ class Failure(object):
     def reraise_if_any(failures):
         """Re-raise exceptions if argument is not empty.
 
-        If argument is empty list, this method returns None. If
-        argument is a list with a single ``Failure`` object in it,
-        that failure is reraised. Else, a
+        If argument is empty list/tuple/iterator, this method returns
+        None. If argument is coverted into a list with a
+        single ``Failure`` object in it, that failure is reraised. Else, a
         :class:`~taskflow.exceptions.WrappedFailure` exception
-        is raised with a failure list as causes.
+        is raised with the failure list as causes.
         """
-        failures = list(failures)
+        if not isinstance(failures, (list, tuple)):
+            # Convert generators/other into a list...
+            failures = list(failures)
         if len(failures) == 1:
             failures[0].reraise()
         elif len(failures) > 1:

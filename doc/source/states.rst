@@ -136,19 +136,25 @@ method returns.
 
 **SUCCESS** - The engine running the task transitions the task to this state
 after the task has finished successfully (ie no exception/s were raised during
-execution).
+running its :py:meth:`~taskflow.task.BaseTask.execute` method).
 
 **FAILURE** - The engine running the task transitions the task to this state
-after it has finished with an error.
+after it has finished with an error (ie exception/s were raised during
+running its :py:meth:`~taskflow.task.BaseTask.execute` method).
+
+**REVERT_FAILURE** - The engine running the task transitions the task to this
+state after it has finished with an error (ie exception/s were raised during
+running its :py:meth:`~taskflow.task.BaseTask.revert` method).
 
 **REVERTING** - The engine running a task transitions the task to this state
 when the containing flow the engine is running starts to revert and
 its :py:meth:`~taskflow.task.BaseTask.revert` method is called. Only tasks in
-the ``SUCCESS`` or ``FAILURE`` state can be reverted. If this method fails (ie
-raises an exception), the task goes to the ``FAILURE`` state (if it was already
-in the ``FAILURE`` state then this is a no-op).
+the ``SUCCESS`` or ``FAILURE`` state can be reverted.  If this method fails (ie
+raises an exception), the task goes to the ``REVERT_FAILURE`` state.
 
-**REVERTED** - A task that has been reverted appears in this state.
+**REVERTED** - The engine running the task transitions the task to this state
+after it has successfully reverted the task (ie no exception/s were raised
+during running its :py:meth:`~taskflow.task.BaseTask.revert` method).
 
 Retry
 =====
@@ -188,17 +194,23 @@ state until its :py:meth:`~taskflow.retry.Retry.execute` method returns.
 it was finished successfully (ie no exception/s were raised during
 execution).
 
-**FAILURE** - The engine running the retry transitions it to this state after
-it has finished with an error.
+**FAILURE** - The engine running the retry transitions the retry to this state
+after it has finished with an error (ie exception/s were raised during
+running its :py:meth:`~taskflow.retry.Retry.execute` method).
+
+**REVERT_FAILURE** - The engine running the retry transitions the retry to
+this state after it has finished with an error (ie exception/s were raised
+during its :py:meth:`~taskflow.retry.Retry.revert` method).
 
 **REVERTING** - The engine running the retry transitions to this state when
 the associated flow the engine is running starts to revert it and its
 :py:meth:`~taskflow.retry.Retry.revert` method is called. Only retries
 in ``SUCCESS`` or ``FAILURE`` state can be reverted. If this method fails (ie
-raises an exception), the retry goes to the ``FAILURE`` state (if it was
-already in the ``FAILURE`` state then this is a no-op).
+raises an exception), the retry goes to the ``REVERT_FAILURE`` state.
 
-**REVERTED** - A retry that has been reverted appears in this state.
+**REVERTED** - The engine running the retry transitions the retry to this state
+after it has successfully reverted the retry (ie no exception/s were raised
+during running its :py:meth:`~taskflow.retry.Retry.revert` method).
 
 **RETRYING** - If flow that is associated with the current retry was failed and
 reverted, the engine prepares the flow for the next run and transitions the

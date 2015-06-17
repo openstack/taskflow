@@ -41,6 +41,7 @@ SUCCESS = SUCCESS
 RUNNING = RUNNING
 RETRYING = 'RETRYING'
 IGNORE = 'IGNORE'
+REVERT_FAILURE = 'REVERT_FAILURE'
 
 # Atom intentions.
 EXECUTE = 'EXECUTE'
@@ -157,20 +158,20 @@ def check_flow_transition(old_state, new_state):
 
 
 # Task state transitions
-# See: http://docs.openstack.org/developer/taskflow/states.html
+# See: http://docs.openstack.org/developer/taskflow/states.html#task
 
 _ALLOWED_TASK_TRANSITIONS = frozenset((
     (PENDING, RUNNING),       # run it!
     (PENDING, IGNORE),        # skip it!
 
-    (RUNNING, SUCCESS),       # the task finished successfully
-    (RUNNING, FAILURE),       # the task failed
+    (RUNNING, SUCCESS),       # the task executed successfully
+    (RUNNING, FAILURE),       # the task execution failed
 
-    (FAILURE, REVERTING),     # task failed, do cleanup now
-    (SUCCESS, REVERTING),     # some other task failed, do cleanup now
+    (FAILURE, REVERTING),     # task execution failed, try reverting...
+    (SUCCESS, REVERTING),     # some other task failed, try reverting...
 
-    (REVERTING, REVERTED),    # revert done
-    (REVERTING, FAILURE),     # revert failed
+    (REVERTING, REVERTED),           # the task reverted successfully
+    (REVERTING, REVERT_FAILURE),     # the task failed reverting (terminal!)
 
     (REVERTED, PENDING),      # try again
     (IGNORE, PENDING),        # try again

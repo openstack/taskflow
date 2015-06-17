@@ -28,14 +28,42 @@ from taskflow.persistence import models
 from taskflow import retry
 from taskflow import states
 from taskflow import task
-from taskflow.types import failure
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
-STATES_WITH_RESULTS = (states.SUCCESS, states.REVERTING, states.FAILURE)
+
+
+_EXECUTE_STATES_WITH_RESULTS = (
+    # The atom ``execute`` worked out :)
+    states.SUCCESS,
+    # The atom ``execute`` didn't work out :(
+    states.FAILURE,
+    # In this state we will still have access to prior SUCCESS (or FAILURE)
+    # results, so make sure extraction is still allowed in this state...
+    states.REVERTING,
+)
+
+_REVERT_STATES_WITH_RESULTS = (
+    # The atom ``revert`` worked out :)
+    states.REVERTED,
+    # The atom ``revert`` didn't work out :(
+    states.REVERT_FAILURE,
+    # In this state we will still have access to prior SUCCESS (or FAILURE)
+    # results, so make sure extraction is still allowed in this state...
+    states.REVERTING,
+)
+
+# Atom states that may have results...
+STATES_WITH_RESULTS = set()
+STATES_WITH_RESULTS.update(_REVERT_STATES_WITH_RESULTS)
+STATES_WITH_RESULTS.update(_EXECUTE_STATES_WITH_RESULTS)
+STATES_WITH_RESULTS = tuple(sorted(STATES_WITH_RESULTS))
 
 # TODO(harlowja): do this better (via a singleton or something else...)
 _TRANSIENT_PROVIDER = object()
+
+# Only for these intentions will we cache any failures that happened...
+_SAVE_FAILURE_INTENTIONS = (states.EXECUTE, states.REVERT)
 
 # NOTE(harlowja): Perhaps the container is a dictionary-like object and that
 # key does not exist (key error), or the container is a tuple/list and a
@@ -164,8 +192,12 @@ class Storage(object):
         # so we cache failures here, in atom name -> failure mapping.
         self._failures = {}
         for ad in self._flowdetail:
+            fail_cache = {}
             if ad.failure is not None:
-                self._failures[ad.name] = ad.failure
+                fail_cache[states.EXECUTE] = ad.failure
+            if ad.revert_failure is not None:
+                fail_cache[states.REVERT] = ad.revert_failure
+            self._failures[ad.name] = fail_cache
 
         self._atom_name_to_uuid = dict((ad.name, ad.uuid)
                                        for ad in self._flowdetail)
@@ -247,6 +279,7 @@ class Storage(object):
                 atom_ids[i] = ad.uuid
                 self._atom_name_to_uuid[atom_name] = ad.uuid
                 self._set_result_mapping(atom_name, atom.save_as)
+                self._failures.setdefault(atom_name, {})
         return atom_ids
 
     def ensure_atom(self, atom):
@@ -448,21 +481,23 @@ class Storage(object):
                             "with index %r (name %s)", atom_name, index, name)
 
     @fasteners.write_locked
-    def save(self, atom_name, data, state=states.SUCCESS):
-        """Save result for named atom into storage with given state."""
+    def save(self, atom_name, result, state=states.SUCCESS):
+        """Put result for atom with provided name to storage."""
         source, clone = self._atomdetail_by_name(atom_name, clone=True)
-        if clone.put(state, data):
-            result = self._with_connection(self._save_atom_detail,
-                                           source, clone)
-        else:
-            result = clone
-        if state == states.FAILURE and isinstance(data, failure.Failure):
+        if clone.put(state, result):
+            self._with_connection(self._save_atom_detail, source, clone)
+        # We need to somehow place more of this responsibility on the atom
+        # detail class itself, vs doing it here; since it ties those two
+        # together (which is bad)...
+        if state in (states.FAILURE, states.REVERT_FAILURE):
             # NOTE(imelnikov): failure serialization looses information,
             # so we cache failures here, in atom name -> failure mapping so
             # that we can later use the better version on fetch/get.
-            self._failures[result.name] = data
-        else:
-            self._check_all_results_provided(result.name, data)
+            if clone.intention in _SAVE_FAILURE_INTENTIONS:
+                fail_cache = self._failures[clone.name]
+                fail_cache[clone.intention] = result
+        if state == states.SUCCESS and clone.intention == states.EXECUTE:
+            self._check_all_results_provided(clone.name, result)
 
     @fasteners.write_locked
     def save_retry_failure(self, retry_name, failed_atom_name, failure):
@@ -491,39 +526,69 @@ class Storage(object):
         self._with_connection(self._save_atom_detail, source, clone)
 
     @fasteners.read_locked
-    def _get(self, atom_name, only_last=False):
+    def _get(self, atom_name,
+             results_attr_name, fail_attr_name,
+             allowed_states, fail_cache_key):
         source, _clone = self._atomdetail_by_name(atom_name)
-        if source.failure is not None:
-            cached = self._failures.get(atom_name)
-            if source.failure.matches(cached):
-                # Try to give the version back that should have the backtrace
-                # instead of one that has it stripped (since backtraces are not
-                # serializable).
-                return cached
-            return source.failure
-        if source.state not in STATES_WITH_RESULTS:
+        failure = getattr(source, fail_attr_name)
+        if failure is not None:
+            fail_cache = self._failures[atom_name]
+            try:
+                fail = fail_cache[fail_cache_key]
+                if failure.matches(fail):
+                    # Try to give the version back that should have the
+                    # backtrace instead of one that has it
+                    # stripped (since backtraces are not serializable).
+                    failure = fail
+            except KeyError:
+                pass
+            return failure
+        # TODO(harlowja): this seems like it should be checked before fetching
+        # the potential failure, instead of after, fix this soon...
+        if source.state not in allowed_states:
             raise exceptions.NotFound("Result for atom %s is not currently"
                                       " known" % atom_name)
-        if only_last:
-            return source.last_results
-        else:
-            return source.results
+        return getattr(source, results_attr_name)
 
-    def get(self, atom_name):
-        """Gets the results for an atom with a given name from storage."""
-        return self._get(atom_name)
+    def get_execute_result(self, atom_name):
+        """Gets the ``execute`` results for an atom from storage."""
+        return self._get(atom_name, 'results', 'failure',
+                         _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE)
 
     @fasteners.read_locked
-    def get_failures(self):
-        """Get list of failures that happened with this flow.
+    def _get_failures(self, fail_cache_key):
+        failures = {}
+        for atom_name, fail_cache in six.iteritems(self._failures):
+            try:
+                failures[atom_name] = fail_cache[fail_cache_key]
+            except KeyError:
+                pass
+        return failures
 
-        No order guaranteed.
-        """
-        return self._failures.copy()
+    def get_execute_failures(self):
+        """Get all ``execute`` failures that happened with this flow."""
+        return self._get_failures(states.EXECUTE)
 
+    # TODO(harlowja): remove these in the future?
+    get = get_execute_result
+    get_failures = get_execute_failures
+
+    def get_revert_result(self, atom_name):
+        """Gets the ``revert`` results for an atom from storage."""
+        return self._get(atom_name, 'revert_results', 'revert_failure',
+                         _REVERT_STATES_WITH_RESULTS, states.REVERT)
+
+    def get_revert_failures(self):
+        """Get all ``revert`` failures that happened with this flow."""
+        return self._get_failures(states.REVERT)
+
+    @fasteners.read_locked
     def has_failures(self):
-        """Returns True if there are failed tasks in the storage."""
-        return bool(self._failures)
+        """Returns true if there are **any** failures in storage."""
+        for fail_cache in six.itervalues(self._failures):
+            if fail_cache:
+                return True
+        return False
 
     @fasteners.write_locked
     def reset(self, atom_name, state=states.PENDING):
@@ -534,8 +599,8 @@ class Storage(object):
         if source.state == state:
             return
         clone.reset(state)
-        result = self._with_connection(self._save_atom_detail, source, clone)
-        self._failures.pop(result.name, None)
+        self._with_connection(self._save_atom_detail, source, clone)
+        self._failures[clone.name].clear()
 
     def inject_atom_args(self, atom_name, pairs, transient=True):
         """Add values into storage for a specific atom only.
@@ -681,7 +746,7 @@ class Storage(object):
 
     @fasteners.read_locked
     def fetch(self, name, many_handler=None):
-        """Fetch a named result."""
+        """Fetch a named ``execute`` result."""
         def _many_handler(values):
             # By default we just return the first of many (unless provided
             # a different callback that can translate many results into
@@ -702,7 +767,10 @@ class Storage(object):
                                                 self._transients, name))
             else:
                 try:
-                    container = self._get(provider.name, only_last=True)
+                    container = self._get(provider.name,
+                                          'last_results', 'failure',
+                                          _EXECUTE_STATES_WITH_RESULTS,
+                                          states.EXECUTE)
                 except exceptions.NotFound:
                     pass
                 else:
@@ -717,7 +785,7 @@ class Storage(object):
     @fasteners.read_locked
     def fetch_unsatisfied_args(self, atom_name, args_mapping,
                                scope_walker=None, optional_args=None):
-        """Fetch unsatisfied atom arguments using an atoms argument mapping.
+        """Fetch unsatisfied ``execute`` arguments using an atoms args mapping.
 
         NOTE(harlowja): this takes into account the provided scope walker
         atoms who should produce the required value at runtime, as well as
@@ -756,7 +824,9 @@ class Storage(object):
                     results = self._transients
                 else:
                     try:
-                        results = self._get(p.name, only_last=True)
+                        results = self._get(p.name, 'last_results', 'failure',
+                                            _EXECUTE_STATES_WITH_RESULTS,
+                                            states.EXECUTE)
                     except exceptions.NotFound:
                         results = {}
                 try:
@@ -802,7 +872,7 @@ class Storage(object):
 
     @fasteners.read_locked
     def fetch_all(self, many_handler=None):
-        """Fetch all named results known so far."""
+        """Fetch all named ``execute`` results known so far."""
         def _many_handler(values):
             if len(values) > 1:
                 return values
@@ -821,7 +891,7 @@ class Storage(object):
     def fetch_mapped_args(self, args_mapping,
                           atom_name=None, scope_walker=None,
                           optional_args=None):
-        """Fetch arguments for an atom using an atoms argument mapping."""
+        """Fetch ``execute`` arguments for an atom using its args mapping."""
 
         def _extract_first_from(name, sources):
             """Extracts/returns first occurence of key in list of dicts."""
@@ -835,7 +905,9 @@ class Storage(object):
         def _get_results(looking_for, provider):
             """Gets the results saved for a given provider."""
             try:
-                return self._get(provider.name, only_last=True)
+                return self._get(provider.name, 'last_results', 'failure',
+                                 _EXECUTE_STATES_WITH_RESULTS,
+                                 states.EXECUTE)
             except exceptions.NotFound:
                 exceptions.raise_with_cause(exceptions.NotFound,
                                             "Expected to be able to find"
@@ -963,11 +1035,14 @@ class Storage(object):
             # NOTE(harlowja): Try to use our local cache to get a more
             # complete failure object that has a traceback (instead of the
             # one that is saved which will *typically* not have one)...
-            cached = self._failures.get(ad.name)
-            if ad.failure.matches(cached):
-                failure = cached
-            else:
-                failure = ad.failure
+            failure = ad.failure
+            fail_cache = self._failures[ad.name]
+            try:
+                fail = fail_cache[states.EXECUTE]
+                if failure.matches(fail):
+                    failure = fail
+            except KeyError:
+                pass
         return retry.History(ad.results, failure=failure)
 
     @fasteners.read_locked

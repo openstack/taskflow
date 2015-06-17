@@ -68,7 +68,7 @@ def make_machine(start_state, transitions):
 def map_color(internal_states, state):
     if state in internal_states:
         return 'blue'
-    if state == states.FAILURE:
+    if state in (states.FAILURE, states.REVERT_FAILURE):
         return 'red'
     if state == states.REVERTED:
         return 'darkorange'

@@ -117,6 +117,15 @@ class AddOne(task.Task):
         return source + 1
 
 
+class GiveBackRevert(task.Task):
+
+    def execute(self, value):
+        return value + 1
+
+    def revert(self, *args, **kwargs):
+        return kwargs.get('result') + 1
+
+
 class FakeTask(object):
 
     def execute(self, **kwargs):
