@@ -32,10 +32,6 @@ class TaskAction(base.Action):
         super(TaskAction, self).__init__(storage, notifier)
         self._task_executor = task_executor
 
-    @staticmethod
-    def handles(atom):
-        return isinstance(atom, task_atom.BaseTask)
-
     def _is_identity_transition(self, old_state, state, task, progress):
         if state in base.SAVE_RESULT_STATES:
             # saving result is never identity transition

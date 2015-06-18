@@ -69,10 +69,10 @@ _ALLOWED_JOB_TRANSITIONS = frozenset((
 
 
 def check_job_transition(old_state, new_state):
-    """Check that job can transition from old_state to new_state.
+    """Check that job can transition from from ``old_state`` to ``new_state``.
 
-    If transition can be performed, it returns True. If transition
-    should be ignored, it returns False. If transition is not
+    If transition can be performed, it returns true. If transition
+    should be ignored, it returns false. If transition is not
     valid, it raises an InvalidState exception.
     """
     if old_state == new_state:
@@ -138,10 +138,10 @@ _IGNORED_FLOW_TRANSITIONS = frozenset(
 
 
 def check_flow_transition(old_state, new_state):
-    """Check that flow can transition from old_state to new_state.
+    """Check that flow can transition from ``old_state`` to ``new_state``.
 
-    If transition can be performed, it returns True. If transition
-    should be ignored, it returns False. If transition is not
+    If transition can be performed, it returns true. If transition
+    should be ignored, it returns false. If transition is not
     valid, it raises an InvalidState exception.
     """
     if old_state == new_state:
@@ -171,18 +171,37 @@ _ALLOWED_TASK_TRANSITIONS = frozenset((
     (REVERTING, FAILURE),     # revert failed
 
     (REVERTED, PENDING),      # try again
-
-    (SUCCESS, RETRYING),      # retrying retry controller
-    (RETRYING, RUNNING),      # run retry controller that has been retrying
 ))
 
 
 def check_task_transition(old_state, new_state):
-    """Check that task can transition from old_state to new_state.
+    """Check that task can transition from ``old_state`` to ``new_state``.
 
-    If transition can be performed, it returns True, False otherwise.
+    If transition can be performed, it returns true, false otherwise.
     """
     pair = (old_state, new_state)
     if pair in _ALLOWED_TASK_TRANSITIONS:
+        return True
+    return False
+
+
+# Retry state transitions
+# See: http://docs.openstack.org/developer/taskflow/states.html#retry
+
+_ALLOWED_RETRY_TRANSITIONS = list(_ALLOWED_TASK_TRANSITIONS)
+_ALLOWED_RETRY_TRANSITIONS.extend([
+    (SUCCESS, RETRYING),      # retrying retry controller
+    (RETRYING, RUNNING),      # run retry controller that has been retrying
+])
+_ALLOWED_RETRY_TRANSITIONS = frozenset(_ALLOWED_RETRY_TRANSITIONS)
+
+
+def check_retry_transition(old_state, new_state):
+    """Check that retry can transition from ``old_state`` to ``new_state``.
+
+    If transition can be performed, it returns true, false otherwise.
+    """
+    pair = (old_state, new_state)
+    if pair in _ALLOWED_RETRY_TRANSITIONS:
         return True
     return False

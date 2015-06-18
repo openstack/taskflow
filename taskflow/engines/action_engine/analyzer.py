@@ -34,6 +34,7 @@ class Analyzer(object):
     def __init__(self, runtime):
         self._storage = runtime.storage
         self._execution_graph = runtime.compilation.execution_graph
+        self._check_atom_transition = runtime.check_atom_transition
 
     def get_next_nodes(self, node=None):
         if node is None:
@@ -93,37 +94,37 @@ class Analyzer(object):
                 available_nodes.append(node)
         return available_nodes
 
-    def _is_ready_for_execute(self, task):
-        """Checks if task is ready to be executed."""
-        state = self.get_state(task)
-        intention = self._storage.get_atom_intention(task.name)
-        transition = st.check_task_transition(state, st.RUNNING)
+    def _is_ready_for_execute(self, atom):
+        """Checks if atom is ready to be executed."""
+        state = self.get_state(atom)
+        intention = self._storage.get_atom_intention(atom.name)
+        transition = self._check_atom_transition(atom, state, st.RUNNING)
         if not transition or intention != st.EXECUTE:
             return False
 
-        task_names = []
-        for prev_task in self._execution_graph.predecessors(task):
-            task_names.append(prev_task.name)
+        atom_names = []
+        for prev_atom in self._execution_graph.predecessors(atom):
+            atom_names.append(prev_atom.name)
 
-        task_states = self._storage.get_atoms_states(task_names)
+        atom_states = self._storage.get_atoms_states(atom_names)
         return all(state == st.SUCCESS and intention == st.EXECUTE
-                   for state, intention in six.itervalues(task_states))
+                   for state, intention in six.itervalues(atom_states))
 
-    def _is_ready_for_revert(self, task):
-        """Checks if task is ready to be reverted."""
-        state = self.get_state(task)
-        intention = self._storage.get_atom_intention(task.name)
-        transition = st.check_task_transition(state, st.REVERTING)
+    def _is_ready_for_revert(self, atom):
+        """Checks if atom is ready to be reverted."""
+        state = self.get_state(atom)
+        intention = self._storage.get_atom_intention(atom.name)
+        transition = self._check_atom_transition(atom, state, st.REVERTING)
         if not transition or intention not in (st.REVERT, st.RETRY):
             return False
 
-        task_names = []
-        for prev_task in self._execution_graph.successors(task):
-            task_names.append(prev_task.name)
+        atom_names = []
+        for prev_atom in self._execution_graph.successors(atom):
+            atom_names.append(prev_atom.name)
 
-        task_states = self._storage.get_atoms_states(task_names)
+        atom_states = self._storage.get_atoms_states(atom_names)
         return all(state in (st.PENDING, st.REVERTED)
-                   for state, intention in six.itervalues(task_states))
+                   for state, intention in six.itervalues(atom_states))
 
     def iterate_subgraph(self, atom):
         """Iterates a subgraph connected to given atom."""
@@ -148,10 +149,10 @@ class Analyzer(object):
         return self._execution_graph.node[atom].get('retry')
 
     def is_success(self):
-        for node in self._execution_graph.nodes_iter():
-            if self.get_state(node) != st.SUCCESS:
+        for atom in self.iterate_all_nodes():
+            if self.get_state(atom) != st.SUCCESS:
                 return False
         return True
 
-    def get_state(self, node):
-        return self._storage.get_atom_state(node.name)
+    def get_state(self, atom):
+        return self._storage.get_atom_state(atom.name)

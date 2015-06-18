@@ -45,8 +45,10 @@ class _RunnerTestMixin(object):
         task_executor = executor.SerialTaskExecutor()
         task_executor.start()
         self.addCleanup(task_executor.stop)
-        return runtime.Runtime(compilation, store,
-                               task_notifier, task_executor)
+        r = runtime.Runtime(compilation, store,
+                            task_notifier, task_executor)
+        r.compile()
+        return r
 
 
 class RunnerTest(test.TestCase, _RunnerTestMixin):

@@ -35,7 +35,3 @@ class Action(object):
     def __init__(self, storage, notifier):
         self._storage = storage
         self._notifier = notifier
-
-    @abc.abstractmethod
-    def handles(self, atom):
-        """Checks if this action handles the provided atom."""

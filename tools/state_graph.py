@@ -49,12 +49,10 @@ def clean_event(name):
     return name
 
 
-def make_machine(start_state, transitions, disallowed):
+def make_machine(start_state, transitions):
     machine = fsm.FSM(start_state)
     machine.add_state(start_state)
     for (start_state, end_state) in transitions:
-        if start_state in disallowed or end_state in disallowed:
-            continue
         if start_state not in machine:
             machine.add_state(start_state)
         if end_state not in machine:
@@ -125,12 +123,11 @@ def main():
     if options.tasks:
         source_type = "Tasks"
         source = make_machine(states.PENDING,
-                              list(states._ALLOWED_TASK_TRANSITIONS),
-                              [states.RETRYING])
+                              list(states._ALLOWED_TASK_TRANSITIONS))
     elif options.retries:
         source_type = "Retries"
         source = make_machine(states.PENDING,
-                              list(states._ALLOWED_TASK_TRANSITIONS), [])
+                              list(states._ALLOWED_RETRY_TRANSITIONS))
     elif options.engines:
         source_type = "Engines"
         r = runner.Runner(DummyRuntime(), None)
@@ -140,15 +137,15 @@ def main():
     elif options.wbe_requests:
         source_type = "WBE requests"
         source = make_machine(protocol.WAITING,
-                              list(protocol._ALLOWED_TRANSITIONS), [])
+                              list(protocol._ALLOWED_TRANSITIONS))
     elif options.jobs:
         source_type = "Jobs"
         source = make_machine(states.UNCLAIMED,
-                              list(states._ALLOWED_JOB_TRANSITIONS), [])
+                              list(states._ALLOWED_JOB_TRANSITIONS))
     else:
         source_type = "Flow"
         source = make_machine(states.PENDING,
-                              list(states._ALLOWED_FLOW_TRANSITIONS), [])
+                              list(states._ALLOWED_FLOW_TRANSITIONS))
 
     graph_name = "%s states" % source_type
     g = pydot.Dot(graph_name=graph_name, rankdir='LR',

@@ -295,6 +295,7 @@ class ActionEngine(base.Engine):
                                         self.storage,
                                         self.atom_notifier,
                                         self._task_executor)
+        self._runtime.compile()
         self._compiled = True
 
 

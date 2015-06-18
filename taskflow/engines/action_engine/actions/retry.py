@@ -48,10 +48,6 @@ class RetryAction(base.Action):
         super(RetryAction, self).__init__(storage, notifier)
         self._executor = futures.SynchronousExecutor()
 
-    @staticmethod
-    def handles(atom):
-        return isinstance(atom, retry_atom.Retry)
-
     def _get_retry_args(self, retry, addons=None):
         arguments = self._storage.fetch_mapped_args(
             retry.rebind,
