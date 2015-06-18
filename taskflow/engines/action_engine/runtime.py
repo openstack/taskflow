@@ -52,18 +52,25 @@ class Runtime(object):
                                       progress=0.0),
             'retry': self.retry_action.change_state,
         }
+        schedulers = {
+            'retry': self.retry_scheduler,
+            'task': self.task_scheduler,
+        }
         for atom in self.analyzer.iterate_all_nodes():
             metadata = {}
             walker = sc.ScopeWalker(self.compilation, atom, names_only=True)
             if isinstance(atom, task.BaseTask):
                 check_transition_handler = st.check_task_transition
                 change_state_handler = change_state_handlers['task']
+                scheduler = schedulers['task']
             else:
                 check_transition_handler = st.check_retry_transition
                 change_state_handler = change_state_handlers['retry']
+                scheduler = schedulers['retry']
             metadata['scope_walker'] = walker
             metadata['check_transition_handler'] = check_transition_handler
             metadata['change_state_handler'] = change_state_handler
+            metadata['scheduler'] = scheduler
             self._atom_cache[atom.name] = metadata
 
     @property
@@ -91,6 +98,14 @@ class Runtime(object):
         return sched.Scheduler(self)
 
     @misc.cachedproperty
+    def task_scheduler(self):
+        return sched.TaskScheduler(self)
+
+    @misc.cachedproperty
+    def retry_scheduler(self):
+        return sched.RetryScheduler(self)
+
+    @misc.cachedproperty
     def retry_action(self):
         return ra.RetryAction(self._storage,
                               self._atom_notifier)
@@ -109,6 +124,14 @@ class Runtime(object):
         metadata = self._atom_cache[atom.name]
         check_transition_handler = metadata['check_transition_handler']
         return check_transition_handler(current_state, target_state)
+
+    def fetch_scheduler(self, atom):
+        """Fetches the cached specific scheduler for the given atom."""
+        # This does not check if the name exists (since this is only used
+        # internally to the engine, and is not exposed to atoms that will
+        # not exist and therefore doesn't need to handle that case).
+        metadata = self._atom_cache[atom.name]
+        return metadata['scheduler']
 
     def fetch_scopes_for(self, atom_name):
         """Fetches a walker of the visible scopes for the given atom."""

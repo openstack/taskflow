@@ -17,21 +17,17 @@
 import weakref
 
 from taskflow import exceptions as excp
-from taskflow import retry as retry_atom
 from taskflow import states as st
-from taskflow import task as task_atom
 from taskflow.types import failure
 
 
-class _RetryScheduler(object):
+class RetryScheduler(object):
+    """Schedules retry atoms."""
+
     def __init__(self, runtime):
         self._runtime = weakref.proxy(runtime)
         self._retry_action = runtime.retry_action
         self._storage = runtime.storage
-
-    @staticmethod
-    def handles(atom):
-        return isinstance(atom, retry_atom.Retry)
 
     def schedule(self, retry):
         """Schedules the given retry atom for *future* completion.
@@ -53,14 +49,12 @@ class _RetryScheduler(object):
                                         " intention: %s" % intention)
 
 
-class _TaskScheduler(object):
+class TaskScheduler(object):
+    """Schedules task atoms."""
+
     def __init__(self, runtime):
         self._storage = runtime.storage
         self._task_action = runtime.task_action
-
-    @staticmethod
-    def handles(atom):
-        return isinstance(atom, task_atom.BaseTask)
 
     def schedule(self, task):
         """Schedules the given task atom for *future* completion.
@@ -79,39 +73,28 @@ class _TaskScheduler(object):
 
 
 class Scheduler(object):
-    """Schedules atoms using actions to schedule."""
+    """Safely schedules atoms using a runtime ``fetch_scheduler`` routine."""
 
     def __init__(self, runtime):
-        self._schedulers = [
-            _RetryScheduler(runtime),
-            _TaskScheduler(runtime),
-        ]
+        self._fetch_scheduler = runtime.fetch_scheduler
 
-    def _schedule_node(self, node):
-        """Schedule a single node for execution."""
-        for sched in self._schedulers:
-            if sched.handles(node):
-                return sched.schedule(node)
-        else:
-            raise TypeError("Unknown how to schedule '%s' (%s)"
-                            % (node, type(node)))
+    def schedule(self, atoms):
+        """Schedules the provided atoms for *future* completion.
 
-    def schedule(self, nodes):
-        """Schedules the provided nodes for *future* completion.
-
-        This method should schedule a future for each node provided and return
+        This method should schedule a future for each atom provided and return
         a set of those futures to be waited on (or used for other similar
         purposes). It should also return any failure objects that represented
         scheduling failures that may have occurred during this scheduling
         process.
         """
         futures = set()
-        for node in nodes:
+        for atom in atoms:
+            scheduler = self._fetch_scheduler(atom)
             try:
-                futures.add(self._schedule_node(node))
+                futures.add(scheduler.schedule(atom))
             except Exception:
                 # Immediately stop scheduling future work so that we can
-                # exit execution early (rather than later) if a single task
+                # exit execution early (rather than later) if a single atom
                 # fails to schedule correctly.
                 return (futures, [failure.Failure()])
         return (futures, [])
