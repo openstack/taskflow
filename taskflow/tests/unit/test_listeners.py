@@ -16,6 +16,7 @@
 
 import contextlib
 import logging
+import threading
 import time
 
 from oslo_serialization import jsonutils
@@ -38,7 +39,6 @@ from taskflow.test import mock
 from taskflow.tests import utils as test_utils
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils
-from taskflow.utils import threading_utils
 
 
 _LOG_LEVELS = frozenset([
@@ -89,7 +89,7 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
         self.board.connect()
 
     def _post_claim_job(self, job_name, book=None, details=None):
-        arrived = threading_utils.Event()
+        arrived = threading.Event()
 
         def set_on_children(children):
             if children:

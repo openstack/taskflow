@@ -19,11 +19,6 @@ import abc
 import collections
 import itertools
 
-try:
-    from collections import OrderedDict  # noqa
-except ImportError:
-    from ordereddict import OrderedDict  # noqa
-
 from oslo_utils import reflection
 import six
 from six.moves import zip as compat_zip
@@ -46,23 +41,24 @@ def _save_as_to_mapping(save_as):
     # outside of code so that it's more easily understandable, since what an
     # atom returns is pretty crucial for other later operations.
     if save_as is None:
-        return OrderedDict()
+        return collections.OrderedDict()
     if isinstance(save_as, six.string_types):
         # NOTE(harlowja): this means that your atom will only return one item
         # instead of a dictionary-like object or a indexable object (like a
         # list or tuple).
-        return OrderedDict([(save_as, None)])
+        return collections.OrderedDict([(save_as, None)])
     elif isinstance(save_as, _sequence_types):
         # NOTE(harlowja): this means that your atom will return a indexable
         # object, like a list or tuple and the results can be mapped by index
         # to that tuple/list that is returned for others to use.
-        return OrderedDict((key, num) for num, key in enumerate(save_as))
+        return collections.OrderedDict((key, num)
+                                       for num, key in enumerate(save_as))
     elif isinstance(save_as, _set_types):
         # NOTE(harlowja): in the case where a set is given we will not be
         # able to determine the numeric ordering in a reliable way (since it
         # may be an unordered set) so the only way for us to easily map the
         # result of the atom will be via the key itself.
-        return OrderedDict((key, key) for key in save_as)
+        return collections.OrderedDict((key, key) for key in save_as)
     else:
         raise TypeError('Atom provides parameter '
                         'should be str, set or tuple/list, not %r' % save_as)
@@ -76,9 +72,9 @@ def _build_rebind_dict(args, rebind_args):
     new name onto the required name).
     """
     if rebind_args is None:
-        return OrderedDict()
+        return collections.OrderedDict()
     elif isinstance(rebind_args, (list, tuple)):
-        rebind = OrderedDict(compat_zip(args, rebind_args))
+        rebind = collections.OrderedDict(compat_zip(args, rebind_args))
         if len(args) < len(rebind_args):
             rebind.update((a, a) for a in rebind_args[len(args):])
         return rebind
@@ -112,7 +108,7 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
         ignore_list = []
 
     # Build the required names.
-    required = OrderedDict()
+    required = collections.OrderedDict()
 
     # Add required arguments to required mappings if inference is enabled.
     if do_infer:
@@ -133,9 +129,9 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
         opt_args = sets.OrderedSet(all_args)
         opt_args = opt_args - set(itertools.chain(six.iterkeys(required),
                                                   iter(ignore_list)))
-        optional = OrderedDict((a, a) for a in opt_args)
+        optional = collections.OrderedDict((a, a) for a in opt_args)
     else:
-        optional = OrderedDict()
+        optional = collections.OrderedDict()
 
     # Check if we are given some extra arguments that we aren't able to accept.
     if not reflection.accepts_kwargs(function):
@@ -206,14 +202,14 @@ class Atom(object):
         self.requires = sets.OrderedSet()
         self.optional = sets.OrderedSet()
         self.provides = sets.OrderedSet(self.save_as)
-        self.rebind = OrderedDict()
+        self.rebind = collections.OrderedDict()
 
     def _build_arg_mapping(self, executor, requires=None, rebind=None,
                            auto_extract=True, ignore_list=None):
         required, optional = _build_arg_mapping(self.name, requires, rebind,
                                                 executor, auto_extract,
                                                 ignore_list=ignore_list)
-        rebind = OrderedDict()
+        rebind = collections.OrderedDict()
         for (arg_name, bound_name) in itertools.chain(six.iteritems(required),
                                                       six.iteritems(optional)):
             rebind.setdefault(arg_name, bound_name)

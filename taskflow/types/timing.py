@@ -14,9 +14,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_utils import timeutils
+import threading
 
-from taskflow.utils import threading_utils
+from oslo_utils import timeutils
 
 #: Moved to oslo.utils (just reference them from there until a later time).
 Split = timeutils.Split
@@ -35,7 +35,7 @@ class Timeout(object):
         if timeout < 0:
             raise ValueError("Timeout must be >= 0 and not %s" % (timeout))
         self._timeout = timeout
-        self._event = threading_utils.Event()
+        self._event = threading.Event()
 
     def interrupt(self):
         self._event.set()

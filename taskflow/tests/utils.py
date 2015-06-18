@@ -16,6 +16,7 @@
 
 import contextlib
 import string
+import threading
 
 import six
 
@@ -26,7 +27,6 @@ from taskflow import retry
 from taskflow import task
 from taskflow.types import failure
 from taskflow.utils import kazoo_utils
-from taskflow.utils import threading_utils
 
 ARGS_KEY = '__args__'
 KWARGS_KEY = '__kwargs__'
@@ -365,7 +365,7 @@ class WaitForOneFromTask(ProgressingTask):
             self.wait_states = [wait_states]
         else:
             self.wait_states = wait_states
-        self.event = threading_utils.Event()
+        self.event = threading.Event()
 
     def execute(self):
         if not self.event.wait(WAIT_TIMEOUT):
