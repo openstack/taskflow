@@ -131,7 +131,7 @@ def main():
     elif options.engines:
         source_type = "Engines"
         r = runner.Runner(DummyRuntime(), None)
-        source, memory = r.builder.build()
+        source, memory = r.build()
         internal_states.extend(runner._META_STATES)
         ordering = 'out'
     elif options.wbe_requests:
