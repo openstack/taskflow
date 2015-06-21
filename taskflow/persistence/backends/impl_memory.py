@@ -308,10 +308,12 @@ class MemoryBackend(path_based.PathBasedBackend):
     guarantee that there will be no inter-thread race conditions when
     writing and reading by using a read/write locks.
     """
+
+    #: Default path used when none is provided.
+    DEFAULT_PATH = pp.sep
+
     def __init__(self, conf=None):
         super(MemoryBackend, self).__init__(conf)
-        if self._path is None:
-            self._path = pp.sep
         self.memory = FakeFilesystem(deep_copy=self._conf.get('deep_copy',
                                                               True))
         self.lock = fasteners.ReaderWriterLock()
