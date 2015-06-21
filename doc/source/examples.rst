@@ -34,6 +34,18 @@ Using listeners
     :linenos:
     :lines: 16-
 
+Using listeners (to watch a phone call)
+=======================================
+
+.. note::
+
+    Full source located at :example:`simple_linear_listening`.
+
+.. literalinclude:: ../../taskflow/examples/simple_linear_listening.py
+    :language: python
+    :linenos:
+    :lines: 16-
+
 Dumping a in-memory backend
 ===========================
 
