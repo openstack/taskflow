@@ -3,7 +3,7 @@
 # process, which may cause wedges in the gate later.
 
 # See: https://bugs.launchpad.net/pbr/+bug/1384919 for why this is here...
-pbr>=0.11,<2.0
+pbr<2.0,>=0.11
 
 # Packages needed for using this library.
 
@@ -17,7 +17,7 @@ six>=1.9.0
 enum34
 
 # For reader/writer + interprocess locks.
-fasteners>=0.7  # Apache-2.0
+fasteners>=0.7 # Apache-2.0
 
 # Very nice graph library
 networkx>=1.8
@@ -26,20 +26,20 @@ networkx>=1.8
 contextlib2>=0.4.0 # PSF License
 
 # Used for backend storage engine loading.
-stevedore>=1.5.0  # Apache-2.0
+stevedore>=1.5.0 # Apache-2.0
 
 # Backport for concurrent.futures which exists in 3.2+
 futures>=3.0
 
 # Used for structured input validation
-jsonschema>=2.0.0,<3.0.0,!=2.5.0
+jsonschema!=2.5.0,<3.0.0,>=2.0.0
 
 # For common utilities
-oslo.utils>=1.6.0                       # Apache-2.0
-oslo.serialization>=1.4.0               # Apache-2.0
+oslo.utils>=1.6.0 # Apache-2.0
+oslo.serialization>=1.4.0 # Apache-2.0
 
 # For lru caches and such
 cachetools>=1.0.0 # MIT License
 
 # For deprecation of things
-debtcollector>=0.3.0  # Apache-2.0
+debtcollector>=0.3.0 # Apache-2.0
