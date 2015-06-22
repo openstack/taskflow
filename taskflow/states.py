@@ -156,7 +156,7 @@ def check_flow_transition(old_state, new_state):
 
 
 # Task state transitions
-# See: http://docs.openstack.org/developer/taskflow/states.html
+# See: http://docs.openstack.org/developer/taskflow/states.html#task
 
 _ALLOWED_TASK_TRANSITIONS = frozenset((
     (PENDING, RUNNING),       # run it!
