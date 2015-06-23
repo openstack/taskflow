@@ -441,6 +441,13 @@ Implementations
 Components
 ----------
 
+.. warning::
+
+    External usage of internal engine functions, components and modules should
+    be kept to a **minimum** as they may be altered, refactored or moved to
+    other locations **without** notice (and without the typical deprecation
+    cycle).
+
 .. automodule:: taskflow.engines.action_engine.analyzer
 .. automodule:: taskflow.engines.action_engine.compiler
 .. automodule:: taskflow.engines.action_engine.completer
