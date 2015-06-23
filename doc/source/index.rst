@@ -103,6 +103,14 @@ projects, frameworks and libraries.
 
    shelf
 
+History
+-------
+
+.. toctree::
+   :maxdepth: 2
+
+   history
+
 Indices and tables
 ==================
 
