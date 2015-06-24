@@ -24,7 +24,6 @@ import os
 import re
 import sys
 import threading
-import time
 import types
 
 import enum
@@ -48,17 +47,6 @@ NUMERIC_TYPES = six.integer_types + (float,)
 # see RFC 3986 section 3.1
 _SCHEME_REGEX = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
 
-_MONOTONIC_LOCATIONS = tuple([
-    # The built-in/expected location in python3.3+
-    'time.monotonic',
-    # NOTE(harlowja): Try to use the pypi module that provides this
-    # functionality for older versions of python less than 3.3 so that
-    # they to can benefit from better timing...
-    #
-    # See: http://pypi.python.org/pypi/monotonic
-    'monotonic.monotonic',
-])
-
 
 class StrEnum(str, enum.Enum):
     """An enumeration that is also a string and can be compared to strings."""
@@ -69,23 +57,6 @@ class StrEnum(str, enum.Enum):
                 raise TypeError("Enumeration '%s' (%s) is not"
                                 " a string" % (a, type(a).__name__))
         return super(StrEnum, cls).__new__(cls, *args, **kwargs)
-
-
-def find_monotonic(allow_time_time=False):
-    """Tries to find a monotonic time providing function (and returns it)."""
-    for import_str in _MONOTONIC_LOCATIONS:
-        mod_str, _sep, attr_str = import_str.rpartition('.')
-        mod = importutils.try_import(mod_str)
-        if mod is None:
-            continue
-        func = getattr(mod, attr_str, None)
-        if func is not None:
-            return func
-    # Finally give up and use time.time (which isn't monotonic)...
-    if allow_time_time:
-        return time.time
-    else:
-        return None
 
 
 def match_type(obj, matchers):
