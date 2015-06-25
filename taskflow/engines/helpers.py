@@ -146,6 +146,13 @@ def load(flow, store=None, flow_detail=None, book=None,
     :py:func:`~taskflow.persistence.backends.fetch` to obtain a
     viable backend.
 
+    .. deprecated:: 0.6
+
+        The ``engine_conf`` argument is **deprecated** and is present
+        for backward compatibility **only**. In order to provide this
+        argument going forward the ``engine`` string (or URI) argument
+        should be used instead.
+
     :param flow: flow to load
     :param store: dict -- data to put to storage to satisfy flow requirements
     :param flow_detail: FlowDetail that holds the state of the flow (if one is
@@ -198,6 +205,13 @@ def run(flow, store=None, flow_detail=None, book=None,
     function) and runs the engine.
 
     The arguments are interpreted as for :func:`load() <load>`.
+
+    .. deprecated:: 0.6
+
+        The ``engine_conf`` argument is **deprecated** and is present
+        for backward compatibility **only**. In order to provide this
+        argument going forward the ``engine`` string (or URI) argument
+        should be used instead.
 
     :returns: dictionary of all named
               results (see :py:meth:`~.taskflow.storage.Storage.fetch_all`)
@@ -264,6 +278,13 @@ def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
 
     Further arguments are interpreted as for :func:`load() <load>`.
 
+    .. deprecated:: 0.6
+
+        The ``engine_conf`` argument is **deprecated** and is present
+        for backward compatibility **only**. In order to provide this
+        argument going forward the ``engine`` string (or URI) argument
+        should be used instead.
+
     :returns: engine
     """
 
@@ -323,6 +344,13 @@ def load_from_detail(flow_detail, store=None, engine_conf=None, backend=None,
     :param flow_detail: FlowDetail that holds state of the flow to load
 
     Further arguments are interpreted as for :func:`load() <load>`.
+
+    .. deprecated:: 0.6
+
+        The ``engine_conf`` argument is **deprecated** and is present
+        for backward compatibility **only**. In order to provide this
+        argument going forward the ``engine`` string (or URI) argument
+        should be used instead.
 
     :returns: engine
     """

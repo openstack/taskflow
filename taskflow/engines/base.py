@@ -57,7 +57,15 @@ class Engine(object):
     @moves.moved_property('atom_notifier', version="0.6",
                           removal_version="?")
     def task_notifier(self):
-        """The task notifier."""
+        """The task notifier.
+
+        .. deprecated:: 0.6
+
+            The property is **deprecated** and is present for
+            backward compatibility **only**. In order to access this
+            property going forward the :py:attr:`.atom_notifier` should
+            be used instead.
+        """
         return self._atom_notifier
 
     @property
