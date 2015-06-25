@@ -31,24 +31,34 @@ LOG = logging.getLogger(__name__)
 
 
 @six.add_metaclass(abc.ABCMeta)
-class _Strategy(object):
-    """Local/internal helper strategy base object"""
+class Strategy(object):
+    """Failure resolution strategy base class."""
+
+    strategy = None
 
     def __init__(self, runtime):
         self._runtime = runtime
 
+    @abc.abstractmethod
+    def apply(self):
+        """Applies some algorithm to resolve some detected failure."""
+
     def __str__(self):
         base = reflection.get_class_name(self, fully_qualified=False)
-        return base + "(strategy=%s)" % (self.strategy.name)
+        if self.strategy is not None:
+            strategy_name = self.strategy.name
+        else:
+            strategy_name = "???"
+        return base + "(strategy=%s)" % (strategy_name)
 
 
-class _RevertAndRetry(_Strategy):
+class RevertAndRetry(Strategy):
     """Sets the *associated* subflow for revert to be later retried."""
 
     strategy = retry_atom.RETRY
 
     def __init__(self, runtime, retry):
-        super(_RevertAndRetry, self).__init__(runtime)
+        super(RevertAndRetry, self).__init__(runtime)
         self._retry = retry
 
     def apply(self):
@@ -59,13 +69,13 @@ class _RevertAndRetry(_Strategy):
         return tweaked
 
 
-class _RevertAll(_Strategy):
+class RevertAll(Strategy):
     """Sets *all* nodes/atoms to the ``REVERT`` intention."""
 
     strategy = retry_atom.REVERT_ALL
 
     def __init__(self, runtime):
-        super(_RevertAll, self).__init__(runtime)
+        super(RevertAll, self).__init__(runtime)
         self._analyzer = runtime.analyzer
 
     def apply(self):
@@ -73,13 +83,13 @@ class _RevertAll(_Strategy):
                                          state=None, intention=st.REVERT)
 
 
-class _Revert(_Strategy):
+class Revert(Strategy):
     """Sets atom and *associated* nodes to the ``REVERT`` intention."""
 
     strategy = retry_atom.REVERT
 
     def __init__(self, runtime, atom):
-        super(_Revert, self).__init__(runtime)
+        super(Revert, self).__init__(runtime)
         self._atom = atom
 
     def apply(self):
@@ -99,7 +109,7 @@ class Completer(object):
         self._retry_action = runtime.retry_action
         self._storage = runtime.storage
         self._task_action = runtime.task_action
-        self._undefined_resolver = _RevertAll(self._runtime)
+        self._undefined_resolver = RevertAll(self._runtime)
 
     def _complete_task(self, task, event, result):
         """Completes the given task, processes task failure."""
@@ -152,7 +162,7 @@ class Completer(object):
             # Ask retry controller what to do in case of failure.
             strategy = self._retry_action.on_failure(retry, atom, failure)
             if strategy == retry_atom.RETRY:
-                return _RevertAndRetry(self._runtime, retry)
+                return RevertAndRetry(self._runtime, retry)
             elif strategy == retry_atom.REVERT:
                 # Ask parent retry and figure out what to do...
                 parent_resolver = self._determine_resolution(retry, failure)
@@ -162,9 +172,9 @@ class Completer(object):
                 if parent_resolver is not self._undefined_resolver:
                     if parent_resolver.strategy != retry_atom.REVERT:
                         return parent_resolver
-                return _Revert(self._runtime, retry)
+                return Revert(self._runtime, retry)
             elif strategy == retry_atom.REVERT_ALL:
-                return _RevertAll(self._runtime)
+                return RevertAll(self._runtime)
             else:
                 raise ValueError("Unknown atom failure resolution"
                                  " action/strategy '%s'" % strategy)
