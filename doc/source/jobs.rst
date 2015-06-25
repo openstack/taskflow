@@ -62,7 +62,8 @@ Features
     the previously partially completed work or begin initial work to ensure
     that the workflow as a whole progresses (where progressing implies
     transitioning through the workflow :doc:`patterns <patterns>` and
-    :doc:`atoms <atoms>` and completing their associated state transitions).
+    :doc:`atoms <atoms>` and completing their associated
+    :doc:`states <states>` transitions).
 
 - Atomic transfer and single ownership
 
@@ -94,11 +95,12 @@ Features
 Usage
 =====
 
-All engines are mere classes that implement same interface, and of course it is
-possible to import them and create their instances just like with any classes
-in Python. But the easier (and recommended) way for creating jobboards is by
-using the :py:meth:`fetch() <taskflow.jobs.backends.fetch>` function which uses
-entrypoints (internally using `stevedore`_) to fetch and configure your backend
+All jobboards are mere classes that implement same interface, and of course
+it is possible to import them and create instances of them just like with any
+other class in Python. But the easier (and recommended) way for creating
+jobboards is by using the :py:meth:`fetch() <taskflow.jobs.backends.fetch>`
+function which uses entrypoints (internally using `stevedore`_) to fetch and
+configure your backend.
 
 Using this function the typical creation of a jobboard (and an example posting
 of a job) might look like:
