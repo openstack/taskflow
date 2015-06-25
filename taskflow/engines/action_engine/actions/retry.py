@@ -14,10 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import futurist
-
 from taskflow.engines.action_engine.actions import base
-from taskflow.engines.action_engine import executor as ex
 from taskflow import logging
 from taskflow import retry as retry_atom
 from taskflow import states
@@ -26,28 +23,12 @@ from taskflow.types import failure
 LOG = logging.getLogger(__name__)
 
 
-def _execute_retry(retry, arguments):
-    try:
-        result = retry.execute(**arguments)
-    except Exception:
-        result = failure.Failure()
-    return (ex.EXECUTED, result)
-
-
-def _revert_retry(retry, arguments):
-    try:
-        result = retry.revert(**arguments)
-    except Exception:
-        result = failure.Failure()
-    return (ex.REVERTED, result)
-
-
 class RetryAction(base.Action):
     """An action that handles executing, state changes, ... of retry atoms."""
 
-    def __init__(self, storage, notifier):
+    def __init__(self, storage, notifier, retry_executor):
         super(RetryAction, self).__init__(storage, notifier)
-        self._executor = futurist.SynchronousExecutor()
+        self._retry_executor = retry_executor
 
     def _get_retry_args(self, retry, addons=None):
         arguments = self._storage.fetch_mapped_args(
@@ -88,41 +69,30 @@ class RetryAction(base.Action):
             details['result'] = result
         self._notifier.notify(state, details)
 
-    def execute(self, retry):
-
-        def _on_done_callback(fut):
-            result = fut.result()[-1]
-            if isinstance(result, failure.Failure):
-                self.change_state(retry, states.FAILURE, result=result)
-            else:
-                self.change_state(retry, states.SUCCESS, result=result)
-
+    def schedule_execution(self, retry):
         self.change_state(retry, states.RUNNING)
-        fut = self._executor.submit(_execute_retry, retry,
-                                    self._get_retry_args(retry))
-        fut.add_done_callback(_on_done_callback)
-        fut.atom = retry
-        return fut
+        return self._retry_executor.execute_retry(
+            retry, self._get_retry_args(retry))
 
-    def revert(self, retry):
+    def complete_reversion(self, retry, result):
+        if isinstance(result, failure.Failure):
+            self.change_state(retry, states.REVERT_FAILURE, result=result)
+        else:
+            self.change_state(retry, states.REVERTED, result=result)
 
-        def _on_done_callback(fut):
-            result = fut.result()[-1]
-            if isinstance(result, failure.Failure):
-                self.change_state(retry, states.REVERT_FAILURE, result=result)
-            else:
-                self.change_state(retry, states.REVERTED, result=result)
+    def complete_execution(self, retry, result):
+        if isinstance(result, failure.Failure):
+            self.change_state(retry, states.FAILURE, result=result)
+        else:
+            self.change_state(retry, states.SUCCESS, result=result)
 
+    def schedule_reversion(self, retry):
         self.change_state(retry, states.REVERTING)
         arg_addons = {
             retry_atom.REVERT_FLOW_FAILURES: self._storage.get_failures(),
         }
-        fut = self._executor.submit(_revert_retry, retry,
-                                    self._get_retry_args(retry,
-                                                         addons=arg_addons))
-        fut.add_done_callback(_on_done_callback)
-        fut.atom = retry
-        return fut
+        return self._retry_executor.revert_retry(
+            retry, self._get_retry_args(retry, addons=arg_addons))
 
     def on_failure(self, retry, atom, last_failure):
         self._storage.save_retry_failure(retry.name, atom.name, last_failure)
