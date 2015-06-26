@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import futurist
 import testtools
 
 from taskflow.engines.action_engine import engine
@@ -22,7 +23,6 @@ from taskflow.patterns import linear_flow as lf
 from taskflow.persistence import backends
 from taskflow import test
 from taskflow.tests import utils
-from taskflow.types import futures as futures
 from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import persistence_utils as pu
 
@@ -50,26 +50,26 @@ class ParallelCreationTest(test.TestCase):
                                   executor.ParallelProcessTaskExecutor)
 
     def test_thread_executor_creation(self):
-        with futures.ThreadPoolExecutor(1) as e:
+        with futurist.ThreadPoolExecutor(1) as e:
             eng = self._create_engine(executor=e)
             self.assertIsInstance(eng._task_executor,
                                   executor.ParallelThreadTaskExecutor)
 
     def test_process_executor_creation(self):
-        with futures.ProcessPoolExecutor(1) as e:
+        with futurist.ProcessPoolExecutor(1) as e:
             eng = self._create_engine(executor=e)
             self.assertIsInstance(eng._task_executor,
                                   executor.ParallelProcessTaskExecutor)
 
     @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
     def test_green_executor_creation(self):
-        with futures.GreenThreadPoolExecutor(1) as e:
+        with futurist.GreenThreadPoolExecutor(1) as e:
             eng = self._create_engine(executor=e)
             self.assertIsInstance(eng._task_executor,
                                   executor.ParallelThreadTaskExecutor)
 
     def test_sync_executor_creation(self):
-        with futures.SynchronousExecutor() as e:
+        with futurist.SynchronousExecutor() as e:
             eng = self._create_engine(executor=e)
             self.assertIsInstance(eng._task_executor,
                                   executor.ParallelThreadTaskExecutor)

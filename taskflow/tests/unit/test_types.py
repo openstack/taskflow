@@ -14,8 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import time
-
 import networkx as nx
 import six
 from six.moves import cPickle as pickle
@@ -24,31 +22,9 @@ from taskflow import exceptions as excp
 from taskflow import test
 from taskflow.types import fsm
 from taskflow.types import graph
-from taskflow.types import latch
-from taskflow.types import periodic
 from taskflow.types import sets
 from taskflow.types import table
 from taskflow.types import tree
-from taskflow.utils import threading_utils as tu
-
-
-class PeriodicThingy(object):
-    def __init__(self):
-        self.capture = []
-
-    @periodic.periodic(0.01)
-    def a(self):
-        self.capture.append('a')
-
-    @periodic.periodic(0.02)
-    def b(self):
-        self.capture.append('b')
-
-    def c(self):
-        pass
-
-    def d(self):
-        pass
 
 
 class GraphTest(test.TestCase):
@@ -629,110 +605,3 @@ class OrderedSetTest(test.TestCase):
         es3 = set(s3)
 
         self.assertEqual(es.union(es2, es3), s.union(s2, s3))
-
-
-class PeriodicTest(test.TestCase):
-
-    def test_invalid_periodic(self):
-
-        def no_op():
-            pass
-
-        self.assertRaises(ValueError, periodic.periodic, -1)
-
-    def test_valid_periodic(self):
-
-        @periodic.periodic(2)
-        def no_op():
-            pass
-
-        self.assertTrue(getattr(no_op, '_periodic'))
-        self.assertEqual(2, getattr(no_op, '_periodic_spacing'))
-        self.assertEqual(True, getattr(no_op, '_periodic_run_immediately'))
-
-    def test_scanning_periodic(self):
-        p = PeriodicThingy()
-        w = periodic.PeriodicWorker.create([p])
-        self.assertEqual(2, len(w))
-
-        t = tu.daemon_thread(target=w.start)
-        t.start()
-        time.sleep(0.1)
-        w.stop()
-        t.join()
-
-        b_calls = [c for c in p.capture if c == 'b']
-        self.assertGreater(0, len(b_calls))
-        a_calls = [c for c in p.capture if c == 'a']
-        self.assertGreater(0, len(a_calls))
-
-    def test_periodic_single(self):
-        barrier = latch.Latch(5)
-        capture = []
-
-        @periodic.periodic(0.01)
-        def callee():
-            barrier.countdown()
-            if barrier.needed == 0:
-                w.stop()
-            capture.append(1)
-
-        w = periodic.PeriodicWorker([callee])
-        t = tu.daemon_thread(target=w.start)
-        t.start()
-        t.join()
-
-        self.assertEqual(0, barrier.needed)
-        self.assertEqual(5, sum(capture))
-
-    def test_immediate(self):
-        capture = []
-
-        @periodic.periodic(120, run_immediately=True)
-        def a():
-            capture.append('a')
-
-        w = periodic.PeriodicWorker([a])
-        t = tu.daemon_thread(target=w.start)
-        t.start()
-        time.sleep(0.1)
-        w.stop()
-        t.join()
-
-        a_calls = [c for c in capture if c == 'a']
-        self.assertGreater(0, len(a_calls))
-
-    def test_period_double_no_immediate(self):
-        capture = []
-
-        @periodic.periodic(0.01, run_immediately=False)
-        def a():
-            capture.append('a')
-
-        @periodic.periodic(0.02, run_immediately=False)
-        def b():
-            capture.append('b')
-
-        w = periodic.PeriodicWorker([a, b])
-        t = tu.daemon_thread(target=w.start)
-        t.start()
-        time.sleep(0.1)
-        w.stop()
-        t.join()
-
-        b_calls = [c for c in capture if c == 'b']
-        self.assertGreater(0, len(b_calls))
-        a_calls = [c for c in capture if c == 'a']
-        self.assertGreater(0, len(a_calls))
-
-    def test_start_nothing_error(self):
-        w = periodic.PeriodicWorker([])
-        self.assertRaises(RuntimeError, w.start)
-
-    def test_missing_function_attrs(self):
-
-        def fake_periodic():
-            pass
-
-        cb = fake_periodic
-        self.assertRaises(ValueError, periodic.PeriodicWorker, [cb])

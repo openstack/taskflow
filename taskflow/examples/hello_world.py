@@ -25,11 +25,12 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
+import futurist
+
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
-from taskflow.types import futures
 from taskflow.utils import eventlet_utils
 
 
@@ -82,19 +83,19 @@ song.add(PrinterTask("conductor@begin",
 
 # Run in parallel using eventlet green threads...
 if eventlet_utils.EVENTLET_AVAILABLE:
-    with futures.GreenThreadPoolExecutor() as executor:
+    with futurist.GreenThreadPoolExecutor() as executor:
         e = engines.load(song, executor=executor, engine='parallel')
         e.run()
 
 
 # Run in parallel using real threads...
-with futures.ThreadPoolExecutor(max_workers=1) as executor:
+with futurist.ThreadPoolExecutor(max_workers=1) as executor:
     e = engines.load(song, executor=executor, engine='parallel')
     e.run()
 
 
 # Run in parallel using external processes...
-with futures.ProcessPoolExecutor(max_workers=1) as executor:
+with futurist.ProcessPoolExecutor(max_workers=1) as executor:
     e = engines.load(song, executor=executor, engine='parallel')
     e.run()
 

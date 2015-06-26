@@ -37,7 +37,7 @@ class TestWorker(test.MockTestCase):
 
         # patch classes
         self.executor_mock, self.executor_inst_mock = self.patchClass(
-            worker.futures, 'ThreadPoolExecutor', attach_as='executor')
+            worker.futurist, 'ThreadPoolExecutor', attach_as='executor')
         self.server_mock, self.server_inst_mock = self.patchClass(
             worker.server, 'Server')
 

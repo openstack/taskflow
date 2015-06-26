@@ -17,7 +17,7 @@
 import threading
 import time
 
-from concurrent import futures
+import futurist
 from oslo_utils import timeutils
 
 from taskflow.engines.worker_based import executor
@@ -281,7 +281,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertEqual(expected_calls, self.master_mock.mock_calls)
 
     def test_wait_for_any(self):
-        fs = [futures.Future(), futures.Future()]
+        fs = [futurist.Future(), futurist.Future()]
         ex = self.executor()
         ex.wait_for_any(fs)
 
@@ -292,7 +292,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
     def test_wait_for_any_with_timeout(self):
         timeout = 30
-        fs = [futures.Future(), futures.Future()]
+        fs = [futurist.Future(), futurist.Future()]
         ex = self.executor()
         ex.wait_for_any(fs, timeout)
 

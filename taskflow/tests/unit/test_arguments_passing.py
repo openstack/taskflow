@@ -14,13 +14,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import futurist
 import testtools
 
 import taskflow.engines
 from taskflow import exceptions as exc
 from taskflow import test
 from taskflow.tests import utils
-from taskflow.types import futures
 from taskflow.utils import eventlet_utils as eu
 
 
@@ -192,7 +192,7 @@ class ParallelEngineWithEventletTest(ArgumentsPassingTest, test.TestCase):
 
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if executor is None:
-            executor = futures.GreenThreadPoolExecutor()
+            executor = futurist.GreenThreadPoolExecutor()
             self.addCleanup(executor.shutdown)
         return taskflow.engines.load(flow,
                                      flow_detail=flow_detail,

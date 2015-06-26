@@ -364,7 +364,7 @@ String (case insensitive)    Executor used
     #
     # NOTE(harlowja): the reason we use the library/built-in futures is to
     # allow for instances of that to be detected and handled correctly, instead
-    # of forcing everyone to use our derivatives...
+    # of forcing everyone to use our derivatives (futurist or other)...
     _executor_cls_matchers = [
         _ExecutorTypeMatch((futures.ThreadPoolExecutor,),
                            executor.ParallelThreadTaskExecutor),

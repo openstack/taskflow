@@ -13,6 +13,9 @@ six>=1.9.0
 # Enum library made for <= python 3.3
 enum34;python_version=='2.7' or python_version=='2.6'
 
+# For async and/or periodic work
+futurist>=0.1.1 # Apache-2.0
+
 # For reader/writer + interprocess locks.
 fasteners>=0.7 # Apache-2.0
 

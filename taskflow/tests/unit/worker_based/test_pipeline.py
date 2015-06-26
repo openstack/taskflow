@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from concurrent import futures
+import futurist
 from oslo_utils import uuidutils
 
 from taskflow.engines.action_engine import executor as base_executor
@@ -39,7 +39,7 @@ class TestPipeline(test.TestCase):
             endpoints.append(endpoint.Endpoint(cls))
         server = worker_server.Server(
             TEST_TOPIC, TEST_EXCHANGE,
-            futures.ThreadPoolExecutor(1), endpoints,
+            futurist.ThreadPoolExecutor(max_workers=1), endpoints,
             transport='memory',
             transport_options={
                 'polling_interval': POLLING_INTERVAL,

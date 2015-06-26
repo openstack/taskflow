@@ -17,6 +17,7 @@
 import contextlib
 import functools
 
+import futurist
 import six
 import testtools
 
@@ -34,7 +35,6 @@ from taskflow import task
 from taskflow import test
 from taskflow.tests import utils
 from taskflow.types import failure
-from taskflow.types import futures
 from taskflow.types import graph as gr
 from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import persistence_utils as p_utils
@@ -977,7 +977,7 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
 
     def test_using_common_executor(self):
         flow = utils.TaskNoRequiresNoReturns(name='task1')
-        executor = futures.ThreadPoolExecutor(self._EXECUTOR_WORKERS)
+        executor = futurist.ThreadPoolExecutor(self._EXECUTOR_WORKERS)
         try:
             e1 = self._make_engine(flow, executor=executor)
             e2 = self._make_engine(flow, executor=executor)
@@ -1002,7 +1002,7 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
     def _make_engine(self, flow,
                      flow_detail=None, executor=None, store=None):
         if executor is None:
-            executor = futures.GreenThreadPoolExecutor()
+            executor = futurist.GreenThreadPoolExecutor()
             self.addCleanup(executor.shutdown)
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      backend=self.backend, engine='parallel',

@@ -16,11 +16,11 @@
 
 from concurrent import futures as _futures
 from concurrent.futures import _base
+import futurist
 from oslo_utils import importutils
 
 greenthreading = importutils.try_import('eventlet.green.threading')
 
-from taskflow.types import futures
 from taskflow.utils import eventlet_utils as eu
 
 
@@ -32,7 +32,7 @@ _DONE_STATES = frozenset([
 
 def make_completed_future(result):
     """Make and return a future completed with a given result."""
-    future = futures.Future()
+    future = futurist.Future()
     future.set_result(result)
     return future
 
@@ -47,7 +47,10 @@ def wait_for_any(fs, timeout=None):
 
     Returns pair (done futures, not done futures).
     """
-    green_fs = sum(1 for f in fs if isinstance(f, futures.GreenFuture))
+    # TODO(harlowja): remove this when
+    # https://review.openstack.org/#/c/196269/ is merged and is made
+    # available.
+    green_fs = sum(1 for f in fs if isinstance(f, futurist.GreenFuture))
     if not green_fs:
         return _futures.wait(fs,
                              timeout=timeout,

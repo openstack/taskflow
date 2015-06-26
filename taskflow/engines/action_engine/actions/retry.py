@@ -14,13 +14,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import futurist
+
 from taskflow.engines.action_engine.actions import base
 from taskflow.engines.action_engine import executor as ex
 from taskflow import logging
 from taskflow import retry as retry_atom
 from taskflow import states
 from taskflow.types import failure
-from taskflow.types import futures
 
 LOG = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class RetryAction(base.Action):
 
     def __init__(self, storage, notifier):
         super(RetryAction, self).__init__(storage, notifier)
-        self._executor = futures.SynchronousExecutor()
+        self._executor = futurist.SynchronousExecutor()
 
     def _get_retry_args(self, retry, addons=None):
         arguments = self._storage.fetch_mapped_args(
