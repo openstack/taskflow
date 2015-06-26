@@ -16,13 +16,13 @@
 
 import threading
 
+from debtcollector import moves
 from oslo_utils import timeutils
 
-#: Moved to oslo.utils (just reference them from there until a later time).
-Split = timeutils.Split
 
-#: Moved to oslo.utils (just reference them from there until a later time).
-StopWatch = timeutils.StopWatch
+# TODO(harlowja): Keep alias class... around until 2.0 is released.
+StopWatch = moves.moved_class(timeutils.StopWatch, 'StopWatch', __name__,
+                              version="1.15", removal_version="2.0")
 
 
 class Timeout(object):

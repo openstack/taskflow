@@ -27,6 +27,7 @@ from kazoo.protocol import paths as k_paths
 from kazoo.recipe import watchers
 from oslo_serialization import jsonutils
 from oslo_utils import excutils
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 import six
 
@@ -34,7 +35,6 @@ from taskflow import exceptions as excp
 from taskflow.jobs import base
 from taskflow import logging
 from taskflow import states
-from taskflow.types import timing as tt
 from taskflow.utils import kazoo_utils
 from taskflow.utils import misc
 
@@ -672,7 +672,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
 
     def wait(self, timeout=None):
         # Wait until timeout expires (or forever) for jobs to appear.
-        watch = tt.StopWatch(duration=timeout)
+        watch = timeutils.StopWatch(duration=timeout)
         watch.start()
         with self._job_cond:
             while True:
