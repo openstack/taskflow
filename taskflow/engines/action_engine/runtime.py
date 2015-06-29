@@ -44,9 +44,14 @@ class Runtime(object):
         self._atom_cache = {}
 
     def compile(self):
-        # Build out a cache of commonly used item that are associated
-        # with the contained atoms (by name), and are useful to have for
-        # quick lookup on...
+        """Compiles & caches frequently used execution helper objects.
+
+        Build out a cache of commonly used item that are associated
+        with the contained atoms (by name), and are useful to have for
+        quick lookup on (for example, the change state handler function for
+        each atom, the scope walker object for each atom, the task or retry
+        specific scheduler and so-on).
+        """
         change_state_handlers = {
             'task': functools.partial(self.task_action.change_state,
                                       progress=0.0),
@@ -152,6 +157,7 @@ class Runtime(object):
     # consumption...
 
     def reset_nodes(self, atoms, state=st.PENDING, intention=st.EXECUTE):
+        """Resets all the provided atoms to the given state and intention."""
         tweaked = []
         for atom in atoms:
             metadata = self._atom_cache[atom.name]
@@ -165,13 +171,24 @@ class Runtime(object):
         return tweaked
 
     def reset_all(self, state=st.PENDING, intention=st.EXECUTE):
+        """Resets all atoms to the given state and intention."""
         return self.reset_nodes(self.analyzer.iterate_all_nodes(),
                                 state=state, intention=intention)
 
     def reset_subgraph(self, atom, state=st.PENDING, intention=st.EXECUTE):
+        """Resets a atoms subgraph to the given state and intention.
+
+        The subgraph is contained of all of the atoms successors.
+        """
         return self.reset_nodes(self.analyzer.iterate_subgraph(atom),
                                 state=state, intention=intention)
 
     def retry_subflow(self, retry):
+        """Prepares a retrys + its subgraph for execution.
+
+        This sets the retrys intention to ``EXECUTE`` and resets all of its
+        subgraph (its successors) to the ``PENDING`` state with an ``EXECUTE``
+        intention.
+        """
         self.storage.set_atom_intention(retry.name, st.EXECUTE)
         self.reset_subgraph(retry)

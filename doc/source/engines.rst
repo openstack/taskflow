@@ -237,7 +237,9 @@ saved to internal engine variables (these object help in execution of
 atoms, analyzing the graph and performing other internal engine
 activities). At the finishing of this stage a
 :py:class:`~taskflow.engines.action_engine.runtime.Runtime` object is created
-which contains references to all needed runtime components.
+which contains references to all needed runtime components and its
+:py:func:`~taskflow.engines.action_engine.runtime.Runtime.compile` is called
+to compile a cache of frequently used execution helper objects.
 
 Preparation
 -----------
