@@ -30,18 +30,16 @@ Requirements
 ~~~~~~~~~~~~
 
 Because this project has many optional (pluggable) parts like persistence
-backends and engines, we decided to split our requirements into three
+backends and engines, we decided to split our requirements into two
 parts: - things that are absolutely required (you can't use the project
-without them) are put into ``requirements-pyN.txt`` (``N`` being the
-Python *major* version number used to install the package). The requirements
+without them) are put into ``requirements.txt``. The requirements
 that are required by some optional part of this project (you can use the
-project without them) are put into our ``tox.ini`` file (so that we can still
-test the optional functionality works as expected). If you want to use the
-feature in question (`eventlet`_ or the worker based engine that
-uses `kombu`_ or the `sqlalchemy`_ persistence backend or jobboards which
+project without them) are put into our ``test-requirements.txt`` file (so
+that we can still test the optional functionality works as expected). If
+you want to use the feature in question (`eventlet`_ or the worker based engine
+that uses `kombu`_ or the `sqlalchemy`_ persistence backend or jobboards which
 have an implementation built using `kazoo`_ ...), you should add
-that requirement(s) to your project or environment; - as usual, things that
-required only for running tests are put into ``test-requirements.txt``.
+that requirement(s) to your project or environment.
 
 Tox.ini
 ~~~~~~~
