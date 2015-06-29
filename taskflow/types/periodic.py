@@ -16,6 +16,7 @@
 
 import heapq
 import inspect
+import threading
 
 from debtcollector import removals
 import monotonic
@@ -24,7 +25,6 @@ import six
 
 from taskflow import logging
 from taskflow.utils import misc
-from taskflow.utils import threading_utils as tu
 
 LOG = logging.getLogger(__name__)
 
@@ -143,7 +143,7 @@ class PeriodicWorker(object):
     @removals.removed_kwarg('tombstone', version="0.8", removal_version="?")
     def __init__(self, callables, tombstone=None):
         if tombstone is None:
-            self._tombstone = tu.Event()
+            self._tombstone = threading.Event()
         else:
             self._tombstone = tombstone
         self._callables = []

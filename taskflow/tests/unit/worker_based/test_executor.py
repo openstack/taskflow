@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import threading
 import time
 
 from concurrent import futures
@@ -26,7 +27,6 @@ from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils as test_utils
 from taskflow.types import failure
-from taskflow.utils import threading_utils
 
 
 class TestWorkerTaskExecutor(test.MockTestCase):
@@ -43,7 +43,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.executor_uuid = 'executor-uuid'
         self.executor_exchange = 'executor-exchange'
         self.executor_topic = 'test-topic1'
-        self.proxy_started_event = threading_utils.Event()
+        self.proxy_started_event = threading.Event()
 
         # patch classes
         self.proxy_mock, self.proxy_inst_mock = self.patchClass(

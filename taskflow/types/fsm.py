@@ -14,10 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-try:
-    from collections import OrderedDict  # noqa
-except ImportError:
-    from ordereddict import OrderedDict  # noqa
+import collections
 
 import six
 
@@ -66,7 +63,7 @@ class FSM(object):
     """
     def __init__(self, start_state):
         self._transitions = {}
-        self._states = OrderedDict()
+        self._states = collections.OrderedDict()
         self._start_state = start_state
         self._current = None
         self.frozen = False
@@ -127,7 +124,7 @@ class FSM(object):
             'on_enter': on_enter,
             'on_exit': on_exit,
         }
-        self._transitions[state] = OrderedDict()
+        self._transitions[state] = collections.OrderedDict()
 
     @misc.disallow_when_frozen(FrozenMachine)
     def add_reaction(self, state, event, reaction, *args, **kwargs):

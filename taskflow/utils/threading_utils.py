@@ -16,32 +16,12 @@
 
 import collections
 import multiprocessing
-import sys
 import threading
 
 import six
 from six.moves import _thread
 
 from taskflow.utils import misc
-
-
-if sys.version_info[0:2] == (2, 6):
-    # This didn't return that was/wasn't set in 2.6, since we actually care
-    # whether it did or didn't add that feature by taking the code from 2.7
-    # that added this functionality...
-    #
-    # TODO(harlowja): remove when we can drop 2.6 support.
-    class Event(threading._Event):
-        def wait(self, timeout=None):
-            self.__cond.acquire()
-            try:
-                if not self.__flag:
-                    self.__cond.wait(timeout)
-                return self.__flag
-            finally:
-                self.__cond.release()
-else:
-    Event = threading.Event
 
 
 def is_alive(thread):

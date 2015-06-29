@@ -7,9 +7,6 @@ pbr<2.0,>=0.11
 
 # Packages needed for using this library.
 
-# Only needed on python 2.6
-ordereddict
-
 # Python 2->3 compatibility library.
 six>=1.9.0
 

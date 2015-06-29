@@ -19,6 +19,7 @@ import collections
 from multiprocessing import managers
 import os
 import pickle
+import threading
 
 from oslo_utils import excutils
 from oslo_utils import reflection
@@ -240,7 +241,7 @@ class _Dispatcher(object):
             raise ValueError("Provided dispatch periodicity must be greater"
                              " than zero and not '%s'" % dispatch_periodicity)
         self._targets = {}
-        self._dead = threading_utils.Event()
+        self._dead = threading.Event()
         self._dispatch_periodicity = dispatch_periodicity
         self._stop_when_empty = False
 

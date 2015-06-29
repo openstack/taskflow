@@ -17,11 +17,6 @@
 import collections
 import itertools
 
-try:
-    from collections import OrderedDict  # noqa
-except ImportError:
-    from ordereddict import OrderedDict  # noqa
-
 import six
 
 
@@ -51,7 +46,7 @@ class OrderedSet(collections.Set, collections.Hashable):
     __slots__ = ['_data']
 
     def __init__(self, iterable=None):
-        self._data = _merge_in(OrderedDict(), iterable)
+        self._data = _merge_in(collections.OrderedDict(), iterable)
 
     def __hash__(self):
         return self._hash()

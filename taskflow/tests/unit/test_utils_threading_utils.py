@@ -16,6 +16,7 @@
 
 import collections
 import functools
+import threading
 import time
 
 from taskflow import test
@@ -28,17 +29,12 @@ def _spinner(death):
 
 
 class TestThreadHelpers(test.TestCase):
-    def test_event_wait(self):
-        e = tu.Event()
-        e.set()
-        self.assertTrue(e.wait())
-
     def test_alive_thread_falsey(self):
         for v in [False, 0, None, ""]:
             self.assertFalse(tu.is_alive(v))
 
     def test_alive_thread(self):
-        death = tu.Event()
+        death = threading.Event()
         t = tu.daemon_thread(_spinner, death)
         self.assertFalse(tu.is_alive(t))
         t.start()
@@ -48,7 +44,7 @@ class TestThreadHelpers(test.TestCase):
         self.assertFalse(tu.is_alive(t))
 
     def test_daemon_thread(self):
-        death = tu.Event()
+        death = threading.Event()
         t = tu.daemon_thread(_spinner, death)
         self.assertTrue(t.daemon)
 
@@ -59,7 +55,7 @@ class TestThreadBundle(test.TestCase):
     def setUp(self):
         super(TestThreadBundle, self).setUp()
         self.bundle = tu.ThreadBundle()
-        self.death = tu.Event()
+        self.death = threading.Event()
         self.addCleanup(self.bundle.stop)
         self.addCleanup(self.death.set)
 

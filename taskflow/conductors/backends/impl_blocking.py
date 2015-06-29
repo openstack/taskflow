@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import threading
+
 try:
     from contextlib import ExitStack  # noqa
 except ImportError:
@@ -26,7 +28,6 @@ from taskflow.listeners import logging as logging_listener
 from taskflow import logging
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
-from taskflow.utils import threading_utils
 
 LOG = logging.getLogger(__name__)
 WAIT_TIMEOUT = 0.5
@@ -69,7 +70,7 @@ class BlockingConductor(base.Conductor):
             self._wait_timeout = wait_timeout
         else:
             raise ValueError("Invalid timeout literal: %s" % (wait_timeout))
-        self._dead = threading_utils.Event()
+        self._dead = threading.Event()
 
     @removals.removed_kwarg('timeout', version="0.8", removal_version="?")
     def stop(self, timeout=None):

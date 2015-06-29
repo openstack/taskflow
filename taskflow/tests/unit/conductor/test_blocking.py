@@ -16,6 +16,7 @@
 
 import collections
 import contextlib
+import threading
 
 from zake import fake_client
 
@@ -93,7 +94,7 @@ class BlockingConductorTest(test_utils.EngineTestBase, test.TestCase):
     def test_run(self):
         components = self.make_components()
         components.conductor.connect()
-        consumed_event = threading_utils.Event()
+        consumed_event = threading.Event()
 
         def on_consume(state, details):
             consumed_event.set()
@@ -123,7 +124,7 @@ class BlockingConductorTest(test_utils.EngineTestBase, test.TestCase):
     def test_fail_run(self):
         components = self.make_components()
         components.conductor.connect()
-        consumed_event = threading_utils.Event()
+        consumed_event = threading.Event()
 
         def on_consume(state, details):
             consumed_event.set()

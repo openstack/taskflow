@@ -15,6 +15,7 @@
 #    under the License.
 
 import contextlib
+import threading
 import time
 
 from kazoo.recipe import watchers
@@ -53,8 +54,8 @@ def flush(client, path=None):
     # before this context manager exits.
     if not path:
         path = FLUSH_PATH_TPL % uuidutils.generate_uuid()
-    created = threading_utils.Event()
-    deleted = threading_utils.Event()
+    created = threading.Event()
+    deleted = threading.Event()
 
     def on_created(data, stat):
         if stat is not None:
@@ -126,7 +127,7 @@ class BoardTestMixin(object):
             self.assertRaises(excp.NotFound, self.board.wait, timeout=0.1)
 
     def test_wait_arrival(self):
-        ev = threading_utils.Event()
+        ev = threading.Event()
         jobs = []
 
         def poster(wait_post=0.2):
