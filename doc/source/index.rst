@@ -65,7 +65,8 @@ TaskFlow into your project:
 
 * Read over the `paradigm shifts`_ and engage the team in `IRC`_ (or via the
   `openstack-dev`_ mailing list) if these need more explanation (prefix
-  ``[TaskFlow]`` to your emails subject to get an even faster response).
+  ``[Oslo][TaskFlow]`` to your emails subject to get an even faster
+  response).
 * Follow (or at least attempt to follow) some of the established
   `best practices`_ (feel free to add your own suggested best practices).
 * Keep in touch with the team (see above); we are all friendly and enjoy
