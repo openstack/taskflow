@@ -71,26 +71,6 @@ class MemoryFilesystemTest(test.TestCase):
         self.assertEqual('c', fs['/c'])
         self.assertEqual('db', fs['/d/b'])
 
-    def test_old_ls_recursive(self):
-        fs = impl_memory.FakeFilesystem()
-        fs.ensure_path("/d")
-        fs.ensure_path("/c/d")
-        fs.ensure_path("/b/c/d")
-        fs.ensure_path("/a/b/c/d")
-        contents = fs.ls("/", recursive=True)
-        self.assertEqual([
-            '/a',
-            '/b',
-            '/c',
-            '/d',
-            '/a/b',
-            '/b/c',
-            '/c/d',
-            '/a/b/c',
-            '/b/c/d',
-            '/a/b/c/d',
-        ], contents)
-
     def test_ls_recursive(self):
         fs = impl_memory.FakeFilesystem()
         fs.ensure_path("/d")
@@ -140,6 +120,24 @@ class MemoryFilesystemTest(test.TestCase):
         contents = fs.ls_r("/a/b", absolute=False)
         self.assertEqual(['c', 'c/d'], contents)
 
+    def test_ls_targeted(self):
+        fs = impl_memory.FakeFilesystem()
+        fs.ensure_path("/d")
+        fs.ensure_path("/c/d")
+        fs.ensure_path("/b/c/d")
+        fs.ensure_path("/a/b/c/d")
+        contents = fs.ls("/a/b", absolute=False)
+        self.assertEqual(['c'], contents)
+
+    def test_ls_targeted_absolute(self):
+        fs = impl_memory.FakeFilesystem()
+        fs.ensure_path("/d")
+        fs.ensure_path("/c/d")
+        fs.ensure_path("/b/c/d")
+        fs.ensure_path("/a/b/c/d")
+        contents = fs.ls("/a/b", absolute=True)
+        self.assertEqual(['/a/b/c'], contents)
+
     def test_ls_recursive_targeted_absolute(self):
         fs = impl_memory.FakeFilesystem()
         fs.ensure_path("/d")
@@ -147,15 +145,6 @@ class MemoryFilesystemTest(test.TestCase):
         fs.ensure_path("/b/c/d")
         fs.ensure_path("/a/b/c/d")
         contents = fs.ls_r("/a/b", absolute=True)
-        self.assertEqual(['/a/b/c', '/a/b/c/d'], contents)
-
-    def test_old_ls_recursive_targeted_absolute(self):
-        fs = impl_memory.FakeFilesystem()
-        fs.ensure_path("/d")
-        fs.ensure_path("/c/d")
-        fs.ensure_path("/b/c/d")
-        fs.ensure_path("/a/b/c/d")
-        contents = fs.ls("/a/b", recursive=True)
         self.assertEqual(['/a/b/c', '/a/b/c/d'], contents)
 
     def test_ensure_path(self):

@@ -17,7 +17,6 @@
 
 import abc
 
-from debtcollector import moves
 import six
 
 from taskflow.types import notifier
@@ -30,10 +29,6 @@ class Engine(object):
 
     :ivar notifier: A notification object that will dispatch events that
                     occur related to the flow the engine contains.
-    :ivar task_notifier: A notification object that will dispatch events that
-                         occur related to the tasks the engine contains.
-                         occur related to the tasks the engine
-                         contains (deprecated).
     :ivar atom_notifier: A notification object that will dispatch events that
                          occur related to the atoms the engine contains.
     """
@@ -50,21 +45,6 @@ class Engine(object):
     def notifier(self):
         """The flow notifier."""
         return self._notifier
-
-    @property
-    @moves.moved_property('atom_notifier', version="0.6",
-                          removal_version="2.0")
-    def task_notifier(self):
-        """The task notifier.
-
-        .. deprecated:: 0.6
-
-            The property is **deprecated** and is present for
-            backward compatibility **only**. In order to access this
-            property going forward the :py:attr:`.atom_notifier` should
-            be used instead.
-        """
-        return self._atom_notifier
 
     @property
     def atom_notifier(self):
@@ -151,8 +131,3 @@ class Engine(object):
         not currently be preempted) and move the engine into a suspend state
         which can then later be resumed from.
         """
-
-
-# TODO(harlowja): remove in 0.7 or later...
-EngineBase = moves.moved_class(Engine, 'EngineBase', __name__,
-                               version="0.6", removal_version="2.0")

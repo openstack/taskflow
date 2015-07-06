@@ -96,19 +96,6 @@ class ExecutorConductor(base.Conductor):
     """This attribute *can* be overridden by subclasses (for example if
        an eventlet *green* event works better for the conductor user)."""
 
-    START_FINISH_EVENTS_EMITTED = tuple([
-        'compilation', 'preparation',
-        'validation', 'running',
-    ])
-    """Events will be emitted for the start and finish of each engine
-       activity defined above, the actual event name that can be registered
-       to subscribe to will be ``${event}_start`` and ``${event}_end`` where
-       the ``${event}`` in this pseudo-variable will be one of these events.
-
-       .. deprecated:: 1.23.0
-          Use :py:attr:`~EVENTS_EMITTED`
-    """
-
     EVENTS_EMITTED = tuple([
         'compilation_start', 'compilation_end',
         'preparation_start', 'preparation_end',
@@ -151,13 +138,6 @@ class ExecutorConductor(base.Conductor):
 
         The method returns immediately regardless of whether the conductor has
         been stopped.
-
-        .. deprecated:: 0.8
-
-            The ``timeout`` parameter is **deprecated** and is present for
-            backward compatibility **only**. In order to wait for the
-            conductor to gracefully shut down, :py:meth:`wait` should be used
-            instead.
         """
         self._wait_timeout.interrupt()
 

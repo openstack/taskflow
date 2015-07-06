@@ -15,10 +15,7 @@
 #    under the License.
 
 import contextlib
-import itertools
-import traceback
 
-from debtcollector import renames
 from oslo_utils import importutils
 from oslo_utils import reflection
 import six
@@ -38,69 +35,28 @@ ENGINES_NAMESPACE = 'taskflow.engines'
 # The default entrypoint engine type looked for when it is not provided.
 ENGINE_DEFAULT = 'default'
 
-# TODO(harlowja): only used during the deprecation cycle, remove it once
-# ``_extract_engine_compat`` is also gone...
-_FILE_NAMES = [__file__]
-if six.PY2:
-    # Due to a bug in py2.x the __file__ may point to the pyc file & since
-    # we are using the traceback module and that module only shows py files
-    # we have to do a slight adjustment to ensure we match correctly...
-    #
-    # This is addressed in https://www.python.org/dev/peps/pep-3147/#file
-    if __file__.endswith("pyc"):
-        _FILE_NAMES.append(__file__[0:-1])
-_FILE_NAMES = tuple(_FILE_NAMES)
 
-
-def _extract_engine(**kwargs):
+def _extract_engine(engine, **kwargs):
     """Extracts the engine kind and any associated options."""
+    kind = engine
+    if not kind:
+        kind = ENGINE_DEFAULT
 
-    def _compat_extract(**kwargs):
-        options = {}
-        kind = kwargs.pop('engine', None)
-        engine_conf = kwargs.pop('engine_conf', None)
-        if engine_conf is not None:
-            if isinstance(engine_conf, six.string_types):
-                kind = engine_conf
-            else:
-                options.update(engine_conf)
-                kind = options.pop('engine', None)
-        if not kind:
-            kind = ENGINE_DEFAULT
-        # See if it's a URI and if so, extract any further options...
-        try:
-            uri = misc.parse_uri(kind)
-        except (TypeError, ValueError):
-            pass
-        else:
-            kind = uri.scheme
-            options = misc.merge_uri(uri, options.copy())
-        # Merge in any leftover **kwargs into the options, this makes it so
-        # that the provided **kwargs override any URI or engine_conf specific
-        # options.
-        options.update(kwargs)
-        return (kind, options)
-
-    engine_conf = kwargs.get('engine_conf', None)
-    if engine_conf is not None:
-        # Figure out where our code ends and the calling code begins (this is
-        # needed since this code is called from two functions in this module,
-        # which means the stack level will vary by one depending on that).
-        finder = itertools.takewhile(
-            lambda frame: frame[0] in _FILE_NAMES,
-            reversed(traceback.extract_stack(limit=3)))
-        stacklevel = sum(1 for _frame in finder)
-        decorator = renames.renamed_kwarg('engine_conf', 'engine',
-                                          version="0.6",
-                                          removal_version="2.0",
-                                          # Three is added on since the
-                                          # decorator adds three of its own
-                                          # stack levels that we need to
-                                          # hop out of...
-                                          stacklevel=stacklevel + 3)
-        return decorator(_compat_extract)(**kwargs)
+    # See if it's a URI and if so, extract any further options...
+    options = {}
+    try:
+        uri = misc.parse_uri(kind)
+    except (TypeError, ValueError):
+        pass
     else:
-        return _compat_extract(**kwargs)
+        kind = uri.scheme
+        options = misc.merge_uri(uri, options.copy())
+
+    # Merge in any leftover **kwargs into the options, this makes it so
+    # that the provided **kwargs override any URI/engine specific
+    # options.
+    options.update(kwargs)
+    return (kind, options)
 
 
 def _fetch_factory(factory_name):
@@ -128,8 +84,8 @@ def _fetch_validate_factory(flow_factory):
 
 
 def load(flow, store=None, flow_detail=None, book=None,
-         engine_conf=None, backend=None,
-         namespace=ENGINES_NAMESPACE, engine=ENGINE_DEFAULT, **kwargs):
+         backend=None, namespace=ENGINES_NAMESPACE,
+         engine=ENGINE_DEFAULT, **kwargs):
     """Load a flow into an engine.
 
     This function creates and prepares an engine to run the provided flow. All
@@ -146,33 +102,24 @@ def load(flow, store=None, flow_detail=None, book=None,
     :py:func:`~taskflow.persistence.backends.fetch` to obtain a
     viable backend.
 
-    .. deprecated:: 0.6
-
-        The ``engine_conf`` argument is **deprecated** and is present
-        for backward compatibility **only**. In order to provide this
-        argument going forward the ``engine`` string (or URI) argument
-        should be used instead.
-
     :param flow: flow to load
     :param store: dict -- data to put to storage to satisfy flow requirements
     :param flow_detail: FlowDetail that holds the state of the flow (if one is
         not provided then one will be created for you in the provided backend)
     :param book: LogBook to create flow detail in if flow_detail is None
-    :param engine_conf: engine type or URI and options (**deprecated**)
     :param backend: storage backend to use or configuration that defines it
     :param namespace: driver namespace for stevedore (or empty for default)
     :param engine: string engine type or URI string with scheme that contains
                    the engine type and any URI specific components that will
                    become part of the engine options.
     :param kwargs: arbitrary keyword arguments passed as options (merged with
-                   any extracted ``engine`` and ``engine_conf`` options),
-                   typically used for any engine specific options that do not
-                   fit as any of the existing arguments.
+                   any extracted ``engine``), typically used for any engine
+                   specific options that do not fit as any of the
+                   existing arguments.
     :returns: engine
     """
 
-    kind, options = _extract_engine(engine_conf=engine_conf,
-                                    engine=engine, **kwargs)
+    kind, options = _extract_engine(engine, **kwargs)
 
     if isinstance(backend, dict):
         backend = p_backends.fetch(backend)
@@ -197,7 +144,7 @@ def load(flow, store=None, flow_detail=None, book=None,
 
 
 def run(flow, store=None, flow_detail=None, book=None,
-        engine_conf=None, backend=None, namespace=ENGINES_NAMESPACE,
+        backend=None, namespace=ENGINES_NAMESPACE,
         engine=ENGINE_DEFAULT, **kwargs):
     """Run the flow.
 
@@ -206,19 +153,12 @@ def run(flow, store=None, flow_detail=None, book=None,
 
     The arguments are interpreted as for :func:`load() <load>`.
 
-    .. deprecated:: 0.6
-
-        The ``engine_conf`` argument is **deprecated** and is present
-        for backward compatibility **only**. In order to provide this
-        argument going forward the ``engine`` string (or URI) argument
-        should be used instead.
-
     :returns: dictionary of all named
               results (see :py:meth:`~.taskflow.storage.Storage.fetch_all`)
     """
     engine = load(flow, store=store, flow_detail=flow_detail, book=book,
-                  engine_conf=engine_conf, backend=backend,
-                  namespace=namespace, engine=engine, **kwargs)
+                  backend=backend, namespace=namespace,
+                  engine=engine, **kwargs)
     engine.run()
     return engine.storage.fetch_all()
 
@@ -262,7 +202,7 @@ def save_factory_details(flow_detail,
 
 
 def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
-                      store=None, book=None, engine_conf=None, backend=None,
+                      store=None, book=None, backend=None,
                       namespace=ENGINES_NAMESPACE, engine=ENGINE_DEFAULT,
                       **kwargs):
     """Loads a flow from a factory function into an engine.
@@ -277,13 +217,6 @@ def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
     :param factory_kwargs: dict of factory keyword arguments
 
     Further arguments are interpreted as for :func:`load() <load>`.
-
-    .. deprecated:: 0.6
-
-        The ``engine_conf`` argument is **deprecated** and is present
-        for backward compatibility **only**. In order to provide this
-        argument going forward the ``engine`` string (or URI) argument
-        should be used instead.
 
     :returns: engine
     """
@@ -301,7 +234,7 @@ def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
                          flow_factory, factory_args, factory_kwargs,
                          backend=backend)
     return load(flow=flow, store=store, flow_detail=flow_detail, book=book,
-                engine_conf=engine_conf, backend=backend, namespace=namespace,
+                backend=backend, namespace=namespace,
                 engine=engine, **kwargs)
 
 
@@ -332,7 +265,7 @@ def flow_from_detail(flow_detail):
     return factory_fun(*args, **kwargs)
 
 
-def load_from_detail(flow_detail, store=None, engine_conf=None, backend=None,
+def load_from_detail(flow_detail, store=None, backend=None,
                      namespace=ENGINES_NAMESPACE, engine=ENGINE_DEFAULT,
                      **kwargs):
     """Reloads an engine previously saved.
@@ -345,16 +278,9 @@ def load_from_detail(flow_detail, store=None, engine_conf=None, backend=None,
 
     Further arguments are interpreted as for :func:`load() <load>`.
 
-    .. deprecated:: 0.6
-
-        The ``engine_conf`` argument is **deprecated** and is present
-        for backward compatibility **only**. In order to provide this
-        argument going forward the ``engine`` string (or URI) argument
-        should be used instead.
-
     :returns: engine
     """
     flow = flow_from_detail(flow_detail)
     return load(flow, flow_detail=flow_detail,
-                store=store, engine_conf=engine_conf, backend=backend,
+                store=store, backend=backend,
                 namespace=namespace, engine=engine, **kwargs)

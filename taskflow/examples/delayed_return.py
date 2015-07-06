@@ -42,7 +42,7 @@ from taskflow import task
 from taskflow.types import notifier
 
 
-class PokeFutureListener(base.ListenerBase):
+class PokeFutureListener(base.Listener):
     def __init__(self, engine, future, task_name):
         super(PokeFutureListener, self).__init__(
             engine,

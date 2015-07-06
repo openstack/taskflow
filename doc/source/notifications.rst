@@ -93,7 +93,7 @@ A basic example is:
    >>> flo.add(CatTalk(), DogTalk(provides="dog"))
    <taskflow.patterns.linear_flow.Flow object at 0x...>
    >>> eng = engines.load(flo, store={'meow': 'meow', 'woof': 'woof'})
-   >>> eng.task_notifier.register(ANY, task_transition)
+   >>> eng.atom_notifier.register(ANY, task_transition)
    >>> eng.run()
    Task 'CatTalk' transition to state RUNNING
    meow

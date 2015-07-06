@@ -18,11 +18,6 @@ Banner
 
 .. automodule:: taskflow.utils.banner
 
-Deprecation
-~~~~~~~~~~~
-
-.. automodule:: taskflow.utils.deprecation
-
 Eventlet
 ~~~~~~~~
 

@@ -18,7 +18,6 @@ from __future__ import absolute_import
 
 import abc
 
-from debtcollector import moves
 from oslo_utils import excutils
 import six
 
@@ -164,11 +163,6 @@ class Listener(object):
                      self._engine, exc_info=True)
 
 
-# TODO(harlowja): remove in 0.7 or later...
-ListenerBase = moves.moved_class(Listener, 'ListenerBase', __name__,
-                                 version="0.6", removal_version="2.0")
-
-
 @six.add_metaclass(abc.ABCMeta)
 class DumpingListener(Listener):
     """Abstract base class for dumping listeners.
@@ -208,25 +202,3 @@ class DumpingListener(Listener):
             self._dump("%s has moved task '%s' (%s) into state '%s'"
                        " from state '%s'", self._engine, details['task_name'],
                        details['task_uuid'], state, details['old_state'])
-
-
-# TODO(harlowja): remove in 0.7 or later...
-class LoggingBase(moves.moved_class(DumpingListener,
-                                    'LoggingBase', __name__,
-                                    version="0.6", removal_version="2.0")):
-
-    """Legacy logging base.
-
-     .. deprecated:: 0.6
-
-         This class is **deprecated** and is present for backward
-         compatibility **only**, its replacement
-         :py:class:`.DumpingListener` should be used going forward.
-    """
-
-    def _dump(self, message, *args, **kwargs):
-        self._log(message, *args, **kwargs)
-
-    @abc.abstractmethod
-    def _log(self, message, *args, **kwargs):
-        """Logs the provided *templated* message to some output."""

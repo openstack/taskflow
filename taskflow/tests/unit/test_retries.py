@@ -1201,7 +1201,7 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
             utils.ConditionalTask('task2')
         )
         engine = self._make_engine(flow)
-        engine.task_notifier.register('*', waiting_task.callback)
+        engine.atom_notifier.register('*', waiting_task.callback)
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
@@ -1237,7 +1237,7 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
                 utils.ConditionalTask('task3'))
         )
         engine = self._make_engine(flow)
-        engine.task_notifier.register('*', waiting_task.callback)
+        engine.atom_notifier.register('*', waiting_task.callback)
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()

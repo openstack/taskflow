@@ -20,7 +20,6 @@ import itertools
 import six
 import time
 
-from debtcollector import moves
 from oslo_utils import timeutils
 
 from taskflow.engines.action_engine import compiler as co
@@ -104,11 +103,6 @@ class DurationListener(base.Listener):
                 self._record_ending(timer, item_type, item_name, state)
 
 
-TimingListener = moves.moved_class(DurationListener,
-                                   'TimingListener', __name__,
-                                   version="0.8", removal_version="2.0")
-
-
 class PrintingDurationListener(DurationListener):
     """Listener that prints the duration as well as recording it."""
 
@@ -130,11 +124,6 @@ class PrintingDurationListener(DurationListener):
                                                         item_name, state)
         if state in STARTING_STATES:
             self._printer("'%s' %s started." % (item_name, item_type))
-
-
-PrintingTimingListener = moves.moved_class(
-    PrintingDurationListener, 'PrintingTimingListener', __name__,
-    version="0.8", removal_version="2.0")
 
 
 class EventTimeListener(base.Listener):

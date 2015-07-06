@@ -35,7 +35,7 @@ from taskflow.jobs import backends as job_backends
 from taskflow import logging as taskflow_logging
 from taskflow.patterns import linear_flow as lf
 from taskflow.persistence import backends as persistence_backends
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow import task
 from taskflow.types import timing
 
@@ -176,9 +176,9 @@ def run_poster():
             # unit of work we want to complete and the factory that
             # can be called to create the tasks that the work unit needs
             # to be done.
-            lb = logbook.LogBook("post-from-%s" % my_name)
-            fd = logbook.FlowDetail("song-from-%s" % my_name,
-                                    uuidutils.generate_uuid())
+            lb = models.LogBook("post-from-%s" % my_name)
+            fd = models.FlowDetail("song-from-%s" % my_name,
+                                   uuidutils.generate_uuid())
             lb.add(fd)
             with contextlib.closing(persist_backend.get_connection()) as conn:
                 conn.save_logbook(lb)
