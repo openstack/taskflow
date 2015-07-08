@@ -209,6 +209,20 @@ Additional *configuration* parameters:
     See :py:class:`~taskflow.jobs.backends.impl_zookeeper.ZookeeperJobBoard`
     for implementation details.
 
+Redis
+-----
+
+**Board type**: ``'redis'``
+
+Uses `redis`_ to provide the jobboard capabilities and semantics by using
+a redis hash datastructure and individual job ownership keys (that can
+optionally expire after a given amount of time).
+
+.. note::
+
+    See :py:class:`~taskflow.jobs.backends.impl_redis.RedisJobBoard`
+    for implementation details.
+
 Considerations
 ==============
 
@@ -272,11 +286,17 @@ Zookeeper
 
 .. automodule:: taskflow.jobs.backends.impl_zookeeper
 
+Redis
+-----
+
+.. automodule:: taskflow.jobs.backends.impl_redis
+
 Hierarchy
 =========
 
 .. inheritance-diagram::
     taskflow.jobs.base
+    taskflow.jobs.backends.impl_redis
     taskflow.jobs.backends.impl_zookeeper
     :parts: 1
 
@@ -284,3 +304,4 @@ Hierarchy
 .. _zookeeper: http://zookeeper.apache.org/
 .. _kazoo: http://kazoo.readthedocs.org/
 .. _stevedore: http://stevedore.readthedocs.org/
+.. _redis: http://redis.io/

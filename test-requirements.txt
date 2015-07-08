@@ -15,6 +15,9 @@ kombu>=3.0.7
 zake>=0.1.6 # Apache-2.0
 kazoo>=2.2
 
+# Used for testing redis jobboards
+redis>=2.10.0
+
 # Used for testing database persistence backends.
 SQLAlchemy<1.1.0,>=0.9.7
 alembic>=0.7.2

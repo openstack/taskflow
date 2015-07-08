@@ -16,6 +16,7 @@
 #    under the License.
 
 import abc
+import contextlib
 
 from oslo_utils import uuidutils
 import six
@@ -43,7 +44,9 @@ class Job(object):
     reverting...
     """
 
-    def __init__(self, name, uuid=None, details=None):
+    def __init__(self, board, name,
+                 uuid=None, details=None, backend=None,
+                 book=None, book_data=None):
         if uuid:
             self._uuid = uuid
         else:
@@ -52,6 +55,12 @@ class Job(object):
         if not details:
             details = {}
         self._details = details
+        self._backend = backend
+        self._board = board
+        self._book = book
+        if not book_data:
+            book_data = {}
+        self._book_data = book_data
 
     @abc.abstractproperty
     def last_modified(self):
@@ -61,34 +70,47 @@ class Job(object):
     def created_on(self):
         """The datetime the job was created on."""
 
-    @abc.abstractproperty
+    @property
     def board(self):
         """The board this job was posted on or was created from."""
+        return self._board
 
     @abc.abstractproperty
     def state(self):
-        """The current state of this job."""
+        """Access the current state of this job."""
+        pass
 
-    @abc.abstractproperty
+    @property
     def book(self):
         """Logbook associated with this job.
 
         If no logbook is associated with this job, this property is None.
         """
+        if self._book is None:
+            self._book = self._load_book()
+        return self._book
 
-    @abc.abstractproperty
+    @property
     def book_uuid(self):
         """UUID of logbook associated with this job.
 
         If no logbook is associated with this job, this property is None.
         """
+        if self._book is not None:
+            return self._book.uuid
+        else:
+            return self._book_data.get('uuid')
 
-    @abc.abstractproperty
+    @property
     def book_name(self):
         """Name of logbook associated with this job.
 
         If no logbook is associated with this job, this property is None.
         """
+        if self._book is not None:
+            return self._book.name
+        else:
+            return self._book_data.get('name')
 
     @property
     def uuid(self):
@@ -105,10 +127,24 @@ class Job(object):
         """The non-uniquely identifying name of this job."""
         return self._name
 
+    def _load_book(self):
+        book_uuid = self.book_uuid
+        if self._backend is not None and book_uuid is not None:
+            # TODO(harlowja): we are currently limited by assuming that the
+            # job posted has the same backend as this loader (to start this
+            # seems to be a ok assumption, and can be adjusted in the future
+            # if we determine there is a use-case for multi-backend loaders,
+            # aka a registry of loaders).
+            with contextlib.closing(self._backend.get_connection()) as conn:
+                return conn.get_logbook(book_uuid)
+        # No backend to fetch from or no uuid specified
+        return None
+
     def __str__(self):
         """Pretty formats the job into something *more* meaningful."""
-        return "%s %s (%s): %s" % (type(self).__name__,
-                                   self.name, self.uuid, self.details)
+        return "%s: %s (uuid=%s, details=%s)" % (type(self).__name__,
+                                                 self.name, self.uuid,
+                                                 self.details)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -312,3 +348,40 @@ class NotifyingJobBoard(JobBoard):
     def __init__(self, name, conf):
         super(NotifyingJobBoard, self).__init__(name, conf)
         self.notifier = notifier.Notifier()
+
+
+# Internal helpers for usage by board implementations...
+
+def check_who(meth):
+
+    @six.wraps(meth)
+    def wrapper(self, job, who, *args, **kwargs):
+        if not isinstance(who, six.string_types):
+            raise TypeError("Job applicant must be a string type")
+        if len(who) == 0:
+            raise ValueError("Job applicant must be non-empty")
+        return meth(self, job, who, *args, **kwargs)
+
+    return wrapper
+
+
+def format_posting(uuid, name, created_on=None, last_modified=None,
+                   details=None, book=None):
+    posting = {
+        'uuid': uuid,
+        'name': name,
+    }
+    if created_on is not None:
+        posting['created_on'] = created_on
+    if last_modified is not None:
+        posting['last_modified'] = last_modified
+    if details:
+        posting['details'] = details
+    else:
+        posting['details'] = {}
+    if book is not None:
+        posting['book'] = {
+            'name': book.name,
+            'uuid': book.uuid,
+        }
+    return posting

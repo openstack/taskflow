@@ -18,6 +18,7 @@ import contextlib
 import string
 import threading
 
+import redis
 import six
 
 from taskflow import exceptions
@@ -27,6 +28,7 @@ from taskflow import retry
 from taskflow import task
 from taskflow.types import failure
 from taskflow.utils import kazoo_utils
+from taskflow.utils import redis_utils
 
 ARGS_KEY = '__args__'
 KWARGS_KEY = '__kwargs__'
@@ -71,6 +73,18 @@ def zookeeper_available(min_version, timeout=3):
         return False
     finally:
         kazoo_utils.finalize_client(client)
+
+
+def redis_available(min_version):
+    client = redis.StrictRedis()
+    try:
+        client.ping()
+    except Exception:
+        return False
+    else:
+        ok, redis_version = redis_utils.is_server_new_enough(client,
+                                                             min_version)
+        return ok
 
 
 class NoopRetry(retry.AlwaysRevert):
