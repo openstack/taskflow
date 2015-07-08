@@ -20,6 +20,7 @@ except ImportError:
     from contextlib2 import ExitStack  # noqa
 
 from debtcollector import removals
+from oslo_utils import excutils
 import six
 
 from taskflow.conductors import base
@@ -154,6 +155,9 @@ class BlockingConductor(base.Conductor):
                     consume = False
                     try:
                         f = self._dispatch_job(job)
+                    except KeyboardInterrupt:
+                        with excutils.save_and_reraise_exception():
+                            LOG.warn("Job dispatching interrupted: %s", job)
                     except Exception:
                         LOG.warn("Job dispatching failed: %s", job,
                                  exc_info=True)
