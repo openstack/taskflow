@@ -215,8 +215,9 @@ class ActionEngine(base.Engine):
         """Ensure all contained atoms exist in the storage unit."""
         transient = strutils.bool_from_string(
             self._options.get('inject_transient', True))
+        self.storage.ensure_atoms(
+            self._compilation.execution_graph.nodes_iter())
         for node in self._compilation.execution_graph.nodes_iter():
-            self.storage.ensure_atom(node)
             if node.inject:
                 self.storage.inject_atom_args(node.name,
                                               node.inject,

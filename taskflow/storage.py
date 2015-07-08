@@ -186,10 +186,20 @@ class Storage(object):
         with contextlib.closing(self._backend.get_connection()) as conn:
             return functor(conn, *args, **kwargs)
 
-    def ensure_atom(self, atom):
-        """Ensure that there is an atomdetail in storage for the given atom.
+    def ensure_atoms(self, atoms_iter):
+        """Ensure there is an atomdetail for **each** of the given atoms.
 
-        Returns uuid for the atomdetail that is/was created.
+        Returns list of atomdetail uuids for each atom processed.
+        """
+        atom_ids = []
+        for atom in atoms_iter:
+            atom_ids.append(self.ensure_atom(atom))
+        return atom_ids
+
+    def ensure_atom(self, atom):
+        """Ensure there is an atomdetail for the **given** atom.
+
+        Returns the uuid for the atomdetail that corresponds to the given atom.
         """
         match = misc.match_type(atom, self._ensure_matchers)
         if not match:
