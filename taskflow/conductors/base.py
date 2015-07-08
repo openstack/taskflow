@@ -20,6 +20,7 @@ import six
 
 from taskflow import engines
 from taskflow import exceptions as excp
+from taskflow.types import notifier
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -45,6 +46,18 @@ class Conductor(object):
             self._engine_options = engine_options.copy()
         self._persistence = persistence
         self._lock = threading.RLock()
+        self._notifier = notifier.Notifier()
+
+    @property
+    def notifier(self):
+        """The conductor actions (or other state changes) notifier.
+
+        NOTE(harlowja): different conductor implementations may emit
+        different events + event details at different times, so refer to your
+        conductor documentation to know exactly what can and what can not be
+        subscribed to.
+        """
+        return self._notifier
 
     def _flow_detail_from_job(self, job):
         """Extracts a flow detail from a job (via some manner).
