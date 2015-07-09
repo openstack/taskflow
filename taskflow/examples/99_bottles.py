@@ -83,6 +83,10 @@ class Conclusion(task.Task):
 
 
 def make_bottles(count):
+    # This is the function that will be called to generate the workflow
+    # and will also be called to regenerate it on resumption so that work
+    # can continue from where it last left off...
+
     s = lf.Flow("bottle-song")
 
     take_bottle = TakeABottleDown("take-bottle-%s" % count,
@@ -103,6 +107,9 @@ def make_bottles(count):
 
 
 def run_conductor():
+    # This continuously consumers until its stopped via ctrl-c or other
+    # kill signal...
+
     event_watches = {}
 
     # This will be triggered by the conductor doing various activities
@@ -149,6 +156,7 @@ def run_conductor():
 
 
 def run_poster():
+    # This just posts a single job and then ends...
     print("Starting poster with pid: %s" % ME)
     my_name = "poster-%s" % ME
     persist_backend = persistence_backends.fetch(PERSISTENCE_URI)
@@ -173,7 +181,9 @@ def run_poster():
                                          [HOW_MANY_BOTTLES], {},
                                          backend=persist_backend)
             # Post, and be done with it!
-            job_backend.post("song-from-%s" % my_name, book=lb)
+            jb = job_backend.post("song-from-%s" % my_name, book=lb)
+            print("Posted: %s" % jb)
+            print("Goodbye...")
 
 
 def main():
