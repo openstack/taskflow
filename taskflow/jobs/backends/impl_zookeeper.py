@@ -41,6 +41,7 @@ from taskflow.utils import misc
 LOG = logging.getLogger(__name__)
 
 
+@functools.total_ordering
 class ZookeeperJob(base.Job):
     """A zookeeper job."""
 
@@ -171,10 +172,18 @@ class ZookeeperJob(base.Job):
         return states.CLAIMED
 
     def __lt__(self, other):
+        if not isinstance(other, ZookeeperJob):
+            return NotImplemented
         if self.root == other.root:
             return self.sequence < other.sequence
         else:
             return self.root < other.root
+
+    def __eq__(self, other):
+        if not isinstance(other, ZookeeperJob):
+            return NotImplemented
+        return ((self.root, self.sequence) ==
+                (other.root, other.sequence))
 
     def __hash__(self):
         return hash(self.path)

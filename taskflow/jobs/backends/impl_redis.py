@@ -16,6 +16,7 @@
 
 import contextlib
 import datetime
+import functools
 import string
 import threading
 import time
@@ -59,6 +60,7 @@ def _translate_failures():
                              " internal error")
 
 
+@functools.total_ordering
 class RedisJob(base.Job):
     """A redis job."""
 
@@ -127,10 +129,24 @@ class RedisJob(base.Job):
                                    prior_version=self._redis_version)
 
     def __lt__(self, other):
-        if self.created_on == other.created_on:
-            return self.sequence < other.sequence
+        if not isinstance(other, RedisJob):
+            return NotImplemented
+        if self.board.listings_key == other.board.listings_key:
+            if self.created_on == other.created_on:
+                return self.sequence < other.sequence
+            else:
+                return self.created_on < other.created_on
         else:
-            return self.created_on < other.created_on
+            return self.board.listings_key < other.board.listings_key
+
+    def __eq__(self, other):
+        if not isinstance(other, RedisJob):
+            return NotImplemented
+        return ((self.board.listings_key, self.created_on, self.sequence) ==
+                (other.board.listings_key, other.created_on, other.sequence))
+
+    def __hash__(self):
+        return hash((self.board.listings_key, self.created_on, self.sequence))
 
     @property
     def created_on(self):
