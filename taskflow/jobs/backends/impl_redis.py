@@ -187,6 +187,13 @@ class RedisJob(base.Job):
                                             listings_key, owner_key,
                                             value_from_callable=True)
 
+    def __str__(self):
+        """Pretty formats the job into something *more* meaningful."""
+        tpl = "%s: %s (uuid=%s, owner_key=%s, sequence=%s, details=%s)"
+        return tpl % (type(self).__name__,
+                      self.name, self.uuid, self.owner_key,
+                      self.sequence, self.details)
+
 
 class RedisJobBoard(base.JobBoard):
     """A jobboard backed by `redis`_.
