@@ -31,6 +31,9 @@ LINK_RETRY = 'retry'
 # This key denotes the link was created due to symbol constraints and the
 # value will be a set of names that the constraint ensures are satisfied.
 LINK_REASONS = 'reasons'
+#
+# This key denotes a callable that will determine if the target is visited.
+LINK_DECIDER = 'decider'
 
 
 @six.add_metaclass(abc.ABCMeta)

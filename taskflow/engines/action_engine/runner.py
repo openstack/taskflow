@@ -94,6 +94,7 @@ class Runner(object):
     ignorable_states = (st.SCHEDULING, st.WAITING, st.RESUMING, st.ANALYZING)
 
     def __init__(self, runtime, waiter):
+        self._runtime = runtime
         self._analyzer = runtime.analyzer
         self._completer = runtime.completer
         self._scheduler = runtime.scheduler
@@ -111,13 +112,26 @@ class Runner(object):
         if timeout is None:
             timeout = _WAITING_TIMEOUT
 
+        # Cache some local functions/methods...
+        do_schedule = self._scheduler.schedule
+        wait_for_any = self._waiter.wait_for_any
+        do_complete = self._completer.complete
+
+        def iter_next_nodes(target_node=None):
+            # Yields and filters and tweaks the next nodes to execute...
+            maybe_nodes = self._analyzer.get_next_nodes(node=target_node)
+            for node, late_decider in maybe_nodes:
+                proceed = late_decider.check_and_affect(self._runtime)
+                if proceed:
+                    yield node
+
         def resume(old_state, new_state, event):
             # This reaction function just updates the state machines memory
             # to include any nodes that need to be executed (from a previous
             # attempt, which may be empty if never ran before) and any nodes
             # that are now ready to be ran.
             memory.next_nodes.update(self._completer.resume())
-            memory.next_nodes.update(self._analyzer.get_next_nodes())
+            memory.next_nodes.update(iter_next_nodes())
             return _SCHEDULE
 
         def game_over(old_state, new_state, event):
@@ -127,7 +141,7 @@ class Runner(object):
             # it is *always* called before the final state is entered.
             if memory.failures:
                 return _FAILED
-            if self._analyzer.get_next_nodes():
+            if any(1 for node in iter_next_nodes()):
                 return _SUSPENDED
             elif self._analyzer.is_success():
                 return _SUCCESS
@@ -141,8 +155,7 @@ class Runner(object):
             # that holds this information to stop or suspend); handles failures
             # that occur during this process safely...
             if self.runnable() and memory.next_nodes:
-                not_done, failures = self._scheduler.schedule(
-                    memory.next_nodes)
+                not_done, failures = do_schedule(memory.next_nodes)
                 if not_done:
                     memory.not_done.update(not_done)
                 if failures:
@@ -155,8 +168,7 @@ class Runner(object):
             # call sometime in the future, or equivalent that will work in
             # py2 and py3.
             if memory.not_done:
-                done, not_done = self._waiter.wait_for_any(memory.not_done,
-                                                           timeout)
+                done, not_done = wait_for_any(memory.not_done, timeout)
                 memory.done.update(done)
                 memory.not_done = not_done
             return _ANALYZE
@@ -173,7 +185,7 @@ class Runner(object):
                 node = fut.atom
                 try:
                     event, result = fut.result()
-                    retain = self._completer.complete(node, event, result)
+                    retain = do_complete(node, event, result)
                     if isinstance(result, failure.Failure):
                         if retain:
                             memory.failures.append(result)
@@ -196,7 +208,7 @@ class Runner(object):
                     memory.failures.append(failure.Failure())
                 else:
                     try:
-                        more_nodes = self._analyzer.get_next_nodes(node)
+                        more_nodes = set(iter_next_nodes(target_node=node))
                     except Exception:
                         memory.failures.append(failure.Failure())
                     else:
