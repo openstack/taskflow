@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import weakref
 
 from automaton import machines
 
@@ -91,7 +92,7 @@ class MachineBuilder(object):
     """
 
     def __init__(self, runtime, waiter):
-        self._runtime = runtime
+        self._runtime = weakref.proxy(runtime)
         self._analyzer = runtime.analyzer
         self._completer = runtime.completer
         self._scheduler = runtime.scheduler

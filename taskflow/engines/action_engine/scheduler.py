@@ -76,7 +76,7 @@ class Scheduler(object):
     """Safely schedules atoms using a runtime ``fetch_scheduler`` routine."""
 
     def __init__(self, runtime):
-        self._fetch_scheduler = runtime.fetch_scheduler
+        self._runtime = weakref.proxy(runtime)
 
     def schedule(self, atoms):
         """Schedules the provided atoms for *future* completion.
@@ -89,7 +89,7 @@ class Scheduler(object):
         """
         futures = set()
         for atom in atoms:
-            scheduler = self._fetch_scheduler(atom)
+            scheduler = self._runtime.fetch_scheduler(atom)
             try:
                 futures.add(scheduler.schedule(atom))
             except Exception:
