@@ -274,7 +274,7 @@ class TaskTest(test.TestCase):
         a_task = ProgressTask()
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
         a_task.execute([0.5])
-        mocked_warn.assert_called_once()
+        self.assertEqual(1, mocked_warn.call_count)
 
     def test_register_handler_is_none(self):
         a_task = MyTask()

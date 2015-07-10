@@ -84,7 +84,7 @@ class FlowFromDetailTestCase(test.TestCase):
         with mock.patch('oslo_utils.importutils.import_class',
                         return_value=lambda: 'RESULT') as mock_import:
             result = taskflow.engines.flow_from_detail(flow_detail)
-            mock_import.assert_called_onec_with(name)
+            mock_import.assert_called_once_with(name)
         self.assertEqual(result, 'RESULT')
 
     def test_factory_with_arg(self):
@@ -95,7 +95,7 @@ class FlowFromDetailTestCase(test.TestCase):
         with mock.patch('oslo_utils.importutils.import_class',
                         return_value=lambda x: 'RESULT %s' % x) as mock_import:
             result = taskflow.engines.flow_from_detail(flow_detail)
-            mock_import.assert_called_onec_with(name)
+            mock_import.assert_called_once_with(name)
         self.assertEqual(result, 'RESULT foo')
 
 
