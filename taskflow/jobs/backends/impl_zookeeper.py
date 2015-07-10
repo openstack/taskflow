@@ -273,6 +273,16 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     zookeeper when the ephemeral node and associated session is deemed to
     have been lost).
 
+    Do note that the creation of a kazoo client is achieved
+    by :py:func:`~taskflow.utils.kazoo_utils.make_client` and the transfer
+    of this jobboard configuration to that function to make a
+    client may happen at ``__init__`` time. This implies that certain
+    parameters from this jobboard configuration may be provided to
+    :py:func:`~taskflow.utils.kazoo_utils.make_client` such
+    that if a client was not provided by the caller one will be created
+    according to :py:func:`~taskflow.utils.kazoo_utils.make_client`'s
+    specification
+
     .. _zookeeper: http://zookeeper.apache.org/
     .. _json: http://json.org/
     """

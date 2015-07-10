@@ -39,6 +39,16 @@ class ZkBackend(path_based.PathBasedBackend):
             "hosts": "192.168.0.1:2181,192.168.0.2:2181,192.168.0.3:2181",
             "path": "/taskflow",
         }
+
+    Do note that the creation of a kazoo client is achieved
+    by :py:func:`~taskflow.utils.kazoo_utils.make_client` and the transfer
+    of this backend configuration to that function to make a
+    client may happen at ``__init__`` time. This implies that certain
+    parameters from this backend configuration may be provided to
+    :py:func:`~taskflow.utils.kazoo_utils.make_client` such
+    that if a client was not provided by the caller one will be created
+    according to :py:func:`~taskflow.utils.kazoo_utils.make_client`'s
+    specification
     """
 
     #: Default path used when none is provided.
