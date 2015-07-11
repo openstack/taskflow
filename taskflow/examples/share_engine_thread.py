@@ -27,12 +27,12 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
+import futurist
 import six
 
 from taskflow import engines
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
-from taskflow.types import futures
 from taskflow.utils import threading_utils as tu
 
 # INTRO: in this example we create 2 dummy flow(s) with a 2 dummy task(s), and
@@ -61,7 +61,7 @@ f2.add(DelayedTask("f2-1"))
 f2.add(DelayedTask("f2-2"))
 
 # Run them all using the same futures (thread-pool based) executor...
-with futures.ThreadPoolExecutor() as ex:
+with futurist.ThreadPoolExecutor() as ex:
     e1 = engines.load(f1, engine='parallel', executor=ex)
     e2 = engines.load(f2, engine='parallel', executor=ex)
     iters = [e1.run_iter(), e2.run_iter()]

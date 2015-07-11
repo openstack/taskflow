@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from concurrent import futures
+import futurist
 from oslo_utils import uuidutils
 
 from taskflow.engines.action_engine import executor
@@ -135,7 +135,7 @@ class TestProtocol(test.TestCase):
         request = self.request()
         self.assertEqual(request.uuid, self.task_uuid)
         self.assertEqual(request.task, self.task)
-        self.assertIsInstance(request.result, futures.Future)
+        self.assertIsInstance(request.result, futurist.Future)
         self.assertFalse(request.result.done())
 
     def test_to_dict_default(self):

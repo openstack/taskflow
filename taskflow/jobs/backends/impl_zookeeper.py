@@ -20,8 +20,8 @@ import functools
 import sys
 import threading
 
-from concurrent import futures
 import fasteners
+import futurist
 from kazoo import exceptions as k_exceptions
 from kazoo.protocol import paths as k_paths
 from kazoo.recipe import watchers
@@ -736,7 +736,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             if self._conf.get('check_compatible', True):
                 kazoo_utils.check_compatible(self._client, self.MIN_ZK_VERSION)
             if self._worker is None and self._emit_notifications:
-                self._worker = futures.ThreadPoolExecutor(max_workers=1)
+                self._worker = futurist.ThreadPoolExecutor(max_workers=1)
             self._client.ensure_path(self.path)
             self._client.ensure_path(self.trash_path)
             if self._job_watcher is None:

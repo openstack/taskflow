@@ -18,8 +18,8 @@ import abc
 import collections
 import threading
 
-from concurrent import futures
 import fasteners
+import futurist
 from oslo_utils import reflection
 from oslo_utils import timeutils
 import six
@@ -243,7 +243,7 @@ class Request(Message):
         self._state = WAITING
         self._lock = threading.Lock()
         self._created_on = timeutils.utcnow()
-        self._result = futures.Future()
+        self._result = futurist.Future()
         self._result.atom = task
         self._notifier = task.notifier
 

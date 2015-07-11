@@ -21,6 +21,7 @@ import os
 import pickle
 import threading
 
+import futurist
 from oslo_utils import excutils
 from oslo_utils import reflection
 from oslo_utils import timeutils
@@ -31,7 +32,6 @@ from six.moves import queue as compat_queue
 from taskflow import logging
 from taskflow import task as task_atom
 from taskflow.types import failure
-from taskflow.types import futures
 from taskflow.types import notifier
 from taskflow.types import timing
 from taskflow.utils import async_utils
@@ -357,7 +357,7 @@ class SerialTaskExecutor(TaskExecutor):
     """Executes tasks one after another."""
 
     def __init__(self):
-        self._executor = futures.SynchronousExecutor()
+        self._executor = futurist.SynchronousExecutor()
 
     def start(self):
         self._executor.restart()
@@ -429,7 +429,7 @@ class ParallelThreadTaskExecutor(ParallelTaskExecutor):
     """Executes tasks in parallel using a thread pool executor."""
 
     def _create_executor(self, max_workers=None):
-        return futures.ThreadPoolExecutor(max_workers=max_workers)
+        return futurist.ThreadPoolExecutor(max_workers=max_workers)
 
 
 class ParallelProcessTaskExecutor(ParallelTaskExecutor):
@@ -459,7 +459,7 @@ class ParallelProcessTaskExecutor(ParallelTaskExecutor):
         self._queue = None
 
     def _create_executor(self, max_workers=None):
-        return futures.ProcessPoolExecutor(max_workers=max_workers)
+        return futurist.ProcessPoolExecutor(max_workers=max_workers)
 
     def start(self):
         if threading_utils.is_alive(self._worker):

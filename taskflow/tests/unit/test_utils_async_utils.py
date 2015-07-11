@@ -14,10 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import futurist
 import testtools
 
 from taskflow import test
-from taskflow.types import futures
 from taskflow.utils import async_utils as au
 from taskflow.utils import eventlet_utils as eu
 
@@ -37,14 +37,14 @@ class WaitForAnyTestsMixin(object):
             self.assertTrue(any(f in done for f in fs))
 
     def test_not_done_futures(self):
-        fs = [futures.Future(), futures.Future()]
+        fs = [futurist.Future(), futurist.Future()]
         done, not_done = au.wait_for_any(fs, self.timeout)
         self.assertEqual(len(done), 0)
         self.assertEqual(len(not_done), 2)
 
     def test_mixed_futures(self):
-        f1 = futures.Future()
-        f2 = futures.Future()
+        f1 = futurist.Future()
+        f2 = futurist.Future()
         f2.set_result(1)
         done, not_done = au.wait_for_any([f1, f2], self.timeout)
         self.assertEqual(len(done), 1)
@@ -57,13 +57,13 @@ class WaitForAnyTestsMixin(object):
 class AsyncUtilsEventletTest(test.TestCase,
                              WaitForAnyTestsMixin):
     def _make_executor(self, max_workers):
-        return futures.GreenThreadPoolExecutor(max_workers=max_workers)
+        return futurist.GreenThreadPoolExecutor(max_workers=max_workers)
 
 
 class AsyncUtilsThreadedTest(test.TestCase,
                              WaitForAnyTestsMixin):
     def _make_executor(self, max_workers):
-        return futures.ThreadPoolExecutor(max_workers=max_workers)
+        return futurist.ThreadPoolExecutor(max_workers=max_workers)
 
 
 class MakeCompletedFutureTest(test.TestCase):
@@ -78,4 +78,4 @@ class MakeCompletedFutureTest(test.TestCase):
 class AsyncUtilsSynchronousTest(test.TestCase,
                                 WaitForAnyTestsMixin):
     def _make_executor(self, max_workers):
-        return futures.SynchronousExecutor()
+        return futurist.SynchronousExecutor()

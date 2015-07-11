@@ -20,6 +20,7 @@ import itertools
 import random
 import threading
 
+from futurist import periodics
 from oslo_utils import reflection
 import six
 
@@ -28,7 +29,6 @@ from taskflow.engines.worker_based import protocol as pr
 from taskflow import logging
 from taskflow.types import cache as base
 from taskflow.types import notifier
-from taskflow.types import periodic
 from taskflow.types import timing as tt
 from taskflow.utils import kombu_utils as ku
 
@@ -180,7 +180,7 @@ class ProxyWorkerFinder(WorkerFinder):
         else:
             return TopicWorker(topic, tasks)
 
-    @periodic.periodic(pr.NOTIFY_PERIOD)
+    @periodics.periodic(pr.NOTIFY_PERIOD, run_immediately=True)
     def beat(self):
         """Cyclically called to publish notify message to each topic."""
         self._proxy.publish(pr.Notify(), self._topics, reply_to=self._uuid)

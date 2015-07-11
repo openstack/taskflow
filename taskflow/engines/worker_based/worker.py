@@ -20,13 +20,13 @@ import socket
 import string
 import sys
 
+import futurist
 from oslo_utils import reflection
 
 from taskflow.engines.worker_based import endpoint
 from taskflow.engines.worker_based import server
 from taskflow import logging
 from taskflow import task as t_task
-from taskflow.types import futures
 from taskflow.utils import misc
 from taskflow.utils import threading_utils as tu
 from taskflow import version
@@ -99,7 +99,7 @@ System details:
         self._executor = executor
         self._owns_executor = False
         if self._executor is None:
-            self._executor = futures.ThreadPoolExecutor(
+            self._executor = futurist.ThreadPoolExecutor(
                 max_workers=threads_count)
             self._owns_executor = True
         self._endpoints = self._derive_endpoints(tasks)

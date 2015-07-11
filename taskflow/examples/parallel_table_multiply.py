@@ -27,12 +27,12 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
+import futurist
 from six.moves import range as compat_range
 
 from taskflow import engines
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
-from taskflow.types import futures
 from taskflow.utils import eventlet_utils
 
 # INTRO: This example walks through a miniature workflow which does a parallel
@@ -98,9 +98,9 @@ def main():
 
     # Now run it (using the specified executor)...
     if eventlet_utils.EVENTLET_AVAILABLE:
-        executor = futures.GreenThreadPoolExecutor(max_workers=5)
+        executor = futurist.GreenThreadPoolExecutor(max_workers=5)
     else:
-        executor = futures.ThreadPoolExecutor(max_workers=5)
+        executor = futurist.ThreadPoolExecutor(max_workers=5)
     try:
         e = engines.load(f, engine='parallel', executor=executor)
         for st in e.run_iter():

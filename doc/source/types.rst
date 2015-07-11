@@ -29,11 +29,6 @@ FSM
 
 .. automodule:: taskflow.types.fsm
 
-Futures
-=======
-
-.. automodule:: taskflow.types.futures
-
 Graph
 =====
 
@@ -44,11 +39,6 @@ Notifier
 
 .. automodule:: taskflow.types.notifier
     :special-members: __call__
-
-Periodic
-========
-
-.. automodule:: taskflow.types.periodic
 
 Sets
 ====
