@@ -20,8 +20,6 @@ import os
 import sys
 import time
 
-logging.basicConfig(level=logging.ERROR)
-
 top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir,
                                        os.pardir))
@@ -189,12 +187,17 @@ def run_poster():
 def main():
     if len(sys.argv) == 1:
         sys.stderr.write("%s p|c\n" % os.path.basename(sys.argv[0]))
-    elif sys.argv[1] == 'p':
-        run_poster()
-    elif sys.argv[1] == 'c':
-        run_conductor()
+    elif sys.argv[1] in ('p', 'c'):
+        if sys.argv[-1] == "v":
+            logging.basicConfig(level=5)
+        else:
+            logging.basicConfig(level=logging.ERROR)
+        if sys.argv[1] == 'p':
+            run_poster()
+        else:
+            run_conductor()
     else:
-        sys.stderr.write("%s p|c\n" % os.path.basename(sys.argv[0]))
+        sys.stderr.write("%s p|c (v?)\n" % os.path.basename(sys.argv[0]))
 
 
 if __name__ == '__main__':
