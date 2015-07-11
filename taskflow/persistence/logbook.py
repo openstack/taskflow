@@ -22,7 +22,7 @@ from taskflow.persistence import models
 # TODO(harlowja): remove me in a future version, since the models
 # module is more appropriately named to what the objects in it are used for...
 removals.removed_module(__name__,  replacement="'%s'" % models.__name__,
-                        version="0.11", removal_version='?',
+                        version="1.15", removal_version='2.0',
                         stacklevel=4)
 
 
