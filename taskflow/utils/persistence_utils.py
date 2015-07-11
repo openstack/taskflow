@@ -21,7 +21,7 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from taskflow import logging
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def temporary_log_book(backend=None):
     Mainly useful for tests and other use cases where a temporary logbook
     is needed for a short-period of time.
     """
-    book = logbook.LogBook('tmp')
+    book = models.LogBook('tmp')
     if backend is not None:
         with contextlib.closing(backend.get_connection()) as conn:
             conn.save_logbook(book)
@@ -48,7 +48,7 @@ def temporary_flow_detail(backend=None):
     """
     flow_id = uuidutils.generate_uuid()
     book = temporary_log_book(backend)
-    book.add(logbook.FlowDetail(name='tmp-flow-detail', uuid=flow_id))
+    book.add(models.FlowDetail(name='tmp-flow-detail', uuid=flow_id))
     if backend is not None:
         with contextlib.closing(backend.get_connection()) as conn:
             conn.save_logbook(book)
@@ -77,7 +77,7 @@ def create_flow_detail(flow, book=None, backend=None, meta=None):
         LOG.warn("No name provided for flow %s (id %s)", flow, flow_id)
         flow_name = flow_id
 
-    flow_detail = logbook.FlowDetail(name=flow_name, uuid=flow_id)
+    flow_detail = models.FlowDetail(name=flow_name, uuid=flow_id)
     if meta is not None:
         if flow_detail.meta is None:
             flow_detail.meta = {}
@@ -130,7 +130,7 @@ def _format_shared(obj, indent):
 
 def pformat_atom_detail(atom_detail, indent=0):
     """Pretty formats a atom detail."""
-    detail_type = logbook.atom_detail_type(atom_detail)
+    detail_type = models.atom_detail_type(atom_detail)
     lines = ["%s%s: '%s'" % (" " * (indent), detail_type, atom_detail.name)]
     lines.extend(_format_shared(atom_detail, indent=indent + 1))
     lines.append("%s- version = %s"

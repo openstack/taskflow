@@ -40,38 +40,38 @@ On :doc:`engine <engines>` construction typically a backend (it can be
 optional) will be provided which satisfies the
 :py:class:`~taskflow.persistence.base.Backend` abstraction. Along with
 providing a backend object a
-:py:class:`~taskflow.persistence.logbook.FlowDetail` object will also be
+:py:class:`~taskflow.persistence.models.FlowDetail` object will also be
 created and provided (this object will contain the details about the flow to be
 ran) to the engine constructor (or associated :py:meth:`load()
 <taskflow.engines.helpers.load>` helper functions).  Typically a
-:py:class:`~taskflow.persistence.logbook.FlowDetail` object is created from a
-:py:class:`~taskflow.persistence.logbook.LogBook` object (the book object acts
-as a type of container for :py:class:`~taskflow.persistence.logbook.FlowDetail`
-and :py:class:`~taskflow.persistence.logbook.AtomDetail` objects).
+:py:class:`~taskflow.persistence.models.FlowDetail` object is created from a
+:py:class:`~taskflow.persistence.models.LogBook` object (the book object acts
+as a type of container for :py:class:`~taskflow.persistence.models.FlowDetail`
+and :py:class:`~taskflow.persistence.models.AtomDetail` objects).
 
 **Preparation**: Once an engine starts to run it will create a
 :py:class:`~taskflow.storage.Storage` object which will act as the engines
 interface to the underlying backend storage objects (it provides helper
 functions that are commonly used by the engine, avoiding repeating code when
 interacting with the provided
-:py:class:`~taskflow.persistence.logbook.FlowDetail` and
+:py:class:`~taskflow.persistence.models.FlowDetail` and
 :py:class:`~taskflow.persistence.base.Backend` objects). As an engine
 initializes it will extract (or create)
-:py:class:`~taskflow.persistence.logbook.AtomDetail` objects for each atom in
+:py:class:`~taskflow.persistence.models.AtomDetail` objects for each atom in
 the workflow the engine will be executing.
 
 **Execution:** When an engine beings to execute (see :doc:`engine <engines>`
 for more of the details about how an engine goes about this process) it will
 examine any previously existing
-:py:class:`~taskflow.persistence.logbook.AtomDetail` objects to see if they can
+:py:class:`~taskflow.persistence.models.AtomDetail` objects to see if they can
 be used for resuming; see :doc:`resumption <resumption>` for more details on
 this subject. For atoms which have not finished (or did not finish correctly
 from a previous run) they will begin executing only after any dependent inputs
 are ready. This is done by analyzing the execution graph and looking at
-predecessor :py:class:`~taskflow.persistence.logbook.AtomDetail` outputs and
+predecessor :py:class:`~taskflow.persistence.models.AtomDetail` outputs and
 states (which may have been persisted in a past run). This will result in
 either using their previous information or by running those predecessors and
-saving their output to the :py:class:`~taskflow.persistence.logbook.FlowDetail`
+saving their output to the :py:class:`~taskflow.persistence.models.FlowDetail`
 and :py:class:`~taskflow.persistence.base.Backend` objects. This
 execution, analysis and interaction with the storage objects continues (what is
 described here is a simplification of what really happens; which is quite a bit
@@ -288,7 +288,7 @@ Interfaces
 Models
 ======
 
-.. automodule:: taskflow.persistence.logbook
+.. automodule:: taskflow.persistence.models
 
 Implementations
 ===============

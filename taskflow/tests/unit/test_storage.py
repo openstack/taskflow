@@ -21,7 +21,7 @@ from oslo_utils import uuidutils
 
 from taskflow import exceptions
 from taskflow.persistence import backends
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow import states
 from taskflow import storage
 from taskflow import test
@@ -61,7 +61,7 @@ class StorageTestMixin(object):
         self.assertTrue(uuidutils.is_uuid_like(s.get_atom_uuid('my_task')))
 
     def test_flow_name_and_uuid(self):
-        flow_detail = logbook.FlowDetail(name='test-fd', uuid='aaaa')
+        flow_detail = models.FlowDetail(name='test-fd', uuid='aaaa')
         s = self._get_storage(flow_detail)
         self.assertEqual(s.flow_name, 'test-fd')
         self.assertEqual(s.flow_uuid, 'aaaa')
@@ -97,14 +97,14 @@ class StorageTestMixin(object):
 
     def test_get_without_save(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
-        td = logbook.TaskDetail(name='my_task', uuid='42')
+        td = models.TaskDetail(name='my_task', uuid='42')
         flow_detail.add(td)
         s = self._get_storage(flow_detail)
         self.assertEqual('42', s.get_atom_uuid('my_task'))
 
     def test_ensure_existing_task(self):
         _lb, flow_detail = p_utils.temporary_flow_detail(self.backend)
-        td = logbook.TaskDetail(name='my_task', uuid='42')
+        td = models.TaskDetail(name='my_task', uuid='42')
         flow_detail.add(td)
         s = self._get_storage(flow_detail)
         s.ensure_atom(test_utils.NoopTask('my_task'))
@@ -523,7 +523,7 @@ class StorageTestMixin(object):
     def test_logbook_get_unknown_atom_type(self):
         self.assertRaisesRegexp(TypeError,
                                 'Unknown atom',
-                                logbook.atom_detail_class, 'some_detail')
+                                models.atom_detail_class, 'some_detail')
 
     def test_save_task_intention(self):
         s = self._get_storage()

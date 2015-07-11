@@ -46,7 +46,7 @@ name serves a special purpose in the resumption process (as well as serving a
 useful purpose when running, allowing for atom identification in the
 :doc:`notification <notifications>` process). The reason for having names is
 that an atom in a flow needs to be somehow  matched with (a potentially)
-existing :py:class:`~taskflow.persistence.logbook.AtomDetail` during engine
+existing :py:class:`~taskflow.persistence.models.AtomDetail` during engine
 resumption & subsequent running.
 
 The match should be:
@@ -71,9 +71,9 @@ Scenarios
 =========
 
 When new flow is loaded into engine, there is no persisted data for it yet, so
-a corresponding :py:class:`~taskflow.persistence.logbook.FlowDetail` object
+a corresponding :py:class:`~taskflow.persistence.models.FlowDetail` object
 will be created, as well as a
-:py:class:`~taskflow.persistence.logbook.AtomDetail` object for each atom that
+:py:class:`~taskflow.persistence.models.AtomDetail` object for each atom that
 is contained in it. These will be immediately saved into the persistence
 backend that is configured. If no persistence backend is configured, then as
 expected nothing will be saved and the atoms and flow will be ran in a
@@ -94,7 +94,7 @@ When the factory function mentioned above returns the exact same the flow and
 atoms (no changes are performed).
 
 **Runtime change:** Nothing should be done -- the engine will re-associate
-atoms with :py:class:`~taskflow.persistence.logbook.AtomDetail` objects by name
+atoms with :py:class:`~taskflow.persistence.models.AtomDetail` objects by name
 and then the engine resumes.
 
 Atom was added
@@ -105,7 +105,7 @@ in (for example for changing the runtime structure of what was previously ran
 in the first run).
 
 **Runtime change:** By default when the engine resumes it will notice that a
-corresponding :py:class:`~taskflow.persistence.logbook.AtomDetail` does not
+corresponding :py:class:`~taskflow.persistence.models.AtomDetail` does not
 exist and one will be created and associated.
 
 Atom was removed
@@ -134,7 +134,7 @@ factory should replace this name where it was being used previously.
 exist when a new atom is added. In the future TaskFlow could make this easier
 by providing a ``upgrade()`` function that can be used to give users the
 ability to upgrade atoms before running (manual introspection & modification of
-a :py:class:`~taskflow.persistence.logbook.LogBook` can be done before engine
+a :py:class:`~taskflow.persistence.models.LogBook` can be done before engine
 loading and running to accomplish this in the meantime).
 
 Atom was split in two atoms or merged
@@ -150,7 +150,7 @@ exist when a new atom is added or removed. In the future TaskFlow could make
 this easier by providing a ``migrate()`` function that can be used to give
 users the ability to migrate atoms previous data before running (manual
 introspection & modification of a
-:py:class:`~taskflow.persistence.logbook.LogBook` can be done before engine
+:py:class:`~taskflow.persistence.models.LogBook` can be done before engine
 loading and running to accomplish this in the meantime).
 
 Flow structure was changed

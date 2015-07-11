@@ -19,7 +19,7 @@ import contextlib
 from oslo_utils import uuidutils
 
 from taskflow import exceptions as exc
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow import states
 from taskflow.types import failure
 
@@ -31,15 +31,15 @@ class PersistenceTestMixin(object):
     def test_task_detail_update_not_existing(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td = models.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         fd.add(td)
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
 
-        td2 = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td2 = models.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         fd.add(td2)
         with contextlib.closing(self._get_connection()) as conn:
             conn.update_flow_details(fd)
@@ -53,13 +53,13 @@ class PersistenceTestMixin(object):
     def test_flow_detail_update_not_existing(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
 
-        fd2 = logbook.FlowDetail('test-2', uuid=uuidutils.generate_uuid())
+        fd2 = models.FlowDetail('test-2', uuid=uuidutils.generate_uuid())
         lb.add(fd2)
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
@@ -73,7 +73,7 @@ class PersistenceTestMixin(object):
         lb_id = uuidutils.generate_uuid()
         lb_meta = {'1': 2}
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
         lb.meta = lb_meta
 
         # Should not already exist
@@ -94,8 +94,8 @@ class PersistenceTestMixin(object):
     def test_flow_detail_save(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
 
         # Ensure we can't save it since its owning logbook hasn't been
@@ -113,8 +113,8 @@ class PersistenceTestMixin(object):
     def test_flow_detail_meta_update(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         fd.meta = {'test': 42}
         lb.add(fd)
 
@@ -133,9 +133,9 @@ class PersistenceTestMixin(object):
     def test_flow_detail_lazy_fetch(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
-        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        td = models.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         td.version = '4.2'
         fd.add(td)
         lb.add(fd)
@@ -149,10 +149,10 @@ class PersistenceTestMixin(object):
     def test_task_detail_save(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td = models.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         fd.add(td)
 
         # Ensure we can't save it since its owning logbook hasn't been
@@ -171,10 +171,10 @@ class PersistenceTestMixin(object):
     def test_task_detail_meta_update(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td = models.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         td.meta = {'test': 42}
         fd.add(td)
 
@@ -192,15 +192,15 @@ class PersistenceTestMixin(object):
         fd2 = lb2.find(fd.uuid)
         td2 = fd2.find(td.uuid)
         self.assertEqual(td2.meta.get('test'), 43)
-        self.assertIsInstance(td2, logbook.TaskDetail)
+        self.assertIsInstance(td2, models.TaskDetail)
 
     def test_task_detail_with_failure(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        td = models.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
 
         try:
             raise RuntimeError('Woot!')
@@ -222,18 +222,18 @@ class PersistenceTestMixin(object):
         self.assertEqual(td2.failure.exception_str, 'Woot!')
         self.assertIs(td2.failure.check(RuntimeError), RuntimeError)
         self.assertEqual(td2.failure.traceback_str, td.failure.traceback_str)
-        self.assertIsInstance(td2, logbook.TaskDetail)
+        self.assertIsInstance(td2, models.TaskDetail)
 
     def test_logbook_merge_flow_detail(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
-        lb2 = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd2 = logbook.FlowDetail('test2', uuid=uuidutils.generate_uuid())
+        lb2 = models.LogBook(name=lb_name, uuid=lb_id)
+        fd2 = models.FlowDetail('test2', uuid=uuidutils.generate_uuid())
         lb2.add(fd2)
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb2)
@@ -244,8 +244,8 @@ class PersistenceTestMixin(object):
     def test_logbook_add_flow_detail(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
@@ -258,8 +258,8 @@ class PersistenceTestMixin(object):
     def test_logbook_lazy_fetch(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
         with contextlib.closing(self._get_connection()) as conn:
             conn.save_logbook(lb)
@@ -271,9 +271,9 @@ class PersistenceTestMixin(object):
     def test_logbook_add_task_detail(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
-        td = logbook.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        td = models.TaskDetail("detail-1", uuid=uuidutils.generate_uuid())
         td.version = '4.2'
         fd.add(td)
         lb.add(fd)
@@ -298,7 +298,7 @@ class PersistenceTestMixin(object):
     def test_logbook_delete(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
         with contextlib.closing(self._get_connection()) as conn:
             self.assertRaises(exc.NotFound, conn.destroy_logbook, lb_id)
         with contextlib.closing(self._get_connection()) as conn:
@@ -313,10 +313,10 @@ class PersistenceTestMixin(object):
     def test_task_detail_retry_type_(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        rd = logbook.RetryDetail("detail-1", uuid=uuidutils.generate_uuid())
+        rd = models.RetryDetail("detail-1", uuid=uuidutils.generate_uuid())
         rd.intention = states.REVERT
         fd.add(rd)
 
@@ -330,15 +330,15 @@ class PersistenceTestMixin(object):
         fd2 = lb2.find(fd.uuid)
         rd2 = fd2.find(rd.uuid)
         self.assertEqual(rd2.intention, states.REVERT)
-        self.assertIsInstance(rd2, logbook.RetryDetail)
+        self.assertIsInstance(rd2, models.RetryDetail)
 
     def test_retry_detail_save_with_task_failure(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        rd = logbook.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
+        rd = models.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
         fail = failure.Failure.from_exception(RuntimeError('fail'))
         rd.results.append((42, {'some-task': fail}))
         fd.add(rd)
@@ -354,7 +354,7 @@ class PersistenceTestMixin(object):
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
         rd2 = fd2.find(rd.uuid)
-        self.assertIsInstance(rd2, logbook.RetryDetail)
+        self.assertIsInstance(rd2, models.RetryDetail)
         fail2 = rd2.results[0][1].get('some-task')
         self.assertIsInstance(fail2, failure.Failure)
         self.assertTrue(fail.matches(fail2))
@@ -362,10 +362,10 @@ class PersistenceTestMixin(object):
     def test_retry_detail_save_intention(self):
         lb_id = uuidutils.generate_uuid()
         lb_name = 'lb-%s' % (lb_id)
-        lb = logbook.LogBook(name=lb_name, uuid=lb_id)
-        fd = logbook.FlowDetail('test', uuid=uuidutils.generate_uuid())
+        lb = models.LogBook(name=lb_name, uuid=lb_id)
+        fd = models.FlowDetail('test', uuid=uuidutils.generate_uuid())
         lb.add(fd)
-        rd = logbook.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
+        rd = models.RetryDetail("retry-1", uuid=uuidutils.generate_uuid())
         fd.add(rd)
 
         # save it
@@ -385,4 +385,4 @@ class PersistenceTestMixin(object):
         fd2 = lb2.find(fd.uuid)
         rd2 = fd2.find(rd.uuid)
         self.assertEqual(rd2.intention, states.REVERT)
-        self.assertIsInstance(rd2, logbook.RetryDetail)
+        self.assertIsInstance(rd2, models.RetryDetail)

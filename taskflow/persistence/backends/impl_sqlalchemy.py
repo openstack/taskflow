@@ -34,7 +34,7 @@ from taskflow import logging
 from taskflow.persistence.backends.sqlalchemy import migration
 from taskflow.persistence.backends.sqlalchemy import tables
 from taskflow.persistence import base
-from taskflow.persistence import logbook
+from taskflow.persistence import models
 from taskflow.types import failure
 from taskflow.utils import eventlet_utils
 from taskflow.utils import misc
@@ -194,16 +194,16 @@ class _Alchemist(object):
 
     @staticmethod
     def convert_flow_detail(row):
-        return logbook.FlowDetail.from_dict(dict(row.items()))
+        return models.FlowDetail.from_dict(dict(row.items()))
 
     @staticmethod
     def convert_book(row):
-        return logbook.LogBook.from_dict(dict(row.items()))
+        return models.LogBook.from_dict(dict(row.items()))
 
     @staticmethod
     def convert_atom_detail(row):
         row = dict(row.items())
-        atom_cls = logbook.atom_detail_class(row.pop('atom_type'))
+        atom_cls = models.atom_detail_class(row.pop('atom_type'))
         return atom_cls.from_dict(row)
 
     def atom_query_iter(self, conn, parent_uuid):
@@ -457,7 +457,7 @@ class Connection(base.Connection):
     def _insert_atom_details(self, conn, ad, parent_uuid):
         value = ad.to_dict()
         value['parent_uuid'] = parent_uuid
-        value['atom_type'] = logbook.atom_detail_type(ad)
+        value['atom_type'] = models.atom_detail_type(ad)
         conn.execute(sql.insert(self._tables.atomdetails, value))
 
     def _update_atom_details(self, conn, ad, e_ad):
