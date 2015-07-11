@@ -17,6 +17,7 @@
 
 import contextlib
 import errno
+import io
 import os
 import shutil
 
@@ -98,16 +99,15 @@ class Connection(path_based.PathBasedConnection):
         mtime = os.path.getmtime(filename)
         cache_info = self.backend.file_cache.setdefault(filename, {})
         if not cache_info or mtime > cache_info.get('mtime', 0):
-            with open(filename, 'rb') as fp:
-                cache_info['data'] = misc.binary_decode(
-                    fp.read(), encoding=self.backend.encoding)
+            with io.open(filename, 'r', encoding=self.backend.encoding) as fp:
+                cache_info['data'] = fp.read()
                 cache_info['mtime'] = mtime
         return cache_info['data']
 
     def _write_to(self, filename, contents):
         contents = misc.binary_encode(contents,
                                       encoding=self.backend.encoding)
-        with open(filename, 'wb') as fp:
+        with io.open(filename, 'wb') as fp:
             fp.write(contents)
         self.backend.file_cache.pop(filename, None)
 
