@@ -28,7 +28,6 @@ from taskflow.engines.action_engine import executor
 from taskflow import exceptions as excp
 from taskflow import logging
 from taskflow.types import failure as ft
-from taskflow.types import timing as tt
 from taskflow.utils import schema_utils as su
 
 # NOTE(skudriashev): This is protocol states and events, which are not
@@ -239,7 +238,7 @@ class Request(Message):
         self._event = ACTION_TO_EVENT[action]
         self._arguments = arguments
         self._kwargs = kwargs
-        self._watch = tt.StopWatch(duration=timeout).start()
+        self._watch = timeutils.StopWatch(duration=timeout).start()
         self._state = WAITING
         self._lock = threading.Lock()
         self._created_on = timeutils.utcnow()

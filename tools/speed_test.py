@@ -20,13 +20,13 @@ import argparse
 import cProfile as profiler
 import pstats
 
+from oslo_utils import timeutils
 import six
 from six.moves import range as compat_range
 
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
 from taskflow import task
-from taskflow.types import timing
 
 
 def print_header(name):
@@ -68,7 +68,7 @@ class ProfileIt(object):
 
 class TimeIt(object):
     def __init__(self, name, args):
-        self.watch = timing.StopWatch()
+        self.watch = timeutils.StopWatch()
         self.name = name
         self.args = args
 

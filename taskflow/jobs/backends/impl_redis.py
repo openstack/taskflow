@@ -34,7 +34,6 @@ from taskflow import exceptions as exc
 from taskflow.jobs import base
 from taskflow import logging
 from taskflow import states
-from taskflow.types import timing
 from taskflow.utils import misc
 from taskflow.utils import redis_utils as ru
 
@@ -748,7 +747,7 @@ return cmsgpack.pack(result)
         # up to the provided max-delay. In the future we could try having
         # a secondary client connected into redis pubsub and use that
         # instead, but for now this is simpler.
-        w = timing.StopWatch(duration=timeout)
+        w = timeutils.StopWatch(duration=timeout)
         w.start()
         delay = initial_delay
         while True:

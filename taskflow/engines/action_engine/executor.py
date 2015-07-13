@@ -33,7 +33,6 @@ from taskflow import logging
 from taskflow import task as task_atom
 from taskflow.types import failure
 from taskflow.types import notifier
-from taskflow.types import timing
 from taskflow.utils import async_utils
 from taskflow.utils import threading_utils
 
@@ -176,7 +175,7 @@ class _WaitWorkItem(object):
                 'kind': _KIND_COMPLETE_ME,
             }
             if self._channel.put(message):
-                watch = timing.StopWatch()
+                watch = timeutils.StopWatch()
                 watch.start()
                 self._barrier.wait()
                 LOG.blather("Waited %s seconds until task '%s' %s emitted"
@@ -305,7 +304,7 @@ class _Dispatcher(object):
                      " %s to target '%s'", kind, sender, target)
 
     def run(self, queue):
-        watch = timing.StopWatch(duration=self._dispatch_periodicity)
+        watch = timeutils.StopWatch(duration=self._dispatch_periodicity)
         while (not self._dead.is_set() or
                (self._stop_when_empty and self._targets)):
             watch.restart()

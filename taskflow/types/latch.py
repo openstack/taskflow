@@ -16,7 +16,7 @@
 
 import threading
 
-from taskflow.types import timing as tt
+from oslo_utils import timeutils
 
 
 class Latch(object):
@@ -55,7 +55,7 @@ class Latch(object):
                   timeout expires otherwise false
         :rtype: boolean
         """
-        watch = tt.StopWatch(duration=timeout)
+        watch = timeutils.StopWatch(duration=timeout)
         watch.start()
         with self._cond:
             while self._count > 0:

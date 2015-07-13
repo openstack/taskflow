@@ -22,6 +22,7 @@ import threading
 
 from futurist import periodics
 from oslo_utils import reflection
+from oslo_utils import timeutils
 import six
 
 from taskflow.engines.worker_based import dispatcher
@@ -29,7 +30,6 @@ from taskflow.engines.worker_based import protocol as pr
 from taskflow import logging
 from taskflow.types import cache as base
 from taskflow.types import notifier
-from taskflow.types import timing as tt
 from taskflow.utils import kombu_utils as ku
 
 LOG = logging.getLogger(__name__)
@@ -123,7 +123,7 @@ class WorkerFinder(object):
         """
         if workers <= 0:
             raise ValueError("Worker amount must be greater than zero")
-        watch = tt.StopWatch(duration=timeout)
+        watch = timeutils.StopWatch(duration=timeout)
         watch.start()
         with self._cond:
             while self._total_workers() < workers:
