@@ -29,9 +29,7 @@ sys.path.insert(0, self_dir)
 
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
-from taskflow.persistence import backends
 from taskflow import task
-from taskflow.utils import persistence_utils as pu
 
 # INTRO: in this example we create a dummy flow with a dummy task, and run
 # it using a in-memory backend and pre/post run we dump out the contents
@@ -43,21 +41,17 @@ class PrintTask(task.Task):
     def execute(self):
         print("Running '%s'" % self.name)
 
-
-backend = backends.fetch({
-    'connection': 'memory://',
-})
-book, flow_detail = pu.temporary_flow_detail(backend=backend)
-
 # Make a little flow and run it...
 f = lf.Flow('root')
 for alpha in ['a', 'b', 'c']:
     f.add(PrintTask(alpha))
 
-e = engines.load(f, flow_detail=flow_detail,
-                 book=book, backend=backend)
+e = engines.load(f)
 e.compile()
 e.prepare()
+
+# After prepare the storage layer + backend can now be accessed safely...
+backend = e.storage.backend
 
 print("----------")
 print("Before run")

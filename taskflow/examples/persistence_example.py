@@ -33,7 +33,6 @@ from taskflow import engines
 from taskflow.patterns import linear_flow as lf
 from taskflow.persistence import models
 from taskflow import task
-from taskflow.utils import persistence_utils as p_utils
 
 import example_utils as eu  # noqa
 
@@ -110,4 +109,4 @@ with eu.get_backend(backend_uri) as backend:
         traceback.print_exc(file=sys.stdout)
 
     eu.print_wrapped("Book contents")
-    print(p_utils.pformat(book))
+    print(book.pformat())

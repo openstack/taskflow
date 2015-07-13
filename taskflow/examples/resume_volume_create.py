@@ -31,11 +31,13 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
+from oslo_utils import uuidutils
+
 from taskflow import engines
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
+from taskflow.persistence import models
 from taskflow import task
-from taskflow.utils import persistence_utils as p_utils
 
 import example_utils  # noqa
 
@@ -134,9 +136,12 @@ with example_utils.get_backend() as backend:
         # potentially running (and which may have partially completed) back
         # with taskflow so that those workflows can be resumed (or reverted)
         # after a process/thread/engine has failed in someway.
-        logbook = p_utils.temporary_log_book(backend)
-        flow_detail = p_utils.create_flow_detail(flow, logbook, backend)
-        print("!! Your tracking id is: '%s+%s'" % (logbook.uuid,
+        book = models.LogBook('resume-volume-create')
+        flow_detail = models.FlowDetail("root", uuid=uuidutils.generate_uuid())
+        book.add(flow_detail)
+        with contextlib.closing(backend.get_connection()) as conn:
+            conn.save_logbook(book)
+        print("!! Your tracking id is: '%s+%s'" % (book.uuid,
                                                    flow_detail.uuid))
         print("!! Please submit this on later runs for tracking purposes")
     else:

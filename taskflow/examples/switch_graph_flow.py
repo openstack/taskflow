@@ -27,9 +27,7 @@ sys.path.insert(0, top_dir)
 
 from taskflow import engines
 from taskflow.patterns import graph_flow as gf
-from taskflow.persistence import backends
 from taskflow import task
-from taskflow.utils import persistence_utils as pu
 
 
 class DummyTask(task.Task):
@@ -42,18 +40,15 @@ def allow(history):
     return False
 
 
+# Declare our work to be done...
 r = gf.Flow("root")
 r_a = DummyTask('r-a')
 r_b = DummyTask('r-b')
 r.add(r_a, r_b)
 r.link(r_a, r_b, decider=allow)
 
-backend = backends.fetch({
-    'connection': 'memory://',
-})
-book, flow_detail = pu.temporary_flow_detail(backend=backend)
-
-e = engines.load(r, flow_detail=flow_detail, book=book, backend=backend)
+# Setup and run the engine layer.
+e = engines.load(r)
 e.compile()
 e.prepare()
 e.run()
@@ -62,6 +57,7 @@ e.run()
 print("---------")
 print("After run")
 print("---------")
+backend = e.storage.backend
 entries = [os.path.join(backend.memory.root_path, child)
            for child in backend.memory.ls(backend.memory.root_path)]
 while entries:

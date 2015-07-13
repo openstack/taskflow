@@ -33,7 +33,6 @@ from six.moves import range as compat_range
 from taskflow import engines
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
-from taskflow.utils import eventlet_utils
 
 # INTRO: This example walks through a miniature workflow which does a parallel
 # table modification where each row in the table gets adjusted by a thread, or
@@ -97,9 +96,10 @@ def main():
     f = make_flow(tbl)
 
     # Now run it (using the specified executor)...
-    if eventlet_utils.EVENTLET_AVAILABLE:
+    try:
         executor = futurist.GreenThreadPoolExecutor(max_workers=5)
-    else:
+    except RuntimeError:
+        # No eventlet currently active, use real threads instead.
         executor = futurist.ThreadPoolExecutor(max_workers=5)
     try:
         e = engines.load(f, engine='parallel', executor=executor)
