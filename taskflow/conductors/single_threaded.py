@@ -22,7 +22,7 @@ from taskflow.conductors.backends import impl_blocking
 # TODO(harlowja): remove this module soon...
 removals.removed_module(__name__,
                         replacement="the conductor entrypoints",
-                        version="0.8", removal_version="?",
+                        version="0.8", removal_version="2.0",
                         stacklevel=4)
 
 # TODO(harlowja): remove this proxy/legacy class soon...

@@ -92,7 +92,7 @@ def _extract_engine(**kwargs):
         stacklevel = sum(1 for _frame in finder)
         decorator = renames.renamed_kwarg('engine_conf', 'engine',
                                           version="0.6",
-                                          removal_version="?",
+                                          removal_version="2.0",
                                           # Three is added on since the
                                           # decorator adds three of its own
                                           # stack levels that we need to

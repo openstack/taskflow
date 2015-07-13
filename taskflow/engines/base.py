@@ -55,7 +55,7 @@ class Engine(object):
 
     @property
     @moves.moved_property('atom_notifier', version="0.6",
-                          removal_version="?")
+                          removal_version="2.0")
     def task_notifier(self):
         """The task notifier.
 
@@ -128,4 +128,4 @@ class Engine(object):
 
 # TODO(harlowja): remove in 0.7 or later...
 EngineBase = moves.moved_class(Engine, 'EngineBase', __name__,
-                               version="0.6", removal_version="?")
+                               version="0.6", removal_version="2.0")
