@@ -193,7 +193,7 @@ class FakeFilesystem(object):
         return [selector_func(node, child_node)
                 for child_node in node.bfs_iter()]
 
-    @removals.removed_kwarg('recursive', version="0.11", removal_version="?")
+    @removals.removed_kwarg('recursive', version="0.11", removal_version="2.0")
     def ls(self, path, recursive=False):
         """Return list of all children of the given path.
 

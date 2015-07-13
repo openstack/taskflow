@@ -83,7 +83,7 @@ class BlockingConductor(base.Conductor):
             raise ValueError("Invalid timeout literal: %s" % (wait_timeout))
         self._dead = threading.Event()
 
-    @removals.removed_kwarg('timeout', version="0.8", removal_version="?")
+    @removals.removed_kwarg('timeout', version="0.8", removal_version="2.0")
     def stop(self, timeout=None):
         """Requests the conductor to stop dispatching.
 

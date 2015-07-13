@@ -166,7 +166,7 @@ class Listener(object):
 
 # TODO(harlowja): remove in 0.7 or later...
 ListenerBase = moves.moved_class(Listener, 'ListenerBase', __name__,
-                                 version="0.6", removal_version="?")
+                                 version="0.6", removal_version="2.0")
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -213,7 +213,7 @@ class DumpingListener(Listener):
 # TODO(harlowja): remove in 0.7 or later...
 class LoggingBase(moves.moved_class(DumpingListener,
                                     'LoggingBase', __name__,
-                                    version="0.6", removal_version="?")):
+                                    version="0.6", removal_version="2.0")):
 
     """Legacy logging base.
 

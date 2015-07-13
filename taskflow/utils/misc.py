@@ -505,12 +505,12 @@ def ensure_tree(path):
 
 Failure = deprecation.moved_proxy_class(failure.Failure,
                                         'Failure', __name__,
-                                        version="0.6", removal_version="?")
+                                        version="0.6", removal_version="2.0")
 
 
 Notifier = deprecation.moved_proxy_class(notifier.Notifier,
                                          'Notifier', __name__,
-                                         version="0.6", removal_version="?")
+                                         version="0.6", removal_version="2.0")
 
 
 @contextlib.contextmanager

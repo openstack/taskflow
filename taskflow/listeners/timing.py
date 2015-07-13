@@ -91,7 +91,7 @@ class DurationListener(base.Listener):
 
 TimingListener = moves.moved_class(DurationListener,
                                    'TimingListener', __name__,
-                                   version="0.8", removal_version="?")
+                                   version="0.8", removal_version="2.0")
 
 
 class PrintingDurationListener(DurationListener):
@@ -117,7 +117,7 @@ class PrintingDurationListener(DurationListener):
 
 PrintingTimingListener = moves.moved_class(
     PrintingDurationListener, 'PrintingTimingListener', __name__,
-    version="0.8", removal_version="?")
+    version="0.8", removal_version="2.0")
 
 
 class EventTimeListener(base.Listener):
