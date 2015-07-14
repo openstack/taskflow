@@ -22,6 +22,7 @@ import errno
 import inspect
 import os
 import re
+import socket
 import sys
 import threading
 import types
@@ -42,6 +43,7 @@ from taskflow.types import notifier
 from taskflow.utils import deprecation
 
 
+UNKNOWN_HOSTNAME = "<unknown>"
 NUMERIC_TYPES = six.integer_types + (float,)
 
 # NOTE(imelnikov): regular expression to get scheme from URI,
@@ -66,6 +68,18 @@ class StringIO(six.StringIO):
     def write_nl(self, value, linesep=os.linesep):
         self.write(value)
         self.write(linesep)
+
+
+def get_hostname(unknown_hostname=UNKNOWN_HOSTNAME):
+    """Gets the machines hostname; if not able to returns an invalid one."""
+    try:
+        hostname = socket.getfqdn()
+        if not hostname:
+            return unknown_hostname
+        else:
+            return hostname
+    except socket.error:
+        return unknown_hostname
 
 
 def match_type(obj, matchers):
