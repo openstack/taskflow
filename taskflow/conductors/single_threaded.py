@@ -28,4 +28,4 @@ removals.removed_module(__name__,
 # TODO(harlowja): remove this proxy/legacy class soon...
 SingleThreadedConductor = moves.moved_class(
     impl_blocking.BlockingConductor, 'SingleThreadedConductor',
-    __name__, version="0.8", removal_version="?")
+    __name__, version="0.8", removal_version="2.0")
