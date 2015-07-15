@@ -3,7 +3,7 @@
 # process, which may cause wedges in the gate later.
 
 # See: https://bugs.launchpad.net/pbr/+bug/1384919 for why this is here...
-pbr<2.0,>=0.11
+pbr<2.0,>=1.3
 
 # Packages needed for using this library.
 
@@ -38,7 +38,7 @@ monotonic>=0.1 # Apache-2.0
 jsonschema!=2.5.0,<3.0.0,>=2.0.0
 
 # For common utilities
-oslo.utils>=1.6.0 # Apache-2.0
+oslo.utils>=1.9.0 # Apache-2.0
 oslo.serialization>=1.4.0 # Apache-2.0
 
 # For lru caches and such
