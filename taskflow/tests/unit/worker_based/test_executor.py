@@ -18,6 +18,7 @@ import threading
 import time
 
 import futurist
+from oslo_utils import fixture
 from oslo_utils import timeutils
 
 from taskflow.engines.worker_based import executor
@@ -184,12 +185,12 @@ class TestWorkerTaskExecutor(test.MockTestCase):
 
     def test_on_wait_task_expired(self):
         now = timeutils.utcnow()
+        f = self.useFixture(fixture.TimeFixture(override_time=now))
+
         self.request_inst_mock.expired = True
         self.request_inst_mock.created_on = now
-        timeutils.set_time_override(now)
-        self.addCleanup(timeutils.clear_time_override)
-        timeutils.advance_time_seconds(120)
 
+        f.advance_time_seconds(120)
         ex = self.executor()
         ex._requests_cache[self.task_uuid] = self.request_inst_mock
 
