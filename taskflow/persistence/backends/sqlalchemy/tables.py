@@ -92,6 +92,8 @@ def fetch(metadata):
                                default=uuidutils.generate_uuid),
                         Column('failure', Json),
                         Column('results', Json),
+                        Column('revert_results', Json),
+                        Column('revert_failure', Json),
                         Column('atom_type', Enum(*models.ATOM_TYPES,
                                                  name='atom_types')),
                         Column('intention', Enum(*states.INTENTIONS,

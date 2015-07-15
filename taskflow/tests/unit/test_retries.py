@@ -82,8 +82,8 @@ class RetryTest(utils.EngineTestBase):
                     'task1.t RUNNING', 'task1.t SUCCESS(5)',
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'task2.t REVERTING', 'task2.t REVERTED',
-                    'task1.t REVERTING', 'task1.t REVERTED',
+                    'task2.t REVERTING', 'task2.t REVERTED(None)',
+                    'task1.t REVERTING', 'task1.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task1.t PENDING',
                     'task2.t PENDING',
@@ -114,9 +114,9 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task1.t PENDING',
                     'task2.t PENDING',
@@ -127,11 +127,11 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -153,9 +153,9 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'task1.t REVERTING',
-                    'task1.t FAILURE',
+                    'task1.t REVERT_FAILURE(Failure: RuntimeError: Gotcha!)',
                     'flow-1.f FAILURE']
         self.assertEqual(expected, capturer.values)
 
@@ -185,9 +185,9 @@ class RetryTest(utils.EngineTestBase):
                     'task3.t RUNNING',
                     'task3.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task3.t REVERTING',
-                    'task3.t REVERTED',
+                    'task3.t REVERTED(None)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r2.r RETRYING',
                     'task2.t PENDING',
                     'task3.t PENDING',
@@ -231,15 +231,15 @@ class RetryTest(utils.EngineTestBase):
                     'task4.t RUNNING',
                     'task4.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task4.t REVERTING',
-                    'task4.t REVERTED',
+                    'task4.t REVERTED(None)',
                     'task3.t REVERTING',
-                    'task3.t REVERTED',
+                    'task3.t REVERTED(None)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r2.r REVERTING',
-                    'r2.r REVERTED',
+                    'r2.r REVERTED(None)',
                     'task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task1.t PENDING',
                     'r2.r PENDING',
@@ -280,8 +280,8 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task2.t REVERTING',
                     'task1.t REVERTING',
-                    'task2.t REVERTED',
-                    'task1.t REVERTED',
+                    'task2.t REVERTED(None)',
+                    'task1.t REVERTED(None)',
                     'r.r RETRYING',
                     'task1.t PENDING',
                     'task2.t PENDING',
@@ -316,11 +316,11 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r2.r REVERTING',
-                    'r2.r REVERTED',
+                    'r2.r REVERTED(None)',
                     'task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task1.t PENDING',
                     'r2.r PENDING',
@@ -359,9 +359,9 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -388,11 +388,11 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -417,13 +417,13 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r2.r REVERTING',
-                    'r2.r REVERTED',
+                    'r2.r REVERTED(None)',
                     'task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -515,7 +515,7 @@ class RetryTest(utils.EngineTestBase):
                     'c.t RUNNING',
                     'c.t FAILURE(Failure: RuntimeError: Woot!)',
                     'c.t REVERTING',
-                    'c.t REVERTED',
+                    'c.t REVERTED(None)',
                     'r1.r RETRYING',
                     'c.t PENDING',
                     'r1.r RUNNING',
@@ -542,9 +542,9 @@ class RetryTest(utils.EngineTestBase):
                     't2.t RUNNING',
                     't2.t FAILURE(Failure: RuntimeError: Woot!)',
                     't2.t REVERTING',
-                    't2.t REVERTED',
+                    't2.t REVERTED(None)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     't2.t PENDING',
@@ -555,9 +555,9 @@ class RetryTest(utils.EngineTestBase):
                     't2.t RUNNING',
                     't2.t FAILURE(Failure: RuntimeError: Woot!)',
                     't2.t REVERTING',
-                    't2.t REVERTED',
+                    't2.t REVERTED(None)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     't2.t PENDING',
@@ -568,11 +568,11 @@ class RetryTest(utils.EngineTestBase):
                     't2.t RUNNING',
                     't2.t FAILURE(Failure: RuntimeError: Woot!)',
                     't2.t REVERTING',
-                    't2.t REVERTED',
+                    't2.t REVERTED(None)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -589,7 +589,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     'r1.r RUNNING',
@@ -597,7 +597,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 2)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     'r1.r RUNNING',
@@ -605,7 +605,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     'r1.r RUNNING',
@@ -613,9 +613,9 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 5)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -632,7 +632,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 2)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     'r1.r RUNNING',
@@ -640,7 +640,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     'r1.r RUNNING',
@@ -648,9 +648,9 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 5)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertItemsEqual(capturer.values, expected)
 
@@ -674,7 +674,7 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task2.t PENDING',
                     'r1.r RUNNING',
@@ -682,7 +682,7 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot with 2)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task2.t PENDING',
                     'r1.r RUNNING',
@@ -690,7 +690,7 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task2.t PENDING',
                     'r1.r RUNNING',
@@ -698,9 +698,9 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot with 5)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -724,7 +724,7 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task2.t PENDING',
                     'r1.r RUNNING',
@@ -732,7 +732,7 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot with 2)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task2.t PENDING',
                     'r1.r RUNNING',
@@ -740,7 +740,7 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task2.t PENDING',
                     'r1.r RUNNING',
@@ -748,11 +748,11 @@ class RetryTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot with 5)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -778,7 +778,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     'r1.r RUNNING',
@@ -786,7 +786,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 2)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     'r1.r RUNNING',
@@ -794,9 +794,9 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 5)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -814,7 +814,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     'r1.r RUNNING',
@@ -822,7 +822,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 2)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r RETRYING',
                     't1.t PENDING',
                     'r1.r RUNNING',
@@ -830,9 +830,9 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t FAILURE(Failure: RuntimeError: Woot with 5)',
                     't1.t REVERTING',
-                    't1.t REVERTED',
+                    't1.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertItemsEqual(capturer.values, expected)
 
@@ -857,7 +857,7 @@ class RetryTest(utils.EngineTestBase):
                     'task-2.t RUNNING',
                     'task-2.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     'task-2.t REVERTING',
-                    'task-2.t REVERTED',
+                    'task-2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task-2.t PENDING',
                     'r1.r RUNNING',
@@ -865,7 +865,7 @@ class RetryTest(utils.EngineTestBase):
                     'task-2.t RUNNING',
                     'task-2.t FAILURE(Failure: RuntimeError: Woot with 2)',
                     'task-2.t REVERTING',
-                    'task-2.t REVERTED',
+                    'task-2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task-2.t PENDING',
                     'r1.r RUNNING',
@@ -873,9 +873,9 @@ class RetryTest(utils.EngineTestBase):
                     'task-2.t RUNNING',
                     'task-2.t FAILURE(Failure: RuntimeError: Woot with 5)',
                     'task-2.t REVERTING',
-                    'task-2.t REVERTED',
+                    'task-2.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -901,7 +901,7 @@ class RetryTest(utils.EngineTestBase):
                     'task-2.t RUNNING',
                     'task-2.t FAILURE(Failure: RuntimeError: Woot with 3)',
                     'task-2.t REVERTING',
-                    'task-2.t REVERTED',
+                    'task-2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task-2.t PENDING',
                     'r1.r RUNNING',
@@ -909,7 +909,7 @@ class RetryTest(utils.EngineTestBase):
                     'task-2.t RUNNING',
                     'task-2.t FAILURE(Failure: RuntimeError: Woot with 2)',
                     'task-2.t REVERTING',
-                    'task-2.t REVERTED',
+                    'task-2.t REVERTED(None)',
                     'r1.r RETRYING',
                     'task-2.t PENDING',
                     'r1.r RUNNING',
@@ -917,11 +917,11 @@ class RetryTest(utils.EngineTestBase):
                     'task-2.t RUNNING',
                     'task-2.t FAILURE(Failure: RuntimeError: Woot with 5)',
                     'task-2.t REVERTING',
-                    'task-2.t REVERTED',
+                    'task-2.t REVERTED(None)',
                     'r1.r REVERTING',
-                    'r1.r REVERTED',
+                    'r1.r REVERTED(None)',
                     'task-1.t REVERTING',
-                    'task-1.t REVERTED',
+                    'task-1.t REVERTED(None)',
                     'flow-1.f REVERTED']
         self.assertEqual(expected, capturer.values)
 
@@ -973,7 +973,7 @@ class RetryTest(utils.EngineTestBase):
         with utils.CaptureListener(engine) as capturer:
             engine.run()
         expected = ['task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'flow-1_retry.r RETRYING',
                     'task1.t PENDING',
                     'flow-1_retry.r RUNNING',
@@ -988,7 +988,7 @@ class RetryTest(utils.EngineTestBase):
         with utils.CaptureListener(engine) as capturer:
             engine.run()
         expected = ['task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'flow-1_retry.r RETRYING',
                     'task1.t PENDING',
                     'flow-1_retry.r RUNNING',
@@ -1003,7 +1003,7 @@ class RetryTest(utils.EngineTestBase):
         with utils.CaptureListener(engine) as capturer:
             engine.run()
         expected = ['task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'flow-1_retry.r RETRYING',
                     'task1.t PENDING',
                     'flow-1_retry.r RUNNING',
@@ -1018,7 +1018,7 @@ class RetryTest(utils.EngineTestBase):
         with utils.CaptureListener(engine) as capturer:
             engine.run()
         expected = ['task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'flow-1_retry.r RETRYING',
                     'task1.t PENDING',
                     'flow-1_retry.r RUNNING',
@@ -1032,7 +1032,7 @@ class RetryTest(utils.EngineTestBase):
         engine = self._pretend_to_run_a_flow_and_crash('revert scheduled')
         with utils.CaptureListener(engine) as capturer:
             engine.run()
-        expected = ['task1.t REVERTED',
+        expected = ['task1.t REVERTED(None)',
                     'flow-1_retry.r RETRYING',
                     'task1.t PENDING',
                     'flow-1_retry.r RUNNING',
@@ -1077,16 +1077,16 @@ class RetryTest(utils.EngineTestBase):
                     'c.t FAILURE(Failure: RuntimeError: Woot!)',
                     'a.t REVERTING',
                     'c.t REVERTING',
-                    'a.t REVERTED',
-                    'c.t REVERTED',
+                    'a.t REVERTED(None)',
+                    'c.t REVERTED(None)',
                     'b.t REVERTING',
-                    'b.t REVERTED']
+                    'b.t REVERTED(None)']
         self.assertItemsEqual(capturer.values[:8], expected)
         # Task 'a' was or was not executed again, both cases are ok.
         self.assertIsSuperAndSubsequence(capturer.values[8:], [
             'b.t RUNNING',
             'c.t FAILURE(Failure: RuntimeError: Woot!)',
-            'b.t REVERTED',
+            'b.t REVERTED(None)',
         ])
         self.assertEqual(engine.storage.get_flow_state(), st.REVERTED)
 
@@ -1107,9 +1107,9 @@ class RetryTest(utils.EngineTestBase):
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
         expected = ['c.t REVERTING',
-                    'c.t REVERTED',
+                    'c.t REVERTED(None)',
                     'b.t REVERTING',
-                    'b.t REVERTED']
+                    'b.t REVERTED(None)']
         self.assertItemsEqual(capturer.values[:4], expected)
         expected = ['test2_retry.r RETRYING',
                     'b.t PENDING',
@@ -1149,10 +1149,10 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'task1.t SUCCESS(5)',
                     'task1.t REVERTING',
-                    'task1.t REVERTED',
+                    'task1.t REVERTED(None)',
                     'r.r RETRYING',
                     'task1.t PENDING',
                     'task2.t PENDING',
@@ -1189,10 +1189,10 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
                     'task3.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task3.t REVERTING',
                     'task1.t REVERTING',
-                    'task3.t REVERTED',
-                    'task1.t REVERTED',
+                    'task3.t REVERTED(None)',
+                    'task1.t REVERTED(None)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'r.r RETRYING',
                     'task1.t PENDING',
                     'task2.t PENDING',

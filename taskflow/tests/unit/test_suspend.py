@@ -97,14 +97,14 @@ class SuspendTest(utils.EngineTestBase):
                     'c.t RUNNING',
                     'c.t FAILURE(Failure: RuntimeError: Woot!)',
                     'c.t REVERTING',
-                    'c.t REVERTED',
+                    'c.t REVERTED(None)',
                     'b.t REVERTING',
-                    'b.t REVERTED']
+                    'b.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
-        expected = ['a.t REVERTING', 'a.t REVERTED']
+        expected = ['a.t REVERTING', 'a.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
 
     def test_suspend_and_resume_linear_flow_on_revert(self):
@@ -124,9 +124,9 @@ class SuspendTest(utils.EngineTestBase):
                     'c.t RUNNING',
                     'c.t FAILURE(Failure: RuntimeError: Woot!)',
                     'c.t REVERTING',
-                    'c.t REVERTED',
+                    'c.t REVERTED(None)',
                     'b.t REVERTING',
-                    'b.t REVERTED']
+                    'b.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
 
         # pretend we are resuming
@@ -135,7 +135,7 @@ class SuspendTest(utils.EngineTestBase):
             self.assertRaisesRegexp(RuntimeError, '^Woot', engine2.run)
         self.assertEqual(engine2.storage.get_flow_state(), states.REVERTED)
         expected = ['a.t REVERTING',
-                    'a.t REVERTED']
+                    'a.t REVERTED(None)']
         self.assertEqual(expected, capturer2.values)
 
     def test_suspend_and_revert_even_if_task_is_gone(self):
@@ -157,9 +157,9 @@ class SuspendTest(utils.EngineTestBase):
                     'c.t RUNNING',
                     'c.t FAILURE(Failure: RuntimeError: Woot!)',
                     'c.t REVERTING',
-                    'c.t REVERTED',
+                    'c.t REVERTED(None)',
                     'b.t REVERTING',
-                    'b.t REVERTED']
+                    'b.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
 
         # pretend we are resuming, but task 'c' gone when flow got updated
@@ -171,7 +171,7 @@ class SuspendTest(utils.EngineTestBase):
         with utils.CaptureListener(engine2, capture_flow=False) as capturer2:
             self.assertRaisesRegexp(RuntimeError, '^Woot', engine2.run)
         self.assertEqual(engine2.storage.get_flow_state(), states.REVERTED)
-        expected = ['a.t REVERTING', 'a.t REVERTED']
+        expected = ['a.t REVERTING', 'a.t REVERTED(None)']
         self.assertEqual(capturer2.values, expected)
 
     def test_storage_is_rechecked(self):

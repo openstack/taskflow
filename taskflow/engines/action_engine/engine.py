@@ -16,6 +16,7 @@
 
 import collections
 import contextlib
+import itertools
 import threading
 
 from concurrent import futures
@@ -194,8 +195,10 @@ class ActionEngine(base.Engine):
                 if last_state and last_state not in ignorable_states:
                     self._change_state(last_state)
                     if last_state not in self.NO_RERAISING_STATES:
-                        failures = self.storage.get_failures()
-                        failure.Failure.reraise_if_any(failures.values())
+                        it = itertools.chain(
+                            six.itervalues(self.storage.get_failures()),
+                            six.itervalues(self.storage.get_revert_failures()))
+                        failure.Failure.reraise_if_any(it)
 
     def _change_state(self, state):
         with self._state_lock:

@@ -118,13 +118,6 @@ class StorageTestMixin(object):
         self.assertEqual(s.fetch_all(), {})
         self.assertEqual(s.get_atom_state('my task'), states.SUCCESS)
 
-    def test_save_and_get_other_state(self):
-        s = self._get_storage()
-        s.ensure_atom(test_utils.NoopTask('my task'))
-        s.save('my task', 5, states.FAILURE)
-        self.assertEqual(s.get('my task'), 5)
-        self.assertEqual(s.get_atom_state('my task'), states.FAILURE)
-
     def test_save_and_get_cached_failure(self):
         a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
         s = self._get_storage()
@@ -141,7 +134,7 @@ class StorageTestMixin(object):
         s.ensure_atom(test_utils.NoopTask('my task'))
         s.save('my task', a_failure, states.FAILURE)
         self.assertEqual(s.get('my task'), a_failure)
-        s._failures['my task'] = None
+        s._failures['my task'] = {}
         self.assertTrue(a_failure.matches(s.get('my task')))
 
     def test_get_failure_from_reverted_task(self):
@@ -563,6 +556,33 @@ class StorageTestMixin(object):
         self.assertEqual(set(), missing)
         args = s.fetch_mapped_args(t.rebind, atom_name=t.name)
         self.assertEqual(3, args['x'])
+
+    def test_save_fetch(self):
+        t = test_utils.GiveBackRevert('my task')
+        s = self._get_storage()
+        s.ensure_atom(t)
+        s.save('my task', 2)
+        self.assertEqual(2, s.get('my task'))
+        self.assertRaises(exceptions.NotFound,
+                          s.get_revert_result, 'my task')
+
+    def test_save_fetch_revert(self):
+        t = test_utils.GiveBackRevert('my task')
+        s = self._get_storage()
+        s.ensure_atom(t)
+        s.set_atom_intention('my task', states.REVERT)
+        s.save('my task', 2, state=states.REVERTED)
+        self.assertRaises(exceptions.NotFound, s.get, 'my task')
+        self.assertEqual(2, s.get_revert_result('my task'))
+
+    def test_save_fail_fetch_revert(self):
+        t = test_utils.GiveBackRevert('my task')
+        s = self._get_storage()
+        s.ensure_atom(t)
+        s.set_atom_intention('my task', states.REVERT)
+        a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
+        s.save('my task', a_failure, state=states.REVERT_FAILURE)
+        self.assertEqual(a_failure, s.get_revert_result('my task'))
 
 
 class StorageMemoryTest(StorageTestMixin, test.TestCase):

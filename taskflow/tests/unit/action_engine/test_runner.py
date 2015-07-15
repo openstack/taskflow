@@ -126,7 +126,8 @@ class RunnerTest(test.TestCase, _RunnerTestMixin):
         failure = failures[0]
         self.assertTrue(failure.check(RuntimeError))
 
-        self.assertEqual(st.FAILURE, rt.storage.get_atom_state(tasks[0].name))
+        self.assertEqual(st.REVERT_FAILURE,
+                         rt.storage.get_atom_state(tasks[0].name))
 
     def test_run_iterations_suspended(self):
         flow = lf.Flow("root")

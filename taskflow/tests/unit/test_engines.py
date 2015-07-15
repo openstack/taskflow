@@ -66,7 +66,7 @@ class EngineTaskTest(object):
         engine = self._make_engine(flow)
         expected = ['fail.f RUNNING', 'fail.t RUNNING',
                     'fail.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'fail.t REVERTING', 'fail.t REVERTED',
+                    'fail.t REVERTING', 'fail.t REVERTED(None)',
                     'fail.f REVERTED']
         with utils.CaptureListener(engine, values=values) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
@@ -374,6 +374,29 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(engine.storage.fetch_all(), {})
 
+    def test_revert_provided(self):
+        flow = lf.Flow('revert').add(
+            utils.GiveBackRevert('giver'),
+            utils.FailingTask(name='fail')
+        )
+        engine = self._make_engine(flow, store={'value': 0})
+        self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
+        self.assertEqual(engine.storage.get_revert_result('giver'), 2)
+
+    def test_nasty_revert(self):
+        flow = lf.Flow('revert').add(
+            utils.NastyTask('nasty'),
+            utils.FailingTask(name='fail')
+        )
+        engine = self._make_engine(flow)
+        self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
+        fail = engine.storage.get_revert_result('nasty')
+        self.assertIsNotNone(fail.check(RuntimeError))
+        exec_failures = engine.storage.get_execute_failures()
+        self.assertIn('fail', exec_failures)
+        rev_failures = engine.storage.get_revert_failures()
+        self.assertIn('nasty', rev_failures)
+
     def test_sequential_flow_nested_blocks(self):
         flow = lf.Flow('nested-1').add(
             utils.ProgressingTask('task1'),
@@ -406,7 +429,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
         expected = ['fail.t RUNNING',
                     'fail.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'fail.t REVERTING', 'fail.t REVERTED']
+                    'fail.t REVERTING', 'fail.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
 
     def test_correctly_reverts_children(self):
@@ -424,9 +447,9 @@ class EngineLinearFlowTest(utils.EngineTestBase):
                     'task2.t RUNNING', 'task2.t SUCCESS(5)',
                     'fail.t RUNNING',
                     'fail.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'fail.t REVERTING', 'fail.t REVERTED',
-                    'task2.t REVERTING', 'task2.t REVERTED',
-                    'task1.t REVERTING', 'task1.t REVERTED']
+                    'fail.t REVERTING', 'fail.t REVERTED(None)',
+                    'task2.t REVERTING', 'task2.t REVERTED(None)',
+                    'task1.t REVERTING', 'task1.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
 
 
@@ -529,18 +552,19 @@ class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
 
         # NOTE(imelnikov): we don't know if task 3 was run, but if it was,
-        # it should have been reverted in correct order.
+        # it should have been REVERTED(None) in correct order.
         possible_values_no_task3 = [
             'task1.t RUNNING', 'task2.t RUNNING',
             'fail.t FAILURE(Failure: RuntimeError: Woot!)',
-            'task2.t REVERTED', 'task1.t REVERTED'
+            'task2.t REVERTED(None)', 'task1.t REVERTED(None)'
         ]
         self.assertIsSuperAndSubsequence(capturer.values,
                                          possible_values_no_task3)
         if 'task3' in capturer.values:
             possible_values_task3 = [
                 'task1.t RUNNING', 'task2.t RUNNING', 'task3.t RUNNING',
-                'task3.t REVERTED', 'task2.t REVERTED', 'task1.t REVERTED'
+                'task3.t REVERTED(None)', 'task2.t REVERTED(None)',
+                'task1.t REVERTED(None)'
             ]
             self.assertIsSuperAndSubsequence(capturer.values,
                                              possible_values_task3)
@@ -561,12 +585,12 @@ class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
             self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
 
         # NOTE(imelnikov): we don't know if task 3 was run, but if it was,
-        # it should have been reverted in correct order.
+        # it should have been REVERTED(None) in correct order.
         possible_values = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
                            'task2.t RUNNING', 'task2.t SUCCESS(5)',
                            'task3.t RUNNING', 'task3.t SUCCESS(5)',
                            'task3.t REVERTING',
-                           'task3.t REVERTED']
+                           'task3.t REVERTED(None)']
         self.assertIsSuperAndSubsequence(possible_values, capturer.values)
         possible_values_no_task3 = ['task1.t RUNNING', 'task2.t RUNNING']
         self.assertIsSuperAndSubsequence(capturer.values,
@@ -589,12 +613,12 @@ class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
         # NOTE(imelnikov): if task1 was run, it should have been reverted.
         if 'task1' in capturer.values:
             task1_story = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                           'task1.t REVERTED']
+                           'task1.t REVERTED(None)']
             self.assertIsSuperAndSubsequence(capturer.values, task1_story)
 
         # NOTE(imelnikov): task2 should have been run and reverted
         task2_story = ['task2.t RUNNING', 'task2.t SUCCESS(5)',
-                       'task2.t REVERTED']
+                       'task2.t REVERTED(None)']
         self.assertIsSuperAndSubsequence(capturer.values, task2_story)
 
     def test_revert_raises_for_linear_in_unordered(self):
@@ -608,7 +632,7 @@ class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
-        self.assertNotIn('task2.t REVERTED', capturer.values)
+        self.assertNotIn('task2.t REVERTED(None)', capturer.values)
 
 
 class EngineGraphFlowTest(utils.EngineTestBase):
@@ -697,11 +721,11 @@ class EngineGraphFlowTest(utils.EngineTestBase):
                     'task3.t RUNNING',
                     'task3.t FAILURE(Failure: RuntimeError: Woot!)',
                     'task3.t REVERTING',
-                    'task3.t REVERTED',
+                    'task3.t REVERTED(None)',
                     'task2.t REVERTING',
-                    'task2.t REVERTED',
+                    'task2.t REVERTED(None)',
                     'task1.t REVERTING',
-                    'task1.t REVERTED']
+                    'task1.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
         self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
 
