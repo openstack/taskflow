@@ -243,14 +243,15 @@ class SQLAlchemyBackend(base.Backend):
             self._engine = engine
             self._owns_engine = False
         else:
-            self._engine = None
+            self._engine = self._create_engine(self._conf)
             self._owns_engine = True
         self._validated = False
 
-    def _create_engine(self):
+    @staticmethod
+    def _create_engine(conf):
         # NOTE(harlowja): copy the internal one so that we don't modify it via
         # all the popping that will happen below.
-        conf = copy.deepcopy(self._conf)
+        conf = copy.deepcopy(conf)
         engine_args = {
             'echo': _as_bool(conf.pop('echo', False)),
             'convert_unicode': _as_bool(conf.pop('convert_unicode', True)),
@@ -320,8 +321,6 @@ class SQLAlchemyBackend(base.Backend):
 
     @property
     def engine(self):
-        if self._engine is None:
-            self._engine = self._create_engine()
         return self._engine
 
     def get_connection(self):
@@ -336,15 +335,11 @@ class SQLAlchemyBackend(base.Backend):
         return conn
 
     def close(self):
-        if self._engine is not None and self._owns_engine:
-            # NOTE(harlowja): Only dispose of the engine and clear it from
-            # our local state if we actually own the engine in the first
-            # place. If the user passed in their own engine we should not
-            # be disposing it on their behalf (and we shouldn't be clearing
-            # our local engine either, since then we would just recreate a
-            # new engine if the engine property is accessed).
+        # NOTE(harlowja): Only dispose of the engine if we actually own the
+        # engine in the first place. If the user passed in their own engine
+        # we should not be disposing it on their behalf...
+        if self._owns_engine:
             self._engine.dispose()
-            self._engine = None
         self._validated = False
 
 
