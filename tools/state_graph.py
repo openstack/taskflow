@@ -31,12 +31,12 @@ import pydot
 
 from automaton import machines
 
-from taskflow.engines.action_engine import runner
+from taskflow.engines.action_engine import builder
 from taskflow.engines.worker_based import protocol
 from taskflow import states
 
 
-# This is just needed to get at the runner builder object (we will not
+# This is just needed to get at the machine object (we will not
 # actually be running it...).
 class DummyRuntime(object):
     def __init__(self):
@@ -134,9 +134,9 @@ def main():
                               list(states._ALLOWED_RETRY_TRANSITIONS))
     elif options.engines:
         source_type = "Engines"
-        r = runner.Runner(DummyRuntime(), mock.MagicMock())
-        source, memory = r.build()
-        internal_states.extend(runner._META_STATES)
+        b = builder.MachineBuilder(DummyRuntime(), mock.MagicMock())
+        source, memory = b.build()
+        internal_states.extend(builder.META_STATES)
         ordering = 'out'
     elif options.wbe_requests:
         source_type = "WBE requests"
