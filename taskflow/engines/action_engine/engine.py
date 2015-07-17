@@ -65,7 +65,6 @@ class ActionEngine(base.Engine):
     valid states in the states module to learn more about what other states
     the tasks and flow being ran can go through.
     """
-    _compiler_factory = compiler.PatternCompiler
 
     NO_RERAISING_STATES = frozenset([states.SUSPENDED, states.SUCCESS])
     """
@@ -79,6 +78,7 @@ class ActionEngine(base.Engine):
         self._runtime = None
         self._compiled = False
         self._compilation = None
+        self._compiler = compiler.PatternCompiler(flow)
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
         self._storage_ensured = False
@@ -285,10 +285,6 @@ class ActionEngine(base.Engine):
         if self.storage.get_flow_state() == states.REVERTED:
             self._runtime.reset_all()
             self._change_state(states.PENDING)
-
-    @misc.cachedproperty
-    def _compiler(self):
-        return self._compiler_factory(self._flow)
 
     @fasteners.locked
     def compile(self):
