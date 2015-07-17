@@ -43,6 +43,7 @@ class Runtime(object):
         self._storage = storage
         self._compilation = compilation
         self._atom_cache = {}
+        self._atoms_by_kind = {}
 
     def compile(self):
         """Compiles & caches frequently used execution helper objects.
@@ -63,6 +64,8 @@ class Runtime(object):
             'task': self.task_scheduler,
         }
         execution_graph = self._compilation.execution_graph
+        all_retry_atoms = []
+        all_task_atoms = []
         for atom in self.analyzer.iterate_all_nodes():
             metadata = {}
             walker = sc.ScopeWalker(self.compilation, atom, names_only=True)
@@ -70,10 +73,12 @@ class Runtime(object):
                 check_transition_handler = st.check_task_transition
                 change_state_handler = change_state_handlers['task']
                 scheduler = schedulers['task']
+                all_task_atoms.append(atom)
             else:
                 check_transition_handler = st.check_retry_transition
                 change_state_handler = change_state_handlers['retry']
                 scheduler = schedulers['retry']
+                all_retry_atoms.append(atom)
             edge_deciders = {}
             for previous_atom in execution_graph.predecessors(atom):
                 # If there is any link function that says if this connection
@@ -89,6 +94,8 @@ class Runtime(object):
             metadata['scheduler'] = scheduler
             metadata['edge_deciders'] = edge_deciders
             self._atom_cache[atom.name] = metadata
+        self._atoms_by_kind['retry'] = all_retry_atoms
+        self._atoms_by_kind['task'] = all_task_atoms
 
     @property
     def compilation(self):
@@ -149,6 +156,15 @@ class Runtime(object):
         # not exist and therefore doesn't need to handle that case).
         metadata = self._atom_cache[atom.name]
         return metadata['edge_deciders']
+
+    def fetch_atoms_by_kind(self, kind):
+        """Fetches all the atoms of a given kind.
+
+        NOTE(harlowja): Currently only ``task`` or ``retry`` are valid
+                        kinds of atoms (requesting other kinds will just
+                        return empty lists).
+        """
+        return self._atoms_by_kind.get(kind, [])
 
     def fetch_scheduler(self, atom):
         """Fetches the cached specific scheduler for the given atom."""

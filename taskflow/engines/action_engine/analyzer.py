@@ -14,12 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import functools
 import itertools
 
 from networkx.algorithms import traversal
 import six
 
-from taskflow import retry as retry_atom
 from taskflow import states as st
 
 
@@ -92,6 +92,8 @@ class Analyzer(object):
         self._execution_graph = runtime.compilation.execution_graph
         self._check_atom_transition = runtime.check_atom_transition
         self._fetch_edge_deciders = runtime.fetch_edge_deciders
+        self._fetch_retries = functools.partial(
+            runtime.fetch_atoms_by_kind, 'retry')
 
     def get_next_nodes(self, node=None):
         """Get next nodes to run (originating from node or all nodes)."""
@@ -207,14 +209,13 @@ class Analyzer(object):
             yield dst
 
     def iterate_retries(self, state=None):
-        """Iterates retry controllers that match the provided state.
+        """Iterates retry atoms that match the provided state.
 
-        If no state is provided it will yield back all retry controllers.
+        If no state is provided it will yield back all retry atoms.
         """
-        for node in self._execution_graph.nodes_iter():
-            if isinstance(node, retry_atom.Retry):
-                if not state or self.get_state(node) == state:
-                    yield node
+        for atom in self._fetch_retries():
+            if not state or self.get_state(atom) == state:
+                yield atom
 
     def iterate_all_nodes(self):
         """Yields back all nodes in the execution graph."""
