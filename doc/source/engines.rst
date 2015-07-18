@@ -142,12 +142,12 @@ Serial
 
 **Engine type**: ``'serial'``
 
-Runs all tasks on a single thread -- the same thread ``engine.run()`` is
-called from.
+Runs all tasks on a single thread -- the same thread
+:py:meth:`~taskflow.engines.base.Engine.run` is called from.
 
 .. note::
 
-    This engine is used by default.
+    This engine is used by **default**.
 
 .. tip::
 
