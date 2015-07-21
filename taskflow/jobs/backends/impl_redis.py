@@ -753,22 +753,24 @@ return cmsgpack.pack(result)
         while True:
             jc = self.job_count
             if jc > 0:
-                it = self.iterjobs()
-                return it
+                curr_jobs = self._fetch_jobs()
+                if curr_jobs:
+                    return base.JobBoardIterator(
+                        self, LOG,
+                        board_fetch_func=lambda ensure_fresh: curr_jobs)
+            if w.expired():
+                raise exc.NotFound("Expired waiting for jobs to"
+                                   " arrive; waited %s seconds"
+                                   % w.elapsed())
             else:
-                if w.expired():
-                    raise exc.NotFound("Expired waiting for jobs to"
-                                       " arrive; waited %s seconds"
-                                       % w.elapsed())
+                remaining = w.leftover(return_none=True)
+                if remaining is not None:
+                    delay = min(delay * 2, remaining, max_delay)
                 else:
-                    remaining = w.leftover(return_none=True)
-                    if remaining is not None:
-                        delay = min(delay * 2, remaining, max_delay)
-                    else:
-                        delay = min(delay * 2, max_delay)
-                    sleep_func(delay)
+                    delay = min(delay * 2, max_delay)
+                sleep_func(delay)
 
-    def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
+    def _fetch_jobs(self):
         with _translate_failures():
             raw_postings = self._client.hgetall(self.listings_key)
         postings = []
@@ -782,13 +784,13 @@ return cmsgpack.pack(result)
                            book_data=posting.get('book'),
                            backend=self._persistence)
             postings.append(job)
-        postings = sorted(postings)
-        for job in postings:
-            if only_unclaimed:
-                if job.state == states.UNCLAIMED:
-                    yield job
-            else:
-                yield job
+        return sorted(postings)
+
+    def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
+        return base.JobBoardIterator(
+            self, LOG, only_unclaimed=only_unclaimed,
+            ensure_fresh=ensure_fresh,
+            board_fetch_func=lambda ensure_fresh: self._fetch_jobs())
 
     @base.check_who
     def consume(self, job, who):
