@@ -20,6 +20,7 @@ import traceback
 from oslo_utils import excutils
 from oslo_utils import reflection
 import six
+from taskflow.utils import mixins
 
 
 def raise_with_cause(exc_cls, message, *args, **kwargs):
@@ -231,7 +232,7 @@ class NotImplementedError(NotImplementedError):
     """
 
 
-class WrappedFailure(Exception):
+class WrappedFailure(mixins.StrMixin, Exception):
     """Wraps one or several failure objects.
 
     When exception/s cannot be re-raised (for example, because the value and
@@ -284,20 +285,18 @@ class WrappedFailure(Exception):
                 return result
         return None
 
-    def __str__(self):
-        causes = [exception_message(cause) for cause in self._causes]
-        return 'WrappedFailure: %s' % causes
+    def __bytes__(self):
+        buf = six.BytesIO()
+        buf.write(b'WrappedFailure: [')
+        causes_gen = (six.binary_type(cause) for cause in self._causes)
+        buf.write(b", ".join(causes_gen))
+        buf.write(b']')
+        return buf.getvalue()
 
-
-def exception_message(exc):
-    """Return the string representation of exception.
-
-    :param exc: exception object to get a string representation of.
-    """
-    # NOTE(imelnikov): Dealing with non-ascii data in python is difficult:
-    # https://bugs.launchpad.net/taskflow/+bug/1275895
-    # https://bugs.launchpad.net/taskflow/+bug/1276053
-    try:
-        return six.text_type(exc)
-    except UnicodeError:
-        return str(exc)
+    def __unicode__(self):
+        buf = six.StringIO()
+        buf.write(u'WrappedFailure: [')
+        causes_gen = (six.text_type(cause) for cause in self._causes)
+        buf.write(u", ".join(causes_gen))
+        buf.write(u']')
+        return buf.getvalue()

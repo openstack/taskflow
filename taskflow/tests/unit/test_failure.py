@@ -16,6 +16,7 @@
 
 import sys
 
+from oslo_utils import encodeutils
 import six
 from six.moves import cPickle as pickle
 import testtools
@@ -301,9 +302,19 @@ class NonAsciiExceptionsTestCase(test.TestCase):
 
     def test_exception_with_non_ascii_str(self):
         bad_string = chr(200)
-        fail = failure.Failure.from_exception(ValueError(bad_string))
-        self.assertEqual(fail.exception_str, bad_string)
-        self.assertEqual(str(fail), 'Failure: ValueError: %s' % bad_string)
+        excp = ValueError(bad_string)
+        fail = failure.Failure.from_exception(excp)
+        self.assertEqual(fail.exception_str,
+                         encodeutils.exception_to_unicode(excp))
+        # This is slightly different on py2 vs py3... due to how
+        # __str__ or __unicode__ is called and what is expected from
+        # both...
+        if six.PY2:
+            msg = encodeutils.exception_to_unicode(excp)
+            expected = 'Failure: ValueError: %s' % msg.encode('utf-8')
+        else:
+            expected = u'Failure: ValueError: \xc8'
+        self.assertEqual(str(fail), expected)
 
     def test_exception_non_ascii_unicode(self):
         hi_ru = u'привет'
@@ -316,18 +327,11 @@ class NonAsciiExceptionsTestCase(test.TestCase):
     def test_wrapped_failure_non_ascii_unicode(self):
         hi_cn = u'嗨'
         fail = ValueError(hi_cn)
-        self.assertEqual(hi_cn, exceptions.exception_message(fail))
+        self.assertEqual(hi_cn, encodeutils.exception_to_unicode(fail))
         fail = failure.Failure.from_exception(fail)
         wrapped_fail = exceptions.WrappedFailure([fail])
-        if six.PY2:
-            # Python 2.x will unicode escape it, while python 3.3+ will not,
-            # so we sadly have to differentiate between these two...
-            expected_result = (u"WrappedFailure: "
-                               "[u'Failure: ValueError: %s']"
-                               % (hi_cn.encode("unicode-escape")))
-        else:
-            expected_result = (u"WrappedFailure: "
-                               "['Failure: ValueError: %s']" % (hi_cn))
+        expected_result = (u"WrappedFailure: "
+                           "[Failure: ValueError: %s]" % (hi_cn))
         self.assertEqual(expected_result, six.text_type(wrapped_fail))
 
     def test_failure_equality_with_non_ascii_str(self):
