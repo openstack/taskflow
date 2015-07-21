@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import logging
 import os
 import sys
@@ -27,10 +28,12 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
+from oslo_utils import uuidutils
+
 import taskflow.engines
 from taskflow.patterns import linear_flow as lf
+from taskflow.persistence import models
 from taskflow import task
-from taskflow.utils import persistence_utils as p_utils
 
 import example_utils as eu  # noqa
 
@@ -99,19 +102,25 @@ def flow_factory():
 # INITIALIZE PERSISTENCE ####################################
 
 with eu.get_backend() as backend:
-    logbook = p_utils.temporary_log_book(backend)
+
+    # Create a place where the persistence information will be stored.
+    book = models.LogBook("example")
+    flow_detail = models.FlowDetail("resume from backend example",
+                                    uuid=uuidutils.generate_uuid())
+    book.add(flow_detail)
+    with contextlib.closing(backend.get_connection()) as conn:
+        conn.save_logbook(book)
 
     # CREATE AND RUN THE FLOW: FIRST ATTEMPT ####################
 
     flow = flow_factory()
-    flowdetail = p_utils.create_flow_detail(flow, logbook, backend)
-    engine = taskflow.engines.load(flow, flow_detail=flowdetail,
-                                   backend=backend)
+    engine = taskflow.engines.load(flow, flow_detail=flow_detail,
+                                   book=book, backend=backend)
 
-    print_task_states(flowdetail, "At the beginning, there is no state")
+    print_task_states(flow_detail, "At the beginning, there is no state")
     eu.print_wrapped("Running")
     engine.run()
-    print_task_states(flowdetail, "After running")
+    print_task_states(flow_detail, "After running")
 
     # RE-CREATE, RESUME, RUN ####################################
 
@@ -127,9 +136,9 @@ with eu.get_backend() as backend:
     # start it again for situations where this is useful to-do (say the process
     # running the above flow crashes).
     flow2 = flow_factory()
-    flowdetail2 = find_flow_detail(backend, logbook.uuid, flowdetail.uuid)
+    flow_detail_2 = find_flow_detail(backend, book.uuid, flow_detail.uuid)
     engine2 = taskflow.engines.load(flow2,
-                                    flow_detail=flowdetail2,
-                                    backend=backend)
+                                    flow_detail=flow_detail_2,
+                                    backend=backend, book=book)
     engine2.run()
-    print_task_states(flowdetail2, "At the end")
+    print_task_states(flow_detail_2, "At the end")

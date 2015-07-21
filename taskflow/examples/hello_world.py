@@ -31,7 +31,6 @@ from taskflow import engines
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
 from taskflow import task
-from taskflow.utils import eventlet_utils
 
 
 # INTRO: This is the defacto hello world equivalent for taskflow; it shows how
@@ -82,25 +81,34 @@ song.add(PrinterTask("conductor@begin",
                      show_name=False, inject={'output': "*dong*"}))
 
 # Run in parallel using eventlet green threads...
-if eventlet_utils.EVENTLET_AVAILABLE:
-    with futurist.GreenThreadPoolExecutor() as executor:
+try:
+    executor = futurist.GreenThreadPoolExecutor()
+except RuntimeError:
+    # No eventlet currently active, skip running with it...
+    pass
+else:
+    print("-- Running in parallel using eventlet --")
+    with executor:
         e = engines.load(song, executor=executor, engine='parallel')
         e.run()
 
 
 # Run in parallel using real threads...
 with futurist.ThreadPoolExecutor(max_workers=1) as executor:
+    print("-- Running in parallel using threads --")
     e = engines.load(song, executor=executor, engine='parallel')
     e.run()
 
 
 # Run in parallel using external processes...
 with futurist.ProcessPoolExecutor(max_workers=1) as executor:
+    print("-- Running in parallel using processes --")
     e = engines.load(song, executor=executor, engine='parallel')
     e.run()
 
 
 # Run serially (aka, if the workflow could have been ran in parallel, it will
 # not be when ran in this mode)...
+print("-- Running serially --")
 e = engines.load(song, engine='serial')
 e.run()

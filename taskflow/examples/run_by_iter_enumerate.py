@@ -29,9 +29,7 @@ sys.path.insert(0, self_dir)
 
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
-from taskflow.persistence import backends as persistence_backends
 from taskflow import task
-from taskflow.utils import persistence_utils
 
 # INTRO: These examples show how to run an engine using the engine iteration
 # capability, in between iterations other activities occur (in this case a
@@ -48,10 +46,7 @@ f = lf.Flow("counter")
 for i in range(0, 10):
     f.add(EchoNameTask("echo_%s" % (i + 1)))
 
-be = persistence_backends.fetch(conf={'connection': 'memory'})
-book = persistence_utils.temporary_log_book(be)
-fd = persistence_utils.create_flow_detail(f, book, be)
-e = engines.load(f, flow_detail=fd, backend=be, book=book)
+e = engines.load(f)
 e.compile()
 e.prepare()
 

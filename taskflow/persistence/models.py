@@ -17,6 +17,7 @@
 
 import abc
 import copy
+import os
 
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -26,11 +27,41 @@ from taskflow import exceptions as exc
 from taskflow import logging
 from taskflow import states
 from taskflow.types import failure as ft
+from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
 
 # Internal helpers...
+
+
+def _format_meta(metadata, indent):
+    """Format the common metadata dictionary in the same manner."""
+    if not metadata:
+        return []
+    lines = [
+        '%s- metadata:' % (" " * indent),
+    ]
+    for (k, v) in metadata.items():
+        # Progress for now is a special snowflake and will be formatted
+        # in percent format.
+        if k == 'progress' and isinstance(v, misc.NUMERIC_TYPES):
+            v = "%0.2f%%" % (v * 100.0)
+        lines.append("%s+ %s = %s" % (" " * (indent + 2), k, v))
+    return lines
+
+
+def _format_shared(obj, indent):
+    """Format the common shared attributes in the same manner."""
+    if obj is None:
+        return []
+    lines = []
+    for attr_name in ("uuid", "state"):
+        if not hasattr(obj, attr_name):
+            continue
+        lines.append("%s- %s = %s" % (" " * indent, attr_name,
+                                      getattr(obj, attr_name)))
+    return lines
 
 def _is_all_none(arg, *args):
     if arg is not None:
@@ -103,6 +134,33 @@ class LogBook(object):
         self.created_at = timeutils.utcnow()
         self.updated_at = None
         self.meta = {}
+
+    def pformat(self, indent=0, linesep=os.linesep):
+        """Pretty formats this logbook into a string.
+
+        >>> from taskflow.persistence import models
+        >>> tmp = models.LogBook("example")
+        >>> print(tmp.pformat())
+        LogBook: 'example'
+         - uuid = ...
+         - created_at = ...
+        """
+        cls_name = self.__class__.__name__
+        lines = ["%s%s: '%s'" % (" " * indent, cls_name, self.name)]
+        lines.extend(_format_shared(self, indent=indent + 1))
+        lines.extend(_format_meta(self.meta, indent=indent + 1))
+        if self.created_at is not None:
+            lines.append("%s- created_at = %s"
+                         % (" " * (indent + 1),
+                            timeutils.isotime(self.created_at)))
+        if self.updated_at is not None:
+            lines.append("%s- updated_at = %s"
+                         % (" " * (indent + 1),
+                            timeutils.isotime(self.updated_at)))
+        for flow_detail in self:
+            lines.append(flow_detail.pformat(indent=indent + 1,
+                                             linesep=linesep))
+        return linesep.join(lines)
 
     def add(self, fd):
         """Adds a new flow detail into this logbook.
@@ -274,6 +332,27 @@ class FlowDetail(object):
         self.state = fd.state
         self.meta = fd.meta
         return self
+
+    def pformat(self, indent=0, linesep=os.linesep):
+        """Pretty formats this flow detail into a string.
+
+        >>> from oslo_utils import uuidutils
+        >>> from taskflow.persistence import models
+        >>> flow_detail = models.FlowDetail("example",
+        ...                                 uuid=uuidutils.generate_uuid())
+        >>> print(flow_detail.pformat())
+        FlowDetail: 'example'
+         - uuid = ...
+         - state = ...
+        """
+        cls_name = self.__class__.__name__
+        lines = ["%s%s: '%s'" % (" " * indent, cls_name, self.name)]
+        lines.extend(_format_shared(self, indent=indent + 1))
+        lines.extend(_format_meta(self.meta, indent=indent + 1))
+        for atom_detail in self:
+            lines.append(atom_detail.pformat(indent=indent + 1,
+                                             linesep=linesep))
+        return linesep.join(lines)
 
     def merge(self, fd, deep_copy=False):
         """Merges the current object state with the given one's state.
@@ -610,6 +689,20 @@ class AtomDetail(object):
     @abc.abstractmethod
     def copy(self):
         """Copies this atom detail."""
+
+    def pformat(self, indent=0, linesep=os.linesep):
+        """Pretty formats this atom detail into a string."""
+        cls_name = self.__class__.__name__
+        lines = ["%s%s: '%s'" % (" " * (indent), cls_name, self.name)]
+        lines.extend(_format_shared(self, indent=indent + 1))
+        lines.append("%s- version = %s"
+                     % (" " * (indent + 1), misc.get_version_string(self)))
+        lines.append("%s- results = %s"
+                     % (" " * (indent + 1), self.results))
+        lines.append("%s- failure = %s" % (" " * (indent + 1),
+                                           bool(self.failure)))
+        lines.extend(_format_meta(self.meta, indent=indent + 1))
+        return linesep.join(lines)
 
 
 class TaskDetail(AtomDetail):

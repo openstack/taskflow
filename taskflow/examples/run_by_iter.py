@@ -32,9 +32,7 @@ sys.path.insert(0, self_dir)
 
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
-from taskflow.persistence import backends as persistence_backends
 from taskflow import task
-from taskflow.utils import persistence_utils
 
 
 # INTRO: This example shows how to run a set of engines at the same time, each
@@ -73,12 +71,9 @@ flows = []
 for i in range(0, flow_count):
     f = make_alphabet_flow(i + 1)
     flows.append(make_alphabet_flow(i + 1))
-be = persistence_backends.fetch(conf={'connection': 'memory'})
-book = persistence_utils.temporary_log_book(be)
 engine_iters = []
 for f in flows:
-    fd = persistence_utils.create_flow_detail(f, book, be)
-    e = engines.load(f, flow_detail=fd, backend=be, book=book)
+    e = engines.load(f)
     e.compile()
     e.storage.inject({'A': 'A'})
     e.prepare()

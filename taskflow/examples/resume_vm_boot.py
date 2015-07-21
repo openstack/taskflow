@@ -38,9 +38,8 @@ from taskflow import engines
 from taskflow import exceptions as exc
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
+from taskflow.persistence import models
 from taskflow import task
-from taskflow.utils import eventlet_utils
-from taskflow.utils import persistence_utils as p_utils
 
 import example_utils as eu  # noqa
 
@@ -226,6 +225,8 @@ eu.print_wrapped("Initializing")
 
 # Setup the persistence & resumption layer.
 with eu.get_backend() as backend:
+
+    # Try to find a previously passed in tracking id...
     try:
         book_id, flow_id = sys.argv[2].split("+", 1)
         if not uuidutils.is_uuid_like(book_id):
@@ -237,14 +238,17 @@ with eu.get_backend() as backend:
         flow_id = None
 
     # Set up how we want our engine to run, serial, parallel...
-    executor = None
-    if eventlet_utils.EVENTLET_AVAILABLE:
-        executor = futurist.GreenThreadPoolExecutor(5)
+    try:
+        executor = futurist.GreenThreadPoolExecutor(max_workers=5)
+    except RuntimeError:
+        # No eventlet installed, just let the default be used instead.
+        executor = None
 
     # Create/fetch a logbook that will track the workflows work.
     book = None
     flow_detail = None
     if all([book_id, flow_id]):
+        # Try to find in a prior logbook and flow detail...
         with contextlib.closing(backend.get_connection()) as conn:
             try:
                 book = conn.get_logbook(book_id)
@@ -252,7 +256,9 @@ with eu.get_backend() as backend:
             except exc.NotFound:
                 pass
     if book is None and flow_detail is None:
-        book = p_utils.temporary_log_book(backend)
+        book = models.LogBook("vm-boot")
+        with contextlib.closing(backend.get_connection()) as conn:
+            conn.save_logbook(book)
         engine = engines.load_from_factory(create_flow,
                                            backend=backend, book=book,
                                            engine='parallel',
