@@ -63,6 +63,7 @@ def _format_shared(obj, indent):
                                       getattr(obj, attr_name)))
     return lines
 
+
 def _is_all_none(arg, *args):
     if arg is not None:
         return False
