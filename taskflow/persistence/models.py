@@ -527,11 +527,6 @@ class AtomDetail(object):
         self.meta = {}
         self.version = None
 
-    @staticmethod
-    def _was_failure(state, result):
-        # Internal helper method...
-        return state == states.FAILURE and isinstance(result, ft.Failure)
-
     @property
     def last_results(self):
         """Gets the atoms last result.
