@@ -29,11 +29,11 @@ from taskflow.types import notifier
 
 LOG = logging.getLogger(__name__)
 
-# NOTE(harlowja): on these states will results be usable, all other states
-# do not produce results.
-FINISH_STATES = (states.FAILURE, states.SUCCESS)
+#: These states will results be usable, other states do not produce results.
+FINISH_STATES = (states.FAILURE, states.SUCCESS,
+                 states.REVERTED, states.REVERT_FAILURE)
 
-# What is listened for by default...
+#: What is listened for by default...
 DEFAULT_LISTEN_FOR = (notifier.Notifier.ANY,)
 
 
