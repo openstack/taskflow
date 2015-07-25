@@ -23,6 +23,11 @@ Eventlet
 
 .. automodule:: taskflow.utils.eventlet_utils
 
+Iterators
+~~~~~~~~~
+
+.. automodule:: taskflow.utils.iter_utils
+
 Kazoo
 ~~~~~
 

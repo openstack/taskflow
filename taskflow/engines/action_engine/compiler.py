@@ -25,6 +25,7 @@ from taskflow import logging
 from taskflow import task
 from taskflow.types import graph as gr
 from taskflow.types import tree as tr
+from taskflow.utils import iter_utils
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
@@ -232,8 +233,8 @@ class _FlowCompiler(object):
 
     @staticmethod
     def _occurence_detector(to_graph, from_graph):
-        return sum(1 for node in from_graph.nodes_iter()
-                   if node in to_graph)
+        return iter_utils.count(node for node in from_graph.nodes_iter()
+                                if node in to_graph)
 
     def _decompose_flow(self, flow, parent=None):
         """Decomposes a flow into a graph, tree node + decomposed subgraphs."""

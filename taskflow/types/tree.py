@@ -22,6 +22,7 @@ import os
 
 import six
 
+from taskflow.utils import iter_utils
 from taskflow.utils import misc
 
 
@@ -77,11 +78,25 @@ class _BFSIter(object):
 class Node(object):
     """A n-ary node class that can be used to create tree structures."""
 
-    # Constants used when pretty formatting the node (and its children).
+    #: Default string prefix used in :py:meth:`.pformat`.
     STARTING_PREFIX = ""
+
+    #: Default string used to create empty space used in :py:meth:`.pformat`.
     EMPTY_SPACE_SEP = " "
+
     HORIZONTAL_CONN = "__"
+    """
+    Default string used to horizontally connect a node to its
+    parent (used in :py:meth:`.pformat`.).
+    """
+
     VERTICAL_CONN = "|"
+    """
+    Default string used to vertically connect a node to its
+    parent (used in :py:meth:`.pformat`).
+    """
+
+    #: Default line separator used in :py:meth:`.pformat`.
     LINE_SEP = os.linesep
 
     def __init__(self, item, **kwargs):
@@ -124,18 +139,22 @@ class Node(object):
             yield node
             node = node.parent
 
-    def find(self, item, only_direct=False, include_self=True):
-        """Returns the node for an item if it exists in this node.
+    def find_first_match(self, matcher, only_direct=False, include_self=True):
+        """Finds the *first* node that matching callback returns true.
 
-        This will search not only this node but also any children nodes and
-        finally if nothing is found then None is returned instead of a node
-        object.
+        This will search not only this node but also any children nodes (in
+        depth first order, from right to left) and finally if nothing is
+        matched then ``None`` is returned instead of a node object.
 
-        :param item: item to lookup.
-        :param only_direct: only look at current node and its direct children.
+        :param matcher: callback that takes one positional argument (a node)
+                        and returns true if it matches desired node or false
+                        if not.
+        :param only_direct: only look at current node and its
+                            direct children (implies that this does not
+                            search using depth first).
         :param include_self: include the current node during searching.
 
-        :returns: the node for an item if it exists in this node
+        :returns: the node that matched (or ``None``)
         """
         if only_direct:
             if include_self:
@@ -144,10 +163,26 @@ class Node(object):
                 it = self.reverse_iter()
         else:
             it = self.dfs_iter(include_self=include_self)
-        for n in it:
-            if n.item == item:
-                return n
-        return None
+        return iter_utils.find_first_match(it, matcher)
+
+    def find(self, item, only_direct=False, include_self=True):
+        """Returns the *first* node for an item if it exists in this node.
+
+        This will search not only this node but also any children nodes (in
+        depth first order, from right to left) and finally if nothing is
+        matched then ``None`` is returned instead of a node object.
+
+        :param item: item to look for.
+        :param only_direct: only look at current node and its
+                            direct children (implies that this does not
+                            search using depth first).
+        :param include_self: include the current node during searching.
+
+        :returns: the node that matched provided item (or ``None``)
+        """
+        return self.find_first_match(lambda n: n.item == item,
+                                     only_direct=only_direct,
+                                     include_self=include_self)
 
     def disassociate(self):
         """Removes this node from its parent (if any).
@@ -176,7 +211,9 @@ class Node(object):
         the normally returned *removed* node object.
 
         :param item: item to lookup.
-        :param only_direct: only look at current node and its direct children.
+        :param only_direct: only look at current node and its
+                            direct children (implies that this does not
+                            search using depth first).
         :param include_self: include the current node during searching.
         """
         node = self.find(item, only_direct=only_direct,
@@ -200,8 +237,11 @@ class Node(object):
         # NOTE(harlowja): 0 is the right most index, len - 1 is the left most
         return self._children[index]
 
-    def pformat(self, stringify_node=None):
-        """Recursively formats a node into a nice string representation.
+    def pformat(self, stringify_node=None,
+                linesep=LINE_SEP, vertical_conn=VERTICAL_CONN,
+                horizontal_conn=HORIZONTAL_CONN, empty_space=EMPTY_SPACE_SEP,
+                starting_prefix=STARTING_PREFIX):
+        """Formats this node + children into a nice string representation.
 
         **Example**::
 
@@ -220,33 +260,73 @@ class Node(object):
             |__Mobile
             |__Mail
         """
-        def _inner_pformat(node, level, stringify_node):
-            if level == 0:
-                yield stringify_node(node)
-                prefix = self.STARTING_PREFIX
-            else:
-                yield self.HORIZONTAL_CONN + stringify_node(node)
-                prefix = self.EMPTY_SPACE_SEP * len(self.HORIZONTAL_CONN)
-            child_count = node.child_count()
-            for (i, child) in enumerate(node):
-                for (j, text) in enumerate(_inner_pformat(child,
-                                                          level + 1,
-                                                          stringify_node)):
-                    if j == 0 or i + 1 < child_count:
-                        text = prefix + self.VERTICAL_CONN + text
-                    else:
-                        text = prefix + self.EMPTY_SPACE_SEP + text
-                    yield text
         if stringify_node is None:
             # Default to making a unicode string out of the nodes item...
             stringify_node = lambda node: six.text_type(node.item)
-        expected_lines = self.child_count(only_direct=False)
-        accumulator = six.StringIO()
-        for i, line in enumerate(_inner_pformat(self, 0, stringify_node)):
-            accumulator.write(line)
-            if i < expected_lines:
-                accumulator.write(self.LINE_SEP)
-        return accumulator.getvalue()
+        expected_lines = self.child_count(only_direct=False) + 1
+        buff = six.StringIO()
+        conn = vertical_conn + horizontal_conn
+        stop_at_parent = self
+        for i, node in enumerate(self.dfs_iter(include_self=True), 1):
+            prefix = []
+            connected_to_parent = False
+            last_node = node
+            # Walk through *most* of this nodes parents, and form the expected
+            # prefix that each parent should require, repeat this until we
+            # hit the root node (self) and use that as our nodes prefix
+            # string...
+            parent_node_it = iter_utils.while_is_not(
+                node.path_iter(include_self=True), stop_at_parent)
+            for j, parent_node in enumerate(parent_node_it):
+                if parent_node is stop_at_parent:
+                    if j > 0:
+                        if not connected_to_parent:
+                            prefix.append(conn)
+                            connected_to_parent = True
+                        else:
+                            # If the node was connected already then it must
+                            # have had more than one parent, so we want to put
+                            # the right final starting prefix on (which may be
+                            # a empty space or another vertical connector)...
+                            last_node = self._children[-1]
+                            m = last_node.find_first_match(lambda n: n is node,
+                                                           include_self=False,
+                                                           only_direct=False)
+                            if m is not None:
+                                prefix.append(empty_space)
+                            else:
+                                prefix.append(vertical_conn)
+                elif parent_node is node:
+                    # Skip ourself... (we only include ourself so that
+                    # we can use the 'j' variable to determine if the only
+                    # node requested is ourself in the first place); used
+                    # in the first conditional here...
+                    pass
+                else:
+                    if not connected_to_parent:
+                        prefix.append(conn)
+                        spaces = len(horizontal_conn)
+                        connected_to_parent = True
+                    else:
+                        # If we have already been connected to our parent
+                        # then determine if this current node is the last
+                        # node of its parent (and in that case just put
+                        # on more spaces), otherwise put a vertical connector
+                        # on and less spaces...
+                        if parent_node[-1] is not last_node:
+                            prefix.append(vertical_conn)
+                            spaces = len(horizontal_conn)
+                        else:
+                            spaces = len(conn)
+                    prefix.append(empty_space * spaces)
+                last_node = parent_node
+            prefix.append(starting_prefix)
+            for prefix_piece in reversed(prefix):
+                buff.write(prefix_piece)
+            buff.write(stringify_node(node))
+            if i != expected_lines:
+                buff.write(linesep)
+        return buff.getvalue()
 
     def child_count(self, only_direct=True):
         """Returns how many children this node has.
@@ -257,10 +337,7 @@ class Node(object):
         NOTE(harlowja): it does not account for the current node in this count.
         """
         if not only_direct:
-            count = 0
-            for _node in self.dfs_iter():
-                count += 1
-            return count
+            return iter_utils.count(self.dfs_iter())
         return len(self._children)
 
     def __iter__(self):
