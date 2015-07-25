@@ -16,9 +16,7 @@
 
 from __future__ import absolute_import
 
-import logging as logging_base
 import os
-import sys
 
 from taskflow.listeners import base
 from taskflow import logging
@@ -27,21 +25,6 @@ from taskflow.types import failure
 from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
-
-if sys.version_info[0:2] == (2, 6):
-    _PY26 = True
-else:
-    _PY26 = False
-
-
-# Fixes this for python 2.6 which was missing the is enabled for method
-# when a logger adapter is being used/provided, this will no longer be needed
-# when we can just support python 2.7+ (which fixed the lack of this method
-# on adapters).
-def _isEnabledFor(logger, level):
-    if _PY26 and isinstance(logger, logging_base.LoggerAdapter):
-        return logger.logger.isEnabledFor(level)
-    return logger.isEnabledFor(level)
 
 
 class LoggingListener(base.DumpingListener):
@@ -96,6 +79,7 @@ class DynamicLoggingListener(base.Listener):
     * ``states.FAILURE``
     * ``states.RETRYING``
     * ``states.REVERTING``
+    * ``states.REVERT_FAILURE``
 
     When a task produces a :py:class:`~taskflow.types.failure.Failure` object
     as its result (typically this happens when a task raises an exception) this
@@ -106,6 +90,9 @@ class DynamicLoggingListener(base.Listener):
 
     #: Default logger to use if one is not provided on construction.
     _LOGGER = None
+
+    #: States which are triggered under some type of failure.
+    _FAILURE_STATES = (states.FAILURE, states.REVERT_FAILURE)
 
     def __init__(self, engine,
                  task_listen_for=base.DEFAULT_LISTEN_FOR,
@@ -122,6 +109,7 @@ class DynamicLoggingListener(base.Listener):
             states.FAILURE: self._failure_level,
             states.REVERTED: self._failure_level,
             states.RETRYING: self._failure_level,
+            states.REVERT_FAILURE: self._failure_level,
         }
         self._flow_log_levels = {
             states.FAILURE: self._failure_level,
@@ -181,8 +169,8 @@ class DynamicLoggingListener(base.Listener):
                 # will show or hide results that the task may have produced
                 # during execution.
                 level = self._task_log_levels.get(state, self._level)
-                if (_isEnabledFor(self._logger, self._level)
-                        or state == states.FAILURE):
+                if (self._logger.isEnabledFor(self._level)
+                        or state in self._FAILURE_STATES):
                     self._logger.log(level, "Task '%s' (%s) transitioned into"
                                      " state '%s' from state '%s' with"
                                      " result '%s'", details['task_name'],
