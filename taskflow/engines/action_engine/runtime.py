@@ -26,6 +26,7 @@ from taskflow.engines.action_engine import scopes as sc
 from taskflow import flow as flow_type
 from taskflow import states as st
 from taskflow import task
+from taskflow.utils import async_utils
 from taskflow.utils import misc
 
 
@@ -37,9 +38,11 @@ class Runtime(object):
     action engine to run to completion.
     """
 
-    def __init__(self, compilation, storage, atom_notifier, task_executor):
+    def __init__(self, compilation, storage, atom_notifier,
+                 task_executor, retry_executor):
         self._atom_notifier = atom_notifier
         self._task_executor = task_executor
+        self._retry_executor = retry_executor
         self._storage = storage
         self._compilation = compilation
         self._atom_cache = {}
@@ -111,7 +114,7 @@ class Runtime(object):
 
     @misc.cachedproperty
     def runner(self):
-        return ru.Runner(self, self._task_executor)
+        return ru.Runner(self, async_utils.wait_for_any)
 
     @misc.cachedproperty
     def completer(self):
@@ -132,7 +135,8 @@ class Runtime(object):
     @misc.cachedproperty
     def retry_action(self):
         return ra.RetryAction(self._storage,
-                              self._atom_notifier)
+                              self._atom_notifier,
+                              self._retry_executor)
 
     @misc.cachedproperty
     def task_action(self):

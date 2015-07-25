@@ -17,7 +17,6 @@
 import threading
 import time
 
-import futurist
 from oslo_utils import fixture
 from oslo_utils import timeutils
 
@@ -58,8 +57,6 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.request_inst_mock.uuid = self.task_uuid
         self.request_inst_mock.expired = False
         self.request_inst_mock.task_cls = self.task.name
-        self.wait_for_any_mock = self.patch(
-            'taskflow.engines.action_engine.executor.async_utils.wait_for_any')
         self.message_mock = mock.MagicMock(name='message')
         self.message_mock.properties = {'correlation_id': self.task_uuid,
                                         'type': pr.RESPONSE}
@@ -280,27 +277,6 @@ class TestWorkerTaskExecutor(test.MockTestCase):
             mock.call.request.set_result(mock.ANY)
         ]
         self.assertEqual(expected_calls, self.master_mock.mock_calls)
-
-    def test_wait_for_any(self):
-        fs = [futurist.Future(), futurist.Future()]
-        ex = self.executor()
-        ex.wait_for_any(fs)
-
-        expected_calls = [
-            mock.call(fs, timeout=None)
-        ]
-        self.assertEqual(self.wait_for_any_mock.mock_calls, expected_calls)
-
-    def test_wait_for_any_with_timeout(self):
-        timeout = 30
-        fs = [futurist.Future(), futurist.Future()]
-        ex = self.executor()
-        ex.wait_for_any(fs, timeout)
-
-        master_mock_calls = [
-            mock.call(fs, timeout=timeout)
-        ]
-        self.assertEqual(self.wait_for_any_mock.mock_calls, master_mock_calls)
 
     def test_start_stop(self):
         ex = self.executor()

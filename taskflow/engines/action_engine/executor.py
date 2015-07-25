@@ -33,7 +33,6 @@ from taskflow import logging
 from taskflow import task as task_atom
 from taskflow.types import failure
 from taskflow.types import notifier
-from taskflow.utils import async_utils
 from taskflow.utils import threading_utils
 
 # Execution and reversion events.
@@ -56,6 +55,22 @@ _KIND_COMPLETE_ME = 'complete_me'
 _KIND_EVENT = 'event'
 
 LOG = logging.getLogger(__name__)
+
+
+def _execute_retry(retry, arguments):
+    try:
+        result = retry.execute(**arguments)
+    except Exception:
+        result = failure.Failure()
+    return (EXECUTED, result)
+
+
+def _revert_retry(retry, arguments):
+    try:
+        result = retry.revert(**arguments)
+    except Exception:
+        result = failure.Failure()
+    return (REVERTED, result)
 
 
 def _execute_task(task, arguments, progress_callback=None):
@@ -322,6 +337,33 @@ class _Dispatcher(object):
                 self._dead.wait(leftover)
 
 
+class SerialRetryExecutor(object):
+    """Executes and reverts retries."""
+
+    def __init__(self):
+        self._executor = futurist.SynchronousExecutor()
+
+    def start(self):
+        """Prepare to execute retries."""
+        self._executor.restart()
+
+    def stop(self):
+        """Finalize retry executor."""
+        self._executor.shutdown()
+
+    def execute_retry(self, retry, arguments):
+        """Schedules retry execution."""
+        fut = self._executor.submit(_execute_retry, retry, arguments)
+        fut.atom = retry
+        return fut
+
+    def revert_retry(self, retry, arguments):
+        """Schedules retry reversion."""
+        fut = self._executor.submit(_revert_retry, retry, arguments)
+        fut.atom = retry
+        return fut
+
+
 @six.add_metaclass(abc.ABCMeta)
 class TaskExecutor(object):
     """Executes and reverts tasks.
@@ -340,10 +382,6 @@ class TaskExecutor(object):
     def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
         """Schedules task reversion."""
-
-    def wait_for_any(self, fs, timeout=None):
-        """Wait for futures returned by this executor to complete."""
-        return async_utils.wait_for_any(fs, timeout=timeout)
 
     def start(self):
         """Prepare to execute tasks."""

@@ -24,6 +24,7 @@ from taskflow.engines.worker_based import server as worker_server
 from taskflow import test
 from taskflow.tests import utils as test_utils
 from taskflow.types import failure
+from taskflow.utils import async_utils
 from taskflow.utils import threading_utils
 
 
@@ -77,7 +78,7 @@ class TestPipeline(test.TestCase):
         progress_callback = lambda *args, **kwargs: None
         f = executor.execute_task(t, uuidutils.generate_uuid(), {},
                                   progress_callback=progress_callback)
-        executor.wait_for_any([f])
+        async_utils.wait_for_any([f])
 
         event, result = f.result()
         self.assertEqual(1, result)
@@ -93,7 +94,7 @@ class TestPipeline(test.TestCase):
         progress_callback = lambda *args, **kwargs: None
         f = executor.execute_task(t, uuidutils.generate_uuid(), {},
                                   progress_callback=progress_callback)
-        executor.wait_for_any([f])
+        async_utils.wait_for_any([f])
 
         action, result = f.result()
         self.assertIsInstance(result, failure.Failure)

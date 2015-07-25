@@ -37,3 +37,19 @@ class Action(object):
     def __init__(self, storage, notifier):
         self._storage = storage
         self._notifier = notifier
+
+    @abc.abstractmethod
+    def schedule_execution(self, atom):
+        """Schedules atom execution."""
+
+    @abc.abstractmethod
+    def schedule_reversion(self, atom):
+        """Schedules atom reversion."""
+
+    @abc.abstractmethod
+    def complete_reversion(self, atom, result):
+        """Completes atom reversion."""
+
+    @abc.abstractmethod
+    def complete_execution(self, atom, result):
+        """Completes atom execution."""

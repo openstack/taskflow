@@ -41,13 +41,17 @@ LOG = logging.getLogger(__name__)
 
 
 @contextlib.contextmanager
-def _start_stop(executor):
-    # A teenie helper context manager to safely start/stop a executor...
-    executor.start()
+def _start_stop(task_executor, retry_executor):
+    # A teenie helper context manager to safely start/stop engine executors...
+    task_executor.start()
     try:
-        yield executor
+        retry_executor.start()
+        try:
+            yield (task_executor, retry_executor)
+        finally:
+            retry_executor.stop()
     finally:
-        executor.stop()
+        task_executor.stop()
 
 
 class ActionEngine(base.Engine):
@@ -82,6 +86,9 @@ class ActionEngine(base.Engine):
         self._lock = threading.RLock()
         self._state_lock = threading.RLock()
         self._storage_ensured = False
+        # Retries are not *currently* executed out of the engines process
+        # or thread (this could change in the future if we desire it to).
+        self._retry_executor = executor.SerialRetryExecutor()
 
     def _check(self, name, check_compiled, check_storage_ensured):
         """Check (and raise) if the engine has not reached a certain stage."""
@@ -167,7 +174,7 @@ class ActionEngine(base.Engine):
         self.validate()
         runner = self._runtime.runner
         last_state = None
-        with _start_stop(self._task_executor):
+        with _start_stop(self._task_executor, self._retry_executor):
             self._change_state(states.RUNNING)
             try:
                 closed = False
@@ -294,7 +301,8 @@ class ActionEngine(base.Engine):
         self._runtime = runtime.Runtime(self._compilation,
                                         self.storage,
                                         self.atom_notifier,
-                                        self._task_executor)
+                                        self._task_executor,
+                                        self._retry_executor)
         self._runtime.compile()
         self._compiled = True
 

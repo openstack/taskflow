@@ -134,10 +134,9 @@ class TaskAction(base.Action):
                                                   task)
         else:
             progress_callback = None
-        future = self._task_executor.revert_task(
+        return self._task_executor.revert_task(
             task, task_uuid, arguments, task_result, failures,
             progress_callback=progress_callback)
-        return future
 
     def complete_reversion(self, task, result):
         if isinstance(result, failure.Failure):
@@ -145,6 +144,3 @@ class TaskAction(base.Action):
         else:
             self.change_state(task, states.REVERTED, progress=1.0,
                               result=result)
-
-    def wait_for_any(self, fs, timeout):
-        return self._task_executor.wait_for_any(fs, timeout)

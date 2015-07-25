@@ -106,9 +106,9 @@ class Completer(object):
     def __init__(self, runtime):
         self._runtime = weakref.proxy(runtime)
         self._analyzer = runtime.analyzer
-        self._retry_action = runtime.retry_action
         self._storage = runtime.storage
         self._task_action = runtime.task_action
+        self._retry_action = runtime.retry_action
         self._undefined_resolver = RevertAll(self._runtime)
 
     def _complete_task(self, task, event, result):
@@ -117,6 +117,13 @@ class Completer(object):
             self._task_action.complete_execution(task, result)
         else:
             self._task_action.complete_reversion(task, result)
+
+    def _complete_retry(self, retry, event, result):
+        """Completes the given retry, processes retry failure."""
+        if event == ex.EXECUTED:
+            self._retry_action.complete_execution(retry, result)
+        else:
+            self._retry_action.complete_reversion(retry, result)
 
     def resume(self):
         """Resumes nodes in the contained graph.
@@ -148,6 +155,8 @@ class Completer(object):
         """
         if isinstance(node, task_atom.BaseTask):
             self._complete_task(node, event, result)
+        else:
+            self._complete_retry(node, event, result)
         if isinstance(result, failure.Failure):
             if event == ex.EXECUTED:
                 self._process_atom_failure(node, result)

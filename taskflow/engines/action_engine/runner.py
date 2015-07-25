@@ -117,7 +117,6 @@ class Runner(object):
 
         # Cache some local functions/methods...
         do_schedule = self._scheduler.schedule
-        wait_for_any = self._waiter.wait_for_any
         do_complete = self._completer.complete
 
         def iter_next_nodes(target_node=None):
@@ -171,7 +170,7 @@ class Runner(object):
             # call sometime in the future, or equivalent that will work in
             # py2 and py3.
             if memory.not_done:
-                done, not_done = wait_for_any(memory.not_done, timeout)
+                done, not_done = self._waiter(memory.not_done, timeout=timeout)
                 memory.done.update(done)
                 memory.not_done = not_done
             return _ANALYZE

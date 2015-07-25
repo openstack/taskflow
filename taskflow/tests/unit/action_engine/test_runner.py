@@ -42,10 +42,12 @@ class _RunnerTestMixin(object):
             store.set_flow_state(initial_state)
         task_notifier = notifier.Notifier()
         task_executor = executor.SerialTaskExecutor()
+        retry_executor = executor.SerialRetryExecutor()
         task_executor.start()
         self.addCleanup(task_executor.stop)
         r = runtime.Runtime(compilation, store,
-                            task_notifier, task_executor)
+                            task_notifier, task_executor,
+                            retry_executor)
         r.compile()
         return r
 
