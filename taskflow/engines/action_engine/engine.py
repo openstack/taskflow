@@ -294,10 +294,7 @@ class ActionEngine(base.Engine):
 
     @fasteners.locked
     def reset(self):
-        if not self._storage_ensured:
-            raise exc.InvalidState("Can not reset an engine"
-                                   " which has not has its storage"
-                                   " populated")
+        self._check('reset', True, True)
         # This transitions *all* contained atoms back into the PENDING state
         # with an intention to EXECUTE (or dies trying to do that) and then
         # changes the state of the flow to PENDING so that it can then run...
