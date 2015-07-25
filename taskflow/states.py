@@ -103,6 +103,7 @@ _ALLOWED_FLOW_TRANSITIONS = frozenset((
     (FAILURE, RUNNING),       # see note below
 
     (REVERTED, PENDING),      # try again
+    (SUCCESS, PENDING),       # run it again
 
     (SUSPENDING, SUSPENDED),  # suspend finished
     (SUSPENDING, SUCCESS),    # all tasks finished while we were waiting

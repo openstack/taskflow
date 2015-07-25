@@ -16,6 +16,7 @@
 
 import contextlib
 import functools
+import threading
 
 import futurist
 import six
@@ -798,6 +799,138 @@ class EngineMissingDepsTest(utils.EngineTestBase):
         self.assertIsNotNone(c_e.cause)
 
 
+class EngineResetTests(utils.EngineTestBase):
+    def test_completed_reset_run_again(self):
+        task1 = utils.ProgressingTask(name='task1')
+        task2 = utils.ProgressingTask(name='task2')
+        task3 = utils.ProgressingTask(name='task3')
+
+        flow = lf.Flow('root')
+        flow.add(task1, task2, task3)
+
+        engine = self._make_engine(flow)
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            engine.run()
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+
+            'task3.t RUNNING',
+            'task3.t SUCCESS(5)',
+        ]
+        self.assertEqual(expected, capturer.values)
+
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            engine.run()
+        self.assertEqual([], capturer.values)
+
+        engine.reset()
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            engine.run()
+        self.assertEqual(expected, capturer.values)
+
+    def test_failed_reset_run_again(self):
+        task1 = utils.ProgressingTask(name='task1')
+        task2 = utils.ProgressingTask(name='task2')
+        task3 = utils.FailingTask(name='task3')
+
+        flow = lf.Flow('root')
+        flow.add(task1, task2, task3)
+        engine = self._make_engine(flow)
+
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            # Also allow a WrappedFailure exception so that when this is used
+            # with the WBE engine (as it can't re-raise the original
+            # exception) that we will work correctly....
+            self.assertRaises((RuntimeError, exc.WrappedFailure), engine.run)
+
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+            'task3.t RUNNING',
+
+            'task3.t FAILURE(Failure: RuntimeError: Woot!)',
+
+            'task3.t REVERTING',
+            'task3.t REVERTED(None)',
+            'task2.t REVERTING',
+            'task2.t REVERTED(None)',
+            'task1.t REVERTING',
+            'task1.t REVERTED(None)',
+        ]
+        self.assertEqual(expected, capturer.values)
+
+        engine.reset()
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            self.assertRaises((RuntimeError, exc.WrappedFailure), engine.run)
+        self.assertEqual(expected, capturer.values)
+
+    def test_suspended_reset_run_again(self):
+        task1 = utils.ProgressingTask(name='task1')
+        task2 = utils.ProgressingTask(name='task2')
+        task3 = utils.ProgressingTask(name='task3')
+
+        flow = lf.Flow('root')
+        flow.add(task1, task2, task3)
+        engine = self._make_engine(flow)
+        suspend_at = object()
+        expected_states = [
+            states.RESUMING,
+            states.SCHEDULING,
+            states.WAITING,
+            states.ANALYZING,
+            states.SCHEDULING,
+            states.WAITING,
+            # Stop/suspend here...
+            suspend_at,
+            states.SUSPENDED,
+        ]
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            for i, st in enumerate(engine.run_iter()):
+                expected = expected_states[i]
+                if expected is suspend_at:
+                    engine.suspend()
+                else:
+                    self.assertEqual(expected, st)
+
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+        ]
+        self.assertEqual(expected, capturer.values)
+
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            engine.run()
+        expected = [
+            'task3.t RUNNING',
+            'task3.t SUCCESS(5)',
+        ]
+        self.assertEqual(expected, capturer.values)
+
+        engine.reset()
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            engine.run()
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+
+            'task3.t RUNNING',
+            'task3.t SUCCESS(5)',
+        ]
+        self.assertEqual(expected, capturer.values)
+
+
 class EngineGraphConditionalFlowTest(utils.EngineTestBase):
 
     def test_graph_flow_conditional(self):
@@ -823,6 +956,54 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
 
             'task2.t IGNORE',
             'task2_2.t IGNORE',
+
+            'task3.t RUNNING',
+            'task3.t SUCCESS(5)',
+        ])
+        self.assertEqual(expected, set(capturer.values))
+
+    def test_graph_flow_conditional_ignore_reset(self):
+        allow_execute = threading.Event()
+        flow = gf.Flow('root')
+
+        task1 = utils.ProgressingTask(name='task1')
+        task2 = utils.ProgressingTask(name='task2')
+        task3 = utils.ProgressingTask(name='task3')
+
+        flow.add(task1, task2, task3)
+        flow.link(task1, task2)
+        flow.link(task2, task3, decider=lambda history: allow_execute.is_set())
+
+        engine = self._make_engine(flow)
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            engine.run()
+
+        expected = set([
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+
+            'task3.t IGNORE',
+        ])
+        self.assertEqual(expected, set(capturer.values))
+        self.assertEqual(states.IGNORE,
+                         engine.storage.get_atom_state('task3'))
+        self.assertEqual(states.IGNORE,
+                         engine.storage.get_atom_intention('task3'))
+
+        engine.reset()
+        allow_execute.set()
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            engine.run()
+
+        expected = set([
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
 
             'task3.t RUNNING',
             'task3.t SUCCESS(5)',
@@ -951,6 +1132,7 @@ class SerialEngineTest(EngineTaskTest,
                        EngineOptionalRequirementsTest,
                        EngineGraphFlowTest,
                        EngineMissingDepsTest,
+                       EngineResetTests,
                        EngineGraphConditionalFlowTest,
                        EngineCheckingTaskTest,
                        test.TestCase):
@@ -978,6 +1160,7 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
                                     EngineLinearAndUnorderedExceptionsTest,
                                     EngineOptionalRequirementsTest,
                                     EngineGraphFlowTest,
+                                    EngineResetTests,
                                     EngineMissingDepsTest,
                                     EngineGraphConditionalFlowTest,
                                     EngineCheckingTaskTest,
@@ -1018,6 +1201,7 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
                                      EngineLinearAndUnorderedExceptionsTest,
                                      EngineOptionalRequirementsTest,
                                      EngineGraphFlowTest,
+                                     EngineResetTests,
                                      EngineMissingDepsTest,
                                      EngineGraphConditionalFlowTest,
                                      EngineCheckingTaskTest,
@@ -1041,6 +1225,7 @@ class ParallelEngineWithProcessTest(EngineTaskTest,
                                     EngineLinearAndUnorderedExceptionsTest,
                                     EngineOptionalRequirementsTest,
                                     EngineGraphFlowTest,
+                                    EngineResetTests,
                                     EngineMissingDepsTest,
                                     EngineGraphConditionalFlowTest,
                                     test.TestCase):
@@ -1069,6 +1254,7 @@ class WorkerBasedEngineTest(EngineTaskTest,
                             EngineLinearAndUnorderedExceptionsTest,
                             EngineOptionalRequirementsTest,
                             EngineGraphFlowTest,
+                            EngineResetTests,
                             EngineMissingDepsTest,
                             EngineGraphConditionalFlowTest,
                             test.TestCase):

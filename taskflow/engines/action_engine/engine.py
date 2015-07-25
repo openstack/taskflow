@@ -290,8 +290,19 @@ class ActionEngine(base.Engine):
             self._storage_ensured = True
         # Reset everything back to pending (if we were previously reverted).
         if self.storage.get_flow_state() == states.REVERTED:
-            self._runtime.reset_all()
-            self._change_state(states.PENDING)
+            self.reset()
+
+    @fasteners.locked
+    def reset(self):
+        if not self._storage_ensured:
+            raise exc.InvalidState("Can not reset an engine"
+                                   " which has not has its storage"
+                                   " populated")
+        # This transitions *all* contained atoms back into the PENDING state
+        # with an intention to EXECUTE (or dies trying to do that) and then
+        # changes the state of the flow to PENDING so that it can then run...
+        self._runtime.reset_all()
+        self._change_state(states.PENDING)
 
     @fasteners.locked
     def compile(self):
