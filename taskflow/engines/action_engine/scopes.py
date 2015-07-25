@@ -21,7 +21,11 @@ LOG = logging.getLogger(__name__)
 
 
 def _depth_first_reverse_iterate(node, idx=-1):
-    """Iterates connected (in reverse) nodes in tree (from starting node)."""
+    """Iterates connected (in reverse) nodes (from starting node).
+
+    Jumps through nodes with ``FLOW`` ``kind`` attribute (does not yield
+    them back).
+    """
     # Always go left to right, since right to left is the pattern order
     # and we want to go backwards and not forwards through that ordering...
     if idx == -1:
@@ -29,15 +33,11 @@ def _depth_first_reverse_iterate(node, idx=-1):
     else:
         children_iter = reversed(node[0:idx])
     for child in children_iter:
-        child_kind = child.metadata['kind']
-        if child_kind == co.FLOW:
+        if child.metadata['kind'] == co.FLOW:
             # Jump through these...
-            #
-            # TODO(harlowja): make this non-recursive and remove this
-            # style of doing this when
-            # https://review.openstack.org/#/c/205731/ merges...
-            for atom in _depth_first_reverse_iterate(child):
-                yield atom
+            for child_child in child.dfs_iter(right_to_left=False):
+                if child_child.metadata['kind'] in co.ATOMS:
+                    yield child_child.item
         else:
             yield child.item
 

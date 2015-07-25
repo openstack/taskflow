@@ -36,8 +36,9 @@ class FrozenNode(Exception):
 class _DFSIter(object):
     """Depth first iterator (non-recursive) over the child nodes."""
 
-    def __init__(self, root, include_self=False):
+    def __init__(self, root, include_self=False, right_to_left=True):
         self.root = root
+        self.right_to_left = bool(right_to_left)
         self.include_self = bool(include_self)
 
     def __iter__(self):
@@ -45,20 +46,28 @@ class _DFSIter(object):
         if self.include_self:
             stack.append(self.root)
         else:
-            stack.extend(self.root.reverse_iter())
+            if self.right_to_left:
+                stack.extend(self.root.reverse_iter())
+            else:
+                # Traverse the left nodes first to the right nodes.
+                stack.extend(iter(self.root))
         while stack:
-            node = stack.pop()
             # Visit the node.
+            node = stack.pop()
             yield node
-            # Traverse the left & right subtree.
-            stack.extend(node.reverse_iter())
+            if self.right_to_left:
+                stack.extend(node.reverse_iter())
+            else:
+                # Traverse the left nodes first to the right nodes.
+                stack.extend(iter(node))
 
 
 class _BFSIter(object):
     """Breadth first iterator (non-recursive) over the child nodes."""
 
-    def __init__(self, root, include_self=False):
+    def __init__(self, root, include_self=False, right_to_left=False):
         self.root = root
+        self.right_to_left = bool(right_to_left)
         self.include_self = bool(include_self)
 
     def __iter__(self):
@@ -66,13 +75,20 @@ class _BFSIter(object):
         if self.include_self:
             q.append(self.root)
         else:
-            q.extend(self.root.reverse_iter())
+            if self.right_to_left:
+                q.extend(iter(self.root))
+            else:
+                # Traverse the left nodes first to the right nodes.
+                q.extend(self.root.reverse_iter())
         while q:
-            node = q.popleft()
             # Visit the node.
+            node = q.popleft()
             yield node
-            # Traverse the left & right subtree.
-            q.extend(node.reverse_iter())
+            if self.right_to_left:
+                q.extend(iter(node))
+            else:
+                # Traverse the left nodes first to the right nodes.
+                q.extend(node.reverse_iter())
 
 
 class Node(object):
@@ -361,10 +377,14 @@ class Node(object):
             raise ValueError("%s is not contained in any child" % (item))
         return index_at
 
-    def dfs_iter(self, include_self=False):
+    def dfs_iter(self, include_self=False, right_to_left=True):
         """Depth first iteration (non-recursive) over the child nodes."""
-        return _DFSIter(self, include_self=include_self)
+        return _DFSIter(self,
+                        include_self=include_self,
+                        right_to_left=right_to_left)
 
-    def bfs_iter(self, include_self=False):
+    def bfs_iter(self, include_self=False, right_to_left=False):
         """Breadth first iteration (non-recursive) over the child nodes."""
-        return _BFSIter(self, include_self=include_self)
+        return _BFSIter(self,
+                        include_self=include_self,
+                        right_to_left=right_to_left)
