@@ -180,6 +180,11 @@ Capturing listener
 
 .. autoclass:: taskflow.listeners.capturing.CaptureListener
 
+Formatters
+----------
+
+.. automodule:: taskflow.listeners.formatters
+
 Hierarchy
 =========
 
