@@ -215,7 +215,7 @@ Redis
 **Board type**: ``'redis'``
 
 Uses `redis`_ to provide the jobboard capabilities and semantics by using
-a redis hash datastructure and individual job ownership keys (that can
+a redis hash data structure and individual job ownership keys (that can
 optionally expire after a given amount of time).
 
 .. note::
