@@ -123,7 +123,11 @@ class GiveBackRevert(task.Task):
         return value + 1
 
     def revert(self, *args, **kwargs):
-        return kwargs.get('result') + 1
+        result = kwargs.get('result')
+        # If this somehow fails, timeout, or other don't send back a
+        # valid result...
+        if isinstance(result, six.integer_types):
+            return result + 1
 
 
 class FakeTask(object):
