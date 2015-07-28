@@ -87,7 +87,7 @@ Rebinding
 stored with a name other than the corresponding arguments name. That's when the
 ``rebind`` constructor parameter comes in handy. Using it the flow author
 can instruct the engine to fetch a value from storage by one name, but pass it
-to a tasks/retrys ``execute`` method with another name. There are two possible
+to a tasks/retries ``execute`` method with another name. There are two possible
 ways of accomplishing this.
 
 The first is to pass a dictionary that maps the argument name to the name
@@ -303,7 +303,7 @@ Default provides
 ++++++++++++++++
 
 As mentioned above, the default base class provides nothing, which means
-results are not accessible to other tasks/retrys in the flow.
+results are not accessible to other tasks/retries in the flow.
 
 The author can override this and specify default value for provides using
 the ``default_provides`` class/instance variable:
@@ -386,7 +386,7 @@ A |Retry| controller works with arguments in the same way as a |Task|. But it
 has an additional parameter ``'history'`` that is itself a
 :py:class:`~taskflow.retry.History` object that contains what failed over all
 the engines attempts (aka the outcomes). The history object can be
-viewed as a tuple that contains a result of the previous retrys run and a
+viewed as a tuple that contains a result of the previous retries run and a
 table/dict where each key is a failed atoms name and each value is
 a :py:class:`~taskflow.types.failure.Failure` object.
 
@@ -415,7 +415,7 @@ the following history (printed as a list)::
 
 At this point (since the implementation returned ``RETRY``) the
 |retry.execute| method will be called again and it will receive the same
-history and it can then return a value that subseqent tasks can use to alter
+history and it can then return a value that subsequent tasks can use to alter
 their behavior.
 
 If instead the |retry.execute| method itself raises an exception,

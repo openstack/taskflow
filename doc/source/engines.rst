@@ -85,7 +85,7 @@ Of course these kind of features can come with some drawbacks:
   away from (and this is likely a mindset change for programmers used to the
   imperative model). We have worked to make this less of a concern by creating
   and encouraging the usage of :doc:`persistence <persistence>`, to help make
-  it possible to have state and tranfer that state via a argument input and
+  it possible to have state and transfer that state via a argument input and
   output mechanism.
 * Depending on how much imperative code exists (and state inside that code)
   there *may* be *significant* rework of that code and converting or

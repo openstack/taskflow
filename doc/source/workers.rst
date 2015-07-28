@@ -286,10 +286,10 @@ but not *yet* consumed.
 **PENDING** - Worker accepted request and is pending to run using its
 executor (threads, processes, or other).
 
-**FAILURE** - Worker failed after running request (due to task exeception) or
+**FAILURE** - Worker failed after running request (due to task exception) or
 no worker moved/started executing (by placing the request into ``RUNNING``
 state) with-in specified time span (this defaults to 60 seconds unless
-overriden).
+overridden).
 
 **RUNNING** - Workers executor (using threads, processes...) has started to
 run requested task (once this state is transitioned to any request timeout no
