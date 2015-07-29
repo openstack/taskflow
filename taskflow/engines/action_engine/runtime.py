@@ -16,6 +16,8 @@
 
 import functools
 
+from futurist import waiters
+
 from taskflow.engines.action_engine.actions import retry as ra
 from taskflow.engines.action_engine.actions import task as ta
 from taskflow.engines.action_engine import analyzer as an
@@ -26,7 +28,6 @@ from taskflow.engines.action_engine import scopes as sc
 from taskflow import flow as flow_type
 from taskflow import states as st
 from taskflow import task
-from taskflow.utils import async_utils
 from taskflow.utils import misc
 
 
@@ -114,7 +115,7 @@ class Runtime(object):
 
     @misc.cachedproperty
     def runner(self):
-        return ru.Runner(self, async_utils.wait_for_any)
+        return ru.Runner(self, waiters.wait_for_any)
 
     @misc.cachedproperty
     def completer(self):
