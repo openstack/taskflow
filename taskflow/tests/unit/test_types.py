@@ -140,6 +140,245 @@ class TreeTest(test.TestCase):
         p.add(tree.Node("human"))
         return a
 
+    def test_pformat_species(self):
+        root = self._make_species()
+        expected = """
+animal
+|__mammal
+|  |__horse
+|  |__primate
+|     |__monkey
+|     |__human
+|__reptile
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+    def test_pformat_flat(self):
+        root = tree.Node("josh")
+        root.add(tree.Node("josh.1"))
+        expected = """
+josh
+|__josh.1
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[0].add(tree.Node("josh.1.1"))
+        expected = """
+josh
+|__josh.1
+   |__josh.1.1
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[0][0].add(tree.Node("josh.1.1.1"))
+        expected = """
+josh
+|__josh.1
+   |__josh.1.1
+      |__josh.1.1.1
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[0][0][0].add(tree.Node("josh.1.1.1.1"))
+        expected = """
+josh
+|__josh.1
+   |__josh.1.1
+      |__josh.1.1.1
+         |__josh.1.1.1.1
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+    def test_pformat_partial_species(self):
+        root = self._make_species()
+
+        expected = """
+reptile
+"""
+        self.assertEqual(expected.strip(), root[1].pformat())
+
+        expected = """
+mammal
+|__horse
+|__primate
+   |__monkey
+   |__human
+"""
+        self.assertEqual(expected.strip(), root[0].pformat())
+
+        expected = """
+primate
+|__monkey
+|__human
+"""
+        self.assertEqual(expected.strip(), root[0][1].pformat())
+
+        expected = """
+monkey
+"""
+        self.assertEqual(expected.strip(), root[0][1][0].pformat())
+
+    def test_pformat(self):
+
+        root = tree.Node("CEO")
+
+        expected = """
+CEO
+"""
+
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root.add(tree.Node("Infra"))
+
+        expected = """
+CEO
+|__Infra
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[0].add(tree.Node("Infra.1"))
+        expected = """
+CEO
+|__Infra
+   |__Infra.1
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root.add(tree.Node("Mail"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|__Mail
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root.add(tree.Node("Search"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|__Mail
+|__Search
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[-1].add(tree.Node("Search.1"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|__Mail
+|__Search
+   |__Search.1
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[-1].add(tree.Node("Search.2"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|__Mail
+|__Search
+   |__Search.1
+   |__Search.2
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[0].add(tree.Node("Infra.2"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|  |__Infra.2
+|__Mail
+|__Search
+   |__Search.1
+   |__Search.2
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[0].add(tree.Node("Infra.3"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|  |__Infra.2
+|  |__Infra.3
+|__Mail
+|__Search
+   |__Search.1
+   |__Search.2
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[0][-1].add(tree.Node("Infra.3.1"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|  |__Infra.2
+|  |__Infra.3
+|     |__Infra.3.1
+|__Mail
+|__Search
+   |__Search.1
+   |__Search.2
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[-1][0].add(tree.Node("Search.1.1"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|  |__Infra.2
+|  |__Infra.3
+|     |__Infra.3.1
+|__Mail
+|__Search
+   |__Search.1
+   |  |__Search.1.1
+   |__Search.2
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[1].add(tree.Node("Mail.1"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|  |__Infra.2
+|  |__Infra.3
+|     |__Infra.3.1
+|__Mail
+|  |__Mail.1
+|__Search
+   |__Search.1
+   |  |__Search.1.1
+   |__Search.2
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
+        root[1][0].add(tree.Node("Mail.1.1"))
+        expected = """
+CEO
+|__Infra
+|  |__Infra.1
+|  |__Infra.2
+|  |__Infra.3
+|     |__Infra.3.1
+|__Mail
+|  |__Mail.1
+|     |__Mail.1.1
+|__Search
+   |__Search.1
+   |  |__Search.1.1
+   |__Search.2
+"""
+        self.assertEqual(expected.strip(), root.pformat())
+
     def test_path(self):
         root = self._make_species()
         human = root.find("human")
