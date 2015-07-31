@@ -24,11 +24,7 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-# To get this installed you have to do the following:
-#
-# $ pip install pydot2
-import pydot
-
+from automaton.converters import pydot
 from automaton import machines
 
 from taskflow.engines.action_engine import builder
@@ -46,37 +42,18 @@ class DummyRuntime(object):
         self.storage = mock.MagicMock()
 
 
-def clean_event(name):
-    name = name.replace("_", " ")
-    name = name.strip()
-    return name
-
-
-def make_machine(start_state, transitions):
+def make_machine(start_state, transitions, event_name_cb):
     machine = machines.FiniteMachine()
     machine.add_state(start_state)
+    machine.default_start_state = start_state
     for (start_state, end_state) in transitions:
         if start_state not in machine:
             machine.add_state(start_state)
         if end_state not in machine:
             machine.add_state(end_state)
-        # Make a fake event (not used anyway)...
-        event = "on_%s" % (end_state)
-        machine.add_transition(start_state, end_state, event.lower())
-    machine.default_start_state = start_state
+        event = event_name_cb(start_state, end_state)
+        machine.add_transition(start_state, end_state, event)
     return machine
-
-
-def map_color(internal_states, state):
-    if state in internal_states:
-        return 'blue'
-    if state in (states.FAILURE, states.REVERT_FAILURE):
-        return 'red'
-    if state == states.REVERTED:
-        return 'darkorange'
-    if state in (states.SUCCESS, states.COMPLETE):
-        return 'green'
-    return None
 
 
 def main():
@@ -103,6 +80,10 @@ def main():
                       action='store_true',
                       help="use job transitions",
                       default=False)
+    parser.add_option("--flow", dest="flow",
+                      action='store_true',
+                      help="use flow transitions",
+                      default=False)
     parser.add_option("-T", "--format", dest="format",
                       help="output in given format",
                       default='svg')
@@ -117,21 +98,34 @@ def main():
         options.tasks,
         options.wbe_requests,
         options.jobs,
+        options.flow,
     ]
-    if sum([int(i) for i in types]) > 1:
-        parser.error("Only one of task/retry/engines/wbe requests/jobs"
+    provided = sum([int(i) for i in types])
+    if provided > 1:
+        parser.error("Only one of task/retry/engines/wbe requests/jobs/flow"
                      " may be specified.")
+    if provided == 0:
+        parser.error("One of task/retry/engines/wbe requests/jobs/flow"
+                     " must be specified.")
 
+    event_name_cb = lambda start_state, end_state: "on_%s" % end_state.lower()
     internal_states = list()
     ordering = 'in'
     if options.tasks:
         source_type = "Tasks"
         source = make_machine(states.PENDING,
-                              list(states._ALLOWED_TASK_TRANSITIONS))
+                              list(states._ALLOWED_TASK_TRANSITIONS),
+                              event_name_cb)
     elif options.retries:
         source_type = "Retries"
         source = make_machine(states.PENDING,
-                              list(states._ALLOWED_RETRY_TRANSITIONS))
+                              list(states._ALLOWED_RETRY_TRANSITIONS),
+                              event_name_cb)
+    elif options.flow:
+        source_type = "Flow"
+        source = make_machine(states.PENDING,
+                              list(states._ALLOWED_FLOW_TRANSITIONS),
+                              event_name_cb)
     elif options.engines:
         source_type = "Engines"
         b = builder.MachineBuilder(DummyRuntime(), mock.MagicMock())
@@ -141,61 +135,48 @@ def main():
     elif options.wbe_requests:
         source_type = "WBE requests"
         source = make_machine(protocol.WAITING,
-                              list(protocol._ALLOWED_TRANSITIONS))
+                              list(protocol._ALLOWED_TRANSITIONS),
+                              event_name_cb)
     elif options.jobs:
         source_type = "Jobs"
         source = make_machine(states.UNCLAIMED,
-                              list(states._ALLOWED_JOB_TRANSITIONS))
-    else:
-        source_type = "Flow"
-        source = make_machine(states.PENDING,
-                              list(states._ALLOWED_FLOW_TRANSITIONS))
+                              list(states._ALLOWED_JOB_TRANSITIONS),
+                              event_name_cb)
 
-    graph_name = "%s states" % source_type
-    g = pydot.Dot(graph_name=graph_name, rankdir='LR',
-                  nodesep='0.25', overlap='false',
-                  ranksep="0.5", size="11x8.5",
-                  splines='true', ordering=ordering)
-    node_attrs = {
-        'fontsize': '11',
+    graph_attrs = {
+        'ordering': ordering,
     }
-    nodes = {}
-    for (start_state, on_event, end_state) in source:
-        on_event = clean_event(on_event)
-        if start_state not in nodes:
-            start_node_attrs = node_attrs.copy()
-            text_color = map_color(internal_states, start_state)
-            if text_color:
-                start_node_attrs['fontcolor'] = text_color
-            nodes[start_state] = pydot.Node(start_state, **start_node_attrs)
-            g.add_node(nodes[start_state])
-        if end_state not in nodes:
-            end_node_attrs = node_attrs.copy()
-            text_color = map_color(internal_states, end_state)
-            if text_color:
-                end_node_attrs['fontcolor'] = text_color
-            nodes[end_state] = pydot.Node(end_state, **end_node_attrs)
-            g.add_node(nodes[end_state])
+    graph_name = "%s states" % source_type
+
+    def node_attrs_cb(state):
+        node_color = None
+        if state in internal_states:
+            node_color = 'blue'
+        if state in (states.FAILURE, states.REVERT_FAILURE):
+            node_color = 'red'
+        if state == states.REVERTED:
+            node_color = 'darkorange'
+        if state in (states.SUCCESS, states.COMPLETE):
+            node_color = 'green'
+        node_attrs = {}
+        if node_color:
+            node_attrs['fontcolor'] = node_color
+        return node_attrs
+
+    def edge_attrs_cb(start_state, on_event, end_state):
+        edge_attrs = {}
         if options.engines:
-            edge_attrs = {
-                'label': on_event,
-            }
+            edge_attrs['label'] = on_event.replace("_", " ").strip()
             if 'reverted' in on_event:
                 edge_attrs['fontcolor'] = 'darkorange'
             if 'fail' in on_event:
                 edge_attrs['fontcolor'] = 'red'
             if 'success' in on_event:
                 edge_attrs['fontcolor'] = 'green'
-        else:
-            edge_attrs = {}
-        g.add_edge(pydot.Edge(nodes[start_state], nodes[end_state],
-                              **edge_attrs))
+        return edge_attrs
 
-    start = pydot.Node("__start__", shape="point", width="0.1",
-                       xlabel='start', fontcolor='green', **node_attrs)
-    g.add_node(start)
-    g.add_edge(pydot.Edge(start, nodes[source.default_start_state], style='dotted'))
-
+    g = pydot.convert(source, graph_name, graph_attrs=graph_attrs,
+                      node_attrs_cb=node_attrs_cb, edge_attrs_cb=edge_attrs_cb)
     print("*" * len(graph_name))
     print(graph_name)
     print("*" * len(graph_name))
