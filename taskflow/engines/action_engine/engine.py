@@ -19,6 +19,7 @@ import contextlib
 import itertools
 import threading
 
+from automaton import runners
 from concurrent import futures
 import fasteners
 import networkx as nx
@@ -26,6 +27,7 @@ from oslo_utils import excutils
 from oslo_utils import strutils
 import six
 
+from taskflow.engines.action_engine import builder
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
 from taskflow.engines.action_engine import runtime
@@ -59,9 +61,9 @@ class ActionEngine(base.Engine):
 
     This engine compiles the flow (and any subflows) into a compilation unit
     which contains the full runtime definition to be executed and then uses
-    this compilation unit in combination with the executor, runtime, runner
-    and storage classes to attempt to run your flow (and any subflows &
-    contained atoms) to completion.
+    this compilation unit in combination with the executor, runtime, machine
+    builder and storage classes to attempt to run your flow (and any
+    subflows & contained atoms) to completion.
 
     NOTE(harlowja): during this process it is permissible and valid to have a
     task or multiple tasks in the execution graph fail (at the same time even),
@@ -75,6 +77,15 @@ class ActionEngine(base.Engine):
     States that if the engine stops in will **not** cause any potential
     failures to be reraised. States **not** in this list will cause any
     failure/s that were captured (if any) to get reraised.
+    """
+
+    IGNORABLE_STATES = frozenset(
+        itertools.chain([states.SCHEDULING, states.WAITING, states.RESUMING,
+                         states.ANALYZING], builder.META_STATES))
+    """
+    Informational states this engines internal machine yields back while
+    running, not useful to have the engine record but useful to provide to
+    end-users when doing execution iterations via :py:meth:`.run_iter`.
     """
 
     def __init__(self, flow, flow_detail, backend, options):
@@ -151,20 +162,20 @@ class ActionEngine(base.Engine):
     def run_iter(self, timeout=None):
         """Runs the engine using iteration (or die trying).
 
-        :param timeout: timeout to wait for any tasks to complete (this timeout
+        :param timeout: timeout to wait for any atoms to complete (this timeout
             will be used during the waiting period that occurs after the
-            waiting state is yielded when unfinished tasks are being waited
-            for).
+            waiting state is yielded when unfinished atoms are being waited
+            on).
 
         Instead of running to completion in a blocking manner, this will
         return a generator which will yield back the various states that the
         engine is going through (and can be used to run multiple engines at
-        once using a generator per engine). the iterator returned also
-        responds to the send() method from pep-0342 and will attempt to suspend
-        itself if a truthy value is sent in (the suspend may be delayed until
-        all active tasks have finished).
+        once using a generator per engine). The iterator returned also
+        responds to the ``send()`` method from :pep:`0342` and will attempt to
+        suspend itself if a truthy value is sent in (the suspend may be
+        delayed until all active atoms have finished).
 
-        NOTE(harlowja): using the run_iter method will **not** retain the
+        NOTE(harlowja): using the ``run_iter`` method will **not** retain the
         engine lock while executing so the user should ensure that there is
         only one entity using a returned engine iterator (one per engine) at a
         given time.
@@ -172,19 +183,24 @@ class ActionEngine(base.Engine):
         self.compile()
         self.prepare()
         self.validate()
-        runner = self._runtime.runner
         last_state = None
         with _start_stop(self._task_executor, self._retry_executor):
             self._change_state(states.RUNNING)
             try:
                 closed = False
-                for (last_state, failures) in runner.run_iter(timeout=timeout):
-                    if failures:
-                        failure.Failure.reraise_if_any(failures)
+                machine, memory = self._runtime.builder.build(timeout=timeout)
+                r = runners.FiniteRunner(machine)
+                for (_prior_state, new_state) in r.run_iter(builder.START):
+                    last_state = new_state
+                    # NOTE(harlowja): skip over meta-states.
+                    if new_state in builder.META_STATES:
+                        continue
+                    if new_state == states.FAILURE:
+                        failure.Failure.reraise_if_any(memory.failures)
                     if closed:
                         continue
                     try:
-                        try_suspend = yield last_state
+                        try_suspend = yield new_state
                     except GeneratorExit:
                         # The generator was closed, attempt to suspend and
                         # continue looping until we have cleanly closed up
@@ -198,9 +214,8 @@ class ActionEngine(base.Engine):
                 with excutils.save_and_reraise_exception():
                     self._change_state(states.FAILURE)
             else:
-                ignorable_states = getattr(runner, 'ignorable_states', [])
-                if last_state and last_state not in ignorable_states:
-                    self._change_state(last_state)
+                if last_state and last_state not in self.IGNORABLE_STATES:
+                    self._change_state(new_state)
                     if last_state not in self.NO_RERAISING_STATES:
                         it = itertools.chain(
                             six.itervalues(self.storage.get_failures()),

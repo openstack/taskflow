@@ -258,9 +258,10 @@ Execution
 The graph (and helper objects) previously created are now used for guiding
 further execution (see :py:func:`~taskflow.engines.base.Engine.run`). The
 flow is put into the ``RUNNING`` :doc:`state <states>` and a
-:py:class:`~taskflow.engines.action_engine.runner.Runner` implementation
-object starts to take over and begins going through the stages listed
-below (for a more visual diagram/representation see
+:py:class:`~taskflow.engines.action_engine.builder.MachineBuilder` state
+machine object and runner object are built (using the `automaton`_ library).
+That machine and associated runner then starts to take over and begins going
+through the stages listed below (for a more visual diagram/representation see
 the :ref:`engine state diagram <engine states>`).
 
 .. note::
@@ -338,8 +339,8 @@ above stages will be restarted and resuming will occur).
 Finishing
 ---------
 
-At this point the
-:py:class:`~taskflow.engines.action_engine.runner.Runner` has
+At this point the machine (and runner) that was built using the
+:py:class:`~taskflow.engines.action_engine.builder.MachineBuilder` class has
 now finished successfully, failed, or the execution was suspended. Depending on
 which one of these occurs will cause the flow to enter a new state (typically
 one of ``FAILURE``, ``SUSPENDED``, ``SUCCESS`` or ``REVERTED``).
@@ -365,9 +366,9 @@ this performs is a transition of the flow state from ``RUNNING`` into a
 ``SUSPENDING`` state (which will later transition into a ``SUSPENDED`` state).
 Since an engine may be remotely executing atoms (or locally executing them)
 and there is currently no preemption what occurs is that the engines
-:py:class:`~taskflow.engines.action_engine.runner.Runner` state machine will
-detect this transition into ``SUSPENDING`` has occurred and the state
-machine will avoid scheduling new work (it will though let active work
+:py:class:`~taskflow.engines.action_engine.builder.MachineBuilder` state
+machine will detect this transition into ``SUSPENDING`` has occurred and the
+state machine will avoid scheduling new work (it will though let active work
 continue). After the current work has finished the engine will
 transition from ``SUSPENDING`` into ``SUSPENDED`` and return from its
 :py:func:`~taskflow.engines.base.Engine.run` method.
@@ -444,10 +445,10 @@ Components
     cycle).
 
 .. automodule:: taskflow.engines.action_engine.analyzer
+.. automodule:: taskflow.engines.action_engine.builder
 .. automodule:: taskflow.engines.action_engine.compiler
 .. automodule:: taskflow.engines.action_engine.completer
 .. automodule:: taskflow.engines.action_engine.executor
-.. automodule:: taskflow.engines.action_engine.runner
 .. automodule:: taskflow.engines.action_engine.runtime
 .. automodule:: taskflow.engines.action_engine.scheduler
 .. autoclass:: taskflow.engines.action_engine.scopes.ScopeWalker
@@ -462,6 +463,7 @@ Hierarchy
     taskflow.engines.worker_based.engine.WorkerBasedActionEngine
     :parts: 1
 
+.. _automaton: http://docs.openstack.org/developer/automaton/
 .. _multiprocessing: https://docs.python.org/2/library/multiprocessing.html
 .. _future: https://docs.python.org/dev/library/concurrent.futures.html#future-objects
 .. _executor: https://docs.python.org/dev/library/concurrent.futures.html#concurrent.futures.Executor
