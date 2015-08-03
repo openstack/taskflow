@@ -42,6 +42,13 @@ from taskflow.utils import persistence_utils as p_utils
 from taskflow.utils import threading_utils as tu
 
 
+# Expected engine transitions when empty workflows are ran...
+_EMPTY_TRANSITIONS = [
+    states.RESUMING, states.SCHEDULING, states.WAITING,
+    states.ANALYZING, states.SUCCESS,
+]
+
+
 class EngineTaskTest(object):
 
     def test_run_task_as_flow(self):
@@ -255,10 +262,10 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
 
 class EngineLinearFlowTest(utils.EngineTestBase):
 
-    def test_run_empty_flow(self):
+    def test_run_empty_linear_flow(self):
         flow = lf.Flow('flow-1')
         engine = self._make_engine(flow)
-        self.assertRaises(exc.Empty, engine.run)
+        self.assertEqual(_EMPTY_TRANSITIONS, list(engine.run_iter()))
 
     def test_overlap_parent_sibling_expected_result(self):
         flow = lf.Flow('flow-1')
@@ -456,10 +463,10 @@ class EngineLinearFlowTest(utils.EngineTestBase):
 
 class EngineParallelFlowTest(utils.EngineTestBase):
 
-    def test_run_empty_flow(self):
+    def test_run_empty_unordered_flow(self):
         flow = uf.Flow('p-1')
         engine = self._make_engine(flow)
-        self.assertRaises(exc.Empty, engine.run)
+        self.assertEqual(_EMPTY_TRANSITIONS, list(engine.run_iter()))
 
     def test_parallel_flow_with_priority(self):
         flow = uf.Flow('p-1')
@@ -664,16 +671,16 @@ class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
 
 class EngineGraphFlowTest(utils.EngineTestBase):
 
-    def test_run_empty_flow(self):
+    def test_run_empty_graph_flow(self):
         flow = gf.Flow('g-1')
         engine = self._make_engine(flow)
-        self.assertRaises(exc.Empty, engine.run)
+        self.assertEqual(_EMPTY_TRANSITIONS, list(engine.run_iter()))
 
-    def test_run_nested_empty_flows(self):
+    def test_run_empty_nested_graph_flows(self):
         flow = gf.Flow('g-1').add(lf.Flow('l-1'),
                                   gf.Flow('g-2'))
         engine = self._make_engine(flow)
-        self.assertRaises(exc.Empty, engine.run)
+        self.assertEqual(_EMPTY_TRANSITIONS, list(engine.run_iter()))
 
     def test_graph_flow_one_task(self):
         flow = gf.Flow('g-1').add(

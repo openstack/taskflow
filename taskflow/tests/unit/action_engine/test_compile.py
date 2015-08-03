@@ -43,7 +43,7 @@ class PatternCompileTest(test.TestCase):
 
     def test_empty(self):
         flo = lf.Flow("test")
-        self.assertRaises(exc.Empty, compiler.PatternCompiler(flo).compile)
+        compiler.PatternCompiler(flo).compile()
 
     def test_linear(self):
         a, b, c, d = test_utils.make_many(4)

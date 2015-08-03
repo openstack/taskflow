@@ -329,12 +329,6 @@ class PatternCompiler(object):
         if dup_names:
             raise exc.Duplicate(
                 "Atoms with duplicate names found: %s" % (sorted(dup_names)))
-        atoms = iter_utils.count(
-            node for node, node_attrs in graph.nodes_iter(data=True)
-            if node_attrs['kind'] in ATOMS)
-        if atoms == 0:
-            raise exc.Empty("Root container '%s' (%s) is empty"
-                            % (self._root, type(self._root)))
         self._history.clear()
 
     @fasteners.locked
