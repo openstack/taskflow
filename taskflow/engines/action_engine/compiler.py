@@ -372,6 +372,7 @@ class PatternCompiler(object):
             _FlowCompiler(self._compile, self._linker),
             _TaskCompiler(),
         ]
+        self._level = 0
 
     def _compile(self, item, parent=None):
         """Compiles a item (pattern, task) into a graph + tree node."""
@@ -392,13 +393,28 @@ class PatternCompiler(object):
                              " and/or recursive compiling is not"
                              " supported" % (item, type(item)))
         self._history.add(item)
+        if LOG.isEnabledFor(logging.BLATHER):
+            LOG.blather("%sCompiling '%s'", "  " * self._level, item)
+        self._level += 1
 
     def _post_item_compile(self, item, graph, node):
         """Called after a item is compiled; doing post-compilation actions."""
+        self._level -= 1
+        if LOG.isEnabledFor(logging.BLATHER):
+            prefix = '  ' * self._level
+            LOG.blather("%sDecomposed '%s' into:", prefix, item)
+            prefix = '  ' * (self._level + 1)
+            LOG.blather("%sGraph:", prefix)
+            for line in graph.pformat().splitlines():
+                LOG.blather("%s  %s", prefix, line)
+            LOG.blather("%sHierarchy:", prefix)
+            for line in node.pformat().splitlines():
+                LOG.blather("%s  %s", prefix, line)
 
     def _pre_compile(self):
         """Called before the compilation of the root starts."""
         self._history.clear()
+        self._level = 0
 
     def _post_compile(self, graph, node):
         """Called after the compilation of the root finishes successfully."""
@@ -411,19 +427,6 @@ class PatternCompiler(object):
             raise exc.Empty("Root container '%s' (%s) is empty"
                             % (self._root, type(self._root)))
         self._history.clear()
-        # NOTE(harlowja): this one can be expensive to calculate (especially
-        # the cycle detection), so only do it if we know BLATHER is enabled
-        # and not under all cases.
-        if LOG.isEnabledFor(logging.BLATHER):
-            LOG.blather("Translated '%s'", self._root)
-            LOG.blather("Graph:")
-            for line in graph.pformat().splitlines():
-                # Indent it so that it's slightly offset from the above line.
-                LOG.blather("  %s", line)
-            LOG.blather("Hierarchy:")
-            for line in node.pformat().splitlines():
-                # Indent it so that it's slightly offset from the above line.
-                LOG.blather("  %s", line)
 
     @fasteners.locked
     def compile(self):
