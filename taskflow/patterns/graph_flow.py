@@ -54,10 +54,15 @@ class Flow(flow.Flow):
     which will be resolved by using the *flows/tasks* provides and requires
     mappings or by following manually created dependency links.
 
-    From dependencies directed graph is build. If it has edge A -> B, this
-    means B depends on A.
+    From dependencies a `directed graph`_ is built. If it has edge ``A -> B``,
+    this means ``B`` depends on ``A`` (and that the execution of ``B`` must
+    wait until ``A`` has finished executing, on reverting this means that the
+    reverting of ``A`` must wait until ``B`` has finished reverting).
 
-    Note: Cyclic dependencies are not allowed.
+    Note: `cyclic`_ dependencies are not allowed.
+
+    .. _directed graph: https://en.wikipedia.org/wiki/Directed_graph
+    .. _cyclic: https://en.wikipedia.org/wiki/Cycle_graph
     """
 
     def __init__(self, name, retry=None):
@@ -71,6 +76,12 @@ class Flow(flow.Flow):
     def link(self, u, v, decider=None):
         """Link existing node u as a runtime dependency of existing node v.
 
+        Note that if the addition of these edges creates a `cyclic`_ graph
+        then a :class:`~taskflow.exceptions.DependencyFailure` will be
+        raised and the provided changes will be discarded. If the nodes
+        that are being requested to link do not exist in this graph than a
+        :class:`ValueError` will be raised.
+
         :param u: task or flow to create a link from (must exist already)
         :param v: task or flow to create a link to (must exist already)
         :param decider: A callback function that will be expected to decide
@@ -82,6 +93,8 @@ class Flow(flow.Flow):
                         links that have ``v`` as a target. It is expected to
                         return a single boolean (``True`` to allow ``v``
                         execution or ``False`` to not).
+
+        .. _cyclic: https://en.wikipedia.org/wiki/Cycle_graph
         """
         if not self._graph.has_node(u):
             raise ValueError("Node '%s' not found to link from" % (u))
@@ -135,6 +148,11 @@ class Flow(flow.Flow):
     def add(self, *nodes, **kwargs):
         """Adds a given task/tasks/flow/flows to this flow.
 
+        Note that if the addition of these nodes (and any edges) creates
+        a `cyclic`_ graph then
+        a :class:`~taskflow.exceptions.DependencyFailure` will be
+        raised and the applied changes will be discarded.
+
         :param nodes: node(s) to add to the flow
         :param kwargs: keyword arguments, the two keyword arguments
                        currently processed are:
@@ -144,13 +162,18 @@ class Flow(flow.Flow):
                           symbol requirements will be matched to existing
                           node(s) and links will be automatically made to those
                           providers. If multiple possible providers exist
-                          then a AmbiguousDependency exception will be raised.
+                          then a
+                          :class:`~taskflow.exceptions.AmbiguousDependency`
+                          exception will be raised and the provided additions
+                          will be discarded.
                         * ``resolve_existing``, a boolean that when true (the
                           default) implies that on addition of a new node that
                           existing node(s) will have their requirements scanned
                           for symbols that this newly added node can provide.
                           If a match is found a link is automatically created
                           from the newly added node to the requiree.
+
+        .. _cyclic: https://en.wikipedia.org/wiki/Cycle_graph
         """
 
         # Let's try to avoid doing any work if we can; since the below code
