@@ -21,6 +21,7 @@ from automaton import machines
 from taskflow import logging
 from taskflow import states as st
 from taskflow.types import failure
+from taskflow.utils import iter_utils
 
 # Default waiting state timeout (in seconds).
 WAITING_TIMEOUT = 60
@@ -114,12 +115,15 @@ class MachineBuilder(object):
             # Checks if the storage says the flow is still runnable...
             return self._storage.get_flow_state() == st.RUNNING
 
-        def iter_next_nodes(target_node=None):
+        def iter_next_nodes(target_node=None, apply_deciders=True):
             # Yields and filters and tweaks the next nodes to execute...
             maybe_nodes = self._analyzer.get_next_nodes(node=target_node)
             for node, late_decider in maybe_nodes:
-                proceed = late_decider.check_and_affect(self._runtime)
-                if proceed:
+                if apply_deciders:
+                    proceed = late_decider.check_and_affect(self._runtime)
+                    if proceed:
+                        yield node
+                else:
                     yield node
 
         def resume(old_state, new_state, event):
@@ -138,7 +142,17 @@ class MachineBuilder(object):
             # it is *always* called before the final state is entered.
             if memory.failures:
                 return FAILED
-            if any(1 for node in iter_next_nodes()):
+            leftover_nodes = iter_utils.count(
+                # Avoid activating the deciders, since at this point
+                # the engine is finishing and there will be no more further
+                # work done anyway...
+                iter_next_nodes(apply_deciders=False))
+            if leftover_nodes:
+                # Ok we didn't finish (either reverting or executing...) so
+                # that means we must of been stopped at some point...
+                LOG.blather("Suspension determined to have been reacted to"
+                            " since (at least) %s nodes have been left in an"
+                            " unfinished state", leftover_nodes)
                 return SUSPENDED
             elif self._analyzer.is_success():
                 return SUCCESS
