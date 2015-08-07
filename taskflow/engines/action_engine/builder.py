@@ -157,7 +157,7 @@ class MachineBuilder(object):
                     memory.not_done.update(not_done)
                 if failures:
                     memory.failures.extend(failures)
-                memory.next_nodes.clear()
+                memory.next_nodes.intersection_update(not_done)
             return WAIT
 
         def wait(old_state, new_state, event):
