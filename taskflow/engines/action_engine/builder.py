@@ -108,8 +108,13 @@ class MachineBuilder(object):
             timeout = WAITING_TIMEOUT
 
         # Cache some local functions/methods...
-        do_schedule = self._scheduler.schedule
         do_complete = self._completer.complete
+
+        def do_schedule(next_nodes):
+            return self._scheduler.schedule(
+                sorted(next_nodes,
+                       key=lambda node: getattr(node, 'priority', 0),
+                       reverse=True))
 
         def is_runnable():
             # Checks if the storage says the flow is still runnable...

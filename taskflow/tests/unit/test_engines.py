@@ -461,6 +461,32 @@ class EngineParallelFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         self.assertRaises(exc.Empty, engine.run)
 
+    def test_parallel_flow_with_priority(self):
+        flow = uf.Flow('p-1')
+        for i in range(0, 10):
+            t = utils.ProgressingTask(name='task%s' % i)
+            t.priority = i
+            flow.add(t)
+        engine = self._make_engine(flow)
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            engine.run()
+        expected = [
+            'task9.t RUNNING',
+            'task8.t RUNNING',
+            'task7.t RUNNING',
+            'task6.t RUNNING',
+            'task5.t RUNNING',
+            'task4.t RUNNING',
+            'task3.t RUNNING',
+            'task2.t RUNNING',
+            'task1.t RUNNING',
+            'task0.t RUNNING',
+        ]
+        # NOTE(harlowja): chop off the gathering of SUCCESS states, since we
+        # don't care if thats in order...
+        gotten = capturer.values[0:10]
+        self.assertEqual(expected, gotten)
+
     def test_parallel_flow_one_task(self):
         flow = uf.Flow('p-1').add(
             utils.ProgressingTask(name='task1', provides='a')
