@@ -67,7 +67,7 @@ class Flow(flow.Flow):
 
     def __init__(self, name, retry=None):
         super(Flow, self).__init__(name, retry)
-        self._graph = gr.DiGraph()
+        self._graph = gr.DiGraph(name=name)
         self._graph.freeze()
 
     #: Extracts the unsatisified symbol requirements of a single node.

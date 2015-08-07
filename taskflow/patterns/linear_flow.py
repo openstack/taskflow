@@ -15,9 +15,7 @@
 #    under the License.
 
 from taskflow import flow
-
-
-_LINK_METADATA = {flow.LINK_INVARIANT: True}
+from taskflow.types import graph as gr
 
 
 class Flow(flow.Flow):
@@ -28,22 +26,37 @@ class Flow(flow.Flow):
     the reverse order that the *tasks/flows* have been applied in.
     """
 
+    _no_last_item = object()
+    """Sentinel object used to denote no last item has been assigned.
+
+    This is used to track no last item being added, since at creation there
+    is no last item, but since the :meth:`.add` routine can take any object
+    including none, we have to use a different object to be able to
+    distinguish the lack of any last item...
+    """
+
     def __init__(self, name, retry=None):
         super(Flow, self).__init__(name, retry)
-        self._children = []
+        self._graph = gr.OrderedDiGraph(name=name)
+        self._last_item = self._no_last_item
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
-        items = [i for i in items if i not in self._children]
-        self._children.extend(items)
+        for item in items:
+            if not self._graph.has_node(item):
+                self._graph.add_node(item)
+                if self._last_item is not self._no_last_item:
+                    self._graph.add_edge(self._last_item, item,
+                                         attr_dict={flow.LINK_INVARIANT: True})
+                self._last_item = item
         return self
 
     def __len__(self):
-        return len(self._children)
+        return len(self._graph)
 
     def __iter__(self):
-        for child in self._children:
-            yield child
+        for item in self._graph.nodes_iter():
+            yield item
 
     @property
     def requires(self):
@@ -57,10 +70,10 @@ class Flow(flow.Flow):
             prior_provides.update(item.provides)
         return frozenset(requires)
 
-    def iter_links(self):
-        for src, dst in zip(self._children[:-1], self._children[1:]):
-            yield (src, dst, _LINK_METADATA.copy())
-
     def iter_nodes(self):
-        for n in self._children:
-            yield (n, {})
+        for (n, n_data) in self._graph.nodes_iter(data=True):
+            yield (n, n_data)
+
+    def iter_links(self):
+        for (u, v, e_data) in self._graph.edges_iter(data=True):
+            yield (u, v, e_data)

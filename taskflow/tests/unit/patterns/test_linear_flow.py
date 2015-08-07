@@ -138,4 +138,4 @@ class LinearFlowTest(test.TestCase):
         for (u, v, data) in f.iter_links():
             self.assertTrue(u in tasks)
             self.assertTrue(v in tasks)
-            self.assertDictEqual(lf._LINK_METADATA, data)
+            self.assertDictEqual({'invariant': True}, data)

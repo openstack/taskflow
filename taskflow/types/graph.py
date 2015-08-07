@@ -21,8 +21,49 @@ import networkx as nx
 import six
 
 
+def _common_format(g, edge_notation):
+    lines = []
+    lines.append("Name: %s" % g.name)
+    lines.append("Type: %s" % type(g).__name__)
+    lines.append("Frozen: %s" % nx.is_frozen(g))
+    lines.append("Density: %0.3f" % nx.density(g))
+    lines.append("Nodes: %s" % g.number_of_nodes())
+    for n in g.nodes_iter():
+        lines.append("  - %s" % n)
+    lines.append("Edges: %s" % g.number_of_edges())
+    for (u, v, e_data) in g.edges_iter(data=True):
+        if e_data:
+            lines.append("  %s %s %s (%s)" % (u, edge_notation, v, e_data))
+        else:
+            lines.append("  %s %s %s" % (u, edge_notation, v))
+    return lines
+
+
+class Graph(nx.Graph):
+    """A graph subclass with useful utility functions."""
+
+    def __init__(self, data=None, name=''):
+        super(Graph, self).__init__(name=name, data=data)
+        self.frozen = False
+
+    def freeze(self):
+        """Freezes the graph so that no more mutations can occur."""
+        if not self.frozen:
+            nx.freeze(self)
+        return self
+
+    def export_to_dot(self):
+        """Exports the graph to a dot format (requires pydot library)."""
+        return nx.to_pydot(self).to_string()
+
+    def pformat(self):
+        """Pretty formats your graph into a string."""
+        return os.linesep.join(_common_format(self, "<->"))
+
+
 class DiGraph(nx.DiGraph):
     """A directed graph subclass with useful utility functions."""
+
     def __init__(self, data=None, name=''):
         super(DiGraph, self).__init__(name=name, data=data)
         self.frozen = False
@@ -56,20 +97,7 @@ class DiGraph(nx.DiGraph):
         details about your graph, including; name, type, frozeness, node count,
         nodes, edge count, edges, graph density and graph cycles (if any).
         """
-        lines = []
-        lines.append("Name: %s" % self.name)
-        lines.append("Type: %s" % type(self).__name__)
-        lines.append("Frozen: %s" % nx.is_frozen(self))
-        lines.append("Nodes: %s" % self.number_of_nodes())
-        for n in self.nodes_iter():
-            lines.append("  - %s" % n)
-        lines.append("Edges: %s" % self.number_of_edges())
-        for (u, v, e_data) in self.edges_iter(data=True):
-            if e_data:
-                lines.append("  %s -> %s (%s)" % (u, v, e_data))
-            else:
-                lines.append("  %s -> %s" % (u, v))
-        lines.append("Density: %0.3f" % nx.density(self))
+        lines = _common_format(self, "->")
         cycles = list(nx.cycles.recursive_simple_cycles(self))
         lines.append("Cycles: %s" % len(cycles))
         for cycle in cycles:
@@ -120,6 +148,18 @@ class DiGraph(nx.DiGraph):
                 for pred_pred in self.predecessors_iter(pred):
                     if pred_pred not in visited:
                         queue.append(pred_pred)
+
+
+class OrderedDiGraph(DiGraph):
+    """A directed graph subclass with useful utility functions.
+
+    This derivative retains node, edge, insertation and iteration
+    ordering (so that the iteration order matches the insertation
+    order).
+    """
+    node_dict_factory = collections.OrderedDict
+    adjlist_dict_factory = collections.OrderedDict
+    edge_attr_dict_factory = collections.OrderedDict
 
 
 def merge_graphs(graph, *graphs, **kwargs):

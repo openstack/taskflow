@@ -15,6 +15,7 @@
 #    under the License.
 
 from taskflow import flow
+from taskflow.types import graph as gr
 
 
 class Flow(flow.Flow):
@@ -26,31 +27,29 @@ class Flow(flow.Flow):
 
     def __init__(self, name, retry=None):
         super(Flow, self).__init__(name, retry)
-        # NOTE(imelnikov): A unordered flow is unordered, so we use
-        # set instead of list to save children, children so that
-        # people using it don't depend on the ordering.
-        self._children = set()
+        self._graph = gr.Graph(name=name)
 
     def add(self, *items):
         """Adds a given task/tasks/flow/flows to this flow."""
-        self._children.update(items)
+        for item in items:
+            if not self._graph.has_node(item):
+                self._graph.add_node(item)
         return self
 
     def __len__(self):
-        return len(self._children)
+        return len(self._graph)
 
     def __iter__(self):
-        for child in self._children:
-            yield child
+        for item in self._graph:
+            yield item
 
     def iter_links(self):
-        # NOTE(imelnikov): children in unordered flow have no dependencies
-        # between each other due to invariants retained during construction.
-        return iter(())
+        for (u, v, e_data) in self._graph.edges_iter(data=True):
+            yield (u, v, e_data)
 
     def iter_nodes(self):
-        for n in self._children:
-            yield (n, {})
+        for n, n_data in self._graph.nodes_iter(data=True):
+            yield (n, n_data)
 
     @property
     def requires(self):
