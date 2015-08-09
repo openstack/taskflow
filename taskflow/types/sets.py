@@ -72,9 +72,7 @@ class OrderedSet(collections.Set, collections.Hashable):
 
     def copy(self):
         """Return a shallow copy of a set."""
-        it = iter(self)
-        c = self._from_iterable(it)
-        return c
+        return self._from_iterable(iter(self))
 
     def intersection(self, *sets):
         """Return the intersection of two or more sets as a new set.
@@ -91,9 +89,7 @@ class OrderedSet(collections.Set, collections.Hashable):
                         break
                 if matches == len(sets):
                     yield value
-        it = absorb_it(sets)
-        c = self._from_iterable(it)
-        return c
+        return self._from_iterable(absorb_it(sets))
 
     def issuperset(self, other):
         """Report whether this set contains another set."""
@@ -123,14 +119,11 @@ class OrderedSet(collections.Set, collections.Hashable):
                         break
                 if not seen:
                     yield value
-        it = absorb_it(sets)
-        c = self._from_iterable(it)
-        return c
+        return self._from_iterable(absorb_it(sets))
 
     def union(self, *sets):
         """Return the union of sets as a new set.
 
         (i.e. all elements that are in either set.)
         """
-        it = itertools.chain(iter(self), *sets)
-        return self._from_iterable(it)
+        return self._from_iterable(itertools.chain(iter(self), *sets))
