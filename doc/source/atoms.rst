@@ -29,6 +29,13 @@ it (they are *nearly* analogous to functions). These task objects all derive
 from :py:class:`~taskflow.task.BaseTask` which defines what a task must
 provide in terms of properties and methods.
 
+**For example:**
+
+.. image:: img/tasks.png
+   :width: 525px
+   :align: left
+   :alt: Task outline.
+
 Currently the following *provided* types of task subclasses are:
 
 * :py:class:`~taskflow.task.Task`: useful for inheriting from and creating your
