@@ -212,6 +212,31 @@ class GraphFlowTest(test.TestCase):
         f = gf.Flow('test').add(task1, task2)
         self.assertRaises(exc.DependencyFailure, f.add, task3)
 
+    def test_iter_nodes(self):
+        task1 = _task('task1', provides=['a'], requires=['c'])
+        task2 = _task('task2', provides=['b'], requires=['a'])
+        task3 = _task('task3', provides=['c'])
+        f1 = gf.Flow('nested')
+        f1.add(task3)
+        tasks = set([task1, task2, f1])
+        f = gf.Flow('test').add(task1, task2, f1)
+        for (n, data) in f.iter_nodes():
+            self.assertTrue(n in tasks)
+            self.assertDictEqual({}, data)
+
+    def test_iter_links(self):
+        task1 = _task('task1')
+        task2 = _task('task2')
+        task3 = _task('task3')
+        f1 = gf.Flow('nested')
+        f1.add(task3)
+        tasks = set([task1, task2, f1])
+        f = gf.Flow('test').add(task1, task2, f1)
+        for (u, v, data) in f.iter_links():
+            self.assertTrue(u in tasks)
+            self.assertTrue(v in tasks)
+            self.assertDictEqual({}, data)
+
 
 class TargetedGraphFlowTest(test.TestCase):
 

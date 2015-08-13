@@ -108,3 +108,21 @@ class UnorderedFlowTest(test.TestCase):
         self.assertEqual(ret.name, 'test_retry')
         self.assertEqual(f.requires, set([]))
         self.assertEqual(f.provides, set(['b', 'a']))
+
+    def test_iter_nodes(self):
+        task1 = _task(name='task1', provides=['a', 'b'])
+        task2 = _task(name='task2', provides=['a', 'c'])
+        tasks = set([task1, task2])
+        f = uf.Flow('test')
+        f.add(task2, task1)
+        for (node, data) in f.iter_nodes():
+            self.assertTrue(node in tasks)
+            self.assertDictEqual({}, data)
+
+    def test_iter_links(self):
+        task1 = _task(name='task1', provides=['a', 'b'])
+        task2 = _task(name='task2', provides=['a', 'c'])
+        f = uf.Flow('test')
+        f.add(task2, task1)
+        for (u, v, data) in f.iter_links():
+            raise AssertionError('links iterator should be empty')
