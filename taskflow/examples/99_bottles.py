@@ -20,6 +20,9 @@ import logging
 import os
 import sys
 import time
+import traceback
+
+from kazoo import client
 
 top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir,
@@ -201,14 +204,30 @@ def main_local():
     run_conductor(only_run_once=True)
 
 
+def check_for_zookeeper(timeout=1):
+    sys.stderr.write("Testing for the existence of a zookeeper server...\n")
+    sys.stderr.write("Please wait....\n")
+    with contextlib.closing(client.KazooClient()) as test_client:
+        try:
+            test_client.start(timeout=timeout)
+        except test_client.handler.timeout_exception:
+            sys.stderr.write("Zookeeper is needed for running this example!\n")
+            traceback.print_exc()
+            return False
+        else:
+            test_client.stop()
+            return True
+
+
 def main():
+    logging.basicConfig(level=logging.ERROR)
+    if not check_for_zookeeper():
+        return
     if len(sys.argv) == 1:
         main_local()
     elif sys.argv[1] in ('p', 'c'):
         if sys.argv[-1] == "v":
             logging.basicConfig(level=5)
-        else:
-            logging.basicConfig(level=logging.ERROR)
         if sys.argv[1] == 'p':
             run_poster()
         else:
