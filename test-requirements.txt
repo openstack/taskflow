@@ -23,7 +23,7 @@ redis>=2.10.0
 
 # Used for testing database persistence backends.
 SQLAlchemy<1.1.0,>=0.9.7
-alembic>=0.7.2
+alembic>=0.8.0
 psycopg2
 PyMySQL>=0.6.2 # MIT License
 
