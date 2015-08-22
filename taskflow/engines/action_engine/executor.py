@@ -35,7 +35,7 @@ from taskflow.types import failure
 from taskflow.types import notifier
 from taskflow.utils import threading_utils
 
-# Execution and reversion events.
+# Execution and reversion outcomes.
 EXECUTED = 'executed'
 REVERTED = 'reverted'
 

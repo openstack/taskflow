@@ -113,16 +113,16 @@ class Completer(object):
         self._retry_action = runtime.retry_action
         self._undefined_resolver = RevertAll(self._runtime)
 
-    def _complete_task(self, task, event, result):
+    def _complete_task(self, task, outcome, result):
         """Completes the given task, processes task failure."""
-        if event == ex.EXECUTED:
+        if outcome == ex.EXECUTED:
             self._task_action.complete_execution(task, result)
         else:
             self._task_action.complete_reversion(task, result)
 
-    def _complete_retry(self, retry, event, result):
+    def _complete_retry(self, retry, outcome, result):
         """Completes the given retry, processes retry failure."""
-        if event == ex.EXECUTED:
+        if outcome == ex.EXECUTED:
             self._retry_action.complete_execution(retry, result)
         else:
             self._retry_action.complete_reversion(retry, result)
@@ -149,18 +149,18 @@ class Completer(object):
                 unfinished_atoms.add(atom)
         return unfinished_atoms
 
-    def complete(self, node, event, result):
+    def complete(self, node, outcome, result):
         """Performs post-execution completion of a node.
 
         Returns whether the result should be saved into an accumulator of
         failures or whether this should not be done.
         """
         if isinstance(node, task_atom.BaseTask):
-            self._complete_task(node, event, result)
+            self._complete_task(node, outcome, result)
         else:
-            self._complete_retry(node, event, result)
+            self._complete_retry(node, outcome, result)
         if isinstance(result, failure.Failure):
-            if event == ex.EXECUTED:
+            if outcome == ex.EXECUTED:
                 self._process_atom_failure(node, result)
             else:
                 # Reverting failed, always retain the failure...
