@@ -87,7 +87,7 @@ def check_job_transition(old_state, new_state):
 
 
 # Flow state transitions
-# See: http://docs.openstack.org/developer/taskflow/states.html
+# See: http://docs.openstack.org/developer/taskflow/states.html#flow
 
 _ALLOWED_FLOW_TRANSITIONS = frozenset((
     (PENDING, RUNNING),       # run it!
