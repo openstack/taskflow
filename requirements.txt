@@ -3,7 +3,7 @@
 # process, which may cause wedges in the gate later.
 
 # See: https://bugs.launchpad.net/pbr/+bug/1384919 for why this is here...
-pbr<2.0,>=1.4
+pbr<2.0,>=1.6
 
 # Packages needed for using this library.
 
