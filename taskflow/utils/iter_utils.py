@@ -16,10 +16,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import itertools
+
 
 def count(it):
     """Returns how many values in the iterator (depletes the iterator)."""
     return sum(1 for _value in it)
+
+
+def unique_seen(it, *its):
+    """Yields unique values from iterator(s) (and retains order)."""
+    seen = set()
+    for value in itertools.chain(it, *its):
+        if value in seen:
+            continue
+        else:
+            yield value
+            seen.add(value)
 
 
 def find_first_match(it, matcher, not_found_value=None):

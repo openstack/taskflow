@@ -16,6 +16,7 @@
 
 import functools
 
+from taskflow.engines.action_engine import compiler
 from taskflow import exceptions as exc
 from taskflow import states
 from taskflow.types import tree
@@ -45,7 +46,8 @@ def _fetch_predecessor_tree(graph, atom):
     while stack:
         parent, node = stack.pop()
         for pred_node in graph.predecessors_iter(node):
-            child = tree.Node(pred_node)
+            child = tree.Node(pred_node,
+                              **graph.node[pred_node])
             parent.add(child)
             stack.append((child, pred_node))
             seen.add(pred_node)
@@ -62,8 +64,13 @@ class FailureFormatter(object):
     def __init__(self, engine, hide_inputs_outputs_of=()):
         self._hide_inputs_outputs_of = hide_inputs_outputs_of
         self._engine = engine
+        self._formatter_funcs = {
+            compiler.FLOW: self._format_flow,
+        }
+        for kind in compiler.ATOMS:
+            self._formatter_funcs[kind] = self._format_atom
 
-    def _format_node(self, storage, cache, node):
+    def _format_atom(self, storage, cache, node):
         """Formats a single tree node (atom) into a string version."""
         atom = node.item
         atom_name = atom.name
@@ -100,6 +107,16 @@ class FailureFormatter(object):
             return "Atom '%s' %s" % (atom_name, atom_attrs)
         else:
             return "Atom '%s'" % (atom_name)
+
+    def _format_flow(self, storage, cache, node):
+        """Formats a single tree node (flow) into a string version."""
+        flow = node.item
+        return flow.name
+
+    def _format_node(self, storage, cache, node):
+        """Formats a single tree node into a string version."""
+        formatter_func = self. _formatter_funcs[node.metadata['kind']]
+        return formatter_func(storage, cache, node)
 
     def format(self, fail, atom_matcher):
         """Returns a (exc_info, details) tuple about the failure.

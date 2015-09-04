@@ -37,18 +37,19 @@ class BuildersTest(test.TestCase):
         compilation = compiler.PatternCompiler(flow).compile()
         flow_detail = pu.create_flow_detail(flow)
         store = storage.Storage(flow_detail)
-        # This ensures the tasks exist in storage...
-        for task in compilation.execution_graph:
-            store.ensure_atom(task)
+        nodes_iter = compilation.execution_graph.nodes_iter(data=True)
+        for node, node_attrs in nodes_iter:
+            if node_attrs['kind'] in ('task', 'retry'):
+                store.ensure_atom(node)
         if initial_state:
             store.set_flow_state(initial_state)
-        task_notifier = notifier.Notifier()
+        atom_notifier = notifier.Notifier()
         task_executor = executor.SerialTaskExecutor()
         retry_executor = executor.SerialRetryExecutor()
         task_executor.start()
         self.addCleanup(task_executor.stop)
         r = runtime.Runtime(compilation, store,
-                            task_notifier, task_executor,
+                            atom_notifier, task_executor,
                             retry_executor)
         r.compile()
         return r
@@ -305,6 +306,6 @@ class BuildersTest(test.TestCase):
         self.assertEqual(1, occurrences.get((builder.GAME_OVER, st.SUCCESS)))
         self.assertEqual(1, occurrences.get((builder.UNDEFINED, st.RESUMING)))
 
-        self.assertEqual(0, len(memory.next_nodes))
+        self.assertEqual(0, len(memory.next_up))
         self.assertEqual(0, len(memory.not_done))
         self.assertEqual(0, len(memory.failures))
