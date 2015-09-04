@@ -136,9 +136,13 @@ class Connection(path_based.PathBasedConnection):
             shutil.rmtree(path)
 
     def _get_children(self, path):
+        if path == self.book_path:
+            filter_func = os.path.isdir
+        else:
+            filter_func = os.path.islink
         with _storagefailure_wrapper():
-            return [link for link in os.listdir(path)
-                    if os.path.islink(self._join_path(path, link))]
+            return [child for child in os.listdir(path)
+                    if filter_func(self._join_path(path, child))]
 
     def _ensure_path(self, path):
         with _storagefailure_wrapper():
