@@ -60,6 +60,14 @@ class StrEnum(str, enum.Enum):
         return super(StrEnum, cls).__new__(cls, *args, **kwargs)
 
 
+class StringIO(six.StringIO):
+    """String buffer with some small additions."""
+
+    def write_nl(self, value, linesep=os.linesep):
+        self.write(value)
+        self.write(linesep)
+
+
 def match_type(obj, matchers):
     """Matches a given object using the given matchers list/iterable.
 
