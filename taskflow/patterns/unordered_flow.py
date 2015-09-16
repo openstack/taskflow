@@ -48,6 +48,10 @@ class Flow(flow.Flow):
         # between each other due to invariants retained during construction.
         return iter(())
 
+    def iter_nodes(self):
+        for n in self._children:
+            yield (n, {})
+
     @property
     def requires(self):
         requires = set()

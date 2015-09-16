@@ -60,3 +60,7 @@ class Flow(flow.Flow):
     def iter_links(self):
         for src, dst in zip(self._children[:-1], self._children[1:]):
             yield (src, dst, _LINK_METADATA.copy())
+
+    def iter_nodes(self):
+        for n in self._children:
+            yield (n, {})

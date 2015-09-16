@@ -98,6 +98,15 @@ class Flow(object):
             * ``meta`` is link metadata, a dictionary.
         """
 
+    @abc.abstractmethod
+    def iter_nodes(self):
+        """Iterate over nodes of the flow.
+
+        Iterates over 2-tuples ``(A, meta)``, where
+            * ``A`` is a child (atom or subflow) of current flow;
+            * ``meta`` is link metadata, a dictionary.
+        """
+
     def __str__(self):
         return "%s: %s(len=%d)" % (reflection.get_class_name(self),
                                    self.name, len(self))
