@@ -79,18 +79,15 @@ class FailureFormatter(object):
         if state_found:
             atom_attrs['state'] = state
         if atom_name not in self._hide_inputs_outputs_of:
+            # When the cache does not exist for this atom this
+            # will be called with the rest of these arguments
+            # used to populate the cache.
+            fetch_mapped_args = functools.partial(
+                storage.fetch_mapped_args, atom.rebind,
+                atom_name=atom_name, optional_args=atom.optional)
             requires, requires_found = _cached_get(cache, 'requires',
                                                    atom_name,
-                                                   # When the cache does not
-                                                   # exist for this atom this
-                                                   # will be called with the
-                                                   # rest of these arguments
-                                                   # used to populate the
-                                                   # cache.
-                                                   storage.fetch_mapped_args,
-                                                   atom.rebind,
-                                                   atom_name=atom_name,
-                                                   optional_args=atom.optional)
+                                                   fetch_mapped_args)
             if requires_found:
                 atom_attrs['requires'] = requires
             provides, provides_found = _cached_get(cache, 'provides',
