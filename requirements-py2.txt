@@ -26,5 +26,5 @@ futures>=2.1.6
 jsonschema<3.0.0,>=2.0.0
 
 # For common utilities
-oslo.utils<1.5.0,>=1.4.0 # Apache-2.0
+oslo.utils!=1.4.1,<1.5.0,>=1.4.0 # Apache-2.0
 oslo.serialization<1.5.0,>=1.4.0 # Apache-2.0
