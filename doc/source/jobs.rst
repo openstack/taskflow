@@ -48,9 +48,14 @@ Jobboards
 High level architecture
 =======================
 
-.. image:: img/jobboard.png
+.. figure:: img/jobboard.png
    :height: 350px
    :align: right
+
+   **Note:** This diagram shows the high-level diagram (and further
+   parts of this documentation also refer to it as well) of the zookeeper
+   implementation (other implementations will typically have
+   different architectures).
 
 Features
 ========
