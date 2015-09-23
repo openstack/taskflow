@@ -12,7 +12,7 @@ if [ ! -d "$PWD/.diagram-tools" ]; then
     git clone "https://github.com/vidarh/diagram-tools.git" "$PWD/.diagram-tools"
 fi
 
-script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 img_dir="$script_dir/../doc/source/img"
 
 echo "---- Updating task state diagram ----"
