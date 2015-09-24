@@ -55,7 +55,7 @@ AUTHORS
 ChangeLog
 
 # doc
-doc/_build/
+doc/build/
 
 .idea
 env
