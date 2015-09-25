@@ -104,8 +104,8 @@ projects, frameworks and libraries.
 
    shelf
 
-History
--------
+Release notes
+-------------
 
 .. toctree::
    :maxdepth: 2
