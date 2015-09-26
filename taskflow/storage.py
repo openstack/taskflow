@@ -385,10 +385,12 @@ class Storage(object):
 
     @fasteners.read_locked
     def get_atoms_states(self, atom_names):
-        """Gets all atoms states given a set of names."""
-        return dict((name, (self.get_atom_state(name),
-                            self.get_atom_intention(name)))
-                    for name in atom_names)
+        """Gets a dict of atom name => (state, intention) given atom names."""
+        details = {}
+        for name in set(atom_names):
+            source, _clone = self._atomdetail_by_name(name)
+            details[name] = (source.state, source.intention)
+        return details
 
     @fasteners.write_locked
     def _update_atom_metadata(self, atom_name, update_with,
