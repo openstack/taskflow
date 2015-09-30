@@ -86,7 +86,7 @@ class Failure(mixins.StrMixin):
     re-used later to re-raise, inspect, examine, log, print, serialize,
     deserialize...
 
-    One example where they are dependened upon is in the WBE engine. When a
+    One example where they are depended upon is in the WBE engine. When a
     remote worker throws an exception, the WBE based engine will receive that
     exception and desire to reraise it to the user/caller of the WBE based
     engine for appropriate handling (this matches the behavior of non-remote
