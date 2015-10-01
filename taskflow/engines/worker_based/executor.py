@@ -95,8 +95,8 @@ class WorkerTaskExecutor(executor.TaskExecutor):
             request = self._requests_cache.get(task_uuid)
             if request is not None:
                 response = pr.Response.from_dict(response)
-                LOG.debug("Response with state '%s' received for '%s'",
-                          response.state, request)
+                LOG.debug("Extracted response '%s' and matched it to"
+                          " request '%s'", response, request)
                 if response.state == pr.RUNNING:
                     request.transition_and_log_error(pr.RUNNING, logger=LOG)
                 elif response.state == pr.EVENT:
