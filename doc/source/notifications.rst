@@ -183,7 +183,7 @@ Capturing listener
 Formatters
 ----------
 
-.. automodule:: taskflow.listeners.formatters
+.. automodule:: taskflow.formatters
 
 Hierarchy
 =========
