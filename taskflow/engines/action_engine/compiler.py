@@ -17,16 +17,15 @@
 import threading
 
 import fasteners
+from oslo_utils import excutils
 import six
 
-from taskflow import exceptions as exc
 from taskflow import flow
 from taskflow import logging
 from taskflow import task
 from taskflow.types import graph as gr
 from taskflow.types import tree as tr
 from taskflow.utils import iter_utils
-from taskflow.utils import misc
 
 from taskflow.flow import (LINK_INVARIANT, LINK_RETRY)  # noqa
 
@@ -322,24 +321,26 @@ class PatternCompiler(object):
 
     def _post_compile(self, graph, node):
         """Called after the compilation of the root finishes successfully."""
-        dup_names = misc.get_duplicate_keys(
-            (node for node, node_attrs in graph.nodes_iter(data=True)
-             if node_attrs['kind'] in ATOMS),
-            key=lambda node: node.name)
-        if dup_names:
-            raise exc.Duplicate(
-                "Atoms with duplicate names found: %s" % (sorted(dup_names)))
         self._history.clear()
+        self._level = 0
 
     @fasteners.locked
     def compile(self):
         """Compiles the contained item into a compiled equivalent."""
         if self._compilation is None:
             self._pre_compile()
-            graph, node = self._compile(self._root, parent=None)
-            self._post_compile(graph, node)
-            if self._freeze:
-                graph.freeze()
-                node.freeze()
-            self._compilation = Compilation(graph, node)
+            try:
+                graph, node = self._compile(self._root, parent=None)
+            except Exception:
+                with excutils.save_and_reraise_exception():
+                    # Always clear the history, to avoid retaining junk
+                    # in memory that isn't needed to be in memory if
+                    # compilation fails...
+                    self._history.clear()
+            else:
+                self._post_compile(graph, node)
+                if self._freeze:
+                    graph.freeze()
+                    node.freeze()
+                self._compilation = Compilation(graph, node)
         return self._compilation

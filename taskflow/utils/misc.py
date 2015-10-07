@@ -35,7 +35,6 @@ from oslo_utils import importutils
 from oslo_utils import netutils
 from oslo_utils import reflection
 import six
-from six.moves import map as compat_map
 from six.moves import range as compat_range
 
 from taskflow.types import failure
@@ -451,18 +450,6 @@ def sequence_minus(seq1, seq2):
         except ValueError:
             pass
     return result
-
-
-def get_duplicate_keys(iterable, key=None):
-    if key is not None:
-        iterable = compat_map(key, iterable)
-    keys = set()
-    duplicates = set()
-    for item in iterable:
-        if item in keys:
-            duplicates.add(item)
-        keys.add(item)
-    return duplicates
 
 
 class ExponentialBackoff(object):

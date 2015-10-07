@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from taskflow import engines
 from taskflow.engines.action_engine import compiler
 from taskflow import exceptions as exc
 from taskflow.patterns import graph_flow as gf
@@ -399,17 +400,19 @@ class PatternCompileTest(test.TestCase):
             test_utils.DummyTask(name="a"),
             test_utils.DummyTask(name="a")
         )
+        e = engines.load(flo)
         self.assertRaisesRegexp(exc.Duplicate,
                                 '^Atoms with duplicate names',
-                                compiler.PatternCompiler(flo).compile)
+                                e.compile)
 
     def test_checks_for_dups_globally(self):
         flo = gf.Flow("test").add(
             gf.Flow("int1").add(test_utils.DummyTask(name="a")),
             gf.Flow("int2").add(test_utils.DummyTask(name="a")))
+        e = engines.load(flo)
         self.assertRaisesRegexp(exc.Duplicate,
                                 '^Atoms with duplicate names',
-                                compiler.PatternCompiler(flo).compile)
+                                e.compile)
 
     def test_retry_in_linear_flow(self):
         flo = lf.Flow("test", retry.AlwaysRevert("c"))

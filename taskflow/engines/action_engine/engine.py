@@ -222,6 +222,24 @@ class ActionEngine(base.Engine):
                             six.itervalues(self.storage.get_revert_failures()))
                         failure.Failure.reraise_if_any(it)
 
+    @staticmethod
+    def _check_compilation(compilation):
+        """Performs post compilation validation/checks."""
+        seen = set()
+        dups = set()
+        execution_graph = compilation.execution_graph
+        for node, node_attrs in execution_graph.nodes_iter(data=True):
+            if node_attrs['kind'] in compiler.ATOMS:
+                atom_name = node.name
+                if atom_name in seen:
+                    dups.add(atom_name)
+                else:
+                    seen.add(atom_name)
+        if dups:
+            raise exc.Duplicate(
+                "Atoms with duplicate names found: %s" % (sorted(dups)))
+        return compilation
+
     def _change_state(self, state):
         with self._state_lock:
             old_state = self.storage.get_flow_state()
@@ -318,8 +336,7 @@ class ActionEngine(base.Engine):
     def compile(self):
         if self._compiled:
             return
-        self._compilation = self._compiler.compile()
-
+        self._compilation = self._check_compilation(self._compiler.compile())
         self._runtime = runtime.Runtime(self._compilation,
                                         self.storage,
                                         self.atom_notifier,
