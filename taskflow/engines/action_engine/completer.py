@@ -26,7 +26,6 @@ from taskflow.engines.action_engine import executor as ex
 from taskflow import logging
 from taskflow import retry as retry_atom
 from taskflow import states as st
-from taskflow import task as task_atom
 from taskflow.types import failure
 
 LOG = logging.getLogger(__name__)
@@ -110,25 +109,9 @@ class Completer(object):
         self._runtime = weakref.proxy(runtime)
         self._analyzer = runtime.analyzer
         self._storage = runtime.storage
-        self._task_action = runtime.task_action
-        self._retry_action = runtime.retry_action
         self._undefined_resolver = RevertAll(self._runtime)
         self._defer_reverts = strutils.bool_from_string(
             self._runtime.options.get('defer_reverts', False))
-
-    def _complete_task(self, task, outcome, result):
-        """Completes the given task, processes task failure."""
-        if outcome == ex.EXECUTED:
-            self._task_action.complete_execution(task, result)
-        else:
-            self._task_action.complete_reversion(task, result)
-
-    def _complete_retry(self, retry, outcome, result):
-        """Completes the given retry, processes retry failure."""
-        if outcome == ex.EXECUTED:
-            self._retry_action.complete_execution(retry, result)
-        else:
-            self._retry_action.complete_reversion(retry, result)
 
     def resume(self):
         """Resumes atoms in the contained graph.
@@ -165,10 +148,11 @@ class Completer(object):
         Returns whether the result should be saved into an accumulator of
         failures or whether this should not be done.
         """
-        if isinstance(node, task_atom.BaseTask):
-            self._complete_task(node, outcome, result)
+        handler = self._runtime.fetch_action(node)
+        if outcome == ex.EXECUTED:
+            handler.complete_execution(node, result)
         else:
-            self._complete_retry(node, outcome, result)
+            handler.complete_reversion(node, result)
         if isinstance(result, failure.Failure):
             if outcome == ex.EXECUTED:
                 self._process_atom_failure(node, result)
@@ -182,7 +166,8 @@ class Completer(object):
         retry = self._analyzer.find_retry(atom)
         if retry is not None:
             # Ask retry controller what to do in case of failure.
-            strategy = self._retry_action.on_failure(retry, atom, failure)
+            handler = self._runtime.fetch_action(retry)
+            strategy = handler.on_failure(retry, atom, failure)
             if strategy == retry_atom.RETRY:
                 return RevertAndRetry(self._runtime, retry)
             elif strategy == retry_atom.REVERT:

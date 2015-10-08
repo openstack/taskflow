@@ -101,6 +101,10 @@ class Runtime(object):
             com.TASK: st.check_task_transition,
             com.RETRY: st.check_retry_transition,
         }
+        actions = {
+            com.TASK: self.task_action,
+            com.RETRY: self.retry_action,
+        }
         graph = self._compilation.execution_graph
         for node, node_data in graph.nodes_iter(data=True):
             node_kind = node_data['kind']
@@ -110,6 +114,7 @@ class Runtime(object):
                 check_transition_handler = check_transition_handlers[node_kind]
                 change_state_handler = change_state_handlers[node_kind]
                 scheduler = schedulers[node_kind]
+                action = actions[node_kind]
             else:
                 raise exc.CompilationFailure("Unknown node kind '%s'"
                                              " encountered" % node_kind)
@@ -121,6 +126,7 @@ class Runtime(object):
             metadata['change_state_handler'] = change_state_handler
             metadata['scheduler'] = scheduler
             metadata['edge_deciders'] = tuple(deciders_it)
+            metadata['action'] = action
             self._atom_cache[node.name] = metadata
 
     @property
@@ -196,6 +202,11 @@ class Runtime(object):
         # internally to the engine, and is not exposed to atoms that will
         # not exist and therefore doesn't need to handle that case).
         return self._fetch_atom_metadata_entry(atom.name, 'scheduler')
+
+    def fetch_action(self, atom):
+        """Fetches the cached action handler for the given atom."""
+        metadata = self._atom_cache[atom.name]
+        return metadata['action']
 
     def fetch_scopes_for(self, atom_name):
         """Fetches a walker of the visible scopes for the given atom."""
