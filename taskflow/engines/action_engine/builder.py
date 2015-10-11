@@ -196,8 +196,8 @@ class MachineBuilder(object):
                 fut = memory.done.pop()
                 atom = fut.atom
                 try:
-                    event, result = fut.result()
-                    retain = do_complete(atom, event, result)
+                    outcome, result = fut.result()
+                    retain = do_complete(atom, outcome, result)
                     if isinstance(result, failure.Failure):
                         if retain:
                             memory.failures.append(result)
@@ -211,10 +211,10 @@ class MachineBuilder(object):
                                 intention = self._storage.get_atom_intention(
                                     atom.name)
                                 LOG.debug("Discarding failure '%s' (in"
-                                          " response to event '%s') under"
+                                          " response to outcome '%s') under"
                                           " completion units request during"
                                           " completion of atom '%s' (intention"
-                                          " is to %s)", result, event,
+                                          " is to %s)", result, outcome,
                                           atom, intention)
                 except Exception:
                     memory.failures.append(failure.Failure())
