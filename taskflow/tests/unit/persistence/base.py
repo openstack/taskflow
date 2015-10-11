@@ -69,6 +69,27 @@ class PersistenceTestMixin(object):
         self.assertIsNotNone(lb2.find(fd.uuid))
         self.assertIsNotNone(lb2.find(fd2.uuid))
 
+    def test_logbook_save_retrieve_many(self):
+        lb_ids = {}
+        for i in range(0, 10):
+            lb_id = uuidutils.generate_uuid()
+            lb_name = 'lb-%s-%s' % (i, lb_id)
+            lb = models.LogBook(name=lb_name, uuid=lb_id)
+            lb_ids[lb_id] = True
+
+            # Should not already exist
+            with contextlib.closing(self._get_connection()) as conn:
+                self.assertRaises(exc.NotFound, conn.get_logbook, lb_id)
+                conn.save_logbook(lb)
+
+        # Now fetch them all
+        with contextlib.closing(self._get_connection()) as conn:
+            lbs = conn.get_logbooks()
+            for lb in lbs:
+                self.assertIn(lb.uuid, lb_ids)
+                lb_ids.pop(lb.uuid)
+            self.assertEqual(0, len(lb_ids))
+
     def test_logbook_save_retrieve(self):
         lb_id = uuidutils.generate_uuid()
         lb_meta = {'1': 2}
