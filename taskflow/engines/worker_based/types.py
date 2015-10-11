@@ -206,18 +206,18 @@ class ProxyWorkerFinder(WorkerFinder):
         self._workers[topic] = worker
         return (worker, True)
 
-    def _process_response(self, response, message):
-        """Process notify message from remote side."""
-        LOG.debug("Started processing notify message '%s'",
+    def _process_response(self, data, message):
+        """Process notify message sent from remote side."""
+        LOG.debug("Started processing notify response message '%s'",
                   ku.DelayedPretty(message))
-        topic = response['topic']
-        tasks = response['tasks']
+        response = pr.Notify(**data)
+        LOG.debug("Extracted notify response '%s'", response)
         with self._cond:
-            worker, new_or_updated = self._add(topic, tasks)
+            worker, new_or_updated = self._add(response.topic,
+                                               response.tasks)
             if new_or_updated:
-                LOG.debug("Received notification about worker '%s' (%s"
-                          " total workers are currently known)", worker,
-                          self._total_workers())
+                LOG.debug("Updated worker '%s' (%s total workers are"
+                          " currently known)", worker, self._total_workers())
                 self._cond.notify_all()
         if new_or_updated:
             self.notifier.notify(self.WORKER_ARRIVED, {'worker': worker})

@@ -104,9 +104,10 @@ LOG = logging.getLogger(__name__)
 class Message(object):
     """Base class for all message types."""
 
-    def __str__(self):
-        cls_name = reflection.get_class_name(self, fully_qualified=False)
-        return "<%s> %s" % (cls_name, self.to_dict())
+    def __repr__(self):
+        return ("<%s object at 0x%x with contents %s>"
+                % (reflection.get_class_name(self, fully_qualified=False),
+                   id(self), self.to_dict()))
 
     @abc.abstractmethod
     def to_dict(self):
@@ -149,6 +150,14 @@ class Notify(Message):
 
     def __init__(self, **data):
         self._data = data
+
+    @property
+    def topic(self):
+        return self._data.get('topic')
+
+    @property
+    def tasks(self):
+        return self._data.get('tasks')
 
     def to_dict(self):
         return self._data
