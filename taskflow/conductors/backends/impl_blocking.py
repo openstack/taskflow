@@ -11,6 +11,10 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+import os
+import socket
+
 import threading
 
 try:
@@ -25,6 +29,7 @@ from taskflow.conductors import base
 from taskflow import exceptions as excp
 from taskflow.listeners import logging as logging_listener
 from taskflow import logging
+from taskflow.types import entity
 from taskflow.types import timing as tt
 from taskflow.utils import async_utils
 from taskflow.utils import iter_utils
@@ -159,8 +164,29 @@ class BlockingConductor(base.Conductor):
                 LOG.info("Job completed successfully: %s", job)
             return async_utils.make_completed_future(consume)
 
+    def _get_conductor_info(self):
+        """For right now we just register the conductor name as:
+
+        <conductor_name>@<hostname>:<process_pid>
+
+        """
+        hostname = socket.gethostname()
+        pid = os.getpid()
+        name = '@'.join([
+            self._name, hostname+":"+str(pid)])
+        # Can add a lot more information here,
+        metadata = {
+            "hostname": hostname,
+            "pid": pid
+        }
+
+        return entity.Entity("conductor", name, metadata)
+
     def run(self, max_dispatches=None):
         self._dead.clear()
+
+        # Register a conductor type entity
+        self._jobboard.register_entity(self._get_conductor_info())
 
         total_dispatched = 0
         try:

@@ -236,6 +236,10 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     #: Znode child path created under root path that contains trashed jobs.
     TRASH_FOLDER = ".trash"
 
+    #: Znode child path created under root path that contains registered
+    #: entities.
+    ENTITY_FOLDER = ".entities"
+
     #: Znode **prefix** that job entries have.
     JOB_PREFIX = 'job'
 
@@ -259,6 +263,9 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         self._path = path
         self._trash_path = self._path.replace(k_paths.basename(self._path),
                                               self.TRASH_FOLDER)
+        self._entity_path = self._path.replace(
+            k_paths.basename(self._path),
+            self.ENTITY_FOLDER)
         # The backend to load the full logbooks from, since what is sent over
         # the data connection is only the logbook uuid and name, and not the
         # full logbook.
@@ -299,6 +306,11 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     def trash_path(self):
         """Path where all trashed job znodes will be stored."""
         return self._trash_path
+
+    @property
+    def entity_path(self):
+        """Path where all conductor info znodes will be stored."""
+        return self._entity_path
 
     @property
     def job_count(self):
@@ -551,6 +563,22 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         job_data, job_stat = self._client.get(job.path)
         return (misc.decode_json(lock_data), lock_stat,
                 misc.decode_json(job_data), job_stat)
+
+    def register_entity(self, entity):
+        entity_type = entity.kind
+        if entity_type == 'conductor':
+            entity_path = k_paths.join(self.entity_path, entity_type)
+            self._client.ensure_path(entity_path)
+
+            conductor_name = entity.name
+            self._client.create(k_paths.join(entity_path,
+                                             conductor_name),
+                                value=misc.binary_encode(
+                                    jsonutils.dumps(entity.to_dict())),
+                                ephemeral=True)
+        else:
+            raise excp.NotImplementedError(
+                "Not implemented for other entity type '%s'" % entity_type)
 
     @base.check_who
     def consume(self, job, who):

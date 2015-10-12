@@ -17,6 +17,11 @@ Cache
 
 .. automodule:: taskflow.types.cache
 
+Entity
+======
+
+.. automodule:: taskflow.types.entity
+
 Failure
 =======
 

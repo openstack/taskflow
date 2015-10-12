@@ -808,6 +808,10 @@ return cmsgpack.pack(result)
             ensure_fresh=ensure_fresh,
             board_fetch_func=lambda ensure_fresh: self._fetch_jobs())
 
+    def register_entity(self, entity):
+        # Will implement a redis jobboard conductor register later
+        pass
+
     @base.check_who
     def consume(self, job, who):
         script = self._get_script('consume')
