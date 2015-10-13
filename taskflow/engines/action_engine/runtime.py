@@ -223,5 +223,6 @@ class Runtime(object):
         subgraph (its successors) to the ``PENDING`` state with an ``EXECUTE``
         intention.
         """
-        self.storage.set_atom_intention(retry.name, st.EXECUTE)
-        self.reset_subgraph(retry)
+        tweaked = self.reset_atoms([retry], state=None, intention=st.EXECUTE)
+        tweaked.extend(self.reset_subgraph(retry))
+        return tweaked

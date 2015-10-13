@@ -138,14 +138,21 @@ class Completer(object):
         atoms that were previously not finished (due to a RUNNING or REVERTING
         attempt not previously finishing).
         """
-        for atom in self._analyzer.iterate_nodes(co.ATOMS):
-            if self._analyzer.get_state(atom) == st.FAILURE:
+        atoms = list(self._analyzer.iterate_nodes(co.ATOMS))
+        atom_states = self._storage.get_atoms_states(atom.name
+                                                     for atom in atoms)
+        for atom in atoms:
+            atom_state = atom_states[atom.name][0]
+            if atom_state == st.FAILURE:
                 self._process_atom_failure(atom, self._storage.get(atom.name))
         for retry in self._analyzer.iterate_retries(st.RETRYING):
-            self._runtime.retry_subflow(retry)
+            for atom, state, intention in self._runtime.retry_subflow(retry):
+                if state:
+                    atom_states[atom.name] = (state, intention)
         unfinished_atoms = set()
-        for atom in self._analyzer.iterate_nodes(co.ATOMS):
-            if self._analyzer.get_state(atom) in (st.RUNNING, st.REVERTING):
+        for atom in atoms:
+            atom_state = atom_states[atom.name][0]
+            if atom_state in (st.RUNNING, st.REVERTING):
                 unfinished_atoms.add(atom)
         return unfinished_atoms
 

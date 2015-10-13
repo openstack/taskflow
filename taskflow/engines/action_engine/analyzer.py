@@ -131,7 +131,7 @@ class Analyzer(object):
         if atom is None:
             return iter_utils.unique_seen(self.browse_atoms_for_execute(),
                                           self.browse_atoms_for_revert())
-        state = self.get_state(atom)
+        state = self._storage.get_atom_state(atom.name)
         intention = self._storage.get_atom_intention(atom.name)
         if state == st.SUCCESS:
             if intention == st.REVERT:
@@ -191,7 +191,7 @@ class Analyzer(object):
     def _get_maybe_ready(self, atom, transition_to, allowed_intentions,
                          connected_fetcher, connected_checker,
                          decider_fetcher):
-        state = self.get_state(atom)
+        state = self._storage.get_atom_state(atom.name)
         ok_to_transition = self._runtime.check_atom_transition(atom, state,
                                                                transition_to)
         if not ok_to_transition:
@@ -257,8 +257,15 @@ class Analyzer(object):
 
         If no state is provided it will yield back all retry atoms.
         """
-        for atom in self.iterate_nodes((co.RETRY,)):
-            if not state or self.get_state(atom) == state:
+        if state:
+            atoms = list(self.iterate_nodes((co.RETRY,)))
+            atom_states = self._storage.get_atoms_states(atom.name
+                                                         for atom in atoms)
+            for atom in atoms:
+                if atom_states[atom.name][0] == state:
+                    yield atom
+        else:
+            for atom in self.iterate_nodes((co.RETRY,)):
                 yield atom
 
     def iterate_nodes(self, allowed_kinds):
@@ -273,14 +280,13 @@ class Analyzer(object):
 
     def is_success(self):
         """Checks if all atoms in the execution graph are in 'happy' state."""
-        for atom in self.iterate_nodes(co.ATOMS):
-            atom_state = self.get_state(atom)
+        atoms = list(self.iterate_nodes(co.ATOMS))
+        atom_states = self._storage.get_atoms_states(atom.name
+                                                     for atom in atoms)
+        for atom in atoms:
+            atom_state = atom_states[atom.name][0]
             if atom_state == st.IGNORE:
                 continue
             if atom_state != st.SUCCESS:
                 return False
         return True
-
-    def get_state(self, atom):
-        """Gets the state of a given atom (from the backend storage unit)."""
-        return self._storage.get_atom_state(atom.name)
