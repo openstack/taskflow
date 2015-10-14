@@ -121,6 +121,34 @@ class BlockingConductorTest(test_utils.EngineTestBase, test.TestCase):
         self.assertIsNotNone(fd)
         self.assertEqual(st.SUCCESS, fd.state)
 
+    def test_run_max_dispatches(self):
+        components = self.make_components()
+        components.conductor.connect()
+        consumed_event = threading.Event()
+
+        def on_consume(state, details):
+            consumed_event.set()
+
+        components.board.notifier.register(base.REMOVAL, on_consume)
+        with close_many(components.client, components.conductor):
+            t = threading_utils.daemon_thread(
+                lambda: components.conductor.run(max_dispatches=5))
+            t.start()
+            lb, fd = pu.temporary_flow_detail(components.persistence)
+            engines.save_factory_details(fd, test_factory,
+                                         [False], {},
+                                         backend=components.persistence)
+            for _ in range(5):
+                components.board.post('poke', lb,
+                                      details={'flow_uuid': fd.uuid})
+                self.assertTrue(consumed_event.wait(
+                    test_utils.WAIT_TIMEOUT))
+            components.board.post('poke', lb,
+                                  details={'flow_uuid': fd.uuid})
+            components.conductor.stop()
+            self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
+            self.assertFalse(components.conductor.dispatching)
+
     def test_fail_run(self):
         components = self.make_components()
         components.conductor.connect()

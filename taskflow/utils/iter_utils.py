@@ -17,6 +17,7 @@
 #    under the License.
 
 import itertools
+from six.moves import range as compat_range
 
 
 def count(it):
@@ -53,3 +54,17 @@ def while_is_not(it, stop_value):
         yield value
         if value is stop_value:
             break
+
+
+def iter_forever(limit):
+    """Yields values from iterator until a limit is reached.
+
+    if limit is negative, we iterate forever.
+    """
+    if limit < 0:
+        i = itertools.count()
+        while True:
+            yield next(i)
+    else:
+        for i in compat_range(0, limit):
+            yield i
