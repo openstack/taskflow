@@ -467,23 +467,37 @@ CEO
         self.assertEqual(set(['animal', 'reptile', 'mammal', 'horse',
                               'primate', 'monkey', 'human']), set(things))
 
-    def test_dfs_itr_order(self):
+    def test_dfs_itr_left_to_right(self):
         root = self._make_species()
-        things = list([n.item for n in root.dfs_iter(include_self=True)])
-        self.assertEqual(['animal', 'mammal', 'horse', 'primate',
-                          'monkey', 'human', 'reptile'], things)
+        it = root.dfs_iter(include_self=False, right_to_left=False)
+        things = list([n.item for n in it])
+        self.assertEqual(['reptile', 'mammal', 'primate',
+                          'human', 'monkey', 'horse'], things)
+
+    def test_dfs_itr_no_self(self):
+        root = self._make_species()
         things = list([n.item for n in root.dfs_iter(include_self=False)])
         self.assertEqual(['mammal', 'horse', 'primate',
                           'monkey', 'human', 'reptile'], things)
 
-    def test_bfs_iter(self):
+    def test_bfs_itr(self):
         root = self._make_species()
         things = list([n.item for n in root.bfs_iter(include_self=True)])
         self.assertEqual(['animal', 'reptile', 'mammal', 'primate',
                           'horse', 'human', 'monkey'], things)
+
+    def test_bfs_itr_no_self(self):
+        root = self._make_species()
         things = list([n.item for n in root.bfs_iter(include_self=False)])
         self.assertEqual(['reptile', 'mammal', 'primate',
                           'horse', 'human', 'monkey'], things)
+
+    def test_bfs_itr_right_to_left(self):
+        root = self._make_species()
+        it = root.bfs_iter(include_self=False, right_to_left=True)
+        things = list([n.item for n in it])
+        self.assertEqual(['mammal', 'reptile', 'horse',
+                          'primate', 'monkey', 'human'], things)
 
 
 class OrderedSetTest(test.TestCase):
