@@ -200,6 +200,7 @@ class Node(object):
                                      only_direct=only_direct,
                                      include_self=include_self)
 
+    @misc.disallow_when_frozen(FrozenNode)
     def disassociate(self):
         """Removes this node from its parent (if any).
 
@@ -219,6 +220,7 @@ class Node(object):
                     occurrences += 1
         return occurrences
 
+    @misc.disallow_when_frozen(FrozenNode)
     def remove(self, item, only_direct=False, include_self=True):
         """Removes a item from this nodes children.
 
