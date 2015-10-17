@@ -245,7 +245,7 @@ class MixedPatternScopingTest(test.TestCase):
                 first_subroot = i
                 break
         self.assertGreater(first_subroot, first_root)
-        self.assertEqual(scope[0][-2:], ['root.2', 'root.1'])
+        self.assertEqual(['root.2', 'root.1'], scope[0][-2:])
 
     def test_shadow_graph(self):
         r = gf.Flow("root")
