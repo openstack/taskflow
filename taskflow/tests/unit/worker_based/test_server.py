@@ -91,7 +91,7 @@ class TestServer(test.MockTestCase):
                             retry_options=mock.ANY)
         ]
         self.master_mock.assert_has_calls(master_mock_calls)
-        self.assertEqual(len(s._endpoints), 3)
+        self.assertEqual(3, len(s._endpoints))
 
     def test_creation_with_endpoints(self):
         s = self.server(endpoints=self.endpoints)
@@ -104,34 +104,34 @@ class TestServer(test.MockTestCase):
                             retry_options=mock.ANY)
         ]
         self.master_mock.assert_has_calls(master_mock_calls)
-        self.assertEqual(len(s._endpoints), len(self.endpoints))
+        self.assertEqual(len(self.endpoints), len(s._endpoints))
 
     def test_parse_request(self):
         request = self.make_request()
         bundle = pr.Request.from_dict(request)
         task_cls, task_name, action, task_args = bundle
-        self.assertEqual((task_cls, task_name, action, task_args),
-                         (self.task.name, self.task.name, self.task_action,
-                          dict(arguments=self.task_args)))
+        self.assertEqual((self.task.name, self.task.name, self.task_action,
+                          dict(arguments=self.task_args)),
+                         (task_cls, task_name, action, task_args))
 
     def test_parse_request_with_success_result(self):
         request = self.make_request(action='revert', result=1)
         bundle = pr.Request.from_dict(request)
         task_cls, task_name, action, task_args = bundle
-        self.assertEqual((task_cls, task_name, action, task_args),
-                         (self.task.name, self.task.name, 'revert',
+        self.assertEqual((self.task.name, self.task.name, 'revert',
                           dict(arguments=self.task_args,
-                               result=1)))
+                               result=1)),
+                         (task_cls, task_name, action, task_args))
 
     def test_parse_request_with_failure_result(self):
         a_failure = failure.Failure.from_exception(Exception('test'))
         request = self.make_request(action='revert', result=a_failure)
         bundle = pr.Request.from_dict(request)
         task_cls, task_name, action, task_args = bundle
-        self.assertEqual((task_cls, task_name, action, task_args),
-                         (self.task.name, self.task.name, 'revert',
+        self.assertEqual((self.task.name, self.task.name, 'revert',
                           dict(arguments=self.task_args,
-                               result=utils.FailureMatcher(a_failure))))
+                               result=utils.FailureMatcher(a_failure))),
+                         (task_cls, task_name, action, task_args))
 
     def test_parse_request_with_failures(self):
         failures = {'0': failure.Failure.from_exception(Exception('test1')),
@@ -140,11 +140,11 @@ class TestServer(test.MockTestCase):
         bundle = pr.Request.from_dict(request)
         task_cls, task_name, action, task_args = bundle
         self.assertEqual(
-            (task_cls, task_name, action, task_args),
             (self.task.name, self.task.name, 'revert',
              dict(arguments=self.task_args,
                   failures=dict((i, utils.FailureMatcher(f))
-                                for i, f in six.iteritems(failures)))))
+                                for i, f in six.iteritems(failures)))),
+            (task_cls, task_name, action, task_args))
 
     @mock.patch("taskflow.engines.worker_based.server.LOG.critical")
     def test_reply_publish_failure(self, mocked_exception):

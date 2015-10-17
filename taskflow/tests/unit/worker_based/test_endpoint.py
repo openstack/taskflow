@@ -44,16 +44,16 @@ class TestEndpoint(test.TestCase):
 
     def test_creation(self):
         task = self.task_ep.generate()
-        self.assertEqual(self.task_ep.name, self.task_cls_name)
+        self.assertEqual(self.task_cls_name, self.task_ep.name)
         self.assertIsInstance(task, self.task_cls)
-        self.assertEqual(task.name, self.task_cls_name)
+        self.assertEqual(self.task_cls_name, task.name)
 
     def test_creation_with_task_name(self):
         task_name = 'test'
         task = self.task_ep.generate(name=task_name)
-        self.assertEqual(self.task_ep.name, self.task_cls_name)
+        self.assertEqual(self.task_cls_name, self.task_ep.name)
         self.assertIsInstance(task, self.task_cls)
-        self.assertEqual(task.name, task_name)
+        self.assertEqual(task_name, task.name)
 
     def test_creation_task_with_constructor_args(self):
         # NOTE(skudriashev): Exception is expected here since task
@@ -62,7 +62,7 @@ class TestEndpoint(test.TestCase):
         self.assertRaises(TypeError, endpoint.generate)
 
     def test_to_str(self):
-        self.assertEqual(str(self.task_ep), self.task_cls_name)
+        self.assertEqual(self.task_cls_name, str(self.task_ep))
 
     def test_execute(self):
         task = self.task_ep.generate(self.task_cls_name)
@@ -70,7 +70,7 @@ class TestEndpoint(test.TestCase):
                                       task_uuid=self.task_uuid,
                                       arguments=self.task_args,
                                       progress_callback=None)
-        self.assertEqual(result, self.task_result)
+        self.assertEqual(self.task_result, result)
 
     def test_revert(self):
         task = self.task_ep.generate(self.task_cls_name)
@@ -80,4 +80,4 @@ class TestEndpoint(test.TestCase):
                                      progress_callback=None,
                                      result=self.task_result,
                                      failures={})
-        self.assertEqual(result, None)
+        self.assertEqual(None, result)
