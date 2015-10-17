@@ -149,7 +149,7 @@ class PersistenceTestMixin(object):
         with contextlib.closing(self._get_connection()) as conn:
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
-        self.assertEqual(fd2.meta.get('test'), 43)
+        self.assertEqual(43, fd2.meta.get('test'))
 
     def test_flow_detail_lazy_fetch(self):
         lb_id = uuidutils.generate_uuid()
@@ -212,7 +212,7 @@ class PersistenceTestMixin(object):
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
         td2 = fd2.find(td.uuid)
-        self.assertEqual(td2.meta.get('test'), 43)
+        self.assertEqual(43, td2.meta.get('test'))
         self.assertIsInstance(td2, models.TaskDetail)
 
     def test_task_detail_with_failure(self):
@@ -240,9 +240,9 @@ class PersistenceTestMixin(object):
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
         td2 = fd2.find(td.uuid)
-        self.assertEqual(td2.failure.exception_str, 'Woot!')
+        self.assertEqual('Woot!', td2.failure.exception_str)
         self.assertIs(td2.failure.check(RuntimeError), RuntimeError)
-        self.assertEqual(td2.failure.traceback_str, td.failure.traceback_str)
+        self.assertEqual(td.failure.traceback_str, td2.failure.traceback_str)
         self.assertIsInstance(td2, models.TaskDetail)
 
     def test_logbook_merge_flow_detail(self):
@@ -312,9 +312,9 @@ class PersistenceTestMixin(object):
             fd2 = lb2.find(fd.uuid)
             td2 = fd2.find(td.uuid)
             self.assertIsNot(td2, None)
-            self.assertEqual(td2.name, 'detail-1')
-            self.assertEqual(td2.version, '4.2')
-            self.assertEqual(td2.intention, states.EXECUTE)
+            self.assertEqual('detail-1', td2.name)
+            self.assertEqual('4.2', td2.version)
+            self.assertEqual(states.EXECUTE, td2.intention)
 
     def test_logbook_delete(self):
         lb_id = uuidutils.generate_uuid()
@@ -350,7 +350,7 @@ class PersistenceTestMixin(object):
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
         rd2 = fd2.find(rd.uuid)
-        self.assertEqual(rd2.intention, states.REVERT)
+        self.assertEqual(states.REVERT, rd2.intention)
         self.assertIsInstance(rd2, models.RetryDetail)
 
     def test_retry_detail_save_with_task_failure(self):
@@ -405,5 +405,5 @@ class PersistenceTestMixin(object):
             lb2 = conn.get_logbook(lb_id)
         fd2 = lb2.find(fd.uuid)
         rd2 = fd2.find(rd.uuid)
-        self.assertEqual(rd2.intention, states.REVERT)
+        self.assertEqual(states.REVERT, rd2.intention)
         self.assertIsInstance(rd2, models.RetryDetail)
