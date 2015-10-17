@@ -29,21 +29,21 @@ class LinearFlowTest(test.TestCase):
     def test_linear_flow_starts_as_empty(self):
         f = lf.Flow('test')
 
-        self.assertEqual(len(f), 0)
-        self.assertEqual(list(f), [])
-        self.assertEqual(list(f.iter_links()), [])
+        self.assertEqual(0, len(f))
+        self.assertEqual([], list(f))
+        self.assertEqual([], list(f.iter_links()))
 
-        self.assertEqual(f.requires, set())
-        self.assertEqual(f.provides, set())
+        self.assertEqual(set(), f.requires)
+        self.assertEqual(set(), f.provides)
 
         expected = 'taskflow.patterns.linear_flow.Flow: test(len=0)'
-        self.assertEqual(str(f), expected)
+        self.assertEqual(expected, str(f))
 
     def test_linear_flow_add_nothing(self):
         f = lf.Flow('test')
         result = f.add()
         self.assertIs(f, result)
-        self.assertEqual(len(f), 0)
+        self.assertEqual(0, len(f))
 
     def test_linear_flow_one_task(self):
         f = lf.Flow('test')
@@ -52,47 +52,44 @@ class LinearFlowTest(test.TestCase):
 
         self.assertIs(f, result)
 
-        self.assertEqual(len(f), 1)
-        self.assertEqual(list(f), [task])
-        self.assertEqual(list(f.iter_links()), [])
-        self.assertEqual(f.requires, set(['a', 'b']))
-        self.assertEqual(f.provides, set(['c', 'd']))
+        self.assertEqual(1, len(f))
+        self.assertEqual([task], list(f))
+        self.assertEqual([], list(f.iter_links()))
+        self.assertEqual(set(['a', 'b']), f.requires)
+        self.assertEqual(set(['c', 'd']), f.provides)
 
     def test_linear_flow_two_independent_tasks(self):
         task1 = _task(name='task1')
         task2 = _task(name='task2')
         f = lf.Flow('test').add(task1, task2)
 
-        self.assertEqual(len(f), 2)
-        self.assertEqual(list(f), [task1, task2])
-        self.assertEqual(list(f.iter_links()), [
-            (task1, task2, {'invariant': True})
-        ])
+        self.assertEqual(2, len(f))
+        self.assertEqual([task1, task2], list(f))
+        self.assertEqual([(task1, task2, {'invariant': True})],
+                         list(f.iter_links()))
 
     def test_linear_flow_two_dependent_tasks(self):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = lf.Flow('test').add(task1, task2)
 
-        self.assertEqual(len(f), 2)
-        self.assertEqual(list(f), [task1, task2])
-        self.assertEqual(list(f.iter_links()), [
-            (task1, task2, {'invariant': True})
-        ])
+        self.assertEqual(2, len(f))
+        self.assertEqual([task1, task2], list(f))
+        self.assertEqual([(task1, task2, {'invariant': True})],
+                         list(f.iter_links()))
 
-        self.assertEqual(f.requires, set())
-        self.assertEqual(f.provides, set(['a']))
+        self.assertEqual(set(), f.requires)
+        self.assertEqual(set(['a']), f.provides)
 
     def test_linear_flow_two_dependent_tasks_two_different_calls(self):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = lf.Flow('test').add(task1).add(task2)
 
-        self.assertEqual(len(f), 2)
-        self.assertEqual(list(f), [task1, task2])
-        self.assertEqual(list(f.iter_links()), [
-            (task1, task2, {'invariant': True})
-        ])
+        self.assertEqual(2, len(f))
+        self.assertEqual([task1, task2], list(f))
+        self.assertEqual([(task1, task2, {'invariant': True})],
+                         list(f.iter_links()), )
 
     def test_linear_flow_three_tasks(self):
         task1 = _task(name='task1')
@@ -100,24 +97,24 @@ class LinearFlowTest(test.TestCase):
         task3 = _task(name='task3')
         f = lf.Flow('test').add(task1, task2, task3)
 
-        self.assertEqual(len(f), 3)
-        self.assertEqual(list(f), [task1, task2, task3])
-        self.assertEqual(list(f.iter_links()), [
+        self.assertEqual(3, len(f))
+        self.assertEqual([task1, task2, task3], list(f))
+        self.assertEqual([
             (task1, task2, {'invariant': True}),
             (task2, task3, {'invariant': True})
-        ])
+        ], list(f.iter_links()))
 
         expected = 'taskflow.patterns.linear_flow.Flow: test(len=3)'
-        self.assertEqual(str(f), expected)
+        self.assertEqual(expected, str(f))
 
     def test_linear_flow_with_retry(self):
         ret = retry.AlwaysRevert(requires=['a'], provides=['b'])
         f = lf.Flow('test', ret)
         self.assertIs(f.retry, ret)
-        self.assertEqual(ret.name, 'test_retry')
+        self.assertEqual('test_retry', ret.name)
 
-        self.assertEqual(f.requires, set(['a']))
-        self.assertEqual(f.provides, set(['b']))
+        self.assertEqual(set(['a']), f.requires)
+        self.assertEqual(set(['b']), f.provides)
 
     def test_iter_nodes(self):
         task1 = _task(name='task1')

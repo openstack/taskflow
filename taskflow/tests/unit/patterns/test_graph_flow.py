@@ -30,21 +30,21 @@ class GraphFlowTest(test.TestCase):
     def test_graph_flow_starts_as_empty(self):
         f = gf.Flow('test')
 
-        self.assertEqual(len(f), 0)
-        self.assertEqual(list(f), [])
-        self.assertEqual(list(f.iter_links()), [])
+        self.assertEqual(0, len(f))
+        self.assertEqual([], list(f))
+        self.assertEqual([], list(f.iter_links()))
 
-        self.assertEqual(f.requires, set())
-        self.assertEqual(f.provides, set())
+        self.assertEqual(set(), f.requires)
+        self.assertEqual(set(), f.provides)
 
         expected = 'taskflow.patterns.graph_flow.Flow: test(len=0)'
-        self.assertEqual(str(f), expected)
+        self.assertEqual(expected, str(f))
 
     def test_graph_flow_add_nothing(self):
         f = gf.Flow('test')
         result = f.add()
         self.assertIs(f, result)
-        self.assertEqual(len(f), 0)
+        self.assertEqual(0, len(f))
 
     def test_graph_flow_one_task(self):
         f = gf.Flow('test')
@@ -53,45 +53,43 @@ class GraphFlowTest(test.TestCase):
 
         self.assertIs(f, result)
 
-        self.assertEqual(len(f), 1)
-        self.assertEqual(list(f), [task])
-        self.assertEqual(list(f.iter_links()), [])
-        self.assertEqual(f.requires, set(['a', 'b']))
-        self.assertEqual(f.provides, set(['c', 'd']))
+        self.assertEqual(1, len(f))
+        self.assertEqual([task], list(f))
+        self.assertEqual([], list(f.iter_links()))
+        self.assertEqual(set(['a', 'b']), f.requires)
+        self.assertEqual(set(['c', 'd']), f.provides)
 
     def test_graph_flow_two_independent_tasks(self):
         task1 = _task(name='task1')
         task2 = _task(name='task2')
         f = gf.Flow('test').add(task1, task2)
 
-        self.assertEqual(len(f), 2)
+        self.assertEqual(2, len(f))
         self.assertItemsEqual(f, [task1, task2])
-        self.assertEqual(list(f.iter_links()), [])
+        self.assertEqual([], list(f.iter_links()))
 
     def test_graph_flow_two_dependent_tasks(self):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = gf.Flow('test').add(task1, task2)
 
-        self.assertEqual(len(f), 2)
+        self.assertEqual(2, len(f))
         self.assertItemsEqual(f, [task1, task2])
-        self.assertEqual(list(f.iter_links()), [
-            (task1, task2, {'reasons': set(['a'])})
-        ])
+        self.assertEqual([(task1, task2, {'reasons': set(['a'])})],
+                         list(f.iter_links()))
 
-        self.assertEqual(f.requires, set())
-        self.assertEqual(f.provides, set(['a']))
+        self.assertEqual(set(), f.requires)
+        self.assertEqual(set(['a']), f.provides)
 
     def test_graph_flow_two_dependent_tasks_two_different_calls(self):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = gf.Flow('test').add(task1).add(task2)
 
-        self.assertEqual(len(f), 2)
+        self.assertEqual(2, len(f))
         self.assertItemsEqual(f, [task1, task2])
-        self.assertEqual(list(f.iter_links()), [
-            (task1, task2, {'reasons': set(['a'])})
-        ])
+        self.assertEqual([(task1, task2, {'reasons': set(['a'])})],
+                         list(f.iter_links()))
 
     def test_graph_flow_two_task_same_provide(self):
         task1 = _task(name='task1', provides=['a', 'b'])
@@ -136,10 +134,10 @@ class GraphFlowTest(test.TestCase):
         ret = retry.AlwaysRevert(requires=['a'], provides=['b'])
         f = gf.Flow('test', ret)
         self.assertIs(f.retry, ret)
-        self.assertEqual(ret.name, 'test_retry')
+        self.assertEqual('test_retry', ret.name)
 
-        self.assertEqual(f.requires, set(['a']))
-        self.assertEqual(f.provides, set(['b']))
+        self.assertEqual(set(['a']), f.requires)
+        self.assertEqual(set(['b']), f.provides)
 
     def test_graph_flow_ordering(self):
         task1 = _task('task1', provides=set(['a', 'b']))
@@ -248,7 +246,7 @@ class TargetedGraphFlowTest(test.TestCase):
         task4 = _task('task4', provides=[], requires=['b'])
         f.add(task1, task2, task3, task4)
         f.set_target(task3)
-        self.assertEqual(len(f), 3)
+        self.assertEqual(3, len(f))
         self.assertItemsEqual(f, [task1, task2, task3])
         self.assertNotIn('c', f.provides)
 
@@ -261,7 +259,7 @@ class TargetedGraphFlowTest(test.TestCase):
         f.add(task1, task2, task3, task4)
         f.set_target(task3)
         f.reset_target()
-        self.assertEqual(len(f), 4)
+        self.assertEqual(4, len(f))
         self.assertItemsEqual(f, [task1, task2, task3, task4])
         self.assertIn('c', f.provides)
 
@@ -278,7 +276,7 @@ class TargetedGraphFlowTest(test.TestCase):
         task1 = _task('task1', provides=['a'], requires=[])
         f.add(task1)
         f.set_target(task1)
-        self.assertEqual(len(f), 1)
+        self.assertEqual(1, len(f))
         self.assertItemsEqual(f, [task1])
 
     def test_recache_on_add(self):
@@ -311,6 +309,5 @@ class TargetedGraphFlowTest(test.TestCase):
 
         f.link(task2, task1)
         self.assertEqual(2, len(f))
-        self.assertEqual(list(f.iter_links()), [
-            (task2, task1, {'manual': True})
-        ])
+        self.assertEqual([(task2, task1, {'manual': True})],
+                         list(f.iter_links()), )
