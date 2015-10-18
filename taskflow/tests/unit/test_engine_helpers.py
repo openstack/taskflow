@@ -85,7 +85,7 @@ class FlowFromDetailTestCase(test.TestCase):
                         return_value=lambda: 'RESULT') as mock_import:
             result = taskflow.engines.flow_from_detail(flow_detail)
             mock_import.assert_called_once_with(name)
-        self.assertEqual(result, 'RESULT')
+        self.assertEqual('RESULT', result)
 
     def test_factory_with_arg(self):
         name = 'some.test.factory'
@@ -96,7 +96,7 @@ class FlowFromDetailTestCase(test.TestCase):
                         return_value=lambda x: 'RESULT %s' % x) as mock_import:
             result = taskflow.engines.flow_from_detail(flow_detail)
             mock_import.assert_called_once_with(name)
-        self.assertEqual(result, 'RESULT foo')
+        self.assertEqual('RESULT foo', result)
 
 
 def my_flow_factory(task_name):
@@ -121,12 +121,12 @@ class LoadFromFactoryTestCase(test.TestCase):
         self.assertIsInstance(engine._flow, test_utils.DummyTask)
 
         fd = engine.storage._flowdetail
-        self.assertEqual(fd.name, 'test1')
-        self.assertEqual(fd.meta.get('factory'), {
+        self.assertEqual('test1', fd.name)
+        self.assertEqual({
             'name': '%s.my_flow_factory' % __name__,
             'args': [],
             'kwargs': {'task_name': 'test1'},
-        })
+        }, fd.meta.get('factory'))
 
     def test_it_works_by_name(self):
         factory_name = '%s.my_flow_factory' % __name__
@@ -135,9 +135,9 @@ class LoadFromFactoryTestCase(test.TestCase):
         self.assertIsInstance(engine._flow, test_utils.DummyTask)
 
         fd = engine.storage._flowdetail
-        self.assertEqual(fd.name, 'test1')
-        self.assertEqual(fd.meta.get('factory'), {
+        self.assertEqual('test1', fd.name)
+        self.assertEqual({
             'name': factory_name,
             'args': [],
             'kwargs': {'task_name': 'test1'},
-        })
+        }, fd.meta.get('factory'))

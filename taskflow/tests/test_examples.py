@@ -132,7 +132,7 @@ class ExamplesTestCase(test.TestCase):
             # replace them with some constant string
             output = UUID_RE.sub('<SOME UUID>', output)
             expected_output = UUID_RE.sub('<SOME UUID>', expected_output)
-            self.assertEqual(output, expected_output)
+            self.assertEqual(expected_output, output)
 
 
 def make_output_files():

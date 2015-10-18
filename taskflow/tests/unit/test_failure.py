@@ -44,15 +44,15 @@ def _make_exc_info(msg):
 class GeneralFailureObjTestsMixin(object):
 
     def test_captures_message(self):
-        self.assertEqual(self.fail_obj.exception_str, 'Woot!')
+        self.assertEqual('Woot!', self.fail_obj.exception_str)
 
     def test_str(self):
-        self.assertEqual(str(self.fail_obj),
-                         'Failure: RuntimeError: Woot!')
+        self.assertEqual('Failure: RuntimeError: Woot!',
+                         str(self.fail_obj))
 
     def test_exception_types(self):
-        self.assertEqual(list(self.fail_obj),
-                         test_utils.RUNTIME_ERROR_CLASSES[:-2])
+        self.assertEqual(test_utils.RUNTIME_ERROR_CLASSES[:-2],
+                         list(self.fail_obj))
 
     def test_pformat_no_traceback(self):
         text = self.fail_obj.pformat()
@@ -60,11 +60,11 @@ class GeneralFailureObjTestsMixin(object):
 
     def test_check_str(self):
         val = 'Exception'
-        self.assertEqual(self.fail_obj.check(val), val)
+        self.assertEqual(val, self.fail_obj.check(val))
 
     def test_check_str_not_there(self):
         val = 'ValueError'
-        self.assertEqual(self.fail_obj.check(val), None)
+        self.assertEqual(None, self.fail_obj.check(val))
 
     def test_check_type(self):
         self.assertIs(self.fail_obj.check(RuntimeError), RuntimeError)
@@ -84,8 +84,8 @@ class CaptureFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 
     def test_captures_exc_info(self):
         exc_info = self.fail_obj.exc_info
-        self.assertEqual(len(exc_info), 3)
-        self.assertEqual(exc_info[0], RuntimeError)
+        self.assertEqual(3, len(exc_info))
+        self.assertEqual(RuntimeError, exc_info[0])
         self.assertIs(exc_info[1], self.fail_obj.exception)
 
     def test_reraises(self):
@@ -181,7 +181,7 @@ class FailureObjectTestCase(test.TestCase):
                                 exc_type_names=['Exception'],
                                 hi='hi there')
         expected = "Failure.__init__ got unexpected keyword argument(s): hi"
-        self.assertEqual(str(exc), expected)
+        self.assertEqual(expected, str(exc))
 
     def test_empty_does_not_reraise(self):
         self.assertIs(failure.Failure.reraise_if_any([]), None)
@@ -198,7 +198,7 @@ class FailureObjectTestCase(test.TestCase):
         ]
         exc = self.assertRaises(exceptions.WrappedFailure,
                                 failure.Failure.reraise_if_any, fls)
-        self.assertEqual(list(exc), fls)
+        self.assertEqual(fls, list(exc))
 
     def test_failure_copy(self):
         fail_obj = _captured_failure('Woot!')
@@ -267,14 +267,14 @@ class WrappedFailureTestCase(test.TestCase):
     def test_simple_iter(self):
         fail_obj = _captured_failure('Woot!')
         wf = exceptions.WrappedFailure([fail_obj])
-        self.assertEqual(len(wf), 1)
-        self.assertEqual(list(wf), [fail_obj])
+        self.assertEqual(1, len(wf))
+        self.assertEqual([fail_obj], list(wf))
 
     def test_simple_check(self):
         fail_obj = _captured_failure('Woot!')
         wf = exceptions.WrappedFailure([fail_obj])
-        self.assertEqual(wf.check(RuntimeError), RuntimeError)
-        self.assertEqual(wf.check(ValueError), None)
+        self.assertEqual(RuntimeError, wf.check(RuntimeError))
+        self.assertEqual(None, wf.check(ValueError))
 
     def test_two_failures(self):
         fls = [
@@ -282,8 +282,8 @@ class WrappedFailureTestCase(test.TestCase):
             _captured_failure('Oh, not again!')
         ]
         wf = exceptions.WrappedFailure(fls)
-        self.assertEqual(len(wf), 2)
-        self.assertEqual(list(wf), fls)
+        self.assertEqual(2, len(wf))
+        self.assertEqual(fls, list(wf))
 
     def test_flattening(self):
         f1 = _captured_failure('Wrap me')
@@ -295,7 +295,7 @@ class WrappedFailureTestCase(test.TestCase):
             fail_obj = failure.Failure()
 
         wf = exceptions.WrappedFailure([fail_obj, f3])
-        self.assertEqual(list(wf), [f1, f2, f3])
+        self.assertEqual([f1, f2, f3], list(wf))
 
 
 class NonAsciiExceptionsTestCase(test.TestCase):
@@ -304,8 +304,8 @@ class NonAsciiExceptionsTestCase(test.TestCase):
         bad_string = chr(200)
         excp = ValueError(bad_string)
         fail = failure.Failure.from_exception(excp)
-        self.assertEqual(fail.exception_str,
-                         encodeutils.exception_to_unicode(excp))
+        self.assertEqual(encodeutils.exception_to_unicode(excp),
+                         fail.exception_str)
         # This is slightly different on py2 vs py3... due to how
         # __str__ or __unicode__ is called and what is expected from
         # both...
@@ -314,15 +314,15 @@ class NonAsciiExceptionsTestCase(test.TestCase):
             expected = 'Failure: ValueError: %s' % msg.encode('utf-8')
         else:
             expected = u'Failure: ValueError: \xc8'
-        self.assertEqual(str(fail), expected)
+        self.assertEqual(expected, str(fail))
 
     def test_exception_non_ascii_unicode(self):
         hi_ru = u'привет'
         fail = failure.Failure.from_exception(ValueError(hi_ru))
-        self.assertEqual(fail.exception_str, hi_ru)
+        self.assertEqual(hi_ru, fail.exception_str)
         self.assertIsInstance(fail.exception_str, six.text_type)
-        self.assertEqual(six.text_type(fail),
-                         u'Failure: ValueError: %s' % hi_ru)
+        self.assertEqual(u'Failure: ValueError: %s' % hi_ru,
+                         six.text_type(fail))
 
     def test_wrapped_failure_non_ascii_unicode(self):
         hi_cn = u'嗨'

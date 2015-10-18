@@ -49,13 +49,13 @@ class SuspendTest(utils.EngineTestBase):
         with SuspendingListener(engine, task_name='b',
                                 task_state=states.SUCCESS) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.get_flow_state(), states.SUCCESS)
+        self.assertEqual(states.SUCCESS, engine.storage.get_flow_state())
         expected = ['a.t RUNNING', 'a.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
         with SuspendingListener(engine, task_name='b',
                                 task_state=states.SUCCESS) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.get_flow_state(), states.SUCCESS)
+        self.assertEqual(states.SUCCESS, engine.storage.get_flow_state())
         expected = []
         self.assertEqual(expected, capturer.values)
 
@@ -69,13 +69,13 @@ class SuspendTest(utils.EngineTestBase):
         with SuspendingListener(engine, task_name='b',
                                 task_state=states.SUCCESS) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEqual(states.SUSPENDED, engine.storage.get_flow_state())
         expected = ['a.t RUNNING', 'a.t SUCCESS(5)',
                     'b.t RUNNING', 'b.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.get_flow_state(), states.SUCCESS)
+        self.assertEqual(states.SUCCESS, engine.storage.get_flow_state())
         expected = ['c.t RUNNING', 'c.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
 
@@ -89,7 +89,7 @@ class SuspendTest(utils.EngineTestBase):
         with SuspendingListener(engine, task_name='b',
                                 task_state=states.REVERTED) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEqual(states.SUSPENDED, engine.storage.get_flow_state())
         expected = ['a.t RUNNING',
                     'a.t SUCCESS(5)',
                     'b.t RUNNING',
@@ -103,7 +103,7 @@ class SuspendTest(utils.EngineTestBase):
         self.assertEqual(expected, capturer.values)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
-        self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
+        self.assertEqual(states.REVERTED, engine.storage.get_flow_state())
         expected = ['a.t REVERTING', 'a.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
 
@@ -133,7 +133,7 @@ class SuspendTest(utils.EngineTestBase):
         engine2 = self._make_engine(flow, engine.storage._flowdetail)
         with utils.CaptureListener(engine2, capture_flow=False) as capturer2:
             self.assertRaisesRegexp(RuntimeError, '^Woot', engine2.run)
-        self.assertEqual(engine2.storage.get_flow_state(), states.REVERTED)
+        self.assertEqual(states.REVERTED, engine2.storage.get_flow_state())
         expected = ['a.t REVERTING',
                     'a.t REVERTED(None)']
         self.assertEqual(expected, capturer2.values)
@@ -170,9 +170,9 @@ class SuspendTest(utils.EngineTestBase):
         engine2 = self._make_engine(flow2, engine.storage._flowdetail)
         with utils.CaptureListener(engine2, capture_flow=False) as capturer2:
             self.assertRaisesRegexp(RuntimeError, '^Woot', engine2.run)
-        self.assertEqual(engine2.storage.get_flow_state(), states.REVERTED)
+        self.assertEqual(states.REVERTED, engine2.storage.get_flow_state())
         expected = ['a.t REVERTING', 'a.t REVERTED(None)']
-        self.assertEqual(capturer2.values, expected)
+        self.assertEqual(expected, capturer2.values)
 
     def test_storage_is_rechecked(self):
         flow = lf.Flow('linear').add(
@@ -184,7 +184,7 @@ class SuspendTest(utils.EngineTestBase):
         with SuspendingListener(engine, task_name='b',
                                 task_state=states.SUCCESS):
             engine.run()
-        self.assertEqual(engine.storage.get_flow_state(), states.SUSPENDED)
+        self.assertEqual(states.SUSPENDED, engine.storage.get_flow_state())
         # uninject everything:
         engine.storage.save(engine.storage.injector_name,
                             {}, states.SUCCESS)

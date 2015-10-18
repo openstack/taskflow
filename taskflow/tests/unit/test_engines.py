@@ -72,14 +72,14 @@ class EngineTaskTest(object):
         with utils.CaptureListener(engine, values=values) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(expected, capturer.values)
-        self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
+        self.assertEqual(states.REVERTED, engine.storage.get_flow_state())
         with utils.CaptureListener(engine, values=values) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
         now_expected = list(expected)
         now_expected.extend(['fail.t PENDING', 'fail.f PENDING'])
         now_expected.extend(expected)
         self.assertEqual(now_expected, values)
-        self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
+        self.assertEqual(states.REVERTED, engine.storage.get_flow_state())
 
     def test_invalid_flow_raises(self):
 
@@ -123,33 +123,33 @@ class EngineOptionalRequirementsTest(utils.EngineTestBase):
         engine = self._make_engine(flow_no_inject, store={'a': 3})
         engine.run()
         result = engine.storage.fetch_all()
-        self.assertEqual(result, {'a': 3, 'result': 15})
+        self.assertEqual({'a': 3, 'result': 15}, result)
 
         engine = self._make_engine(flow_no_inject,
                                    store={'a': 3, 'b': 7})
         engine.run()
         result = engine.storage.fetch_all()
-        self.assertEqual(result, {'a': 3, 'b': 7, 'result': 21})
+        self.assertEqual({'a': 3, 'b': 7, 'result': 21}, result)
 
         engine = self._make_engine(flow_inject_a, store={'a': 3})
         engine.run()
         result = engine.storage.fetch_all()
-        self.assertEqual(result, {'a': 3, 'result': 50})
+        self.assertEqual({'a': 3, 'result': 50}, result)
 
         engine = self._make_engine(flow_inject_a, store={'a': 3, 'b': 7})
         engine.run()
         result = engine.storage.fetch_all()
-        self.assertEqual(result, {'a': 3, 'b': 7, 'result': 70})
+        self.assertEqual({'a': 3, 'b': 7, 'result': 70}, result)
 
         engine = self._make_engine(flow_inject_b, store={'a': 3})
         engine.run()
         result = engine.storage.fetch_all()
-        self.assertEqual(result, {'a': 3, 'result': 3000})
+        self.assertEqual({'a': 3, 'result': 3000}, result)
 
         engine = self._make_engine(flow_inject_b, store={'a': 3, 'b': 7})
         engine.run()
         result = engine.storage.fetch_all()
-        self.assertEqual(result, {'a': 3, 'b': 7, 'result': 3000})
+        self.assertEqual({'a': 3, 'b': 7, 'result': 3000}, result)
 
 
 class EngineMultipleResultsTest(utils.EngineTestBase):
@@ -160,7 +160,7 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.run()
         result = engine.storage.fetch('x')
-        self.assertEqual(result, 1)
+        self.assertEqual(1, result)
 
     def test_many_results_visible_to(self):
         flow = lf.Flow("flow")
@@ -223,7 +223,7 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
         engine = self._make_engine(flow, store={'x': 0})
         engine.run()
         result = engine.storage.fetch('x')
-        self.assertEqual(result, 0)
+        self.assertEqual(0, result)
 
     def test_fetch_all_with_a_single_result(self):
         flow = lf.Flow("flow")
@@ -232,7 +232,7 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.run()
         result = engine.storage.fetch_all()
-        self.assertEqual(result, {'x': 1})
+        self.assertEqual({'x': 1}, result)
 
     def test_fetch_all_with_two_results(self):
         flow = lf.Flow("flow")
@@ -241,7 +241,7 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
         engine = self._make_engine(flow, store={'x': 0})
         engine.run()
         result = engine.storage.fetch_all()
-        self.assertEqual(result, {'x': [0, 1]})
+        self.assertEqual({'x': [0, 1]}, result)
 
     def test_task_can_update_value(self):
         flow = lf.Flow("flow")
@@ -250,7 +250,7 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
         engine = self._make_engine(flow, store={'x': 0})
         engine.run()
         result = engine.storage.fetch_all()
-        self.assertEqual(result, {'x': [0, 1]})
+        self.assertEqual({'x': [0, 1]}, result)
 
 
 class EngineLinearFlowTest(utils.EngineTestBase):
@@ -315,7 +315,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
                     'task2.t RUNNING', 'task2.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
-        self.assertEqual(len(flow), 2)
+        self.assertEqual(2, len(flow))
 
     def test_sequential_flow_two_tasks_iter(self):
         flow = lf.Flow('flow-2').add(
@@ -329,7 +329,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
                     'task2.t RUNNING', 'task2.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
-        self.assertEqual(len(flow), 2)
+        self.assertEqual(2, len(flow))
 
     def test_sequential_flow_iter_suspend_resume(self):
         flow = lf.Flow('flow-2').add(
@@ -373,7 +373,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         )
         engine = self._make_engine(flow)
         self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
-        self.assertEqual(engine.storage.fetch_all(), {})
+        self.assertEqual({}, engine.storage.fetch_all())
 
     def test_revert_provided(self):
         flow = lf.Flow('revert').add(
@@ -382,7 +382,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         )
         engine = self._make_engine(flow, store={'value': 0})
         self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
-        self.assertEqual(engine.storage.get_revert_result('giver'), 2)
+        self.assertEqual(2, engine.storage.get_revert_result('giver'))
 
     def test_nasty_revert(self):
         flow = lf.Flow('revert').add(
@@ -470,7 +470,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             engine.run()
         expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
-        self.assertEqual(engine.storage.fetch_all(), {'a': 5})
+        self.assertEqual({'a': 5}, engine.storage.fetch_all())
 
     def test_parallel_flow_two_tasks(self):
         flow = uf.Flow('p-2').add(
@@ -533,8 +533,8 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             engine.run()
         expected = ['task2.t RUNNING', 'task2.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
-        self.assertEqual(engine.storage.fetch_all(),
-                         {'x1': 17, 'x2': 5})
+        self.assertEqual({'x1': 17, 'x2': 5},
+                         engine.storage.fetch_all())
 
 
 class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
@@ -670,7 +670,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
         expected = set(['task2.t SUCCESS(5)', 'task2.t RUNNING',
                         'task1.t RUNNING', 'task1.t SUCCESS(5)'])
         self.assertEqual(expected, set(capturer.values))
-        self.assertEqual(len(flow), 2)
+        self.assertEqual(2, len(flow))
 
     def test_graph_flow_two_tasks(self):
         flow = gf.Flow('g-1-1').add(
@@ -728,7 +728,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
                     'task1.t REVERTING',
                     'task1.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
-        self.assertEqual(engine.storage.get_flow_state(), states.REVERTED)
+        self.assertEqual(states.REVERTED, engine.storage.get_flow_state())
 
     def test_graph_flow_four_tasks_revert_failure(self):
         flow = gf.Flow('g-3-nasty').add(
@@ -738,7 +738,7 @@ class EngineGraphFlowTest(utils.EngineTestBase):
 
         engine = self._make_engine(flow)
         self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
-        self.assertEqual(engine.storage.get_flow_state(), states.FAILURE)
+        self.assertEqual(states.FAILURE, engine.storage.get_flow_state())
 
     def test_graph_flow_with_multireturn_and_multiargs_tasks(self):
         flow = gf.Flow('g-3-multi').add(
@@ -751,14 +751,14 @@ class EngineGraphFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'x': 30})
         engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {
+        self.assertEqual({
             'a': 1,
             'b': 3,
             'c': 5,
             'x': 30,
             'y': 38,
             'z': 42
-        })
+        }, engine.storage.fetch_all())
 
     def test_task_graph_property(self):
         flow = gf.Flow('test').add(
@@ -1110,11 +1110,11 @@ class EngineCheckingTaskTest(utils.EngineTestBase):
                 return 'RESULT'
 
             def revert(m_self, result, flow_failures):
-                self.assertEqual(result, 'RESULT')
-                self.assertEqual(list(flow_failures.keys()), ['fail1'])
+                self.assertEqual('RESULT', result)
+                self.assertEqual(['fail1'], list(flow_failures.keys()))
                 fail = flow_failures['fail1']
                 self.assertIsInstance(fail, failure.Failure)
-                self.assertEqual(str(fail), 'Failure: RuntimeError: Woot!')
+                self.assertEqual('Failure: RuntimeError: Woot!', str(fail))
 
         flow = lf.Flow('test').add(
             CheckingTask(),

@@ -66,29 +66,29 @@ class FlowDependenciesTest(test.TestCase):
         flow = lf.Flow('lf').add(
             utils.TaskOneArg('task1'),
             utils.TaskMultiArg('task2'))
-        self.assertEqual(flow.requires, set(['x', 'y', 'z']))
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(['x', 'y', 'z']), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_linear_flow_requires_rebind_values(self):
         flow = lf.Flow('lf').add(
             utils.TaskOneArg('task1', rebind=['q']),
             utils.TaskMultiArg('task2'))
-        self.assertEqual(flow.requires, set(['x', 'y', 'z', 'q']))
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(['x', 'y', 'z', 'q']), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_linear_flow_provides_values(self):
         flow = lf.Flow('lf').add(
             utils.TaskOneReturn('task1', provides='x'),
             utils.TaskMultiReturn('task2', provides=['a', 'b', 'c']))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set(['x', 'a', 'b', 'c']))
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(['x', 'a', 'b', 'c']), flow.provides)
 
     def test_linear_flow_provides_required_values(self):
         flow = lf.Flow('lf').add(
             utils.TaskOneReturn('task1', provides='x'),
             utils.TaskOneArg('task2'))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set(['x']))
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(['x']), flow.provides)
 
     def test_linear_flow_multi_provides_and_requires_values(self):
         flow = lf.Flow('lf').add(
@@ -97,36 +97,36 @@ class FlowDependenciesTest(test.TestCase):
                                           provides=['x', 'y', 'q']),
             utils.TaskMultiArgMultiReturn('task2',
                                           provides=['i', 'j', 'k']))
-        self.assertEqual(flow.requires, set(['a', 'b', 'c', 'z']))
-        self.assertEqual(flow.provides, set(['x', 'y', 'q', 'i', 'j', 'k']))
+        self.assertEqual(set(['a', 'b', 'c', 'z']), flow.requires)
+        self.assertEqual(set(['x', 'y', 'q', 'i', 'j', 'k']), flow.provides)
 
     def test_unordered_flow_without_dependencies(self):
         flow = uf.Flow('uf').add(
             utils.TaskNoRequiresNoReturns('task1'),
             utils.TaskNoRequiresNoReturns('task2'))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_unordered_flow_requires_values(self):
         flow = uf.Flow('uf').add(
             utils.TaskOneArg('task1'),
             utils.TaskMultiArg('task2'))
-        self.assertEqual(flow.requires, set(['x', 'y', 'z']))
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(['x', 'y', 'z']), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_unordered_flow_requires_rebind_values(self):
         flow = uf.Flow('uf').add(
             utils.TaskOneArg('task1', rebind=['q']),
             utils.TaskMultiArg('task2'))
-        self.assertEqual(flow.requires, set(['x', 'y', 'z', 'q']))
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(['x', 'y', 'z', 'q']), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_unordered_flow_provides_values(self):
         flow = uf.Flow('uf').add(
             utils.TaskOneReturn('task1', provides='x'),
             utils.TaskMultiReturn('task2', provides=['a', 'b', 'c']))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set(['x', 'a', 'b', 'c']))
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(['x', 'a', 'b', 'c']), flow.provides)
 
     def test_unordered_flow_provides_required_values(self):
         flow = uf.Flow('uf')
@@ -159,8 +159,8 @@ class FlowDependenciesTest(test.TestCase):
                                           provides=['d', 'e', 'f']),
             utils.TaskMultiArgMultiReturn('task2',
                                           provides=['i', 'j', 'k']))
-        self.assertEqual(flow.requires, set(['a', 'b', 'c', 'x', 'y', 'z']))
-        self.assertEqual(flow.provides, set(['d', 'e', 'f', 'i', 'j', 'k']))
+        self.assertEqual(set(['a', 'b', 'c', 'x', 'y', 'z']), flow.requires)
+        self.assertEqual(set(['d', 'e', 'f', 'i', 'j', 'k']), flow.provides)
 
     def test_unordered_flow_provides_same_values(self):
         flow = uf.Flow('uf').add(utils.TaskOneReturn(provides='x'))
@@ -184,36 +184,36 @@ class FlowDependenciesTest(test.TestCase):
                                           rebind=['b'], provides=['z']),
                 utils.TaskOneArgOneReturn('task4', rebind=['c'],
                                           provides=['q'])))
-        self.assertEqual(flow.requires, set(['a', 'b', 'c']))
-        self.assertEqual(flow.provides, set(['x', 'y', 'z', 'q']))
+        self.assertEqual(set(['a', 'b', 'c']), flow.requires)
+        self.assertEqual(set(['x', 'y', 'z', 'q']), flow.provides)
 
     def test_graph_flow_requires_values(self):
         flow = gf.Flow('gf').add(
             utils.TaskOneArg('task1'),
             utils.TaskMultiArg('task2'))
-        self.assertEqual(flow.requires, set(['x', 'y', 'z']))
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(['x', 'y', 'z']), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_graph_flow_requires_rebind_values(self):
         flow = gf.Flow('gf').add(
             utils.TaskOneArg('task1', rebind=['q']),
             utils.TaskMultiArg('task2'))
-        self.assertEqual(flow.requires, set(['x', 'y', 'z', 'q']))
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(['x', 'y', 'z', 'q']), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_graph_flow_provides_values(self):
         flow = gf.Flow('gf').add(
             utils.TaskOneReturn('task1', provides='x'),
             utils.TaskMultiReturn('task2', provides=['a', 'b', 'c']))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set(['x', 'a', 'b', 'c']))
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(['x', 'a', 'b', 'c']), flow.provides)
 
     def test_graph_flow_provides_required_values(self):
         flow = gf.Flow('gf').add(
             utils.TaskOneReturn('task1', provides='x'),
             utils.TaskOneArg('task2'))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set(['x']))
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(['x']), flow.provides)
 
     def test_graph_flow_provides_provided_value_other_call(self):
         flow = gf.Flow('gf')
@@ -228,8 +228,8 @@ class FlowDependenciesTest(test.TestCase):
                                           provides=['d', 'e', 'f']),
             utils.TaskMultiArgMultiReturn('task2',
                                           provides=['i', 'j', 'k']))
-        self.assertEqual(flow.requires, set(['a', 'b', 'c', 'x', 'y', 'z']))
-        self.assertEqual(flow.provides, set(['d', 'e', 'f', 'i', 'j', 'k']))
+        self.assertEqual(set(['a', 'b', 'c', 'x', 'y', 'z']), flow.requires)
+        self.assertEqual(set(['d', 'e', 'f', 'i', 'j', 'k']), flow.provides)
 
     def test_graph_cyclic_dependency(self):
         flow = gf.Flow('g-3-cyclic')
@@ -245,81 +245,81 @@ class FlowDependenciesTest(test.TestCase):
     def test_task_requires_and_provides_same_values(self):
         flow = lf.Flow('lf', utils.TaskOneArgOneReturn('rt', requires='x',
                                                        provides='x'))
-        self.assertEqual(flow.requires, set('x'))
-        self.assertEqual(flow.provides, set('x'))
+        self.assertEqual(set('x'), flow.requires)
+        self.assertEqual(set('x'), flow.provides)
 
     def test_retry_in_linear_flow_no_requirements_no_provides(self):
         flow = lf.Flow('lf', retry.AlwaysRevert('rt'))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_retry_in_linear_flow_with_requirements(self):
         flow = lf.Flow('lf', retry.AlwaysRevert('rt', requires=['x', 'y']))
-        self.assertEqual(flow.requires, set(['x', 'y']))
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(['x', 'y']), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_retry_in_linear_flow_with_provides(self):
         flow = lf.Flow('lf', retry.AlwaysRevert('rt', provides=['x', 'y']))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set(['x', 'y']))
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(['x', 'y']), flow.provides)
 
     def test_retry_in_linear_flow_requires_and_provides(self):
         flow = lf.Flow('lf', retry.AlwaysRevert('rt',
                                                 requires=['x', 'y'],
                                                 provides=['a', 'b']))
-        self.assertEqual(flow.requires, set(['x', 'y']))
-        self.assertEqual(flow.provides, set(['a', 'b']))
+        self.assertEqual(set(['x', 'y']), flow.requires)
+        self.assertEqual(set(['a', 'b']), flow.provides)
 
     def test_retry_requires_and_provides_same_value(self):
         flow = lf.Flow('lf', retry.AlwaysRevert('rt',
                                                 requires=['x', 'y'],
                                                 provides=['x', 'y']))
-        self.assertEqual(flow.requires, set(['x', 'y']))
-        self.assertEqual(flow.provides, set(['x', 'y']))
+        self.assertEqual(set(['x', 'y']), flow.requires)
+        self.assertEqual(set(['x', 'y']), flow.provides)
 
     def test_retry_in_unordered_flow_no_requirements_no_provides(self):
         flow = uf.Flow('uf', retry.AlwaysRevert('rt'))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_retry_in_unordered_flow_with_requirements(self):
         flow = uf.Flow('uf', retry.AlwaysRevert('rt', requires=['x', 'y']))
-        self.assertEqual(flow.requires, set(['x', 'y']))
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(['x', 'y']), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_retry_in_unordered_flow_with_provides(self):
         flow = uf.Flow('uf', retry.AlwaysRevert('rt', provides=['x', 'y']))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set(['x', 'y']))
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(['x', 'y']), flow.provides)
 
     def test_retry_in_unordered_flow_requires_and_provides(self):
         flow = uf.Flow('uf', retry.AlwaysRevert('rt',
                                                 requires=['x', 'y'],
                                                 provides=['a', 'b']))
-        self.assertEqual(flow.requires, set(['x', 'y']))
-        self.assertEqual(flow.provides, set(['a', 'b']))
+        self.assertEqual(set(['x', 'y']), flow.requires)
+        self.assertEqual(set(['a', 'b']), flow.provides)
 
     def test_retry_in_graph_flow_no_requirements_no_provides(self):
         flow = gf.Flow('gf', retry.AlwaysRevert('rt'))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_retry_in_graph_flow_with_requirements(self):
         flow = gf.Flow('gf', retry.AlwaysRevert('rt', requires=['x', 'y']))
-        self.assertEqual(flow.requires, set(['x', 'y']))
-        self.assertEqual(flow.provides, set())
+        self.assertEqual(set(['x', 'y']), flow.requires)
+        self.assertEqual(set(), flow.provides)
 
     def test_retry_in_graph_flow_with_provides(self):
         flow = gf.Flow('gf', retry.AlwaysRevert('rt', provides=['x', 'y']))
-        self.assertEqual(flow.requires, set())
-        self.assertEqual(flow.provides, set(['x', 'y']))
+        self.assertEqual(set(), flow.requires)
+        self.assertEqual(set(['x', 'y']), flow.provides)
 
     def test_retry_in_graph_flow_requires_and_provides(self):
         flow = gf.Flow('gf', retry.AlwaysRevert('rt',
                                                 requires=['x', 'y'],
                                                 provides=['a', 'b']))
-        self.assertEqual(flow.requires, set(['x', 'y']))
-        self.assertEqual(flow.provides, set(['a', 'b']))
+        self.assertEqual(set(['x', 'y']), flow.requires)
+        self.assertEqual(set(['a', 'b']), flow.provides)
 
     def test_linear_flow_retry_and_task(self):
         flow = lf.Flow('lf', retry.AlwaysRevert('rt',
@@ -328,8 +328,8 @@ class FlowDependenciesTest(test.TestCase):
         flow.add(utils.TaskMultiArgOneReturn(rebind=['a', 'x', 'c'],
                                              provides=['z']))
 
-        self.assertEqual(flow.requires, set(['x', 'y', 'c']))
-        self.assertEqual(flow.provides, set(['a', 'b', 'z']))
+        self.assertEqual(set(['x', 'y', 'c']), flow.requires)
+        self.assertEqual(set(['a', 'b', 'z']), flow.provides)
 
     def test_unordered_flow_retry_and_task(self):
         flow = uf.Flow('uf', retry.AlwaysRevert('rt',
@@ -338,8 +338,8 @@ class FlowDependenciesTest(test.TestCase):
         flow.add(utils.TaskMultiArgOneReturn(rebind=['a', 'x', 'c'],
                                              provides=['z']))
 
-        self.assertEqual(flow.requires, set(['x', 'y', 'c']))
-        self.assertEqual(flow.provides, set(['a', 'b', 'z']))
+        self.assertEqual(set(['x', 'y', 'c']), flow.requires)
+        self.assertEqual(set(['a', 'b', 'z']), flow.provides)
 
     def test_unordered_flow_retry_and_task_same_requires_provides(self):
         flow = uf.Flow('uf', retry.AlwaysRevert('rt', requires=['x']))
@@ -365,8 +365,8 @@ class FlowDependenciesTest(test.TestCase):
         flow.add(utils.TaskMultiArgOneReturn(rebind=['a', 'x', 'c'],
                                              provides=['z']))
 
-        self.assertEqual(flow.requires, set(['x', 'y', 'c']))
-        self.assertEqual(flow.provides, set(['a', 'b', 'z']))
+        self.assertEqual(set(['x', 'y', 'c']), flow.requires)
+        self.assertEqual(set(['a', 'b', 'z']), flow.provides)
 
     def test_graph_flow_retry_and_task_dependency_provide_require(self):
         flow = gf.Flow('gf', retry.AlwaysRevert('rt', requires=['x']))
@@ -389,4 +389,4 @@ class FlowDependenciesTest(test.TestCase):
                 pass
 
         flow = lf.Flow('lf', retry=FullArgsRetry(requires='a'))
-        self.assertEqual(flow.requires, set(['a']))
+        self.assertEqual(set(['a']), flow.requires)

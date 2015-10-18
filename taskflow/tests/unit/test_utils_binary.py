@@ -32,7 +32,7 @@ class BinaryEncodeTest(test.TestCase):
     def _check(self, data, expected_result):
         result = misc.binary_encode(data)
         self.assertIsInstance(result, six.binary_type)
-        self.assertEqual(result, expected_result)
+        self.assertEqual(expected_result, result)
 
     def test_simple_binary(self):
         data = _bytes('hello')
@@ -51,7 +51,7 @@ class BinaryEncodeTest(test.TestCase):
     def test_unicode_other_encoding(self):
         result = misc.binary_encode(u'mañana', 'latin-1')
         self.assertIsInstance(result, six.binary_type)
-        self.assertEqual(result, u'mañana'.encode('latin-1'))
+        self.assertEqual(u'mañana'.encode('latin-1'), result)
 
 
 class BinaryDecodeTest(test.TestCase):
@@ -59,7 +59,7 @@ class BinaryDecodeTest(test.TestCase):
     def _check(self, data, expected_result):
         result = misc.binary_decode(data)
         self.assertIsInstance(result, six.text_type)
-        self.assertEqual(result, expected_result)
+        self.assertEqual(expected_result, result)
 
     def test_simple_text(self):
         data = u'hello'
@@ -79,18 +79,18 @@ class BinaryDecodeTest(test.TestCase):
         data = u'mañana'.encode('latin-1')
         result = misc.binary_decode(data, 'latin-1')
         self.assertIsInstance(result, six.text_type)
-        self.assertEqual(result, u'mañana')
+        self.assertEqual(u'mañana', result)
 
 
 class DecodeJsonTest(test.TestCase):
 
     def test_it_works(self):
-        self.assertEqual(misc.decode_json(_bytes('{"foo": 1}')),
-                         {"foo": 1})
+        self.assertEqual({"foo": 1},
+                         misc.decode_json(_bytes('{"foo": 1}')))
 
     def test_it_works_with_unicode(self):
         data = _bytes('{"foo": "фуу"}')
-        self.assertEqual(misc.decode_json(data), {"foo": u'фуу'})
+        self.assertEqual({"foo": u'фуу'}, misc.decode_json(data))
 
     def test_handles_invalid_unicode(self):
         self.assertRaises(ValueError, misc.decode_json,
