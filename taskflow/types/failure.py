@@ -141,6 +141,10 @@ class Failure(mixins.StrMixin):
                         "type": "integer",
                         "minimum": 0,
                     },
+                    'exc_args': {
+                        "type": "array",
+                        "minItems": 0,
+                    },
                     'exception_str': {
                         "type": "string",
                     },
@@ -183,6 +187,7 @@ class Failure(mixins.StrMixin):
                     raise ValueError("Provided 'exc_info' must contain three"
                                      " elements")
             self._exc_info = exc_info
+            self._exc_args = tuple(getattr(exc_info[1], 'args', []))
             self._exc_type_names = tuple(
                 reflection.get_all_class_names(exc_info[0], up_to=Exception))
             if not self._exc_type_names:
@@ -195,6 +200,7 @@ class Failure(mixins.StrMixin):
         else:
             self._causes = kwargs.pop('causes', None)
             self._exc_info = exc_info
+            self._exc_args = tuple(kwargs.pop('exc_args', []))
             self._exception_str = kwargs.pop('exception_str')
             self._exc_type_names = tuple(kwargs.pop('exc_type_names', []))
             self._traceback_str = kwargs.pop('traceback_str', None)
@@ -243,6 +249,7 @@ class Failure(mixins.StrMixin):
         if self is other:
             return True
         return (self._exc_type_names == other._exc_type_names
+                and self.exception_args == other.exception_args
                 and self.exception_str == other.exception_str
                 and self.traceback_str == other.traceback_str
                 and self.causes == other.causes)
@@ -278,7 +285,7 @@ class Failure(mixins.StrMixin):
 
     @property
     def exception(self):
-        """Exception value, or None if exception value is not present.
+        """Exception value, or none if exception value is not present.
 
         Exception value may be lost during serialization.
         """
@@ -293,8 +300,18 @@ class Failure(mixins.StrMixin):
         return self._exception_str
 
     @property
+    def exception_args(self):
+        """Tuple of arguments given to the exception constructor."""
+        return self._exc_args
+
+    @property
     def exc_info(self):
-        """Exception info tuple or None."""
+        """Exception info tuple or none.
+
+        See: https://docs.python.org/2/library/sys.html#sys.exc_info for what
+             the contents of this tuple are (if none, then no contents can
+             be examined).
+        """
         return self._exc_info
 
     @property
@@ -444,6 +461,12 @@ class Failure(mixins.StrMixin):
 
     def __setstate__(self, dct):
         self._exception_str = dct['exception_str']
+        if 'exc_args' in dct:
+            self._exc_args = tuple(dct['exc_args'])
+        else:
+            # Guess we got an older version somehow, before this
+            # was added, so at that point just set to an empty tuple...
+            self._exc_args = ()
         self._traceback_str = dct['traceback_str']
         self._exc_type_names = dct['exc_type_names']
         if 'exc_info' in dct:
@@ -483,6 +506,7 @@ class Failure(mixins.StrMixin):
             'traceback_str': self.traceback_str,
             'exc_type_names': list(self),
             'version': self.DICT_VERSION,
+            'exc_args': self.exception_args,
             'causes': [f.to_dict() for f in self.causes],
         }
 
@@ -491,5 +515,6 @@ class Failure(mixins.StrMixin):
         return Failure(exc_info=_copy_exc_info(self.exc_info),
                        exception_str=self.exception_str,
                        traceback_str=self.traceback_str,
+                       exc_args=self.exception_args,
                        exc_type_names=self._exc_type_names[:],
                        causes=self._causes)
