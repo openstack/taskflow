@@ -168,6 +168,19 @@ class FailureObjectTestCase(test.TestCase):
         f2 = failure.Failure.from_dict(d_f)
         self.assertTrue(f.matches(f2))
 
+    def test_bad_root_exception(self):
+        f = _captured_failure('Woot!')
+        d_f = f.to_dict()
+        d_f['exc_type_names'] = ['Junk']
+        self.assertRaises(exceptions.InvalidFormat,
+                          failure.Failure.validate, d_f)
+
+    def test_valid_from_dict_to_dict_2(self):
+        f = _captured_failure('Woot!')
+        d_f = f.to_dict()
+        d_f['exc_type_names'] = ['RuntimeError', 'Exception', 'BaseException']
+        failure.Failure.validate(d_f)
+
     def test_dont_catch_base_exception(self):
         try:
             raise SystemExit()
