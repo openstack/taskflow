@@ -386,6 +386,10 @@ class JobBoard(object):
             this must be the same name that was used for claiming this job.
         """
 
+    @abc.abstractmethod
+    def register_entity(self, entity):
+        """Register an entity to the jobboard('s backend), e.g: a conductor"""
+
     @abc.abstractproperty
     def connected(self):
         """Returns if this jobboard is connected."""
