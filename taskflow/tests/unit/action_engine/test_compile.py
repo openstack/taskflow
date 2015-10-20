@@ -29,8 +29,8 @@ class PatternCompileTest(test.TestCase):
         task = test_utils.DummyTask(name='a')
         compilation = compiler.PatternCompiler(task).compile()
         g = compilation.execution_graph
-        self.assertEqual(list(g.nodes()), [task])
-        self.assertEqual(list(g.edges()), [])
+        self.assertEqual([task], list(g.nodes()))
+        self.assertEqual([], list(g.edges()))
 
     def test_retry(self):
         r = retry.AlwaysRevert('r1')
@@ -61,7 +61,8 @@ class PatternCompileTest(test.TestCase):
         self.assertEqual([flo, a, b, c, inner_flo, d], order)
         self.assertTrue(g.has_edge(c, inner_flo))
         self.assertTrue(g.has_edge(inner_flo, d))
-        self.assertEqual(g.get_edge_data(inner_flo, d), {'invariant': True})
+        self.assertEqual({'invariant': True},
+                         g.get_edge_data(inner_flo, d))
 
         self.assertEqual([d], list(g.no_successors_iter()))
         self.assertEqual([flo], list(g.no_predecessors_iter()))
@@ -107,7 +108,7 @@ class PatternCompileTest(test.TestCase):
         lb = graph.subgraph([a, b])
         self.assertFalse(lb.has_edge(b, a))
         self.assertTrue(lb.has_edge(a, b))
-        self.assertEqual(graph.get_edge_data(a, b), {'invariant': True})
+        self.assertEqual({'invariant': True}, graph.get_edge_data(a, b))
 
         ub = graph.subgraph([c, d])
         self.assertEqual(0, ub.number_of_edges())
