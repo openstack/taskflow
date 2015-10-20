@@ -97,7 +97,7 @@ class ZookeeperBoardTestMixin(base.BoardTestMixin):
     def test_board_iter(self):
         with base.connect_close(self.board):
             it = self.board.iterjobs()
-            self.assertEqual(it.board, self.board)
+            self.assertEqual(self.board, it.board)
             self.assertFalse(it.only_unclaimed)
             self.assertFalse(it.ensure_fresh)
 
@@ -222,8 +222,8 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
                         and not path.endswith(LOCK_POSTFIX)):
                     jobs.append(path)
 
-            self.assertEqual(len(trashed), 1)
-            self.assertEqual(len(jobs), 0)
+            self.assertEqual(1, len(trashed))
+            self.assertEqual(0, len(jobs))
 
     def test_posting_received_raw(self):
         book = p_utils.temporary_log_book()
