@@ -29,21 +29,21 @@ class UnorderedFlowTest(test.TestCase):
     def test_unordered_flow_starts_as_empty(self):
         f = uf.Flow('test')
 
-        self.assertEqual(len(f), 0)
-        self.assertEqual(list(f), [])
-        self.assertEqual(list(f.iter_links()), [])
+        self.assertEqual(0, len(f))
+        self.assertEqual([], list(f))
+        self.assertEqual([], list(f.iter_links()))
 
-        self.assertEqual(f.requires, set())
-        self.assertEqual(f.provides, set())
+        self.assertEqual(set(), f.requires)
+        self.assertEqual(set(), f.provides)
 
         expected = 'taskflow.patterns.unordered_flow.Flow: test(len=0)'
-        self.assertEqual(str(f), expected)
+        self.assertEqual(expected, str(f))
 
     def test_unordered_flow_add_nothing(self):
         f = uf.Flow('test')
         result = f.add()
         self.assertIs(f, result)
-        self.assertEqual(len(f), 0)
+        self.assertEqual(0, len(f))
 
     def test_unordered_flow_one_task(self):
         f = uf.Flow('test')
@@ -52,27 +52,27 @@ class UnorderedFlowTest(test.TestCase):
 
         self.assertIs(f, result)
 
-        self.assertEqual(len(f), 1)
-        self.assertEqual(list(f), [task])
-        self.assertEqual(list(f.iter_links()), [])
-        self.assertEqual(f.requires, set(['a', 'b']))
-        self.assertEqual(f.provides, set(['c', 'd']))
+        self.assertEqual(1, len(f))
+        self.assertEqual([task], list(f))
+        self.assertEqual([], list(f.iter_links()))
+        self.assertEqual(set(['a', 'b']), f.requires)
+        self.assertEqual(set(['c', 'd']), f.provides)
 
     def test_unordered_flow_two_tasks(self):
         task1 = _task(name='task1')
         task2 = _task(name='task2')
         f = uf.Flow('test').add(task1, task2)
 
-        self.assertEqual(len(f), 2)
-        self.assertEqual(set(f), set([task1, task2]))
-        self.assertEqual(list(f.iter_links()), [])
+        self.assertEqual(2, len(f))
+        self.assertEqual(set([task1, task2]), set(f))
+        self.assertEqual([], list(f.iter_links()))
 
     def test_unordered_flow_two_tasks_two_different_calls(self):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = uf.Flow('test').add(task1)
         f.add(task2)
-        self.assertEqual(len(f), 2)
+        self.assertEqual(2, len(f))
         self.assertEqual(set(['a']), f.requires)
         self.assertEqual(set(['a']), f.provides)
 
@@ -80,7 +80,7 @@ class UnorderedFlowTest(test.TestCase):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = uf.Flow('test').add(task2).add(task1)
-        self.assertEqual(len(f), 2)
+        self.assertEqual(2, len(f))
         self.assertEqual(set(['a']), f.requires)
         self.assertEqual(set(['a']), f.provides)
 
@@ -89,25 +89,25 @@ class UnorderedFlowTest(test.TestCase):
         task2 = _task(name='task2', provides=['a', 'c'])
         f = uf.Flow('test')
         f.add(task2, task1)
-        self.assertEqual(len(f), 2)
+        self.assertEqual(2, len(f))
 
     def test_unordered_flow_with_retry(self):
         ret = retry.AlwaysRevert(requires=['a'], provides=['b'])
         f = uf.Flow('test', ret)
         self.assertIs(f.retry, ret)
-        self.assertEqual(ret.name, 'test_retry')
+        self.assertEqual('test_retry', ret.name)
 
-        self.assertEqual(f.requires, set(['a']))
-        self.assertEqual(f.provides, set(['b']))
+        self.assertEqual(set(['a']), f.requires)
+        self.assertEqual(set(['b']), f.provides)
 
     def test_unordered_flow_with_retry_fully_satisfies(self):
         ret = retry.AlwaysRevert(provides=['b', 'a'])
         f = uf.Flow('test', ret)
         f.add(_task(name='task1', requires=['a']))
         self.assertIs(f.retry, ret)
-        self.assertEqual(ret.name, 'test_retry')
-        self.assertEqual(f.requires, set([]))
-        self.assertEqual(f.provides, set(['b', 'a']))
+        self.assertEqual('test_retry', ret.name)
+        self.assertEqual(set([]), f.requires)
+        self.assertEqual(set(['b', 'a']), f.provides)
 
     def test_iter_nodes(self):
         task1 = _task(name='task1', provides=['a', 'b'])
