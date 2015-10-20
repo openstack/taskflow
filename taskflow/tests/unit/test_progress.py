@@ -117,11 +117,11 @@ class TestProgress(test.TestCase):
         end_progress = e.storage.get_task_progress("test")
         self.assertEqual(1.0, end_progress)
         end_details = e.storage.get_task_progress_details("test")
-        self.assertEqual(end_details.get('at_progress'), 0.5)
-        self.assertEqual(end_details.get('details'), {
+        self.assertEqual(0.5, end_details.get('at_progress'))
+        self.assertEqual({
             'test': 'test data',
             'foo': 'bar'
-        })
+        }, end_details.get('details'))
 
     def test_dual_storage_progress(self):
         fired_events = []

@@ -53,19 +53,19 @@ class RetryTest(utils.EngineTestBase):
         flow = lf.Flow('flow-1', utils.OneReturnRetry(provides='x'))
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'x': 1})
+        self.assertEqual({'x': 1}, engine.storage.fetch_all())
 
     def test_run_empty_unordered_flow(self):
         flow = uf.Flow('flow-1', utils.OneReturnRetry(provides='x'))
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'x': 1})
+        self.assertEqual({'x': 1}, engine.storage.fetch_all())
 
     def test_run_empty_graph_flow(self):
         flow = gf.Flow('flow-1', utils.OneReturnRetry(provides='x'))
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'x': 1})
+        self.assertEqual({'x': 1}, engine.storage.fetch_all())
 
     def test_states_retry_success_linear_flow(self):
         flow = lf.Flow('flow-1', retry.Times(4, 'r1', provides='x')).add(
@@ -76,7 +76,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2, 'x': 2})
+        self.assertEqual({'y': 2, 'x': 2}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING', 'r1.r SUCCESS(1)',
                     'task1.t RUNNING', 'task1.t SUCCESS(5)',
@@ -105,7 +105,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.inject({'y': 4})
         with utils.CaptureListener(engine) as capturer:
             self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
-        self.assertEqual(engine.storage.fetch_all(), {'y': 4})
+        self.assertEqual({'y': 4}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(1)',
@@ -144,7 +144,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.inject({'y': 4})
         with utils.CaptureListener(engine) as capturer:
             self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
-        self.assertEqual(engine.storage.fetch_all(), {'y': 4, 'x': 1})
+        self.assertEqual({'y': 4, 'x': 1}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(1)',
@@ -172,7 +172,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2, 'x': 2})
+        self.assertEqual({'y': 2, 'x': 2}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(None)',
@@ -215,8 +215,9 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2, 'x1': 2,
-                                                      'x2': 1})
+        self.assertEqual({'y': 2, 'x1': 2,
+                          'x2': 1},
+                         engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(1)',
@@ -270,7 +271,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2, 'x': 2})
+        self.assertEqual({'y': 2, 'x': 2}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r.r RUNNING',
                     'r.r SUCCESS(1)',
@@ -305,7 +306,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2, 'x': 2, 'x2': 1})
+        self.assertEqual({'y': 2, 'x': 2, 'x2': 1}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(1)',
@@ -350,7 +351,7 @@ class RetryTest(utils.EngineTestBase):
                 engine.run()
             except Exception:
                 pass
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2})
+        self.assertEqual({'y': 2}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'task1.t RUNNING',
                     'task1.t SUCCESS(5)',
@@ -379,7 +380,7 @@ class RetryTest(utils.EngineTestBase):
                 engine.run()
             except Exception:
                 pass
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2})
+        self.assertEqual({'y': 2}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'task1.t RUNNING',
                     'task1.t SUCCESS(5)',
@@ -406,7 +407,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine) as capturer:
             self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2})
+        self.assertEqual({'y': 2}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(1)',
@@ -471,7 +472,7 @@ class RetryTest(utils.EngineTestBase):
                     't3.t RUNNING',
                     't3.t SUCCESS(5)',
                     'flow-1.f SUCCESS']
-        self.assertEqual(capturer.values, expected)
+        self.assertEqual(expected, capturer.values)
 
     def test_resume_flow_that_should_be_retried(self):
         flow = lf.Flow('flow-1', retry.Times(3, 'r1')).add(
@@ -525,7 +526,7 @@ class RetryTest(utils.EngineTestBase):
                     't1.t RUNNING',
                     't1.t SUCCESS(5)',
                     'flow-1.f SUCCESS']
-        self.assertEqual(capturer.values, expected)
+        self.assertEqual(expected, capturer.values)
 
     def test_default_times_retry(self):
         flow = lf.Flow('flow-1', retry.Times(3, 'r1')).add(
@@ -1040,7 +1041,7 @@ class RetryTest(utils.EngineTestBase):
                     'task1.t RUNNING',
                     'task1.t SUCCESS(5)',
                     'flow-1.f SUCCESS']
-        self.assertEqual(capturer.values, expected)
+        self.assertEqual(expected, capturer.values)
 
     def test_retry_fails(self):
         r = FailingRetry()
@@ -1048,7 +1049,7 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         self.assertRaisesRegexp(ValueError, '^OMG', engine.run)
         self.assertEqual(1, len(engine.storage.get_retry_histories()))
-        self.assertEqual(len(r.history), 0)
+        self.assertEqual(0, len(r.history))
         self.assertEqual([], list(r.history.outcomes_iter()))
         self.assertIsNotNone(r.history.failure)
         self.assertTrue(r.history.caused_by(ValueError, include_retry=True))
@@ -1088,7 +1089,7 @@ class RetryTest(utils.EngineTestBase):
             'c.t FAILURE(Failure: RuntimeError: Woot!)',
             'b.t REVERTED(None)',
         ])
-        self.assertEqual(engine.storage.get_flow_state(), st.REVERTED)
+        self.assertEqual(st.REVERTED, engine.storage.get_flow_state())
 
     def test_nested_provides_graph_retried_correctly(self):
         flow = gf.Flow("test").add(
@@ -1123,7 +1124,7 @@ class RetryTest(utils.EngineTestBase):
                     'a.t SUCCESS(5)',
                     'c.t SUCCESS(5)']
         self.assertItemsEqual(expected, capturer.values[4:])
-        self.assertEqual(engine.storage.get_flow_state(), st.SUCCESS)
+        self.assertEqual(st.SUCCESS, engine.storage.get_flow_state())
 
 
 class RetryParallelExecutionTest(utils.EngineTestBase):
@@ -1142,7 +1143,7 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2, 'x': 2})
+        self.assertEqual({'y': 2, 'x': 2}, engine.storage.fetch_all())
         expected = ['r.r RUNNING',
                     'r.r SUCCESS(1)',
                     'task1.t RUNNING',
@@ -1178,7 +1179,7 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
-        self.assertEqual(engine.storage.fetch_all(), {'y': 2, 'x': 2})
+        self.assertEqual({'y': 2, 'x': 2}, engine.storage.fetch_all())
         expected = ['r.r RUNNING',
                     'r.r SUCCESS(1)',
                     'task1.t RUNNING',
