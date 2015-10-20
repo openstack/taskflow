@@ -138,7 +138,7 @@ class TestProxy(test.MockTestCase):
                                durable=False,
                                auto_delete=True)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_creation_custom(self):
         transport_opts = {'context': 'context'}
@@ -151,7 +151,7 @@ class TestProxy(test.MockTestCase):
                                durable=False,
                                auto_delete=True)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_publish(self):
         msg_mock = mock.MagicMock()

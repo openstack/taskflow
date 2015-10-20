@@ -99,7 +99,7 @@ class TestWorker(test.MockTestCase):
                              transport=mock.ANY,
                              retry_options=mock.ANY)
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_run_with_no_tasks(self):
         self.worker(reset_master_mock=True).run()
@@ -107,7 +107,7 @@ class TestWorker(test.MockTestCase):
         master_mock_calls = [
             mock.call.server.start()
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_run_with_tasks(self):
         self.worker(reset_master_mock=True,
@@ -116,7 +116,7 @@ class TestWorker(test.MockTestCase):
         master_mock_calls = [
             mock.call.server.start()
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_run_with_custom_executor(self):
         executor_mock = mock.MagicMock(name='executor')
@@ -126,7 +126,7 @@ class TestWorker(test.MockTestCase):
         master_mock_calls = [
             mock.call.server.start()
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_wait(self):
         w = self.worker(reset_master_mock=True)
@@ -137,7 +137,7 @@ class TestWorker(test.MockTestCase):
             mock.call.server.start(),
             mock.call.server.wait()
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_stop(self):
         self.worker(reset_master_mock=True).stop()
@@ -146,20 +146,20 @@ class TestWorker(test.MockTestCase):
             mock.call.server.stop(),
             mock.call.executor.shutdown()
         ]
-        self.assertEqual(self.master_mock.mock_calls, master_mock_calls)
+        self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_derive_endpoints_from_string_tasks(self):
         endpoints = worker.Worker._derive_endpoints(
             ['taskflow.tests.utils:DummyTask'])
 
-        self.assertEqual(len(endpoints), 1)
+        self.assertEqual(1, len(endpoints))
         self.assertIsInstance(endpoints[0], endpoint.Endpoint)
-        self.assertEqual(endpoints[0].name, self.task_name)
+        self.assertEqual(self.task_name, endpoints[0].name)
 
     def test_derive_endpoints_from_string_modules(self):
         endpoints = worker.Worker._derive_endpoints(['taskflow.tests.utils'])
 
-        self.assertEqual(len(endpoints), self.endpoint_count)
+        self.assertEqual(self.endpoint_count, len(endpoints))
 
     def test_derive_endpoints_from_string_non_existent_module(self):
         tasks = ['non.existent.module']
@@ -179,9 +179,9 @@ class TestWorker(test.MockTestCase):
     def test_derive_endpoints_from_tasks(self):
         endpoints = worker.Worker._derive_endpoints([self.task_cls])
 
-        self.assertEqual(len(endpoints), 1)
+        self.assertEqual(1, len(endpoints))
         self.assertIsInstance(endpoints[0], endpoint.Endpoint)
-        self.assertEqual(endpoints[0].name, self.task_name)
+        self.assertEqual(self.task_name, endpoints[0].name)
 
     def test_derive_endpoints_from_non_task_class(self):
         self.assertRaises(TypeError, worker.Worker._derive_endpoints,
@@ -190,7 +190,7 @@ class TestWorker(test.MockTestCase):
     def test_derive_endpoints_from_modules(self):
         endpoints = worker.Worker._derive_endpoints([utils])
 
-        self.assertEqual(len(endpoints), self.endpoint_count)
+        self.assertEqual(self.endpoint_count, len(endpoints))
 
     def test_derive_endpoints_unexpected_task_type(self):
         self.assertRaises(TypeError, worker.Worker._derive_endpoints, [111])

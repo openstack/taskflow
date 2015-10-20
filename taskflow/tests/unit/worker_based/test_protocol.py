@@ -133,34 +133,34 @@ class TestProtocol(test.TestCase):
 
     def test_creation(self):
         request = self.request()
-        self.assertEqual(request.uuid, self.task_uuid)
-        self.assertEqual(request.task, self.task)
+        self.assertEqual(self.task_uuid, request.uuid)
+        self.assertEqual(self.task, request.task)
         self.assertIsInstance(request.result, futurist.Future)
         self.assertFalse(request.result.done())
 
     def test_to_dict_default(self):
-        self.assertEqual(self.request().to_dict(), self.request_to_dict())
+        self.assertEqual(self.request_to_dict(), self.request().to_dict())
 
     def test_to_dict_with_result(self):
-        self.assertEqual(self.request(result=333).to_dict(),
-                         self.request_to_dict(result=('success', 333)))
+        self.assertEqual(self.request_to_dict(result=('success', 333)),
+                         self.request(result=333).to_dict())
 
     def test_to_dict_with_result_none(self):
-        self.assertEqual(self.request(result=None).to_dict(),
-                         self.request_to_dict(result=('success', None)))
+        self.assertEqual(self.request_to_dict(result=('success', None)),
+                         self.request(result=None).to_dict())
 
     def test_to_dict_with_result_failure(self):
         a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
         expected = self.request_to_dict(result=('failure',
                                                 a_failure.to_dict()))
-        self.assertEqual(self.request(result=a_failure).to_dict(), expected)
+        self.assertEqual(expected, self.request(result=a_failure).to_dict())
 
     def test_to_dict_with_failures(self):
         a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
         request = self.request(failures={self.task.name: a_failure})
         expected = self.request_to_dict(
             failures={self.task.name: a_failure.to_dict()})
-        self.assertEqual(request.to_dict(), expected)
+        self.assertEqual(expected, request.to_dict())
 
     @mock.patch('oslo_utils.timeutils.now')
     def test_pending_not_expired(self, now):
@@ -189,4 +189,4 @@ class TestProtocol(test.TestCase):
         request = self.request()
         request.set_result(111)
         result = request.result.result()
-        self.assertEqual(result, (executor.EXECUTED, 111))
+        self.assertEqual((executor.EXECUTED, 111), result)
