@@ -30,6 +30,51 @@ def forever_it():
 
 
 class IterUtilsTest(test.TestCase):
+    def test_fill_empty(self):
+        self.assertEqual([], list(iter_utils.fill([1, 2, 3], 0)))
+
+    def test_bad_unique_seen(self):
+        iters = [
+            ['a', 'b'],
+            2,
+            None,
+        ]
+        self.assertRaises(ValueError,
+                          iter_utils.unique_seen, *iters)
+
+    def test_unique_seen(self):
+        iters = [
+            ['a', 'b'],
+            ['a', 'c', 'd'],
+            ['a', 'e', 'f'],
+            ['f', 'm', 'n'],
+        ]
+        self.assertEqual(['a', 'b', 'c', 'd', 'e', 'f', 'm', 'n'],
+                         list(iter_utils.unique_seen(*iters)))
+
+    def test_bad_fill(self):
+        self.assertRaises(ValueError, iter_utils.fill, 2, 2)
+
+    def test_fill_many_empty(self):
+        result = list(iter_utils.fill(compat_range(0, 50), 500))
+        self.assertEqual(450, sum(1 for x in result if x is None))
+        self.assertEqual(50, sum(1 for x in result if x is not None))
+
+    def test_fill_custom_filler(self):
+        self.assertEqual("abcd",
+                         "".join(iter_utils.fill("abc", 4, filler='d')))
+
+    def test_fill_less_needed(self):
+        self.assertEqual("ab", "".join(iter_utils.fill("abc", 2)))
+
+    def test_fill(self):
+        self.assertEqual([None, None], list(iter_utils.fill([], 2)))
+        self.assertEqual((None, None), tuple(iter_utils.fill([], 2)))
+
+    def test_bad_find_first_match(self):
+        self.assertRaises(ValueError,
+                          iter_utils.find_first_match, 2, lambda v: False)
+
     def test_find_first_match(self):
         it = forever_it()
         self.assertEqual(100, iter_utils.find_first_match(it,
@@ -40,6 +85,9 @@ class IterUtilsTest(test.TestCase):
         self.assertIsNone(iter_utils.find_first_match(it,
                                                       lambda v: v == ''))
 
+    def test_bad_count(self):
+        self.assertRaises(ValueError, iter_utils.count, 2)
+
     def test_count(self):
         self.assertEqual(0, iter_utils.count([]))
         self.assertEqual(1, iter_utils.count(['a']))
@@ -47,6 +95,9 @@ class IterUtilsTest(test.TestCase):
         self.assertEqual(1000, iter_utils.count(compat_range(0, 1000)))
         self.assertEqual(0, iter_utils.count(compat_range(0)))
         self.assertEqual(0, iter_utils.count(compat_range(-1)))
+
+    def test_bad_while_is_not(self):
+        self.assertRaises(ValueError, iter_utils.while_is_not, 2, 'a')
 
     def test_while_is_not(self):
         it = iter(string.ascii_lowercase)

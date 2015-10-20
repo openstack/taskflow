@@ -24,6 +24,7 @@ from oslo_utils import reflection
 import six
 
 from taskflow import exceptions as exc
+from taskflow.utils import iter_utils
 from taskflow.utils import mixins
 from taskflow.utils import schema_utils as su
 
@@ -38,23 +39,6 @@ def _copy_exc_info(exc_info):
     # a shallow copy of the value is fine and we can't copy the traceback since
     # it contains reference to the internal stack frames...
     return (exc_type, copy.copy(exc_value), tb)
-
-
-def _fill_iter(it, desired_len, filler=None):
-    """Iterates over a provided iterator up to the desired length.
-
-    If the source iterator does not have enough values then the filler
-    value is yielded until the desired length is reached.
-    """
-    count = 0
-    for value in it:
-        if count >= desired_len:
-            return
-        yield value
-        count += 1
-    while count < desired_len:
-        yield filler
-        count += 1
 
 
 def _are_equal_exc_info_tuples(ei1, ei2):
@@ -444,7 +428,7 @@ class Failure(mixins.StrMixin):
             # what the twisted people have done, see for example
             # twisted-13.0.0/twisted/python/failure.py#L89 for how they
             # created a fake traceback object...
-            self._exc_info = tuple(_fill_iter(dct['exc_info'], 3))
+            self._exc_info = tuple(iter_utils.fill(dct['exc_info'], 3))
         else:
             self._exc_info = None
         causes = dct.get('causes')
