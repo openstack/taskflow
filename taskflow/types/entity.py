@@ -16,9 +16,19 @@
 
 
 class Entity(object):
-    """Entity object(s) to be registered on jobboard.
+    """Entity object that identifies some resource/item/other.
 
-    Now only supports 'kind' of 'conductor'.
+    :ivar kind: **immutable** type/kind that identifies this
+                entity (typically unique to a library/application)
+    :type kind: string
+    :ivar name: **immutable** name that can be used to uniquely
+                identify this entity among many other entities
+    :type name: string
+    :ivar metadata: **immutable** dictionary of metadata that is
+                    associated with this entity (and typically
+                    has keys/values that further describe this
+                    entity)
+    :type metadata: dict
     """
     def __init__(self, kind, name, metadata):
         self.kind = kind
