@@ -53,6 +53,12 @@ def test_factory(blowup):
     return f
 
 
+def test_store_factory():
+    f = lf.Flow("test")
+    f.add(test_utils.TaskMultiArg('task1'))
+    return f
+
+
 def single_factory():
     return futurist.ThreadPoolExecutor(max_workers=1)
 
@@ -228,6 +234,137 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
             fd = lb.find(fd.uuid)
         self.assertIsNotNone(fd)
         self.assertEqual(st.REVERTED, fd.state)
+
+    def test_missing_store(self):
+        components = self.make_components()
+        components.conductor.connect()
+        consumed_event = threading.Event()
+
+        def on_consume(state, details):
+            consumed_event.set()
+
+        components.board.notifier.register(base.REMOVAL, on_consume)
+        with close_many(components.conductor, components.client):
+            t = threading_utils.daemon_thread(components.conductor.run)
+            t.start()
+            lb, fd = pu.temporary_flow_detail(components.persistence)
+            engines.save_factory_details(fd, test_store_factory,
+                                         [], {},
+                                         backend=components.persistence)
+            components.board.post('poke', lb,
+                                  details={'flow_uuid': fd.uuid})
+            self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            components.conductor.stop()
+            self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
+            self.assertFalse(components.conductor.dispatching)
+
+        persistence = components.persistence
+        with contextlib.closing(persistence.get_connection()) as conn:
+            lb = conn.get_logbook(lb.uuid)
+            fd = lb.find(fd.uuid)
+        self.assertIsNotNone(fd)
+        self.assertIsNone(fd.state)
+
+    def test_job_store(self):
+        components = self.make_components()
+        components.conductor.connect()
+        consumed_event = threading.Event()
+
+        def on_consume(state, details):
+            consumed_event.set()
+
+        store = {'x': True, 'y': False, 'z': None}
+
+        components.board.notifier.register(base.REMOVAL, on_consume)
+        with close_many(components.conductor, components.client):
+            t = threading_utils.daemon_thread(components.conductor.run)
+            t.start()
+            lb, fd = pu.temporary_flow_detail(components.persistence)
+            engines.save_factory_details(fd, test_store_factory,
+                                         [], {},
+                                         backend=components.persistence)
+            components.board.post('poke', lb,
+                                  details={'flow_uuid': fd.uuid,
+                                           'store': store})
+            self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            components.conductor.stop()
+            self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
+            self.assertFalse(components.conductor.dispatching)
+
+        persistence = components.persistence
+        with contextlib.closing(persistence.get_connection()) as conn:
+            lb = conn.get_logbook(lb.uuid)
+            fd = lb.find(fd.uuid)
+        self.assertIsNotNone(fd)
+        self.assertEqual(st.SUCCESS, fd.state)
+
+    def test_flowdetails_store(self):
+        components = self.make_components()
+        components.conductor.connect()
+        consumed_event = threading.Event()
+
+        def on_consume(state, details):
+            consumed_event.set()
+
+        store = {'x': True, 'y': False, 'z': None}
+
+        components.board.notifier.register(base.REMOVAL, on_consume)
+        with close_many(components.conductor, components.client):
+            t = threading_utils.daemon_thread(components.conductor.run)
+            t.start()
+            lb, fd = pu.temporary_flow_detail(components.persistence,
+                                              meta={'store': store})
+            engines.save_factory_details(fd, test_store_factory,
+                                         [], {},
+                                         backend=components.persistence)
+            components.board.post('poke', lb,
+                                  details={'flow_uuid': fd.uuid})
+            self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            components.conductor.stop()
+            self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
+            self.assertFalse(components.conductor.dispatching)
+
+        persistence = components.persistence
+        with contextlib.closing(persistence.get_connection()) as conn:
+            lb = conn.get_logbook(lb.uuid)
+            fd = lb.find(fd.uuid)
+        self.assertIsNotNone(fd)
+        self.assertEqual(st.SUCCESS, fd.state)
+
+    def test_combined_store(self):
+        components = self.make_components()
+        components.conductor.connect()
+        consumed_event = threading.Event()
+
+        def on_consume(state, details):
+            consumed_event.set()
+
+        flow_store = {'x': True, 'y': False}
+        job_store = {'z': None}
+
+        components.board.notifier.register(base.REMOVAL, on_consume)
+        with close_many(components.conductor, components.client):
+            t = threading_utils.daemon_thread(components.conductor.run)
+            t.start()
+            lb, fd = pu.temporary_flow_detail(components.persistence,
+                                              meta={'store': flow_store})
+            engines.save_factory_details(fd, test_store_factory,
+                                         [], {},
+                                         backend=components.persistence)
+            components.board.post('poke', lb,
+                                  details={'flow_uuid': fd.uuid,
+                                           'store': job_store})
+            self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            components.conductor.stop()
+            self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
+            self.assertFalse(components.conductor.dispatching)
+
+        persistence = components.persistence
+        with contextlib.closing(persistence.get_connection()) as conn:
+            lb = conn.get_logbook(lb.uuid)
+            fd = lb.find(fd.uuid)
+        self.assertIsNotNone(fd)
+        self.assertEqual(st.SUCCESS, fd.state)
 
 
 class NonBlockingExecutorTest(test.TestCase):
