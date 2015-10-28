@@ -18,7 +18,7 @@ import threading
 
 from debtcollector import moves
 from oslo_utils import timeutils
-
+import six
 
 # TODO(harlowja): Keep alias class... around until 2.0 is released.
 StopWatch = moves.moved_class(timeutils.StopWatch, 'StopWatch', __name__,
@@ -31,20 +31,46 @@ class Timeout(object):
     This object has the ability to be interrupted before the actual timeout
     is reached.
     """
-    def __init__(self, timeout, event_factory=threading.Event):
-        if timeout < 0:
-            raise ValueError("Timeout must be >= 0 and not %s" % (timeout))
-        self._timeout = timeout
+    def __init__(self, value, event_factory=threading.Event):
+        if value < 0:
+            raise ValueError("Timeout value must be greater or"
+                             " equal to zero and not '%s'" % (value))
+        self._value = value
         self._event = event_factory()
 
+    @property
+    def value(self):
+        """Immutable value of the internally used timeout."""
+        return self._value
+
     def interrupt(self):
+        """Forcefully set the timeout (releases any waiters)."""
         self._event.set()
 
     def is_stopped(self):
+        """Returns if the timeout has been interrupted."""
         return self._event.is_set()
 
     def wait(self):
-        self._event.wait(self._timeout)
+        """Block current thread (up to timeout) and wait until interrupted."""
+        self._event.wait(self._value)
 
     def reset(self):
+        """Reset so that interruption (and waiting) can happen again."""
         self._event.clear()
+
+
+def convert_to_timeout(value=None, default_value=None,
+                       event_factory=threading.Event):
+    """Converts a given value to a timeout instance (and returns it).
+
+    Does nothing if the value provided is already a timeout instance.
+    """
+    if value is None:
+        value = default_value
+    if isinstance(value, (int, float) + six.string_types):
+        return Timeout(float(value), event_factory=event_factory)
+    elif isinstance(value, Timeout):
+        return value
+    else:
+        raise ValueError("Invalid timeout literal '%s'" % (value))

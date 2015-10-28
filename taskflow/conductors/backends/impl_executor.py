@@ -37,17 +37,6 @@ from taskflow.utils import misc
 LOG = logging.getLogger(__name__)
 
 
-def _convert_to_timeout(value=None, default_value=None, event_factory=None):
-    if value is None:
-        value = default_value
-    if isinstance(value, (int, float) + six.string_types):
-        return tt.Timeout(float(value), event_factory=event_factory)
-    elif isinstance(value, tt.Timeout):
-        return value
-    else:
-        raise ValueError("Invalid timeout literal '%s'" % (value))
-
-
 @six.add_metaclass(abc.ABCMeta)
 class ExecutorConductor(base.Conductor):
     """Dispatches jobs from blocking :py:meth:`.run` method to some executor.
@@ -115,7 +104,7 @@ class ExecutorConductor(base.Conductor):
         super(ExecutorConductor, self).__init__(
             name, jobboard, persistence=persistence,
             engine=engine, engine_options=engine_options)
-        self._wait_timeout = _convert_to_timeout(
+        self._wait_timeout = tt.convert_to_timeout(
             value=wait_timeout, default_value=self.WAIT_TIMEOUT,
             event_factory=self._event_factory)
         self._dead = self._event_factory()
