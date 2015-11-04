@@ -106,6 +106,20 @@ class ExecutorConductor(base.Conductor):
        activity defined above, the actual event name that can be registered
        to subscribe to will be ``${event}_start`` and ``${event}_end`` where
        the ``${event}`` in this pseudo-variable will be one of these events.
+
+       .. deprecated:: 1.23.0
+          Use :py:attr:`~EVENTS_EMITTED`
+    """
+
+    EVENTS_EMITTED = tuple([
+        'compilation_start', 'compilation_end',
+        'preparation_start', 'preparation_end',
+        'validation_start', 'validation_end',
+        'running_start', 'running_end',
+        'job_consumed', 'job_abandoned',
+    ])
+    """Events will be emitted for each of the events above.  The event is
+       emitted to listeners registered with the conductor.
     """
 
     def __init__(self, name, jobboard,
@@ -217,8 +231,18 @@ class ExecutorConductor(base.Conductor):
         try:
             if consume:
                 self._jobboard.consume(job, self._name)
+                self._notifier.notify("job_consumed", {
+                    'job': job,
+                    'conductor': self,
+                    'persistence': self._persistence,
+                })
             else:
                 self._jobboard.abandon(job, self._name)
+                self._notifier.notify("job_abandoned", {
+                    'job': job,
+                    'conductor': self,
+                    'persistence': self._persistence,
+                })
         except (excp.JobFailure, excp.NotFound):
             if consume:
                 self._log.warn("Failed job consumption: %s", job,
