@@ -21,6 +21,7 @@ from debtcollector import moves
 import six
 
 from taskflow.types import notifier
+from taskflow.utils import misc
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -41,10 +42,7 @@ class Engine(object):
         self._flow = flow
         self._flow_detail = flow_detail
         self._backend = backend
-        if not options:
-            self._options = {}
-        else:
-            self._options = dict(options)
+        self._options = misc.ensure_dict(options)
         self._notifier = notifier.Notifier()
         self._atom_notifier = notifier.Notifier()
 

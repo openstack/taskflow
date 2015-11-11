@@ -595,3 +595,11 @@ def is_iterable(obj):
     """
     return (not isinstance(obj, six.string_types) and
             isinstance(obj, collections.Iterable))
+
+
+def ensure_dict(obj):
+    """Copy an existing dictionary or default to empty dict...."""
+    if not obj:
+        return {}
+    # default to a shallow copy to avoid most ownership issues
+    return dict(obj)

@@ -319,11 +319,13 @@ class ActionEngine(base.Engine):
         if self._compiled:
             return
         self._compilation = self._compiler.compile()
+
         self._runtime = runtime.Runtime(self._compilation,
                                         self.storage,
                                         self.atom_notifier,
                                         self._task_executor,
-                                        self._retry_executor)
+                                        self._retry_executor,
+                                        options=self._options)
         self._runtime.compile()
         self._compiled = True
 

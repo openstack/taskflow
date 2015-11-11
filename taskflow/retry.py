@@ -34,13 +34,25 @@ class Decision(misc.StrEnum):
 
     This strategy first consults the parent atom before reverting the
     associated subflow to determine if the parent retry object provides a
-    different reconciliation strategy (if no parent retry object exists
-    then reverting will proceed, if one does exist the parent retry may
-    override this reconciliation strategy with its own).
+    different reconciliation strategy.  This allows for safe nesting of
+    flows with different retry strategies.
+
+    If the parent flow has no retry strategy, the default behavior is
+    to just revert the atoms in the associated subflow.  This is
+    generally not the desired behavior, but is left as the default in
+    order to keep backwards-compatibility.  The ``defer_reverts``
+    engine option will let you change this behavior.  If that is set
+    to True, a REVERT will always defer to the parent, meaning that
+    if the parent has no retry strategy, it will be reverted as well.
     """
 
-    #: Completely reverts the whole flow.
     REVERT_ALL = "REVERT_ALL"
+    """Reverts the entire flow, regardless of parent strategy.
+
+    This strategy will revert every atom that has executed thus
+    far, regardless of whether the parent flow has a separate
+    retry strategy associated with it.
+    """
 
     #: Retries the surrounding/associated subflow again.
     RETRY = "RETRY"

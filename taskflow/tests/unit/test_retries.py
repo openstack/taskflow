@@ -202,6 +202,69 @@ class RetryTest(utils.EngineTestBase):
                     'flow-1.f SUCCESS']
         self.assertEqual(expected, capturer.values)
 
+    def test_new_revert_vs_old(self):
+        flow = lf.Flow('flow-1').add(
+            utils.TaskNoRequiresNoReturns("task1"),
+            lf.Flow('flow-2', retry.Times(1, 'r1', provides='x')).add(
+                utils.TaskNoRequiresNoReturns("task2"),
+                utils.ConditionalTask("task3")
+            ),
+            utils.TaskNoRequiresNoReturns("task4")
+        )
+        engine = self._make_engine(flow)
+        engine.storage.inject({'y': 2})
+        with utils.CaptureListener(engine) as capturer:
+            try:
+                engine.run()
+            except Exception:
+                pass
+
+        expected = ['flow-1.f RUNNING',
+                    'task1.t RUNNING',
+                    'task1.t SUCCESS(None)',
+                    'r1.r RUNNING',
+                    'r1.r SUCCESS(1)',
+                    'task2.t RUNNING',
+                    'task2.t SUCCESS(None)',
+                    'task3.t RUNNING',
+                    'task3.t FAILURE(Failure: RuntimeError: Woot!)',
+                    'task3.t REVERTING',
+                    'task3.t REVERTED(None)',
+                    'task2.t REVERTING',
+                    'task2.t REVERTED(None)',
+                    'r1.r REVERTING',
+                    'r1.r REVERTED(None)',
+                    'flow-1.f REVERTED']
+        self.assertEqual(expected, capturer.values)
+
+        engine = self._make_engine(flow, defer_reverts=True)
+        engine.storage.inject({'y': 2})
+        with utils.CaptureListener(engine) as capturer:
+            try:
+                engine.run()
+            except Exception:
+                pass
+
+        expected = ['flow-1.f RUNNING',
+                    'task1.t RUNNING',
+                    'task1.t SUCCESS(None)',
+                    'r1.r RUNNING',
+                    'r1.r SUCCESS(1)',
+                    'task2.t RUNNING',
+                    'task2.t SUCCESS(None)',
+                    'task3.t RUNNING',
+                    'task3.t FAILURE(Failure: RuntimeError: Woot!)',
+                    'task3.t REVERTING',
+                    'task3.t REVERTED(None)',
+                    'task2.t REVERTING',
+                    'task2.t REVERTED(None)',
+                    'r1.r REVERTING',
+                    'r1.r REVERTED(None)',
+                    'task1.t REVERTING',
+                    'task1.t REVERTED(None)',
+                    'flow-1.f REVERTED']
+        self.assertEqual(expected, capturer.values)
+
     def test_states_retry_failure_parent_flow_fails(self):
         flow = lf.Flow('flow-1', retry.Times(3, 'r1', provides='x1')).add(
             utils.TaskNoRequiresNoReturns("task1"),
@@ -1210,11 +1273,12 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
 
 
 class SerialEngineTest(RetryTest, test.TestCase):
-    def _make_engine(self, flow, flow_detail=None):
+    def _make_engine(self, flow, defer_reverts=None, flow_detail=None):
         return taskflow.engines.load(flow,
                                      flow_detail=flow_detail,
                                      engine='serial',
-                                     backend=self.backend)
+                                     backend=self.backend,
+                                     defer_reverts=defer_reverts)
 
 
 class ParallelEngineWithThreadsTest(RetryTest,
@@ -1222,36 +1286,46 @@ class ParallelEngineWithThreadsTest(RetryTest,
                                     test.TestCase):
     _EXECUTOR_WORKERS = 2
 
-    def _make_engine(self, flow, flow_detail=None, executor=None):
+    def _make_engine(self, flow, defer_reverts=None, flow_detail=None,
+                     executor=None):
         if executor is None:
             executor = 'threads'
-        return taskflow.engines.load(flow, flow_detail=flow_detail,
+        return taskflow.engines.load(flow,
+                                     flow_detail=flow_detail,
                                      engine='parallel',
                                      backend=self.backend,
                                      executor=executor,
-                                     max_workers=self._EXECUTOR_WORKERS)
+                                     max_workers=self._EXECUTOR_WORKERS,
+                                     defer_reverts=defer_reverts)
 
 
 @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
 class ParallelEngineWithEventletTest(RetryTest, test.TestCase):
 
-    def _make_engine(self, flow, flow_detail=None, executor=None):
+    def _make_engine(self, flow, defer_reverts=None, flow_detail=None,
+                     executor=None):
         if executor is None:
             executor = futurist.GreenThreadPoolExecutor()
             self.addCleanup(executor.shutdown)
-        return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     backend=self.backend, engine='parallel',
-                                     executor=executor)
+        return taskflow.engines.load(flow,
+                                     flow_detail=flow_detail,
+                                     backend=self.backend,
+                                     engine='parallel',
+                                     executor=executor,
+                                     defer_reverts=defer_reverts)
 
 
 class ParallelEngineWithProcessTest(RetryTest, test.TestCase):
     _EXECUTOR_WORKERS = 2
 
-    def _make_engine(self, flow, flow_detail=None, executor=None):
+    def _make_engine(self, flow, defer_reverts=None, flow_detail=None,
+                     executor=None):
         if executor is None:
             executor = 'processes'
-        return taskflow.engines.load(flow, flow_detail=flow_detail,
+        return taskflow.engines.load(flow,
+                                     flow_detail=flow_detail,
                                      engine='parallel',
                                      backend=self.backend,
                                      executor=executor,
-                                     max_workers=self._EXECUTOR_WORKERS)
+                                     max_workers=self._EXECUTOR_WORKERS,
+                                     defer_reverts=defer_reverts)

@@ -340,3 +340,27 @@ class TestIterable(test.TestCase):
 
     def test_dict(self):
         self.assertTrue(misc.is_iterable(dict()))
+
+
+class TestEnsureDict(testscenarios.TestWithScenarios):
+    scenarios = [
+        ('none', {'original': None, 'expected': {}}),
+        ('empty_dict', {'original': {}, 'expected': {}}),
+        ('empty_list', {'original': [], 'expected': {}}),
+        ('dict', {'original': {'a': 1, 'b': 2}, 'expected': {'a': 1, 'b': 2}}),
+    ]
+
+    def test_expected(self):
+        self.assertEqual(self.expected, misc.ensure_dict(self.original))
+        self.assertFalse(self.expected is misc.ensure_dict(self.original))
+
+
+class TestEnsureDictRaises(testscenarios.TestWithScenarios):
+    scenarios = [
+        ('list', {'original': [1, 2], 'exception': TypeError}),
+        ('tuple', {'original': (1, 2), 'exception': TypeError}),
+        ('set', {'original': set([1, 2]), 'exception': TypeError}),
+    ]
+
+    def test_exceptions(self):
+        self.assertRaises(self.exception, misc.ensure_dict, self.original)

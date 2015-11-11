@@ -42,13 +42,14 @@ class Runtime(object):
     """
 
     def __init__(self, compilation, storage, atom_notifier,
-                 task_executor, retry_executor):
+                 task_executor, retry_executor, options=None):
         self._atom_notifier = atom_notifier
         self._task_executor = task_executor
         self._retry_executor = retry_executor
         self._storage = storage
         self._compilation = compilation
         self._atom_cache = {}
+        self._options = misc.ensure_dict(options)
 
     @staticmethod
     def _walk_edge_deciders(graph, atom):
@@ -129,6 +130,10 @@ class Runtime(object):
     @property
     def storage(self):
         return self._storage
+
+    @property
+    def options(self):
+        return self._options
 
     @misc.cachedproperty
     def analyzer(self):
