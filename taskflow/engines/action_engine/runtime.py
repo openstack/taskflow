@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import functools
 
 from futurist import waiters
@@ -48,6 +49,34 @@ class Runtime(object):
         self._storage = storage
         self._compilation = compilation
         self._atom_cache = {}
+
+    @staticmethod
+    def _walk_edge_deciders(graph, atom):
+        """Iterates through all nodes, deciders that alter atoms execution."""
+        # This is basically a reverse breadth first exploration, with
+        # special logic to further traverse down flow nodes...
+        predecessors_iter = graph.predecessors_iter
+        nodes = collections.deque((u_node, atom)
+                                  for u_node in predecessors_iter(atom))
+        visited = set()
+        while nodes:
+            u_node, v_node = nodes.popleft()
+            u_node_kind = graph.node[u_node]['kind']
+            try:
+                yield (u_node, u_node_kind,
+                       graph.adj[u_node][v_node][LINK_DECIDER])
+            except KeyError:
+                pass
+            if u_node_kind == com.FLOW and u_node not in visited:
+                # Avoid re-exploring the same flow if we get to this
+                # same flow by a different *future* path...
+                visited.add(u_node)
+                # Since we *currently* jump over flow node(s), we need to make
+                # sure that any prior decider that was directed at this flow
+                # node also gets used during future decisions about this
+                # atom node.
+                nodes.extend((u_u_node, u_node)
+                             for u_u_node in predecessors_iter(u_node))
 
     def compile(self):
         """Compiles & caches frequently used execution helper objects.
@@ -84,21 +113,13 @@ class Runtime(object):
                 raise exc.CompilationFailure("Unknown node kind '%s'"
                                              " encountered" % node_kind)
             metadata = {}
+            deciders_it = self._walk_edge_deciders(graph, node)
             walker = sc.ScopeWalker(self.compilation, node, names_only=True)
-            edge_deciders = {}
-            for prev_node in graph.predecessors_iter(node):
-                # If there is any link function that says if this connection
-                # is able to run (or should not) ensure we retain it and use
-                # it later as needed.
-                u_v_data = graph.adj[prev_node][node]
-                u_v_decider = u_v_data.get(LINK_DECIDER)
-                if u_v_decider is not None:
-                    edge_deciders[prev_node.name] = u_v_decider
             metadata['scope_walker'] = walker
             metadata['check_transition_handler'] = check_transition_handler
             metadata['change_state_handler'] = change_state_handler
             metadata['scheduler'] = scheduler
-            metadata['edge_deciders'] = edge_deciders
+            metadata['edge_deciders'] = tuple(deciders_it)
             self._atom_cache[node.name] = metadata
 
     @property
