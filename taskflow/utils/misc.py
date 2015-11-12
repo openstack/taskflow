@@ -66,6 +66,14 @@ class StringIO(six.StringIO):
         self.write(linesep)
 
 
+class BytesIO(six.BytesIO):
+    """Byte buffer with some small additions."""
+
+    def reset(self):
+        self.seek(0)
+        self.truncate()
+
+
 def get_hostname(unknown_hostname=UNKNOWN_HOSTNAME):
     """Gets the machines hostname; if not able to returns an invalid one."""
     try:

@@ -19,6 +19,7 @@ import testtools
 
 from taskflow.engines.action_engine import engine
 from taskflow.engines.action_engine import executor
+from taskflow.engines.action_engine import process_executor
 from taskflow.patterns import linear_flow as lf
 from taskflow.persistence import backends
 from taskflow import test
@@ -47,7 +48,7 @@ class ParallelCreationTest(test.TestCase):
         for s in ['process', 'processes']:
             eng = self._create_engine(executor=s)
             self.assertIsInstance(eng._task_executor,
-                                  executor.ParallelProcessTaskExecutor)
+                                  process_executor.ParallelProcessTaskExecutor)
 
     def test_thread_executor_creation(self):
         with futurist.ThreadPoolExecutor(1) as e:
@@ -59,7 +60,7 @@ class ParallelCreationTest(test.TestCase):
         with futurist.ProcessPoolExecutor(1) as e:
             eng = self._create_engine(executor=e)
             self.assertIsInstance(eng._task_executor,
-                                  executor.ParallelProcessTaskExecutor)
+                                  process_executor.ParallelProcessTaskExecutor)
 
     @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
     def test_green_executor_creation(self):

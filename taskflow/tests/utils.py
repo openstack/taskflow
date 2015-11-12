@@ -187,6 +187,13 @@ class CaptureListener(capturing.CaptureListener):
         return name
 
 
+class MultiProgressingTask(task.Task):
+    def execute(self, progress_chunks):
+        for chunk in progress_chunks:
+            self.update_progress(chunk)
+        return len(progress_chunks)
+
+
 class ProgressingTask(task.Task):
     def execute(self, **kwargs):
         self.update_progress(0.0)
@@ -215,14 +222,6 @@ class TaskWithFailure(task.Task):
 
     def execute(self, **kwargs):
         raise RuntimeError('Woot!')
-
-
-class ProgressingTask(task.Task):
-
-    def execute(self, *args, **kwargs):
-        self.update_progress(0.0)
-        self.update_progress(1.0)
-        return 5
 
 
 class FailingTaskWithOneArg(ProgressingTask):

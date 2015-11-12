@@ -31,6 +31,7 @@ import six
 from taskflow.engines.action_engine import builder
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
+from taskflow.engines.action_engine import process_executor
 from taskflow.engines.action_engine import runtime
 from taskflow.engines import base
 from taskflow import exceptions as exc
@@ -502,7 +503,7 @@ class ParallelActionEngine(ActionEngine):
 Type provided              Executor used
 =========================  ===============================================
 |cft|.ThreadPoolExecutor   :class:`~.executor.ParallelThreadTaskExecutor`
-|cfp|.ProcessPoolExecutor  :class:`~.executor.ParallelProcessTaskExecutor`
+|cfp|.ProcessPoolExecutor  :class:`~.|pe|.ParallelProcessTaskExecutor`
 |cf|._base.Executor        :class:`~.executor.ParallelThreadTaskExecutor`
 =========================  ===============================================
 
@@ -514,8 +515,8 @@ Type provided              Executor used
 ===========================  ===============================================
 String (case insensitive)    Executor used
 ===========================  ===============================================
-``process``                  :class:`~.executor.ParallelProcessTaskExecutor`
-``processes``                :class:`~.executor.ParallelProcessTaskExecutor`
+``process``                  :class:`~.|pe|.ParallelProcessTaskExecutor`
+``processes``                :class:`~.|pe|.ParallelProcessTaskExecutor`
 ``thread``                   :class:`~.executor.ParallelThreadTaskExecutor`
 ``threaded``                 :class:`~.executor.ParallelThreadTaskExecutor`
 ``threads``                  :class:`~.executor.ParallelThreadTaskExecutor`
@@ -531,7 +532,7 @@ String (case insensitive)    Executor used
       workers that are used to dispatch tasks into (this number is bounded
       by the maximum parallelization your workflow can support).
 
-    * ``dispatch_periodicity``: a float (in seconds) that will affect the
+    * ``wait_timeout``: a float (in seconds) that will affect the
       parallel process task executor (and therefore is **only** applicable when
       the executor provided above is of the process variant). This number
       affects how much time the process task executor waits for messages from
@@ -540,6 +541,7 @@ String (case insensitive)    Executor used
       polling while a higher number will involve less polling but a slower time
       for an engine to notice a task has completed.
 
+    .. |pe|  replace:: process_executor
     .. |cfp| replace:: concurrent.futures.process
     .. |cft| replace:: concurrent.futures.thread
     .. |cf| replace:: concurrent.futures
@@ -555,7 +557,7 @@ String (case insensitive)    Executor used
         _ExecutorTypeMatch((futures.ThreadPoolExecutor,),
                            executor.ParallelThreadTaskExecutor),
         _ExecutorTypeMatch((futures.ProcessPoolExecutor,),
-                           executor.ParallelProcessTaskExecutor),
+                           process_executor.ParallelProcessTaskExecutor),
         _ExecutorTypeMatch((futures.Executor,),
                            executor.ParallelThreadTaskExecutor),
     ]
@@ -565,7 +567,7 @@ String (case insensitive)    Executor used
     # will be lower-cased before checking).
     _executor_str_matchers = [
         _ExecutorTextMatch(frozenset(['processes', 'process']),
-                           executor.ParallelProcessTaskExecutor),
+                           process_executor.ParallelProcessTaskExecutor),
         _ExecutorTextMatch(frozenset(['thread', 'threads', 'threaded']),
                            executor.ParallelThreadTaskExecutor),
         _ExecutorTextMatch(frozenset(['greenthread', 'greenthreads',

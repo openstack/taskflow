@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import contextlib
 import functools
 import threading
@@ -49,6 +50,41 @@ _EMPTY_TRANSITIONS = [
 ]
 
 
+class EngineTaskNotificationsTest(object):
+    def test_run_capture_task_notifications(self):
+        captured = collections.defaultdict(list)
+
+        def do_capture(bound_name, event_type, details):
+            progress_capture = captured[bound_name]
+            progress_capture.append(details)
+
+        flow = lf.Flow("flow")
+        work_1 = utils.MultiProgressingTask('work-1')
+        work_1.notifier.register(task.EVENT_UPDATE_PROGRESS,
+                                 functools.partial(do_capture, 'work-1'))
+        work_2 = utils.MultiProgressingTask('work-2')
+        work_2.notifier.register(task.EVENT_UPDATE_PROGRESS,
+                                 functools.partial(do_capture, 'work-2'))
+        flow.add(work_1, work_2)
+
+        # NOTE(harlowja): These were selected so that float comparison will
+        # work vs not work...
+        progress_chunks = tuple([0.2, 0.5, 0.8])
+        engine = self._make_engine(
+            flow, store={'progress_chunks': progress_chunks})
+        engine.run()
+
+        expected = [
+            {'progress': 0.0},
+            {'progress': 0.2},
+            {'progress': 0.5},
+            {'progress': 0.8},
+            {'progress': 1.0},
+        ]
+        for name in ['work-1', 'work-2']:
+            self.assertEqual(expected, captured[name])
+
+
 class EngineTaskTest(object):
 
     def test_run_task_as_flow(self):
@@ -59,7 +95,7 @@ class EngineTaskTest(object):
         expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
 
-    def test_run_task_with_notifications(self):
+    def test_run_task_with_flow_notifications(self):
         flow = utils.ProgressingTask(name='task1')
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine) as capturer:
@@ -68,7 +104,7 @@ class EngineTaskTest(object):
                     'task1.t SUCCESS(5)', 'task1.f SUCCESS']
         self.assertEqual(expected, capturer.values)
 
-    def test_failing_task_with_notifications(self):
+    def test_failing_task_with_flow_notifications(self):
         values = []
         flow = utils.FailingTask('fail')
         engine = self._make_engine(flow)
@@ -1369,6 +1405,7 @@ class SerialEngineTest(EngineTaskTest,
                        EngineGraphConditionalFlowTest,
                        EngineCheckingTaskTest,
                        EngineDeciderDepthTest,
+                       EngineTaskNotificationsTest,
                        test.TestCase):
     def _make_engine(self, flow,
                      flow_detail=None, store=None, **kwargs):
@@ -1399,6 +1436,7 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
                                     EngineGraphConditionalFlowTest,
                                     EngineCheckingTaskTest,
                                     EngineDeciderDepthTest,
+                                    EngineTaskNotificationsTest,
                                     test.TestCase):
     _EXECUTOR_WORKERS = 2
 
@@ -1443,6 +1481,7 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
                                      EngineGraphConditionalFlowTest,
                                      EngineCheckingTaskTest,
                                      EngineDeciderDepthTest,
+                                     EngineTaskNotificationsTest,
                                      test.TestCase):
 
     def _make_engine(self, flow,
@@ -1467,6 +1506,7 @@ class ParallelEngineWithProcessTest(EngineTaskTest,
                                     EngineMissingDepsTest,
                                     EngineGraphConditionalFlowTest,
                                     EngineDeciderDepthTest,
+                                    EngineTaskNotificationsTest,
                                     test.TestCase):
     _EXECUTOR_WORKERS = 2
 
@@ -1499,6 +1539,7 @@ class WorkerBasedEngineTest(EngineTaskTest,
                             EngineMissingDepsTest,
                             EngineGraphConditionalFlowTest,
                             EngineDeciderDepthTest,
+                            EngineTaskNotificationsTest,
                             test.TestCase):
     def setUp(self):
         super(WorkerBasedEngineTest, self).setUp()
