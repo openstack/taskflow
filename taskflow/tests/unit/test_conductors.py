@@ -18,6 +18,8 @@ import collections
 import contextlib
 import threading
 
+import futurist
+import testscenarios
 from zake import fake_client
 
 from taskflow.conductors import backends
@@ -51,23 +53,39 @@ def test_factory(blowup):
     return f
 
 
+def single_factory():
+    return futurist.ThreadPoolExecutor(max_workers=1)
+
+
 ComponentBundle = collections.namedtuple('ComponentBundle',
                                          ['board', 'client',
                                           'persistence', 'conductor'])
 
 
-class BlockingConductorTest(test_utils.EngineTestBase, test.TestCase):
-    KIND = 'blocking'
+class ManyConductorTest(testscenarios.TestWithScenarios,
+                        test_utils.EngineTestBase, test.TestCase):
+    scenarios = [
+        ('blocking', {'kind': 'blocking',
+                      'conductor_kwargs': {'wait_timeout': 0.1}}),
+        ('nonblocking_many_thread',
+         {'kind': 'nonblocking', 'conductor_kwargs': {'wait_timeout': 0.1}}),
+        ('nonblocking_one_thread', {'kind': 'nonblocking',
+                                    'conductor_kwargs': {
+                                        'executor_factory': single_factory,
+                                        'wait_timeout': 0.1,
+                                    }})
+    ]
 
-    def make_components(self, name='testing', wait_timeout=0.1):
+    def make_components(self):
         client = fake_client.FakeClient()
         persistence = impl_memory.MemoryBackend()
-        board = impl_zookeeper.ZookeeperJobBoard(name, {},
+        board = impl_zookeeper.ZookeeperJobBoard('testing', {},
                                                  client=client,
                                                  persistence=persistence)
-        conductor = backends.fetch(self.KIND, name, board,
-                                   persistence=persistence,
-                                   wait_timeout=wait_timeout)
+        conductor_kwargs = self.conductor_kwargs.copy()
+        conductor_kwargs['persistence'] = persistence
+        conductor = backends.fetch(self.kind, 'testing', board,
+                                   **conductor_kwargs)
         return ComponentBundle(board, client, persistence, conductor)
 
     def test_connection(self):
@@ -178,3 +196,29 @@ class BlockingConductorTest(test_utils.EngineTestBase, test.TestCase):
             fd = lb.find(fd.uuid)
         self.assertIsNotNone(fd)
         self.assertEqual(st.REVERTED, fd.state)
+
+
+class NonBlockingExecutorTest(test.TestCase):
+    def test_bad_wait_timeout(self):
+        persistence = impl_memory.MemoryBackend()
+        client = fake_client.FakeClient()
+        board = impl_zookeeper.ZookeeperJobBoard('testing', {},
+                                                 client=client,
+                                                 persistence=persistence)
+        self.assertRaises(ValueError,
+                          backends.fetch,
+                          'nonblocking', 'testing', board,
+                          persistence=persistence,
+                          wait_timeout='testing')
+
+    def test_bad_factory(self):
+        persistence = impl_memory.MemoryBackend()
+        client = fake_client.FakeClient()
+        board = impl_zookeeper.ZookeeperJobBoard('testing', {},
+                                                 client=client,
+                                                 persistence=persistence)
+        self.assertRaises(ValueError,
+                          backends.fetch,
+                          'nonblocking', 'testing', board,
+                          persistence=persistence,
+                          executor_factory='testing')

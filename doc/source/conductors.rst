@@ -9,7 +9,7 @@ Conductors
 Overview
 ========
 
-Conductors in TaskFlow provide a mechanism that unifies the various TaskFlow
+Conductors provide a mechanism that unifies the various
 concepts under a single easy to use (as plug-and-play as we can make it)
 construct.
 
@@ -66,6 +66,7 @@ Interfaces
 
 .. automodule:: taskflow.conductors.base
 .. automodule:: taskflow.conductors.backends
+.. automodule:: taskflow.conductors.backends.impl_executor
 
 Implementations
 ===============
@@ -75,12 +76,19 @@ Blocking
 
 .. automodule:: taskflow.conductors.backends.impl_blocking
 
+Non-blocking
+------------
+
+.. automodule:: taskflow.conductors.backends.impl_nonblocking
+
 Hierarchy
 =========
 
 .. inheritance-diagram::
     taskflow.conductors.base
     taskflow.conductors.backends.impl_blocking
+    taskflow.conductors.backends.impl_nonblocking
+    taskflow.conductors.backends.impl_executor
     :parts: 1
 
 .. _musical conductors: http://en.wikipedia.org/wiki/Conducting

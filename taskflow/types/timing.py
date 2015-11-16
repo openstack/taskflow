@@ -31,11 +31,11 @@ class Timeout(object):
     This object has the ability to be interrupted before the actual timeout
     is reached.
     """
-    def __init__(self, timeout):
+    def __init__(self, timeout, event_factory=threading.Event):
         if timeout < 0:
             raise ValueError("Timeout must be >= 0 and not %s" % (timeout))
         self._timeout = timeout
-        self._event = threading.Event()
+        self._event = event_factory()
 
     def interrupt(self):
         self._event.set()

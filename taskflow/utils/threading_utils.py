@@ -15,6 +15,7 @@
 #    under the License.
 
 import collections
+import multiprocessing
 import threading
 
 import six
@@ -33,6 +34,17 @@ def is_alive(thread):
 def get_ident():
     """Return the 'thread identifier' of the current thread."""
     return _thread.get_ident()
+
+
+def get_optimal_thread_count(default=2):
+    """Try to guess optimal thread count for current system."""
+    try:
+        return multiprocessing.cpu_count() + 1
+    except NotImplementedError:
+        # NOTE(harlowja): apparently may raise so in this case we will
+        # just setup two threads since it's hard to know what else we
+        # should do in this situation.
+        return default
 
 
 def daemon_thread(target, *args, **kwargs):

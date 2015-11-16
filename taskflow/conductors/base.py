@@ -13,6 +13,7 @@
 #    under the License.
 
 import abc
+import os
 import threading
 
 import fasteners
@@ -20,7 +21,9 @@ import six
 
 from taskflow import engines
 from taskflow import exceptions as excp
+from taskflow.types import entity
 from taskflow.types import notifier
+from taskflow.utils import misc
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -35,6 +38,9 @@ class Conductor(object):
     period of time will finish up the prior failed conductors work.
     """
 
+    #: Entity kind used when creating new entity objects
+    ENTITY_KIND = 'conductor'
+
     def __init__(self, name, jobboard,
                  persistence=None, engine=None, engine_options=None):
         self._name = name
@@ -47,6 +53,18 @@ class Conductor(object):
         self._persistence = persistence
         self._lock = threading.RLock()
         self._notifier = notifier.Notifier()
+
+    @misc.cachedproperty
+    def conductor(self):
+        """Entity object that represents this conductor."""
+        hostname = misc.get_hostname()
+        pid = os.getpid()
+        name = '@'.join([self._name, hostname + ":" + str(pid)])
+        metadata = {
+            'hostname': hostname,
+            'pid': pid,
+        }
+        return entity.Entity(self.ENTITY_KIND, name, metadata)
 
     @property
     def notifier(self):
@@ -134,8 +152,17 @@ class Conductor(object):
         self._jobboard.close()
 
     @abc.abstractmethod
-    def run(self):
-        """Continuously claims, runs, and consumes jobs (and repeat)."""
+    def run(self, max_dispatches=None):
+        """Continuously claims, runs, and consumes jobs (and repeat).
+
+        :param max_dispatches: An upper bound on the number of jobs that will
+                               be dispatched, if none or negative this implies
+                               there is no limit to the number of jobs that
+                               will be dispatched, otherwise if positive this
+                               run method will return when that amount of jobs
+                               has been dispatched (instead of running
+                               forever and/or until stopped).
+        """
 
     @abc.abstractmethod
     def _dispatch_job(self, job):
