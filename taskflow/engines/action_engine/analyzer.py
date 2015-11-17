@@ -80,10 +80,14 @@ class IgnoreDecider(Decider):
 
     def check(self, runtime):
         """Returns bool of whether this decider should allow running."""
+        # Gather all atoms results so that those results can be used
+        # by the decider(s) that are making a decision as to pass or
+        # not pass...
         results = {}
-        for name in six.iterkeys(self._edge_deciders):
-            results[name] = runtime.storage.get(name)
-        for local_decider in six.itervalues(self._edge_deciders):
+        for node, node_kind, _local_decider in self._edge_deciders:
+            if node_kind in co.ATOMS:
+                results[node.name] = runtime.storage.get(node.name)
+        for _node, _node_kind, local_decider in self._edge_deciders:
             if not local_decider(history=results):
                 return False
         return True
