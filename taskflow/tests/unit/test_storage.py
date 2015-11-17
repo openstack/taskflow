@@ -60,11 +60,13 @@ class StorageTestMixin(object):
         s.ensure_atom(test_utils.NoopTask('my_task'))
         self.assertTrue(uuidutils.is_uuid_like(s.get_atom_uuid('my_task')))
 
-    def test_flow_name_and_uuid(self):
+    def test_flow_name_uuid_and_meta(self):
         flow_detail = models.FlowDetail(name='test-fd', uuid='aaaa')
+        flow_detail.meta = {'a': 1}
         s = self._get_storage(flow_detail)
         self.assertEqual('test-fd', s.flow_name)
         self.assertEqual('aaaa', s.flow_uuid)
+        self.assertEqual({'a': 1}, s.flow_meta)
 
     def test_ensure_task(self):
         s = self._get_storage()

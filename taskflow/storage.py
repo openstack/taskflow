@@ -302,6 +302,11 @@ class Storage(object):
         return self._flowdetail.uuid
 
     @property
+    def flow_meta(self):
+        """The flow detail metadata this storage unit is associated with."""
+        return self._flowdetail.meta
+
+    @property
     def backend(self):
         """The backend this storage unit is associated with."""
         # This never changes (so no read locking needed).
