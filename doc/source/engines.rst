@@ -448,11 +448,13 @@ Components
 .. automodule:: taskflow.engines.action_engine.builder
 .. automodule:: taskflow.engines.action_engine.compiler
 .. automodule:: taskflow.engines.action_engine.completer
+.. automodule:: taskflow.engines.action_engine.deciders
 .. automodule:: taskflow.engines.action_engine.executor
 .. automodule:: taskflow.engines.action_engine.runtime
 .. automodule:: taskflow.engines.action_engine.scheduler
 .. autoclass:: taskflow.engines.action_engine.scopes.ScopeWalker
     :special-members: __iter__
+.. automodule:: taskflow.engines.action_engine.traversal
 
 Hierarchy
 =========

@@ -15,6 +15,7 @@
 #    under the License.
 
 import contextlib
+import functools
 
 import fasteners
 from oslo_utils import reflection
@@ -82,6 +83,127 @@ META_INJECTED = 'injected'
 # Atom detail metadata key(s) used to set atom progress (with any details).
 META_PROGRESS = 'progress'
 META_PROGRESS_DETAILS = 'progress_details'
+
+
+class _ProviderLocator(object):
+    """Helper to start to better decouple the finding logic from storage.
+
+    WIP: part of the larger effort to cleanup/refactor the finding of named
+         arguments so that the code can be more unified and easy to
+         follow...
+    """
+
+    def __init__(self, transient_results,
+                 providers_fetcher, result_fetcher):
+        self.result_fetcher = result_fetcher
+        self.providers_fetcher = providers_fetcher
+        self.transient_results = transient_results
+
+    def _try_get_results(self, looking_for, provider,
+                         look_into_results=True, find_potentials=False):
+        if provider.name is _TRANSIENT_PROVIDER:
+            # TODO(harlowja): This 'is' check still sucks, do this
+            # better in the future...
+            results = self.transient_results
+        else:
+            try:
+                results = self.result_fetcher(provider.name)
+            except (exceptions.NotFound, exceptions.DisallowedAccess):
+                if not find_potentials:
+                    raise
+                else:
+                    # Ok, likely hasn't produced a result yet, but
+                    # at a future point it hopefully will, so stub
+                    # out the *expected* result.
+                    results = {}
+        if look_into_results:
+            _item_from_single(provider, results, looking_for)
+        return results
+
+    def _find(self, looking_for, scope_walker=None,
+              short_circuit=True, find_potentials=False):
+        if scope_walker is None:
+            scope_walker = []
+        default_providers, atom_providers = self.providers_fetcher(looking_for)
+        searched_providers = set()
+        providers_and_results = []
+        if default_providers:
+            for p in default_providers:
+                searched_providers.add(p)
+                try:
+                    provider_results = self._try_get_results(
+                        looking_for, p, find_potentials=find_potentials,
+                        # For default providers always look into there
+                        # results as default providers are statically setup
+                        # and therefore looking into there provided results
+                        # should fail early.
+                        look_into_results=True)
+                except exceptions.NotFound:
+                    if not find_potentials:
+                        raise
+                else:
+                    providers_and_results.append((p, provider_results))
+            if short_circuit:
+                return (searched_providers, providers_and_results)
+        if not atom_providers:
+            return (searched_providers, providers_and_results)
+        atom_providers_by_name = dict((p.name, p) for p in atom_providers)
+        for accessible_atom_names in iter(scope_walker):
+            # *Always* retain the scope ordering (if any matches
+            # happen); instead of retaining the possible provider match
+            # order (which isn't that important and may be different from
+            # the scope requested ordering).
+            maybe_atom_providers = [atom_providers_by_name[atom_name]
+                                    for atom_name in accessible_atom_names
+                                    if atom_name in atom_providers_by_name]
+            tmp_providers_and_results = []
+            if find_potentials:
+                for p in maybe_atom_providers:
+                    searched_providers.add(p)
+                    tmp_providers_and_results.append((p, {}))
+            else:
+                for p in maybe_atom_providers:
+                    searched_providers.add(p)
+                    try:
+                        # Don't at this point look into the provider results
+                        # as calling code will grab all providers, and then
+                        # get the result from the *first* provider that
+                        # actually provided it (or die).
+                        provider_results = self._try_get_results(
+                            looking_for, p, find_potentials=find_potentials,
+                            look_into_results=False)
+                    except exceptions.DisallowedAccess as e:
+                        if e.state != states.IGNORE:
+                            exceptions.raise_with_cause(
+                                exceptions.NotFound,
+                                "Expected to be able to find output %r"
+                                " produced by %s but was unable to get at"
+                                " that providers results" % (looking_for, p))
+                        else:
+                            LOG.blather("Avoiding using the results of"
+                                        " %r (from %s) for name %r because"
+                                        " it was ignored", p.name, p,
+                                        looking_for)
+                    else:
+                        tmp_providers_and_results.append((p, provider_results))
+            if tmp_providers_and_results and short_circuit:
+                return (searched_providers, tmp_providers_and_results)
+            else:
+                providers_and_results.extend(tmp_providers_and_results)
+        return (searched_providers, providers_and_results)
+
+    def find_potentials(self, looking_for, scope_walker=None):
+        """Returns the accessible **potential** providers."""
+        _searched_providers, providers_and_results = self._find(
+            looking_for, scope_walker=scope_walker,
+            short_circuit=False, find_potentials=True)
+        return set(p for (p, _provider_results) in providers_and_results)
+
+    def find(self, looking_for, scope_walker=None, short_circuit=True):
+        """Returns the accessible providers."""
+        return self._find(looking_for, scope_walker=scope_walker,
+                          short_circuit=short_circuit,
+                          find_potentials=False)
 
 
 class _Provider(object):
@@ -326,13 +448,13 @@ class Storage(object):
             ad = self._flowdetail.find(self._atom_name_to_uuid[atom_name])
         except KeyError:
             exceptions.raise_with_cause(exceptions.NotFound,
-                                        "Unknown atom name: %s" % atom_name)
+                                        "Unknown atom name '%s'" % atom_name)
         else:
             # TODO(harlowja): we need to figure out how to get away from doing
             # these kinds of type checks in general (since they likely mean
             # we aren't doing something right).
             if expected_type and not isinstance(ad, expected_type):
-                raise TypeError("Atom %s is not of the expected type: %s"
+                raise TypeError("Atom '%s' is not of the expected type: %s"
                                 % (atom_name,
                                    reflection.get_class_name(expected_type)))
             if clone:
@@ -479,8 +601,9 @@ class Storage(object):
             try:
                 _item_from(container, index)
             except _EXTRACTION_EXCEPTIONS:
-                LOG.warning("Atom %s did not supply result "
-                            "with index %r (name %s)", atom_name, index, name)
+                LOG.warning("Atom '%s' did not supply result "
+                            "with index %r (name '%s')", atom_name, index,
+                            name)
 
     @fasteners.write_locked
     def save(self, atom_name, result, state=states.SUCCESS):
@@ -545,17 +668,34 @@ class Storage(object):
             except KeyError:
                 pass
             return failure
-        # TODO(harlowja): this seems like it should be checked before fetching
-        # the potential failure, instead of after, fix this soon...
-        if source.state not in allowed_states:
-            raise exceptions.NotFound("Result for atom %s is not currently"
-                                      " known" % atom_name)
-        return getattr(source, results_attr_name)
+        else:
+            if source.state not in allowed_states:
+                raise exceptions.DisallowedAccess(
+                    "Result for atom '%s' is not known/accessible"
+                    " due to it being in %s state when result access"
+                    " is restricted to %s states" % (atom_name,
+                                                     source.state,
+                                                     allowed_states),
+                    state=source.state)
+            return getattr(source, results_attr_name)
 
     def get_execute_result(self, atom_name):
         """Gets the ``execute`` results for an atom from storage."""
-        return self._get(atom_name, 'results', 'failure',
-                         _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE)
+        try:
+            results = self._get(atom_name, 'results', 'failure',
+                                _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE)
+        except exceptions.DisallowedAccess as e:
+            if e.state == states.IGNORE:
+                exceptions.raise_with_cause(exceptions.NotFound,
+                                            "Result for atom '%s' execution"
+                                            " is not known (as it was"
+                                            " ignored)" % atom_name)
+            else:
+                exceptions.raise_with_cause(exceptions.NotFound,
+                                            "Result for atom '%s' execution"
+                                            " is not known" % atom_name)
+        else:
+            return results
 
     @fasteners.read_locked
     def _get_failures(self, fail_cache_key):
@@ -577,8 +717,21 @@ class Storage(object):
 
     def get_revert_result(self, atom_name):
         """Gets the ``revert`` results for an atom from storage."""
-        return self._get(atom_name, 'revert_results', 'revert_failure',
-                         _REVERT_STATES_WITH_RESULTS, states.REVERT)
+        try:
+            results = self._get(atom_name, 'revert_results', 'revert_failure',
+                                _REVERT_STATES_WITH_RESULTS, states.REVERT)
+        except exceptions.DisallowedAccess as e:
+            if e.state == states.IGNORE:
+                exceptions.raise_with_cause(exceptions.NotFound,
+                                            "Result for atom '%s' revert is"
+                                            " not known (as it was"
+                                            " ignored)" % atom_name)
+            else:
+                exceptions.raise_with_cause(exceptions.NotFound,
+                                            "Result for atom '%s' revert is"
+                                            " not known" % atom_name)
+        else:
+            return results
 
     def get_revert_failures(self):
         """Get all ``revert`` failures that happened with this flow."""
@@ -639,7 +792,7 @@ class Storage(object):
             be serializable).
         """
         if atom_name not in self._atom_name_to_uuid:
-            raise exceptions.NotFound("Unknown atom name: %s" % atom_name)
+            raise exceptions.NotFound("Unknown atom name '%s'" % atom_name)
 
         def save_transient():
             self._injected_args.setdefault(atom_name, {})
@@ -728,6 +881,19 @@ class Storage(object):
         self._set_result_mapping(provider_name,
                                  dict((name, name) for name in names))
 
+    def _fetch_providers(self, looking_for, providers=None):
+        """Return pair of (default providers, atom providers)."""
+        if providers is None:
+            providers = self._reverse_mapping.get(looking_for, [])
+        default_providers = []
+        atom_providers = []
+        for p in providers:
+            if p.name in (_TRANSIENT_PROVIDER, self.injector_name):
+                default_providers.append(p)
+            else:
+                atom_providers.append(p)
+        return default_providers, atom_providers
+
     def _set_result_mapping(self, provider_name, mapping):
         """Sets the result mapping for a given producer.
 
@@ -757,30 +923,30 @@ class Storage(object):
         if many_handler is None:
             many_handler = _many_handler
         try:
-            providers = self._reverse_mapping[name]
+            maybe_providers = self._reverse_mapping[name]
         except KeyError:
-            exceptions.raise_with_cause(exceptions.NotFound,
-                                        "Name %r is not mapped as a produced"
-                                        " output by any providers" % name)
+            raise exceptions.NotFound("Name %r is not mapped as a produced"
+                                      " output by any providers" % name)
+        locator = _ProviderLocator(
+            self._transients,
+            functools.partial(self._fetch_providers,
+                              providers=maybe_providers),
+            lambda atom_name:
+                self._get(atom_name, 'last_results', 'failure',
+                          _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE))
         values = []
-        for provider in providers:
-            if provider.name is _TRANSIENT_PROVIDER:
-                values.append(_item_from_single(provider,
-                                                self._transients, name))
-            else:
-                try:
-                    container = self._get(provider.name,
-                                          'last_results', 'failure',
-                                          _EXECUTE_STATES_WITH_RESULTS,
-                                          states.EXECUTE)
-                except exceptions.NotFound:
-                    pass
-                else:
-                    values.append(_item_from_single(provider,
-                                                    container, name))
+        searched_providers, providers = locator.find(
+            name, short_circuit=False,
+            # NOTE(harlowja): There are no scopes used here (as of now), so
+            # we just return all known providers as if it was one large
+            # scope.
+            scope_walker=[[p.name for p in maybe_providers]])
+        for provider, results in providers:
+            values.append(_item_from_single(provider, results, name))
         if not values:
-            raise exceptions.NotFound("Unable to find result %r,"
-                                      " searched %s" % (name, providers))
+            raise exceptions.NotFound(
+                "Unable to find result %r, searched %s providers"
+                % (name, len(searched_providers)))
         else:
             return many_handler(values)
 
@@ -796,49 +962,6 @@ class Storage(object):
         needed values; it just checks that they are registered to produce
         it in the future.
         """
-
-        def _fetch_providers(name):
-            """Fetchs pair of (default providers, non-default providers)."""
-            default_providers = []
-            non_default_providers = []
-            for p in self._reverse_mapping.get(name, []):
-                if p.name in (_TRANSIENT_PROVIDER, self.injector_name):
-                    default_providers.append(p)
-                else:
-                    non_default_providers.append(p)
-            return default_providers, non_default_providers
-
-        def _locate_providers(name, scope_walker=None):
-            """Finds the accessible *potential* providers."""
-            default_providers, non_default_providers = _fetch_providers(name)
-            providers = []
-            if non_default_providers:
-                if scope_walker is not None:
-                    scope_iter = iter(scope_walker)
-                else:
-                    scope_iter = iter([])
-                for names in scope_iter:
-                    for p in non_default_providers:
-                        if p.name in names:
-                            providers.append(p)
-            for p in default_providers:
-                if p.name is _TRANSIENT_PROVIDER:
-                    results = self._transients
-                else:
-                    try:
-                        results = self._get(p.name, 'last_results', 'failure',
-                                            _EXECUTE_STATES_WITH_RESULTS,
-                                            states.EXECUTE)
-                    except exceptions.NotFound:
-                        results = {}
-                try:
-                    _item_from_single(p, results, name)
-                except exceptions.NotFound:
-                    pass
-                else:
-                    providers.append(p)
-            return providers
-
         source, _clone = self._atomdetail_by_name(atom_name)
         if scope_walker is None:
             scope_walker = self._scope_fetcher(atom_name)
@@ -849,6 +972,11 @@ class Storage(object):
             source.meta.get(META_INJECTED, {}),
         ]
         missing = set(six.iterkeys(args_mapping))
+        locator = _ProviderLocator(
+            self._transients, self._fetch_providers,
+            lambda atom_name:
+                self._get(atom_name, 'last_results', 'failure',
+                          _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE))
         for (bound_name, name) in six.iteritems(args_mapping):
             if LOG.isEnabledFor(logging.TRACE):
                 LOG.trace("Looking for %r <= %r for atom '%s'",
@@ -863,8 +991,8 @@ class Storage(object):
                     continue
                 if name in source:
                     maybe_providers += 1
-            providers = _locate_providers(name, scope_walker=scope_walker)
-            maybe_providers += len(providers)
+            maybe_providers += len(
+                locator.find_potentials(name, scope_walker=scope_walker))
             if maybe_providers:
                 LOG.trace("Atom '%s' will have %s potential providers"
                           " of %r <= %r", atom_name, maybe_providers,
@@ -894,7 +1022,6 @@ class Storage(object):
                           atom_name=None, scope_walker=None,
                           optional_args=None):
         """Fetch ``execute`` arguments for an atom using its args mapping."""
-
         def _extract_first_from(name, sources):
             """Extracts/returns first occurence of key in list of dicts."""
             for i, source in enumerate(sources):
@@ -903,49 +1030,6 @@ class Storage(object):
                 if name in source:
                     return (i, source[name])
             raise KeyError(name)
-
-        def _get_results(looking_for, provider):
-            """Gets the results saved for a given provider."""
-            try:
-                return self._get(provider.name, 'last_results', 'failure',
-                                 _EXECUTE_STATES_WITH_RESULTS,
-                                 states.EXECUTE)
-            except exceptions.NotFound:
-                exceptions.raise_with_cause(exceptions.NotFound,
-                                            "Expected to be able to find"
-                                            " output %r produced by %s but was"
-                                            " unable to get at that providers"
-                                            " results" % (looking_for,
-                                                          provider))
-
-        def _locate_providers(looking_for, possible_providers,
-                              scope_walker=None):
-            """Finds the accessible providers."""
-            default_providers = []
-            for p in possible_providers:
-                if p.name is _TRANSIENT_PROVIDER:
-                    default_providers.append((p, self._transients))
-                if p.name == self.injector_name:
-                    default_providers.append((p, _get_results(looking_for, p)))
-            if default_providers:
-                return default_providers
-            if scope_walker is not None:
-                scope_iter = iter(scope_walker)
-            else:
-                scope_iter = iter([])
-            extractor = lambda p: p.name
-            for names in scope_iter:
-                # *Always* retain the scope ordering (if any matches
-                # happen); instead of retaining the possible provider match
-                # order (which isn't that important and may be different from
-                # the scope requested ordering).
-                providers = misc.look_for(names, possible_providers,
-                                          extractor=extractor)
-                if providers:
-                    return [(p, _get_results(looking_for, p))
-                            for p in providers]
-            return []
-
         if optional_args is None:
             optional_args = []
         if atom_name:
@@ -960,6 +1044,9 @@ class Storage(object):
             injected_sources = []
         if not args_mapping:
             return {}
+        get_results = lambda atom_name: \
+            self._get(atom_name, 'last_results', 'failure',
+                      _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE)
         mapped_args = {}
         for (bound_name, name) in six.iteritems(args_mapping):
             if LOG.isEnabledFor(logging.TRACE):
@@ -969,8 +1056,8 @@ class Storage(object):
                 else:
                     LOG.trace("Looking for %r <= %r", bound_name, name)
             try:
-                source_index, value = _extract_first_from(name,
-                                                          injected_sources)
+                source_index, value = _extract_first_from(
+                    name, injected_sources)
                 mapped_args[bound_name] = value
                 if LOG.isEnabledFor(logging.TRACE):
                     if source_index == 0:
@@ -983,7 +1070,7 @@ class Storage(object):
                                   " values)", bound_name, name, value)
             except KeyError:
                 try:
-                    possible_providers = self._reverse_mapping[name]
+                    maybe_providers = self._reverse_mapping[name]
                 except KeyError:
                     if bound_name in optional_args:
                         LOG.trace("Argument %r is optional, skipping",
@@ -992,15 +1079,18 @@ class Storage(object):
                     raise exceptions.NotFound("Name %r is not mapped as a"
                                               " produced output by any"
                                               " providers" % name)
-                # Reduce the possible providers to one that are allowed.
-                providers = _locate_providers(name, possible_providers,
-                                              scope_walker=scope_walker)
+                locator = _ProviderLocator(
+                    self._transients,
+                    functools.partial(self._fetch_providers,
+                                      providers=maybe_providers), get_results)
+                searched_providers, providers = locator.find(
+                    name, scope_walker=scope_walker)
                 if not providers:
                     raise exceptions.NotFound(
                         "Mapped argument %r <= %r was not produced"
                         " by any accessible provider (%s possible"
                         " providers were scanned)"
-                        % (bound_name, name, len(possible_providers)))
+                        % (bound_name, name, len(searched_providers)))
                 provider, value = _item_from_first_of(providers, name)
                 mapped_args[bound_name] = value
                 LOG.trace("Matched %r <= %r to %r (from %s)",

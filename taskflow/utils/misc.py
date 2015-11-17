@@ -226,37 +226,6 @@ def parse_uri(uri):
     return netutils.urlsplit(uri)
 
 
-def look_for(haystack, needles, extractor=None):
-    """Find items in haystack and returns matches found (in haystack order).
-
-    Given a list of items (the haystack) and a list of items to look for (the
-    needles) this will look for the needles in the haystack and returns
-    the found needles (if any). The ordering of the returned needles is in the
-    order they are located in the haystack.
-
-    Example input and output:
-
-    >>> from taskflow.utils import misc
-    >>> hay = [3, 2, 1]
-    >>> misc.look_for(hay, [1, 2])
-    [2, 1]
-    """
-    if not haystack:
-        return []
-    if extractor is None:
-        extractor = lambda v: v
-    matches = []
-    for i, v in enumerate(needles):
-        try:
-            matches.append((haystack.index(extractor(v)), i))
-        except ValueError:
-            pass
-    if not matches:
-        return []
-    else:
-        return [needles[i] for (_hay_i, i) in sorted(matches)]
-
-
 def disallow_when_frozen(excp_cls):
     """Frozen checking/raising method decorator."""
 

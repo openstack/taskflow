@@ -39,6 +39,9 @@ LINK_DECIDER = 'decider'
 _CHOP_PAT = "taskflow.patterns."
 _CHOP_PAT_LEN = len(_CHOP_PAT)
 
+# This key denotes the depth the decider will apply (defaulting to all).
+LINK_DECIDER_DEPTH = 'decider_depth'
+
 
 @six.add_metaclass(abc.ABCMeta)
 class Flow(object):

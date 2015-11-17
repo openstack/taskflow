@@ -128,7 +128,7 @@ class Completer(object):
         atom_states = self._storage.get_atoms_states(atom.name
                                                      for atom in atoms)
         for atom in atoms:
-            atom_state = atom_states[atom.name][0]
+            atom_state, _atom_intention = atom_states[atom.name]
             if atom_state == st.FAILURE:
                 self._process_atom_failure(atom, self._storage.get(atom.name))
         for retry in self._analyzer.iterate_retries(st.RETRYING):
@@ -137,7 +137,7 @@ class Completer(object):
                     atom_states[atom.name] = (state, intention)
         unfinished_atoms = set()
         for atom in atoms:
-            atom_state = atom_states[atom.name][0]
+            atom_state, _atom_intention = atom_states[atom.name]
             if atom_state in (st.RUNNING, st.REVERTING):
                 unfinished_atoms.add(atom)
         return unfinished_atoms

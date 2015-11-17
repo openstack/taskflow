@@ -221,6 +221,14 @@ class InvalidFormat(TaskFlowException):
     """Raised when some object/entity is not in the expected format."""
 
 
+class DisallowedAccess(TaskFlowException):
+    """Raised when storage access is not possible due to state limitations."""
+
+    def __init__(self, message, cause=None, state=None):
+        super(DisallowedAccess, self).__init__(message, cause=cause)
+        self.state = state
+
+
 # Others.
 
 class NotImplementedError(NotImplementedError):

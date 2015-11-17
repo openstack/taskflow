@@ -99,37 +99,37 @@ class ActionEngine(base.Engine):
 
     **Engine options:**
 
-    +-------------------+-----------------------+------+-----------+
-    | Name/key          | Description           | Type | Default   |
-    +===================+=======================+======+===========+
-    | defer_reverts     | This option lets you  | bool | ``False`` |
-    |                   | safely nest flows     |      |           |
-    |                   | with retries inside   |      |           |
-    |                   | flows without retries |      |           |
-    |                   | and it still behaves  |      |           |
-    |                   | as a user would       |      |           |
-    |                   | expect (for example   |      |           |
-    |                   | if the retry gets     |      |           |
-    |                   | exhausted it reverts  |      |           |
-    |                   | the outer flow unless |      |           |
-    |                   | the outer flow has a  |      |           |
-    |                   | has a separate retry  |      |           |
-    |                   | behavior).            |      |           |
-    +-------------------+-----------------------+------+-----------+
-    | inject_transient  | When true, values     | bool | ``True``  |
-    |                   | that are local to     |      |           |
-    |                   | each atoms scope      |      |           |
-    |                   | are injected into     |      |           |
-    |                   | storage into a        |      |           |
-    |                   | transient location    |      |           |
-    |                   | (typically a local    |      |           |
-    |                   | dictionary), when     |      |           |
-    |                   | false those values    |      |           |
-    |                   | are instead persisted |      |           |
-    |                   | into atom details     |      |           |
-    |                   | (and saved in a non-  |      |           |
-    |                   | transient manner).    |      |           |
-    +-------------------+-----------------------+------+-----------+
+    +----------------------+-----------------------+------+------------+
+    | Name/key             | Description           | Type | Default    |
+    +======================+=======================+======+============+
+    | ``defer_reverts``    | This option lets you  | bool | ``False``  |
+    |                      | safely nest flows     |      |            |
+    |                      | with retries inside   |      |            |
+    |                      | flows without retries |      |            |
+    |                      | and it still behaves  |      |            |
+    |                      | as a user would       |      |            |
+    |                      | expect (for example   |      |            |
+    |                      | if the retry gets     |      |            |
+    |                      | exhausted it reverts  |      |            |
+    |                      | the outer flow unless |      |            |
+    |                      | the outer flow has a  |      |            |
+    |                      | has a separate retry  |      |            |
+    |                      | behavior).            |      |            |
+    +----------------------+-----------------------+------+------------+
+    | ``inject_transient`` | When true, values     | bool | ``True``   |
+    |                      | that are local to     |      |            |
+    |                      | each atoms scope      |      |            |
+    |                      | are injected into     |      |            |
+    |                      | storage into a        |      |            |
+    |                      | transient location    |      |            |
+    |                      | (typically a local    |      |            |
+    |                      | dictionary), when     |      |            |
+    |                      | false those values    |      |            |
+    |                      | are instead persisted |      |            |
+    |                      | into atom details     |      |            |
+    |                      | (and saved in a non-  |      |            |
+    |                      | transient manner).    |      |            |
+    +----------------------+-----------------------+------+------------+
     """
 
     NO_RERAISING_STATES = frozenset([states.SUSPENDED, states.SUCCESS])
@@ -146,6 +146,12 @@ class ActionEngine(base.Engine):
     Informational states this engines internal machine yields back while
     running, not useful to have the engine record but useful to provide to
     end-users when doing execution iterations via :py:meth:`.run_iter`.
+    """
+
+    MAX_MACHINE_STATES_RETAINED = 10
+    """
+    During :py:meth:`~.run_iter` the last X state machine transitions will
+    be recorded (typically only useful on failure).
     """
 
     def __init__(self, flow, flow_detail, backend, options):
@@ -242,16 +248,21 @@ class ActionEngine(base.Engine):
         self.compile()
         self.prepare()
         self.validate()
-        last_state = None
+        # Keep track of the last X state changes, which if a failure happens
+        # are quite useful to log (and the performance of tracking this
+        # should be negligible).
+        last_transitions = collections.deque(
+            maxlen=max(1, self.MAX_MACHINE_STATES_RETAINED))
         with _start_stop(self._task_executor, self._retry_executor):
             self._change_state(states.RUNNING)
             try:
                 closed = False
                 machine, memory = self._runtime.builder.build(timeout=timeout)
                 r = runners.FiniteRunner(machine)
-                for (_prior_state, new_state) in r.run_iter(builder.START):
-                    last_state = new_state
-                    # NOTE(harlowja): skip over meta-states.
+                for transition in r.run_iter(builder.START):
+                    last_transitions.append(transition)
+                    _prior_state, new_state = transition
+                    # NOTE(harlowja): skip over meta-states
                     if new_state in builder.META_STATES:
                         continue
                     if new_state == states.FAILURE:
@@ -271,15 +282,24 @@ class ActionEngine(base.Engine):
                             self.suspend()
             except Exception:
                 with excutils.save_and_reraise_exception():
+                    LOG.exception("Engine execution has failed, something"
+                                  " bad must of happened (last"
+                                  " %s machine transitions were %s)",
+                                  last_transitions.maxlen,
+                                  list(last_transitions))
                     self._change_state(states.FAILURE)
             else:
-                if last_state and last_state not in self.IGNORABLE_STATES:
-                    self._change_state(new_state)
-                    if last_state not in self.NO_RERAISING_STATES:
-                        it = itertools.chain(
-                            six.itervalues(self.storage.get_failures()),
-                            six.itervalues(self.storage.get_revert_failures()))
-                        failure.Failure.reraise_if_any(it)
+                if last_transitions:
+                    _prior_state, new_state = last_transitions[-1]
+                    if new_state not in self.IGNORABLE_STATES:
+                        self._change_state(new_state)
+                        if new_state not in self.NO_RERAISING_STATES:
+                            failures = self.storage.get_failures()
+                            more_failures = self.storage.get_revert_failures()
+                            fails = itertools.chain(
+                                six.itervalues(failures),
+                                six.itervalues(more_failures))
+                            failure.Failure.reraise_if_any(fails)
 
     @staticmethod
     def _check_compilation(compilation):

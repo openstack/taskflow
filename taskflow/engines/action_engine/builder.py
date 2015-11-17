@@ -223,11 +223,15 @@ class MachineBuilder(object):
                                           atom, intention)
                 except Exception:
                     memory.failures.append(failure.Failure())
+                    LOG.exception("Engine '%s' atom post-completion"
+                                  " failed", atom)
                 else:
                     try:
                         more_work = set(iter_next_atoms(atom=atom))
                     except Exception:
                         memory.failures.append(failure.Failure())
+                        LOG.exception("Engine '%s' atom post-completion"
+                                      " next atom searching failed", atom)
                     else:
                         next_up.update(more_work)
             if is_runnable() and next_up and not memory.failures:

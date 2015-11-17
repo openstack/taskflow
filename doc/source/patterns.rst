@@ -21,6 +21,7 @@ Graph flow
 ~~~~~~~~~~
 
 .. automodule:: taskflow.patterns.graph_flow
+.. automodule:: taskflow.deciders
 
 Hierarchy
 ~~~~~~~~~

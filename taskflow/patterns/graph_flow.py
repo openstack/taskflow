@@ -18,6 +18,7 @@ import collections
 
 import six
 
+from taskflow import deciders as de
 from taskflow import exceptions as exc
 from taskflow import flow
 from taskflow.types import graph as gr
@@ -73,7 +74,7 @@ class Flow(flow.Flow):
     #: Extracts the unsatisified symbol requirements of a single node.
     _unsatisfied_requires = staticmethod(_unsatisfied_requires)
 
-    def link(self, u, v, decider=None):
+    def link(self, u, v, decider=None, decider_depth=None):
         """Link existing node u as a runtime dependency of existing node v.
 
         Note that if the addition of these edges creates a `cyclic`_ graph
@@ -93,6 +94,13 @@ class Flow(flow.Flow):
                         links that have ``v`` as a target. It is expected to
                         return a single boolean (``True`` to allow ``v``
                         execution or ``False`` to not).
+        :param decider_depth: One of the :py:class:`~taskflow.deciders.Depth`
+                              enumerations (or a string version of) that will
+                              be used to influence what atoms are ignored
+                              when the decider provided results false. If
+                              not provided (and a valid decider is provided
+                              then this defaults to
+                              :py:attr:`~taskflow.deciders.Depth.ALL`).
 
         .. _cyclic: https://en.wikipedia.org/wiki/Cycle_graph
         """
@@ -103,11 +111,13 @@ class Flow(flow.Flow):
         if decider is not None:
             if not six.callable(decider):
                 raise ValueError("Decider boolean callback must be callable")
-        self._swap(self._link(u, v, manual=True, decider=decider))
+        self._swap(self._link(u, v, manual=True,
+                              decider=decider, decider_depth=decider_depth))
         return self
 
     def _link(self, u, v, graph=None,
-              reason=None, manual=False, decider=None):
+              reason=None, manual=False, decider=None,
+              decider_depth=None):
         mutable_graph = True
         if graph is None:
             graph = self._graph
@@ -119,6 +129,18 @@ class Flow(flow.Flow):
             attrs = {}
         if decider is not None:
             attrs[flow.LINK_DECIDER] = decider
+            try:
+                # Remove existing decider depth, if one existed.
+                del attrs[flow.LINK_DECIDER_DEPTH]
+            except KeyError:
+                pass
+        if decider_depth is not None:
+            if decider is None:
+                raise ValueError("Decider depth requires a decider to be"
+                                 " provided along with it")
+            else:
+                decider_depth = de.Depth.translate(decider_depth)
+                attrs[flow.LINK_DECIDER_DEPTH] = decider_depth
         if manual:
             attrs[flow.LINK_MANUAL] = True
         if reason is not None:

@@ -669,6 +669,94 @@ class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
         self.assertNotIn('task2.t REVERTED(None)', capturer.values)
 
 
+class EngineDeciderDepthTest(utils.EngineTestBase):
+
+    def test_run_graph_flow_decider_various_depths(self):
+        sub_flow_1 = gf.Flow('g_1')
+        g_1_1 = utils.ProgressingTask(name='g_1-1')
+        sub_flow_1.add(g_1_1)
+        g_1 = utils.ProgressingTask(name='g-1')
+        g_2 = utils.ProgressingTask(name='g-2')
+        g_3 = utils.ProgressingTask(name='g-3')
+        g_4 = utils.ProgressingTask(name='g-4')
+        for a_depth, ran_how_many in [('all', 1),
+                                      ('atom', 4),
+                                      ('flow', 2),
+                                      ('neighbors', 3)]:
+            flow = gf.Flow('g')
+            flow.add(g_1, g_2, sub_flow_1, g_3, g_4)
+            flow.link(g_1, g_2,
+                      decider=lambda history: False,
+                      decider_depth=a_depth)
+            flow.link(g_2, sub_flow_1)
+            flow.link(g_2, g_3)
+            flow.link(g_3, g_4)
+            flow.link(g_1, sub_flow_1,
+                      decider=lambda history: True,
+                      decider_depth=a_depth)
+            e = self._make_engine(flow)
+            with utils.CaptureListener(e, capture_flow=False) as capturer:
+                e.run()
+            ran_tasks = 0
+            for outcome in capturer.values:
+                if outcome.endswith("RUNNING"):
+                    ran_tasks += 1
+            self.assertEqual(ran_how_many, ran_tasks)
+
+    def test_run_graph_flow_decider_jump_over_atom(self):
+        flow = gf.Flow('g')
+        a = utils.AddOneSameProvidesRequires("a", inject={'value': 0})
+        b = utils.AddOneSameProvidesRequires("b")
+        c = utils.AddOneSameProvidesRequires("c")
+        flow.add(a, b, c, resolve_requires=False)
+        flow.link(a, b, decider=lambda history: False,
+                  decider_depth='atom')
+        flow.link(b, c)
+        e = self._make_engine(flow)
+        e.run()
+        self.assertEqual(2, e.storage.get('c'))
+        self.assertEqual(states.IGNORE, e.storage.get_atom_state('b'))
+
+    def test_run_graph_flow_decider_jump_over_bad_atom(self):
+        flow = gf.Flow('g')
+        a = utils.NoopTask("a")
+        b = utils.FailingTask("b")
+        c = utils.NoopTask("c")
+        flow.add(a, b, c)
+        flow.link(a, b, decider=lambda history: False,
+                  decider_depth='atom')
+        flow.link(b, c)
+        e = self._make_engine(flow)
+        e.run()
+
+    def test_run_graph_flow_decider_revert(self):
+        flow = gf.Flow('g')
+        a = utils.NoopTask("a")
+        b = utils.NoopTask("b")
+        c = utils.FailingTask("c")
+        flow.add(a, b, c)
+        flow.link(a, b, decider=lambda history: False,
+                  decider_depth='atom')
+        flow.link(b, c)
+        e = self._make_engine(flow)
+        with utils.CaptureListener(e, capture_flow=False) as capturer:
+            # Wrapped failure here for WBE engine, make this better in
+            # the future, perhaps via a custom testtools matcher??
+            self.assertRaises((RuntimeError, exc.WrappedFailure), e.run)
+        expected = [
+            'a.t RUNNING',
+            'a.t SUCCESS(None)',
+            'b.t IGNORE',
+            'c.t RUNNING',
+            'c.t FAILURE(Failure: RuntimeError: Woot!)',
+            'c.t REVERTING',
+            'c.t REVERTED(None)',
+            'a.t REVERTING',
+            'a.t REVERTED(None)',
+        ]
+        self.assertEqual(expected, capturer.values)
+
+
 class EngineGraphFlowTest(utils.EngineTestBase):
 
     def test_run_empty_graph_flow(self):
@@ -1043,9 +1131,10 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
             'task4.t IGNORE',
         ]
         self.assertEqual(expected, capturer.values)
-        self.assertEqual(1, len(histories))
-        self.assertIn('task1', histories[0])
-        self.assertIn('task2', histories[0])
+        self.assertEqual(2, len(histories))
+        for i in range(0, 2):
+            self.assertIn('task1', histories[i])
+            self.assertIn('task2', histories[i])
 
     def test_graph_flow_conditional(self):
         flow = gf.Flow('root')
@@ -1249,14 +1338,15 @@ class SerialEngineTest(EngineTaskTest,
                        EngineResetTests,
                        EngineGraphConditionalFlowTest,
                        EngineCheckingTaskTest,
+                       EngineDeciderDepthTest,
                        test.TestCase):
     def _make_engine(self, flow,
-                     flow_detail=None, store=None):
+                     flow_detail=None, store=None, **kwargs):
         return taskflow.engines.load(flow,
                                      flow_detail=flow_detail,
                                      engine='serial',
                                      backend=self.backend,
-                                     store=store)
+                                     store=store, **kwargs)
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
@@ -1278,11 +1368,13 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
                                     EngineMissingDepsTest,
                                     EngineGraphConditionalFlowTest,
                                     EngineCheckingTaskTest,
+                                    EngineDeciderDepthTest,
                                     test.TestCase):
     _EXECUTOR_WORKERS = 2
 
     def _make_engine(self, flow,
-                     flow_detail=None, executor=None, store=None):
+                     flow_detail=None, executor=None, store=None,
+                     **kwargs):
         if executor is None:
             executor = 'threads'
         return taskflow.engines.load(flow, flow_detail=flow_detail,
@@ -1290,7 +1382,8 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
                                      executor=executor,
                                      engine='parallel',
                                      store=store,
-                                     max_workers=self._EXECUTOR_WORKERS)
+                                     max_workers=self._EXECUTOR_WORKERS,
+                                     **kwargs)
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
@@ -1319,17 +1412,19 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
                                      EngineMissingDepsTest,
                                      EngineGraphConditionalFlowTest,
                                      EngineCheckingTaskTest,
+                                     EngineDeciderDepthTest,
                                      test.TestCase):
 
     def _make_engine(self, flow,
-                     flow_detail=None, executor=None, store=None):
+                     flow_detail=None, executor=None, store=None,
+                     **kwargs):
         if executor is None:
             executor = futurist.GreenThreadPoolExecutor()
             self.addCleanup(executor.shutdown)
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      backend=self.backend, engine='parallel',
                                      executor=executor,
-                                     store=store)
+                                     store=store, **kwargs)
 
 
 class ParallelEngineWithProcessTest(EngineTaskTest,
@@ -1342,6 +1437,7 @@ class ParallelEngineWithProcessTest(EngineTaskTest,
                                     EngineResetTests,
                                     EngineMissingDepsTest,
                                     EngineGraphConditionalFlowTest,
+                                    EngineDeciderDepthTest,
                                     test.TestCase):
     _EXECUTOR_WORKERS = 2
 
@@ -1350,7 +1446,8 @@ class ParallelEngineWithProcessTest(EngineTaskTest,
         self.assertIsInstance(engine, eng.ParallelActionEngine)
 
     def _make_engine(self, flow,
-                     flow_detail=None, executor=None, store=None):
+                     flow_detail=None, executor=None, store=None,
+                     **kwargs):
         if executor is None:
             executor = 'processes'
         return taskflow.engines.load(flow, flow_detail=flow_detail,
@@ -1358,7 +1455,8 @@ class ParallelEngineWithProcessTest(EngineTaskTest,
                                      engine='parallel',
                                      executor=executor,
                                      store=store,
-                                     max_workers=self._EXECUTOR_WORKERS)
+                                     max_workers=self._EXECUTOR_WORKERS,
+                                     **kwargs)
 
 
 class WorkerBasedEngineTest(EngineTaskTest,
@@ -1371,6 +1469,7 @@ class WorkerBasedEngineTest(EngineTaskTest,
                             EngineResetTests,
                             EngineMissingDepsTest,
                             EngineGraphConditionalFlowTest,
+                            EngineDeciderDepthTest,
                             test.TestCase):
     def setUp(self):
         super(WorkerBasedEngineTest, self).setUp()
@@ -1415,10 +1514,11 @@ class WorkerBasedEngineTest(EngineTaskTest,
         super(WorkerBasedEngineTest, self).tearDown()
 
     def _make_engine(self, flow,
-                     flow_detail=None, store=None):
+                     flow_detail=None, store=None, **kwargs):
+        kwargs.update(self.engine_conf)
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      backend=self.backend,
-                                     store=store, **self.engine_conf)
+                                     store=store, **kwargs)
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)

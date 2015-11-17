@@ -40,22 +40,55 @@ LOG = logging.getLogger(__name__)
 TASK = 'task'
 RETRY = 'retry'
 FLOW = 'flow'
+FLOW_END = 'flow_end'
 
 # Quite often used together, so make a tuple everyone can share...
 ATOMS = (TASK, RETRY)
+FLOWS = (FLOW, FLOW_END)
+
+
+class Terminator(object):
+    """Flow terminator class."""
+
+    def __init__(self, flow):
+        self._flow = flow
+        self._name = "%s[$]" % (self._flow.name,)
+
+    @property
+    def flow(self):
+        """The flow which this terminator signifies/marks the end of."""
+        return self._flow
+
+    @property
+    def name(self):
+        """Useful name this end terminator has (derived from flow name)."""
+        return self._name
+
+    def __str__(self):
+        return "%s[$]" % (self._flow,)
 
 
 class Compilation(object):
-    """The result of a compilers compile() is this *immutable* object."""
+    """The result of a compilers ``compile()`` is this *immutable* object."""
 
-    #: Task nodes will have a ``kind`` attribute/metadata key with this value.
+    #: Task nodes will have a ``kind`` metadata key with this value.
     TASK = TASK
 
-    #: Retry nodes will have a ``kind`` attribute/metadata key with this value.
+    #: Retry nodes will have a ``kind`` metadata key with this value.
     RETRY = RETRY
 
-    #: Flow nodes will have a ``kind`` attribute/metadata key with this value.
     FLOW = FLOW
+    """
+    Flow **entry** nodes will have a ``kind`` metadata key with
+    this value.
+    """
+
+    FLOW_END = FLOW_END
+    """
+    Flow **exit** nodes will have a ``kind`` metadata key with
+    this value (only applicable for compilation execution graph, not currently
+    used in tree hierarchy).
+    """
 
     def __init__(self, execution_graph, hierarchy):
         self._execution_graph = execution_graph
@@ -141,6 +174,8 @@ class FlowCompiler(object):
             _add_update_edges(graph, u_graph.no_successors_iter(),
                               list(v_graph.no_predecessors_iter()),
                               attr_dict=attr_dict)
+        # Insert the flow(s) retry if needed, and always make sure it
+        # is the **immediate** successor of the flow node itself.
         if flow.retry is not None:
             graph.add_node(flow.retry, kind=RETRY)
             _add_update_edges(graph, [flow], [flow.retry],
@@ -149,20 +184,42 @@ class FlowCompiler(object):
                 if node is not flow.retry and node is not flow:
                     graph.node[node].setdefault(RETRY, flow.retry)
             from_nodes = [flow.retry]
-            connected_attr_dict = {LINK_INVARIANT: True, LINK_RETRY: True}
+            attr_dict = {LINK_INVARIANT: True, LINK_RETRY: True}
         else:
             from_nodes = [flow]
-            connected_attr_dict = {LINK_INVARIANT: True}
-        connected_to = [
-            node for node in graph.no_predecessors_iter() if node is not flow
-        ]
-        if connected_to:
-            # Ensure all nodes in this graph(s) that have no
-            # predecessors depend on this flow (or this flow's retry) so that
-            # we can depend on the flow being traversed before its
-            # children (even though at the current time it will be skipped).
-            _add_update_edges(graph, from_nodes, connected_to,
-                              attr_dict=connected_attr_dict)
+            attr_dict = {LINK_INVARIANT: True}
+        # Ensure all nodes with no predecessors are connected to this flow
+        # or its retry node (so that the invariant that the flow node is
+        # traversed through before its contents is maintained); this allows
+        # us to easily know when we have entered a flow (when running) and
+        # do special and/or smart things such as only traverse up to the
+        # start of a flow when looking for node deciders.
+        _add_update_edges(graph, from_nodes, [
+            node for node in graph.no_predecessors_iter()
+            if node is not flow
+        ], attr_dict=attr_dict)
+        # Connect all nodes with no successors into a special terminator
+        # that is used to identify the end of the flow and ensure that all
+        # execution traversals will traverse over this node before executing
+        # further work (this is especially useful for nesting and knowing
+        # when we have exited a nesting level); it allows us to do special
+        # and/or smart things such as applying deciders up to (but not
+        # beyond) a flow termination point.
+        #
+        # Do note that in a empty flow this will just connect itself to
+        # the flow node itself... and also note we can not use the flow
+        # object itself (primarily because the underlying graph library
+        # uses hashing to identify node uniqueness and we can easily create
+        # a loop if we don't do this correctly, so avoid that by just
+        # creating this special node and tagging it with a special kind); we
+        # may be able to make this better in the future with a multidigraph
+        # that networkx provides??
+        flow_term = Terminator(flow)
+        graph.add_node(flow_term, kind=FLOW_END, noop=True)
+        _add_update_edges(graph, [
+            node for node in graph.no_successors_iter()
+            if node is not flow_term
+        ], [flow_term], attr_dict={LINK_INVARIANT: True})
         return graph, tree_node
 
 

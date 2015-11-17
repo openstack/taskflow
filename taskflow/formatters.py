@@ -42,16 +42,20 @@ def _fetch_predecessor_tree(graph, atom):
     """Creates a tree of predecessors, rooted at given atom."""
     root = tree.Node(atom)
     stack = [(root, atom)]
-    seen = set()
     while stack:
         parent, node = stack.pop()
         for pred_node in graph.predecessors_iter(node):
-            child = tree.Node(pred_node,
-                              **graph.node[pred_node])
-            parent.add(child)
-            stack.append((child, pred_node))
-            seen.add(pred_node)
-    return len(seen), root
+            pred_node_data = graph.node[pred_node]
+            if pred_node_data['kind'] == compiler.FLOW_END:
+                # Jump over and/or don't show flow end nodes...
+                for pred_pred_node in graph.predecessors_iter(pred_node):
+                    stack.append((parent, pred_pred_node))
+            else:
+                child = tree.Node(pred_node, **pred_node_data)
+                parent.add(child)
+                # And go further backwards...
+                stack.append((child, pred_node))
+    return root
 
 
 class FailureFormatter(object):
@@ -64,59 +68,51 @@ class FailureFormatter(object):
     def __init__(self, engine, hide_inputs_outputs_of=()):
         self._hide_inputs_outputs_of = hide_inputs_outputs_of
         self._engine = engine
-        self._formatter_funcs = {
-            compiler.FLOW: self._format_flow,
-        }
-        for kind in compiler.ATOMS:
-            self._formatter_funcs[kind] = self._format_atom
-
-    def _format_atom(self, storage, cache, node):
-        """Formats a single tree node (atom) into a string version."""
-        atom = node.item
-        atom_name = atom.name
-        atom_attrs = {}
-        intention, intention_found = _cached_get(cache, 'intentions',
-                                                 atom_name,
-                                                 storage.get_atom_intention,
-                                                 atom_name)
-        if intention_found:
-            atom_attrs['intention'] = intention
-        state, state_found = _cached_get(cache, 'states', atom_name,
-                                         storage.get_atom_state, atom_name)
-        if state_found:
-            atom_attrs['state'] = state
-        if atom_name not in self._hide_inputs_outputs_of:
-            # When the cache does not exist for this atom this
-            # will be called with the rest of these arguments
-            # used to populate the cache.
-            fetch_mapped_args = functools.partial(
-                storage.fetch_mapped_args, atom.rebind,
-                atom_name=atom_name, optional_args=atom.optional)
-            requires, requires_found = _cached_get(cache, 'requires',
-                                                   atom_name,
-                                                   fetch_mapped_args)
-            if requires_found:
-                atom_attrs['requires'] = requires
-            provides, provides_found = _cached_get(cache, 'provides',
-                                                   atom_name,
-                                                   storage.get_execute_result,
-                                                   atom_name)
-            if provides_found:
-                atom_attrs['provides'] = provides
-        if atom_attrs:
-            return "Atom '%s' %s" % (atom_name, atom_attrs)
-        else:
-            return "Atom '%s'" % (atom_name)
-
-    def _format_flow(self, storage, cache, node):
-        """Formats a single tree node (flow) into a string version."""
-        flow = node.item
-        return flow.name
 
     def _format_node(self, storage, cache, node):
         """Formats a single tree node into a string version."""
-        formatter_func = self. _formatter_funcs[node.metadata['kind']]
-        return formatter_func(storage, cache, node)
+        if node.metadata['kind'] == compiler.FLOW:
+            flow = node.item
+            flow_name = flow.name
+            return "Flow '%s'" % (flow_name)
+        elif node.metadata['kind'] in compiler.ATOMS:
+            atom = node.item
+            atom_name = atom.name
+            atom_attrs = {}
+            intention, intention_found = _cached_get(
+                cache, 'intentions', atom_name, storage.get_atom_intention,
+                atom_name)
+            if intention_found:
+                atom_attrs['intention'] = intention
+            state, state_found = _cached_get(cache, 'states', atom_name,
+                                             storage.get_atom_state,
+                                             atom_name)
+            if state_found:
+                atom_attrs['state'] = state
+            if atom_name not in self._hide_inputs_outputs_of:
+                # When the cache does not exist for this atom this
+                # will be called with the rest of these arguments
+                # used to populate the cache.
+                fetch_mapped_args = functools.partial(
+                    storage.fetch_mapped_args, atom.rebind,
+                    atom_name=atom_name, optional_args=atom.optional)
+                requires, requires_found = _cached_get(cache, 'requires',
+                                                       atom_name,
+                                                       fetch_mapped_args)
+                if requires_found:
+                    atom_attrs['requires'] = requires
+                provides, provides_found = _cached_get(
+                    cache, 'provides', atom_name,
+                    storage.get_execute_result, atom_name)
+                if provides_found:
+                    atom_attrs['provides'] = provides
+            if atom_attrs:
+                return "Atom '%s' %s" % (atom_name, atom_attrs)
+            else:
+                return "Atom '%s'" % (atom_name)
+        else:
+            raise TypeError("Unable to format node, unknown node"
+                            " kind '%s' encountered" % node.metadata['kind'])
 
     def format(self, fail, atom_matcher):
         """Returns a (exc_info, details) tuple about the failure.
@@ -143,13 +139,11 @@ class FailureFormatter(object):
         graph = compilation.execution_graph
         atom_node = hierarchy.find_first_match(atom_matcher)
         atom = None
-        priors = 0
         atom_intention = None
         if atom_node is not None:
             atom = atom_node.item
             atom_intention = storage.get_atom_intention(atom.name)
-            priors = sum(c for (_n, c) in graph.in_degree_iter([atom]))
-        if atom is not None and priors and atom_intention in self._BUILDERS:
+        if atom is not None and atom_intention in self._BUILDERS:
             # Cache as much as we can, since the path of various atoms
             # may cause the same atom to be seen repeatedly depending on
             # the graph structure...
@@ -160,12 +154,13 @@ class FailureFormatter(object):
                 'states': {},
             }
             builder, kind = self._BUILDERS[atom_intention]
-            count, rooted_tree = builder(graph, atom)
-            buff.write_nl('%s %s (most recent atoms first):' % (count, kind))
+            rooted_tree = builder(graph, atom)
+            child_count = rooted_tree.child_count(only_direct=False)
+            buff.write_nl('%s %s (most recent first):' % (child_count, kind))
             formatter = functools.partial(self._format_node, storage, cache)
-            child_count = rooted_tree.child_count()
+            direct_child_count = rooted_tree.child_count(only_direct=True)
             for i, child in enumerate(rooted_tree, 1):
-                if i == child_count:
+                if i == direct_child_count:
                     buff.write(child.pformat(stringify_node=formatter,
                                              starting_prefix="  "))
                 else:
