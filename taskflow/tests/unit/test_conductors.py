@@ -113,11 +113,25 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
         components = self.make_components()
         components.conductor.connect()
         consumed_event = threading.Event()
+        job_consumed_event = threading.Event()
+        job_abandoned_event = threading.Event()
 
         def on_consume(state, details):
             consumed_event.set()
 
+        def on_job_consumed(event, details):
+            if event == 'job_consumed':
+                job_consumed_event.set()
+
+        def on_job_abandoned(event, details):
+            if event == 'job_abandoned':
+                job_abandoned_event.set()
+
         components.board.notifier.register(base.REMOVAL, on_consume)
+        components.conductor.notifier.register("job_consumed",
+                                               on_job_consumed)
+        components.conductor.notifier.register("job_abandoned",
+                                               on_job_abandoned)
         with close_many(components.conductor, components.client):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
@@ -128,6 +142,8 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
             components.board.post('poke', lb,
                                   details={'flow_uuid': fd.uuid})
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            self.assertTrue(job_consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            self.assertFalse(job_abandoned_event.wait(1))
             components.conductor.stop()
             self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
@@ -171,11 +187,25 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
         components = self.make_components()
         components.conductor.connect()
         consumed_event = threading.Event()
+        job_consumed_event = threading.Event()
+        job_abandoned_event = threading.Event()
 
         def on_consume(state, details):
             consumed_event.set()
 
+        def on_job_consumed(event, details):
+            if event == 'job_consumed':
+                job_consumed_event.set()
+
+        def on_job_abandoned(event, details):
+            if event == 'job_abandoned':
+                job_abandoned_event.set()
+
         components.board.notifier.register(base.REMOVAL, on_consume)
+        components.conductor.notifier.register("job_consumed",
+                                               on_job_consumed)
+        components.conductor.notifier.register("job_abandoned",
+                                               on_job_abandoned)
         with close_many(components.conductor, components.client):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
@@ -186,6 +216,8 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
             components.board.post('poke', lb,
                                   details={'flow_uuid': fd.uuid})
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            self.assertTrue(job_consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            self.assertFalse(job_abandoned_event.wait(1))
             components.conductor.stop()
             self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
