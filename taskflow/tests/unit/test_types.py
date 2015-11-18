@@ -390,6 +390,18 @@ CEO
         root = tree.Node("josh")
         self.assertTrue(root.empty())
 
+    def test_after_frozen(self):
+        root = tree.Node("josh")
+        root.add(tree.Node("josh.1"))
+        root.freeze()
+        self.assertTrue(
+            all(n.frozen for n in root.dfs_iter(include_self=True)))
+        self.assertRaises(tree.FrozenNode,
+                          root.remove, "josh.1")
+        self.assertRaises(tree.FrozenNode, root.disassociate)
+        self.assertRaises(tree.FrozenNode, root.add,
+                          tree.Node("josh.2"))
+
     def test_removal(self):
         root = self._make_species()
         self.assertIsNotNone(root.remove('reptile'))
