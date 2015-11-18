@@ -511,6 +511,27 @@ CEO
         self.assertEqual(['mammal', 'reptile', 'horse',
                           'primate', 'monkey', 'human'], things)
 
+    def test_to_diagraph(self):
+        root = self._make_species()
+        g = root.to_digraph()
+        self.assertEqual(root.child_count(only_direct=False) + 1, len(g))
+        for node in root.dfs_iter(include_self=True):
+            self.assertIn(node.item, g)
+        self.assertEqual([], g.predecessors('animal'))
+        self.assertEqual(['animal'], g.predecessors('reptile'))
+        self.assertEqual(['primate'], g.predecessors('human'))
+        self.assertEqual(['mammal'], g.predecessors('primate'))
+        self.assertEqual(['animal'], g.predecessors('mammal'))
+        self.assertEqual(['mammal', 'reptile'], g.successors('animal'))
+
+    def test_to_digraph_retains_metadata(self):
+        root = tree.Node("chickens", alive=True)
+        dead_chicken = tree.Node("chicken.1", alive=False)
+        root.add(dead_chicken)
+        g = root.to_digraph()
+        self.assertEqual(g.node['chickens'], {'alive': True})
+        self.assertEqual(g.node['chicken.1'], {'alive': False})
+
 
 class OrderedSetTest(test.TestCase):
 
