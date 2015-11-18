@@ -30,6 +30,7 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 import six
 
+from taskflow.conductors import base as c_base
 from taskflow import exceptions as excp
 from taskflow.jobs import base
 from taskflow import logging
@@ -566,7 +567,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
 
     def register_entity(self, entity):
         entity_type = entity.kind
-        if entity_type == 'conductor':
+        if entity_type == c_base.Conductor.ENTITY_KIND:
             entity_path = k_paths.join(self.entity_path, entity_type)
             self._client.ensure_path(entity_path)
 
