@@ -194,6 +194,33 @@ class Atom(object):
                     this atom produces.
     """
 
+    priority = 0
+    """A numeric priority that instances of this class will have when running,
+    used when there are multiple *parallel* candidates to execute and/or
+    revert. During this situation the candidate list will be stably sorted
+    based on this priority attribute which will result in atoms with higher
+    priorities executing (or reverting) before atoms with lower
+    priorities (higher being defined as a number bigger, or greater tha
+    an atom with a lower priority number). By default all atoms have the same
+    priority (zero).
+
+    For example when the following is combined into a
+    graph (where each node in the denoted graph is some task)::
+
+        a -> b
+        b -> c
+        b -> e
+        b -> f
+
+    When ``b`` finishes there will then be three candidates that can run
+    ``(c, e, f)`` and they may run in any order. What this priority does is
+    sort those three by their priority before submitting them to be
+    worked on (so that instead of say a random run order they will now be
+    ran by there sorted order). This is also true when reverting (in that the
+    sort order of the potential nodes will be used to determine the
+    submission order).
+    """
+
     def __init__(self, name=None, provides=None, inject=None):
         self.name = name
         self.version = (1, 0)
