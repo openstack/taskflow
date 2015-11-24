@@ -425,8 +425,15 @@ class ParallelTaskExecutor(TaskExecutor):
     to concurrent.Futures.Executor.
     """
 
-    #: Options this executor supports (passed in from engine options).
-    OPTIONS = frozenset(['max_workers'])
+    constructor_options = [
+        ('max_workers', lambda v: v if v is None else int(v)),
+    ]
+    """
+    Optional constructor keyword arguments this executor supports. These will
+    typically be passed via engine options (by a engine user) and converted
+    into the correct type before being sent into this
+    classes ``__init__`` method.
+    """
 
     def __init__(self, executor=None, max_workers=None):
         self._executor = executor
@@ -481,8 +488,16 @@ class ParallelProcessTaskExecutor(ParallelTaskExecutor):
     the parent are executed on events in the child.
     """
 
-    #: Options this executor supports (passed in from engine options).
-    OPTIONS = frozenset(['max_workers', 'dispatch_periodicity'])
+    constructor_options = [
+        ('max_workers', lambda v: v if v is None else int(v)),
+        ('dispatch_periodicity', lambda v: v if v is None else float(v)),
+    ]
+    """
+    Optional constructor keyword arguments this executor supports. These will
+    typically be passed via engine options (by a engine user) and converted
+    into the correct type before being sent into this
+    classes ``__init__`` method.
+    """
 
     def __init__(self, executor=None, max_workers=None,
                  dispatch_periodicity=None):

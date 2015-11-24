@@ -479,11 +479,12 @@ String (case insensitive)    Executor used
             else:
                 executor_cls = matched_executor_cls
                 kwargs['executor'] = desired_executor
-        for k in getattr(executor_cls, 'OPTIONS', []):
-            if k == 'executor':
-                continue
-            try:
-                kwargs[k] = options[k]
-            except KeyError:
-                pass
+        try:
+            for (k, value_converter) in executor_cls.constructor_options:
+                try:
+                    kwargs[k] = value_converter(options[k])
+                except KeyError:
+                    pass
+        except AttributeError:
+            pass
         return executor_cls(**kwargs)
