@@ -113,6 +113,8 @@ class Completer(object):
         self._task_action = runtime.task_action
         self._retry_action = runtime.retry_action
         self._undefined_resolver = RevertAll(self._runtime)
+        self._defer_reverts = strutils.bool_from_string(
+            self._runtime.options.get('defer_reverts', False))
 
     def _complete_task(self, task, outcome, result):
         """Completes the given task, processes task failure."""
@@ -186,20 +188,11 @@ class Completer(object):
             elif strategy == retry_atom.REVERT:
                 # Ask parent retry and figure out what to do...
                 parent_resolver = self._determine_resolution(retry, failure)
-
                 # In the future, this will be the only behavior. REVERT
                 # should defer to the parent retry if it exists, or use the
-                # default REVERT_ALL if it doesn't. This lets you safely nest
-                # flows with retries inside flows without retries and it still
-                # behave as a user would expect, i.e. if the retry gets
-                # exhausted it reverts the outer flow unless the outer flow
-                # has a separate retry behavior.
-                defer_reverts = strutils.bool_from_string(
-                    self._runtime.options.get('defer_reverts', False)
-                )
-                if defer_reverts:
+                # default REVERT_ALL if it doesn't.
+                if self._defer_reverts:
                     return parent_resolver
-
                 # Ok if the parent resolver says something not REVERT, and
                 # it isn't just using the undefined resolver, assume the
                 # parent knows best.
