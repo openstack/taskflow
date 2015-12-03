@@ -187,12 +187,18 @@ class ActionEngine(base.Engine):
                                backend=self._backend,
                                scope_fetcher=_scope_fetcher)
 
-    def run(self):
+    def run(self, timeout=None):
+        """Runs the engine (or die trying).
+
+        :param timeout: timeout to wait for any atoms to complete (this timeout
+            will be used during the waiting period that occurs when
+            unfinished atoms are being waited on).
+        """
         with fasteners.try_lock(self._lock) as was_locked:
             if not was_locked:
                 raise exc.ExecutionFailure("Engine currently locked, please"
                                            " try again later")
-            for _state in self.run_iter():
+            for _state in self.run_iter(timeout=timeout):
                 pass
 
     def run_iter(self, timeout=None):
