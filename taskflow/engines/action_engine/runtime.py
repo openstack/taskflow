@@ -171,13 +171,16 @@ class Runtime(object):
                              self._atom_notifier,
                              self._task_executor)
 
+    def _fetch_atom_metadata_entry(self, atom_name, metadata_key):
+        return self._atom_cache[atom_name][metadata_key]
+
     def check_atom_transition(self, atom, current_state, target_state):
         """Checks if the atom can transition to the provided target state."""
         # This does not check if the name exists (since this is only used
         # internally to the engine, and is not exposed to atoms that will
         # not exist and therefore doesn't need to handle that case).
-        metadata = self._atom_cache[atom.name]
-        check_transition_handler = metadata['check_transition_handler']
+        check_transition_handler = self._fetch_atom_metadata_entry(
+            atom.name, 'check_transition_handler')
         return check_transition_handler(current_state, target_state)
 
     def fetch_edge_deciders(self, atom):
@@ -185,21 +188,19 @@ class Runtime(object):
         # This does not check if the name exists (since this is only used
         # internally to the engine, and is not exposed to atoms that will
         # not exist and therefore doesn't need to handle that case).
-        metadata = self._atom_cache[atom.name]
-        return metadata['edge_deciders']
+        return self._fetch_atom_metadata_entry(atom.name, 'edge_deciders')
 
     def fetch_scheduler(self, atom):
         """Fetches the cached specific scheduler for the given atom."""
         # This does not check if the name exists (since this is only used
         # internally to the engine, and is not exposed to atoms that will
         # not exist and therefore doesn't need to handle that case).
-        metadata = self._atom_cache[atom.name]
-        return metadata['scheduler']
+        return self._fetch_atom_metadata_entry(atom.name, 'scheduler')
 
     def fetch_scopes_for(self, atom_name):
         """Fetches a walker of the visible scopes for the given atom."""
         try:
-            metadata = self._atom_cache[atom_name]
+            return self._fetch_atom_metadata_entry(atom_name, 'scope_walker')
         except KeyError:
             # This signals to the caller that there is no walker for whatever
             # atom name was given that doesn't really have any associated atom
@@ -208,8 +209,6 @@ class Runtime(object):
             # atom and users can provide random names that do not actually
             # exist...
             return None
-        else:
-            return metadata['scope_walker']
 
     # Various helper methods used by the runtime components; not for public
     # consumption...
@@ -218,11 +217,11 @@ class Runtime(object):
         """Resets all the provided atoms to the given state and intention."""
         tweaked = []
         for atom in atoms:
-            metadata = self._atom_cache[atom.name]
             if state or intention:
                 tweaked.append((atom, state, intention))
             if state:
-                change_state_handler = metadata['change_state_handler']
+                change_state_handler = self._fetch_atom_metadata_entry(
+                    atom.name, 'change_state_handler')
                 change_state_handler(atom, state)
             if intention:
                 self.storage.set_atom_intention(atom.name, intention)
