@@ -64,7 +64,7 @@ def _save_as_to_mapping(save_as):
                         'should be str, set or tuple/list, not %r' % save_as)
 
 
-def _build_rebind_dict(args, rebind_args):
+def _build_rebind_dict(req_args, rebind_args):
     """Build a argument remapping/rebinding dictionary.
 
     This dictionary allows an atom to declare that it will take a needed
@@ -74,9 +74,16 @@ def _build_rebind_dict(args, rebind_args):
     if rebind_args is None:
         return collections.OrderedDict()
     elif isinstance(rebind_args, (list, tuple)):
-        rebind = collections.OrderedDict(compat_zip(args, rebind_args))
-        if len(args) < len(rebind_args):
-            rebind.update((a, a) for a in rebind_args[len(args):])
+        # Attempt to map the rebound argument names position by position to
+        # the required argument names (if they are the same length then
+        # this determines how to remap the required argument names to the
+        # rebound ones).
+        rebind = collections.OrderedDict(compat_zip(req_args, rebind_args))
+        if len(req_args) < len(rebind_args):
+            # Extra things were rebound, that may be because of *args
+            # or **kwargs (or some other reason); so just keep all of them
+            # using 1:1 rebinding...
+            rebind.update((a, a) for a in rebind_args[len(req_args):])
         return rebind
     elif isinstance(rebind_args, dict):
         return rebind_args
@@ -236,6 +243,9 @@ class Atom(object):
         required, optional = _build_arg_mapping(self.name, requires, rebind,
                                                 executor, auto_extract,
                                                 ignore_list=ignore_list)
+        # Form the real rebind mapping, if a key name is the same as the
+        # key value, then well there is no rebinding happening, otherwise
+        # there will be.
         rebind = collections.OrderedDict()
         for (arg_name, bound_name) in itertools.chain(six.iteritems(required),
                                                       six.iteritems(optional)):
