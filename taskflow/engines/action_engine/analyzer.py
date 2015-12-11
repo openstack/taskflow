@@ -16,6 +16,7 @@
 
 import abc
 import itertools
+import operator
 import weakref
 
 import six
@@ -133,8 +134,9 @@ class Analyzer(object):
     def iter_next_atoms(self, atom=None):
         """Iterate next atoms to run (originating from atom or all atoms)."""
         if atom is None:
-            return iter_utils.unique_seen(self.browse_atoms_for_execute(),
-                                          self.browse_atoms_for_revert())
+            return iter_utils.unique_seen((self.browse_atoms_for_execute(),
+                                           self.browse_atoms_for_revert()),
+                                          seen_selector=operator.itemgetter(0))
         state = self._storage.get_atom_state(atom.name)
         intention = self._storage.get_atom_intention(atom.name)
         if state == st.SUCCESS:

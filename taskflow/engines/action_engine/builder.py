@@ -137,8 +137,8 @@ class MachineBuilder(object):
             # attempt, which may be empty if never ran before) and any nodes
             # that are now ready to be ran.
             memory.next_up.update(
-                iter_utils.unique_seen(self._completer.resume(),
-                                       iter_next_atoms()))
+                iter_utils.unique_seen((self._completer.resume(),
+                                        iter_next_atoms())))
             return SCHEDULE
 
         def game_over(old_state, new_state, event):

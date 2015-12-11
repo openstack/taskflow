@@ -39,9 +39,10 @@ class IterUtilsTest(test.TestCase):
             ['a', 'b'],
             2,
             None,
+            object(),
         ]
         self.assertRaises(ValueError,
-                          iter_utils.unique_seen, *iters)
+                          iter_utils.unique_seen, iters)
 
     def test_generate_delays(self):
         it = iter_utils.generate_delays(1, 60)
@@ -77,7 +78,22 @@ class IterUtilsTest(test.TestCase):
             ['f', 'm', 'n'],
         ]
         self.assertEqual(['a', 'b', 'c', 'd', 'e', 'f', 'm', 'n'],
-                         list(iter_utils.unique_seen(*iters)))
+                         list(iter_utils.unique_seen(iters)))
+
+    def test_unique_seen_empty(self):
+        iters = []
+        self.assertEqual([], list(iter_utils.unique_seen(iters)))
+
+    def test_unique_seen_selector(self):
+        iters = [
+            [(1, 'a'), (1, 'a')],
+            [(2, 'b')],
+            [(3, 'c')],
+            [(1, 'a'), (3, 'c')],
+        ]
+        it = iter_utils.unique_seen(iters,
+                                    seen_selector=lambda value: value[0])
+        self.assertEqual([(1, 'a'), (2, 'b'), (3, 'c')], list(it))
 
     def test_bad_fill(self):
         self.assertRaises(ValueError, iter_utils.fill, 2, 2)

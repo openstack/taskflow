@@ -91,7 +91,7 @@ def generate_delays(delay, max_delay, multiplier=2):
     return _gen_it()
 
 
-def unique_seen(it, *its):
+def unique_seen(its, seen_selector=None):
     """Yields unique values from iterator(s) (and retains order)."""
 
     def _gen_it(all_its):
@@ -99,16 +99,17 @@ def unique_seen(it, *its):
         # can happen before generation/iteration... (instead of
         # during generation/iteration)
         seen = set()
-        while all_its:
-            it = all_its.popleft()
+        for it in all_its:
             for value in it:
-                if value not in seen:
+                if seen_selector is not None:
+                    maybe_seen_value = seen_selector(value)
+                else:
+                    maybe_seen_value = value
+                if maybe_seen_value not in seen:
                     yield value
-                    seen.add(value)
+                    seen.add(maybe_seen_value)
 
-    all_its = collections.deque([it])
-    if its:
-        all_its.extend(its)
+    all_its = list(its)
     for it in all_its:
         if not isinstance(it, collections.Iterable):
             raise ValueError("Iterable expected, but '%s' is"
