@@ -102,7 +102,7 @@ Of course these kind of features can come with some drawbacks:
 
 .. _declarative: http://en.wikipedia.org/wiki/Declarative_programming
 .. _imperative: http://en.wikipedia.org/wiki/Imperative_programming
-.. _tooz: https://github.com/stackforge/tooz
+.. _tooz: https://github.com/openstack/tooz
 
 Creating
 ========
