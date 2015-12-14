@@ -26,6 +26,19 @@ def _task(name, provides=None, requires=None):
 
 class LinearFlowTest(test.TestCase):
 
+    def test_linear_flow_stringy(self):
+        f = lf.Flow('test')
+        expected = 'linear_flow.Flow: test(len=0)'
+        self.assertEqual(expected, str(f))
+
+        task1 = _task(name='task1')
+        task2 = _task(name='task2')
+        task3 = _task(name='task3')
+        f = lf.Flow('test')
+        f.add(task1, task2, task3)
+        expected = 'linear_flow.Flow: test(len=3)'
+        self.assertEqual(expected, str(f))
+
     def test_linear_flow_starts_as_empty(self):
         f = lf.Flow('test')
 
@@ -35,9 +48,6 @@ class LinearFlowTest(test.TestCase):
 
         self.assertEqual(set(), f.requires)
         self.assertEqual(set(), f.provides)
-
-        expected = 'taskflow.patterns.linear_flow.Flow: test(len=0)'
-        self.assertEqual(expected, str(f))
 
     def test_linear_flow_add_nothing(self):
         f = lf.Flow('test')
@@ -103,9 +113,6 @@ class LinearFlowTest(test.TestCase):
             (task1, task2, {'invariant': True}),
             (task2, task3, {'invariant': True})
         ], list(f.iter_links()))
-
-        expected = 'taskflow.patterns.linear_flow.Flow: test(len=3)'
-        self.assertEqual(expected, str(f))
 
     def test_linear_flow_with_retry(self):
         ret = retry.AlwaysRevert(requires=['a'], provides=['b'])

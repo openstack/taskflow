@@ -26,6 +26,19 @@ def _task(name, provides=None, requires=None):
 
 class UnorderedFlowTest(test.TestCase):
 
+    def test_unordered_flow_stringy(self):
+        f = uf.Flow('test')
+        expected = 'unordered_flow.Flow: test(len=0)'
+        self.assertEqual(expected, str(f))
+
+        task1 = _task(name='task1')
+        task2 = _task(name='task2')
+        task3 = _task(name='task3')
+        f = uf.Flow('test')
+        f.add(task1, task2, task3)
+        expected = 'unordered_flow.Flow: test(len=3)'
+        self.assertEqual(expected, str(f))
+
     def test_unordered_flow_starts_as_empty(self):
         f = uf.Flow('test')
 
@@ -35,9 +48,6 @@ class UnorderedFlowTest(test.TestCase):
 
         self.assertEqual(set(), f.requires)
         self.assertEqual(set(), f.provides)
-
-        expected = 'taskflow.patterns.unordered_flow.Flow: test(len=0)'
-        self.assertEqual(expected, str(f))
 
     def test_unordered_flow_add_nothing(self):
         f = uf.Flow('test')
