@@ -121,7 +121,6 @@ class Failure(mixins.StrMixin):
     backport at https://pypi.python.org/pypi/traceback2/ to (hopefully)
     simplify the methods and contents of this object...
     """
-    DICT_VERSION = 1
 
     BASE_EXCEPTIONS = ('BaseException', 'Exception')
     """
@@ -137,10 +136,6 @@ class Failure(mixins.StrMixin):
             "cause": {
                 "type": "object",
                 'properties': {
-                    'version': {
-                        "type": "integer",
-                        "minimum": 0,
-                    },
                     'exception_str': {
                         "type": "string",
                     },
@@ -467,10 +462,6 @@ class Failure(mixins.StrMixin):
     def from_dict(cls, data):
         """Converts this from a dictionary to a object."""
         data = dict(data)
-        version = data.pop('version', None)
-        if version != cls.DICT_VERSION:
-            raise ValueError('Invalid dict version of failure object: %r'
-                             % version)
         causes = data.get('causes')
         if causes is not None:
             data['causes'] = tuple(cls.from_dict(d) for d in causes)
@@ -482,7 +473,6 @@ class Failure(mixins.StrMixin):
             'exception_str': self.exception_str,
             'traceback_str': self.traceback_str,
             'exc_type_names': list(self),
-            'version': self.DICT_VERSION,
             'causes': [f.to_dict() for f in self.causes],
         }
 
