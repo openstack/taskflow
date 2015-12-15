@@ -46,7 +46,7 @@ class Conductor(object):
         self._name = name
         self._jobboard = jobboard
         self._engine = engine
-        self._engine_options = misc.ensure_dict(engine_options)
+        self._engine_options = misc.safe_copy_dict(engine_options)
         self._persistence = persistence
         self._lock = threading.RLock()
         self._notifier = notifier.Notifier()

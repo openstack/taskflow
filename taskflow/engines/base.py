@@ -42,7 +42,7 @@ class Engine(object):
         self._flow = flow
         self._flow_detail = flow_detail
         self._backend = backend
-        self._options = misc.ensure_dict(options)
+        self._options = misc.safe_copy_dict(options)
         self._notifier = notifier.Notifier()
         self._atom_notifier = notifier.Notifier()
 

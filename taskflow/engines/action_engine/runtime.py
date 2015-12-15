@@ -49,7 +49,7 @@ class Runtime(object):
         self._storage = storage
         self._compilation = compilation
         self._atom_cache = {}
-        self._options = misc.ensure_dict(options)
+        self._options = misc.safe_copy_dict(options)
 
     @staticmethod
     def _walk_edge_deciders(graph, atom):

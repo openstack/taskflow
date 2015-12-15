@@ -342,7 +342,7 @@ class TestIterable(test.TestCase):
         self.assertTrue(misc.is_iterable(dict()))
 
 
-class TestEnsureDict(testscenarios.TestWithScenarios):
+class TestSafeCopyDict(testscenarios.TestWithScenarios):
     scenarios = [
         ('none', {'original': None, 'expected': {}}),
         ('empty_dict', {'original': {}, 'expected': {}}),
@@ -351,11 +351,18 @@ class TestEnsureDict(testscenarios.TestWithScenarios):
     ]
 
     def test_expected(self):
-        self.assertEqual(self.expected, misc.ensure_dict(self.original))
-        self.assertFalse(self.expected is misc.ensure_dict(self.original))
+        self.assertEqual(self.expected, misc.safe_copy_dict(self.original))
+        self.assertFalse(self.expected is misc.safe_copy_dict(self.original))
+
+    def test_mutated_post_copy(self):
+        a = {"a": "b"}
+        a_2 = misc.safe_copy_dict(a)
+        a['a'] = 'c'
+        self.assertEqual("b", a_2['a'])
+        self.assertEqual("c", a['a'])
 
 
-class TestEnsureDictRaises(testscenarios.TestWithScenarios):
+class TestSafeCopyDictRaises(testscenarios.TestWithScenarios):
     scenarios = [
         ('list', {'original': [1, 2], 'exception': TypeError}),
         ('tuple', {'original': (1, 2), 'exception': TypeError}),
@@ -363,4 +370,4 @@ class TestEnsureDictRaises(testscenarios.TestWithScenarios):
     ]
 
     def test_exceptions(self):
-        self.assertRaises(self.exception, misc.ensure_dict, self.original)
+        self.assertRaises(self.exception, misc.safe_copy_dict, self.original)
