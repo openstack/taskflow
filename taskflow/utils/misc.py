@@ -584,8 +584,13 @@ def is_iterable(obj):
             isinstance(obj, collections.Iterable))
 
 
-def ensure_dict(obj):
-    """Copy an existing dictionary or default to empty dict...."""
+def safe_copy_dict(obj):
+    """Copy an existing dictionary or default to empty dict...
+
+    This will return a empty dict if given object is falsey, otherwise it
+    will create a dict of the given object (which if provided a dictionary
+    object will make a shallow copy of that object).
+    """
     if not obj:
         return {}
     # default to a shallow copy to avoid most ownership issues
