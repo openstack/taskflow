@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import copy
 import os
 import sys
@@ -27,6 +28,7 @@ from taskflow import exceptions as exc
 from taskflow.utils import iter_utils
 from taskflow.utils import mixins
 from taskflow.utils import schema_utils as su
+
 
 _exception_message = encodeutils.exception_to_unicode
 
@@ -121,6 +123,13 @@ class Failure(mixins.StrMixin):
     """
     DICT_VERSION = 1
 
+    BASE_EXCEPTIONS = ('BaseException', 'Exception')
+    """
+    Root exceptions of all other python exceptions.
+
+    See: https://docs.python.org/2/library/exceptions.html
+    """
+
     #: Expected failure schema (in json schema format).
     SCHEMA = {
         "$ref": "#/definitions/cause",
@@ -206,11 +215,29 @@ class Failure(mixins.StrMixin):
 
     @classmethod
     def validate(cls, data):
+        """Validate input data matches expected failure ``dict`` format."""
         try:
             su.schema_validate(data, cls.SCHEMA)
         except su.ValidationError as e:
             raise exc.InvalidFormat("Failure data not of the"
                                     " expected format: %s" % (e.message), e)
+        else:
+            # Ensure that all 'exc_type_names' originate from one of
+            # BASE_EXCEPTIONS, because those are the root exceptions that
+            # python mandates/provides and anything else is invalid...
+            causes = collections.deque([data])
+            while causes:
+                cause = causes.popleft()
+                root_exc_type = cause['exc_type_names'][-1]
+                if root_exc_type not in cls.BASE_EXCEPTIONS:
+                    raise exc.InvalidFormat(
+                        "Failure data 'exc_type_names' must"
+                        " have an initial exception type that is one"
+                        " of %s types: '%s' is not one of those"
+                        " types" % (cls.BASE_EXCEPTIONS, root_exc_type))
+                sub_causes = cause.get('causes')
+                if sub_causes:
+                    causes.extend(sub_causes)
 
     def _matches(self, other):
         if self is other:
