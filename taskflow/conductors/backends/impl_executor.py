@@ -183,22 +183,19 @@ class ExecutorConductor(base.Conductor):
                 stack.enter_context(listener)
             self._log.debug("Dispatching engine for job '%s'", job)
             consume = True
+            details = {
+                'job': job,
+                'engine': engine,
+                'conductor': self,
+            }
             try:
                 for stage_func, event_name in [(engine.compile, 'compilation'),
                                                (engine.prepare, 'preparation'),
                                                (engine.validate, 'validation'),
                                                (engine.run, 'running')]:
-                    self._notifier.notify("%s_start" % event_name, {
-                        'job': job,
-                        'engine': engine,
-                        'conductor': self,
-                    })
+                    self._notifier.notify("%s_start" % event_name,  details)
                     stage_func()
-                    self._notifier.notify("%s_end" % event_name, {
-                        'job': job,
-                        'engine': engine,
-                        'conductor': self,
-                    })
+                    self._notifier.notify("%s_end" % event_name, details)
             except excp.WrappedFailure as e:
                 if all((f.check(*self.NO_CONSUME_EXCEPTIONS) for f in e)):
                     consume = False
