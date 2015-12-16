@@ -851,7 +851,7 @@ class Storage(object):
         missing = set(six.iterkeys(args_mapping))
         for (bound_name, name) in six.iteritems(args_mapping):
             if LOG.isEnabledFor(logging.TRACE):
-                LOG.trace("Looking for %r <= %r for atom named: %s",
+                LOG.trace("Looking for %r <= %r for atom '%s'",
                           bound_name, name, atom_name)
             if bound_name in optional_args:
                 LOG.trace("Argument %r is optional, skipping", bound_name)
@@ -866,7 +866,7 @@ class Storage(object):
             providers = _locate_providers(name, scope_walker=scope_walker)
             maybe_providers += len(providers)
             if maybe_providers:
-                LOG.trace("Atom %s will have %s potential providers"
+                LOG.trace("Atom '%s' will have %s potential providers"
                           " of %r <= %r", atom_name, maybe_providers,
                           bound_name, name)
                 missing.discard(bound_name)
@@ -964,7 +964,7 @@ class Storage(object):
         for (bound_name, name) in six.iteritems(args_mapping):
             if LOG.isEnabledFor(logging.TRACE):
                 if atom_name:
-                    LOG.trace("Looking for %r <= %r for atom named: %s",
+                    LOG.trace("Looking for %r <= %r for atom '%s'",
                               bound_name, name, atom_name)
                 else:
                     LOG.trace("Looking for %r <= %r", bound_name, name)
