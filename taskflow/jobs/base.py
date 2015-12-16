@@ -18,13 +18,16 @@
 import abc
 import collections
 import contextlib
+import time
 
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 import six
 
 from taskflow import exceptions as excp
 from taskflow import states
 from taskflow.types import notifier
+from taskflow.utils import iter_utils
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -82,6 +85,43 @@ class Job(object):
     def state(self):
         """Access the current state of this job."""
         pass
+
+    def wait(self, timeout=None,
+             delay=0.01, delay_multiplier=2.0, max_delay=60.0,
+             sleep_func=time.sleep):
+        """Wait for job to enter completion state.
+
+        If the job has not completed in the given timeout, then return false,
+        otherwise return true (a job failure exception may also be raised if
+        the job information can not be read, for whatever reason). Periodic
+        state checks will happen every ``delay`` seconds where ``delay`` will
+        be multipled by the given multipler after a state is found that is
+        **not** complete.
+
+        Note that if no timeout is given this is equivalent to blocking
+        until the job has completed. Also note that if a jobboard backend
+        can optimize this method then its implementation may not use
+        delays (and backoffs) at all. In general though no matter what
+        optimizations are applied implementations must **always** respect
+        the given timeout value.
+        """
+        if timeout is not None:
+            w = timeutils.StopWatch(duration=timeout)
+            w.start()
+        else:
+            w = None
+        delay_gen = iter_utils.generate_delays(delay, max_delay,
+                                               multiplier=delay_multiplier)
+        while True:
+            if w is not None and w.expired():
+                return False
+            if self.state == states.COMPLETE:
+                return True
+            sleepy_secs = six.next(delay_gen)
+            if w is not None:
+                sleepy_secs = min(w.leftover(), sleepy_secs)
+            sleep_func(sleepy_secs)
+        return False
 
     @property
     def book(self):

@@ -176,6 +176,19 @@ class BoardTestMixin(object):
             possible_jobs = list(self.board.iterjobs(only_unclaimed=True))
             self.assertEqual(0, len(possible_jobs))
 
+    def test_posting_consume_wait(self):
+        with connect_close(self.board):
+            jb = self.board.post('test', p_utils.temporary_log_book())
+            possible_jobs = list(self.board.iterjobs(only_unclaimed=True))
+            self.board.claim(possible_jobs[0], self.board.name)
+            self.board.consume(possible_jobs[0], self.board.name)
+            self.assertTrue(jb.wait())
+
+    def test_posting_no_consume_wait(self):
+        with connect_close(self.board):
+            jb = self.board.post('test', p_utils.temporary_log_book())
+            self.assertFalse(jb.wait(0.1))
+
     def test_posting_with_book(self):
         backend = impl_dir.DirBackend(conf={
             'path': self.makeTmpDir(),
