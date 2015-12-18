@@ -125,11 +125,11 @@ class ScopeWalker(object):
                     if not predecessors:
                         break
                 self._level_cache[lvl] = (visible, removals)
-                if LOG.isEnabledFor(logging.BLATHER):
+                if LOG.isEnabledFor(logging.TRACE):
                     visible_names = [a.name for a in visible]
-                    LOG.blather("Scope visible to '%s' (limited by parent '%s'"
-                                " index < %s) is: %s", self._atom,
-                                parent.item.name, last_idx, visible_names)
+                    LOG.trace("Scope visible to '%s' (limited by parent '%s'"
+                              " index < %s) is: %s", self._atom,
+                              parent.item.name, last_idx, visible_names)
             if self._names_only:
                 yield [a.name for a in visible]
             else:

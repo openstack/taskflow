@@ -850,11 +850,11 @@ class Storage(object):
         ]
         missing = set(six.iterkeys(args_mapping))
         for (bound_name, name) in six.iteritems(args_mapping):
-            if LOG.isEnabledFor(logging.BLATHER):
-                LOG.blather("Looking for %r <= %r for atom named: %s",
-                            bound_name, name, atom_name)
+            if LOG.isEnabledFor(logging.TRACE):
+                LOG.trace("Looking for %r <= %r for atom named: %s",
+                          bound_name, name, atom_name)
             if bound_name in optional_args:
-                LOG.blather("Argument %r is optional, skipping", bound_name)
+                LOG.trace("Argument %r is optional, skipping", bound_name)
                 missing.discard(bound_name)
                 continue
             maybe_providers = 0
@@ -866,9 +866,9 @@ class Storage(object):
             providers = _locate_providers(name, scope_walker=scope_walker)
             maybe_providers += len(providers)
             if maybe_providers:
-                LOG.blather("Atom %s will have %s potential providers"
-                            " of %r <= %r", atom_name, maybe_providers,
-                            bound_name, name)
+                LOG.trace("Atom %s will have %s potential providers"
+                          " of %r <= %r", atom_name, maybe_providers,
+                          bound_name, name)
                 missing.discard(bound_name)
         return missing
 
@@ -962,32 +962,32 @@ class Storage(object):
             return {}
         mapped_args = {}
         for (bound_name, name) in six.iteritems(args_mapping):
-            if LOG.isEnabledFor(logging.BLATHER):
+            if LOG.isEnabledFor(logging.TRACE):
                 if atom_name:
-                    LOG.blather("Looking for %r <= %r for atom named: %s",
-                                bound_name, name, atom_name)
+                    LOG.trace("Looking for %r <= %r for atom named: %s",
+                              bound_name, name, atom_name)
                 else:
-                    LOG.blather("Looking for %r <= %r", bound_name, name)
+                    LOG.trace("Looking for %r <= %r", bound_name, name)
             try:
                 source_index, value = _extract_first_from(name,
                                                           injected_sources)
                 mapped_args[bound_name] = value
-                if LOG.isEnabledFor(logging.BLATHER):
+                if LOG.isEnabledFor(logging.TRACE):
                     if source_index == 0:
-                        LOG.blather("Matched %r <= %r to %r (from injected"
-                                    " atom-specific transient"
-                                    " values)", bound_name, name, value)
+                        LOG.trace("Matched %r <= %r to %r (from injected"
+                                  " atom-specific transient"
+                                  " values)", bound_name, name, value)
                     else:
-                        LOG.blather("Matched %r <= %r to %r (from injected"
-                                    " atom-specific persistent"
-                                    " values)", bound_name, name, value)
+                        LOG.trace("Matched %r <= %r to %r (from injected"
+                                  " atom-specific persistent"
+                                  " values)", bound_name, name, value)
             except KeyError:
                 try:
                     possible_providers = self._reverse_mapping[name]
                 except KeyError:
                     if bound_name in optional_args:
-                        LOG.blather("Argument %r is optional, skipping",
-                                    bound_name)
+                        LOG.trace("Argument %r is optional, skipping",
+                                  bound_name)
                         continue
                     raise exceptions.NotFound("Name %r is not mapped as a"
                                               " produced output by any"
@@ -1003,8 +1003,8 @@ class Storage(object):
                         % (bound_name, name, len(possible_providers)))
                 provider, value = _item_from_first_of(providers, name)
                 mapped_args[bound_name] = value
-                LOG.blather("Matched %r <= %r to %r (from %s)",
-                            bound_name, name, value, provider)
+                LOG.trace("Matched %r <= %r to %r (from %s)",
+                          bound_name, name, value, provider)
         return mapped_args
 
     @fasteners.write_locked

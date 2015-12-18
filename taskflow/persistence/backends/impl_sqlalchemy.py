@@ -300,7 +300,7 @@ class SQLAlchemyBackend(base.Backend):
         log_statements = conf.pop('log_statements', False)
         if _as_bool(log_statements):
             log_statements_level = conf.pop("log_statements_level",
-                                            logging.BLATHER)
+                                            logging.TRACE)
             sa.event.listen(engine, "before_cursor_execute",
                             functools.partial(_log_statements,
                                               log_statements_level))
