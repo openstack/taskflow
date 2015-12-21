@@ -152,6 +152,14 @@ class FailureObjectTestCase(test.TestCase):
         }
         self.assertRaises(exceptions.InvalidFormat,
                           failure.Failure.validate, f)
+        f = {
+            'exception_str': 'blah',
+            'traceback_str': 'blah',
+            'exc_type_names': ['Exception'],
+            'version': -1,
+        }
+        self.assertRaises(exceptions.InvalidFormat,
+                          failure.Failure.validate, f)
 
     def test_valid_from_dict_to_dict(self):
         f = _captured_failure('Woot!')
