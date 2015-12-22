@@ -35,7 +35,6 @@ from oslo_utils import importutils
 from oslo_utils import netutils
 from oslo_utils import reflection
 import six
-from six.moves import range as compat_range
 
 from taskflow.types import failure
 from taskflow.types import notifier
@@ -450,29 +449,6 @@ def sequence_minus(seq1, seq2):
         except ValueError:
             pass
     return result
-
-
-class ExponentialBackoff(object):
-    """An iterable object that will yield back an exponential delay sequence.
-
-    This objects provides for a configurable exponent, count of numbers
-    to generate, and a maximum number that will be returned. This object may
-    also be iterated over multiple times (yielding the same sequence each
-    time).
-    """
-    def __init__(self, count, exponent=2, max_backoff=3600):
-        self.count = max(0, int(count))
-        self.exponent = exponent
-        self.max_backoff = max(0, int(max_backoff))
-
-    def __iter__(self):
-        if self.count <= 0:
-            raise StopIteration()
-        for i in compat_range(0, self.count):
-            yield min(self.exponent ** i, self.max_backoff)
-
-    def __str__(self):
-        return "ExponentialBackoff: %s" % ([str(v) for v in self])
 
 
 def as_int(obj, quiet=False):
