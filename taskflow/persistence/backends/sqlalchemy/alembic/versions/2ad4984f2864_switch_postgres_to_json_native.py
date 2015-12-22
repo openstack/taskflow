@@ -17,14 +17,14 @@
 """Switch postgres to json native type.
 
 Revision ID: 2ad4984f2864
-Revises: 589dccdf2b6e
+Revises: 3162c0f3f8e4
 Create Date: 2015-06-04 13:08:36.667948
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '2ad4984f2864'
-down_revision = '589dccdf2b6e'
+down_revision = '3162c0f3f8e4'
 
 from alembic import op
 

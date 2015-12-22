@@ -160,14 +160,11 @@ class BackendPersistenceTestMixin(base.PersistenceTestMixin):
         except Exception as e:
             self.skipTest("Failed to create temporary database;"
                           " testing being skipped due to: %s" % (e))
-        try:
+        else:
             self.backend = impl_sqlalchemy.SQLAlchemyBackend(self.db_conf)
             self.addCleanup(self.backend.close)
             with contextlib.closing(self._get_connection()) as conn:
                 conn.upgrade()
-        except Exception as e:
-            self.skipTest("Failed to setup your database;"
-                          " testing being skipped due to: %s" % (e))
 
 
 @testtools.skipIf(not _mysql_exists(), 'mysql is not available')
