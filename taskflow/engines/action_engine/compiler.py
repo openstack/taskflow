@@ -296,23 +296,23 @@ class PatternCompiler(object):
                              " and/or recursive compiling is not"
                              " supported" % (item, type(item)))
         self._history.add(item)
-        if LOG.isEnabledFor(logging.BLATHER):
-            LOG.blather("%sCompiling '%s'", "  " * self._level, item)
+        if LOG.isEnabledFor(logging.TRACE):
+            LOG.trace("%sCompiling '%s'", "  " * self._level, item)
         self._level += 1
 
     def _post_item_compile(self, item, graph, node):
         """Called after a item is compiled; doing post-compilation actions."""
         self._level -= 1
-        if LOG.isEnabledFor(logging.BLATHER):
+        if LOG.isEnabledFor(logging.TRACE):
             prefix = '  ' * self._level
-            LOG.blather("%sDecomposed '%s' into:", prefix, item)
+            LOG.trace("%sDecomposed '%s' into:", prefix, item)
             prefix = '  ' * (self._level + 1)
-            LOG.blather("%sGraph:", prefix)
+            LOG.trace("%sGraph:", prefix)
             for line in graph.pformat().splitlines():
-                LOG.blather("%s  %s", prefix, line)
-            LOG.blather("%sHierarchy:", prefix)
+                LOG.trace("%s  %s", prefix, line)
+            LOG.trace("%sHierarchy:", prefix)
             for line in node.pformat().splitlines():
-                LOG.blather("%s  %s", prefix, line)
+                LOG.trace("%s  %s", prefix, line)
 
     def _pre_compile(self):
         """Called before the compilation of the root starts."""

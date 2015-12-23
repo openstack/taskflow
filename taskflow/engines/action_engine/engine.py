@@ -329,13 +329,13 @@ class ActionEngine(base.Engine):
         # flow/task provided or storage provided, if there are still missing
         # dependencies then this flow will fail at runtime (which we can avoid
         # by failing at validation time).
-        if LOG.isEnabledFor(logging.BLATHER):
+        if LOG.isEnabledFor(logging.TRACE):
             execution_graph = self._compilation.execution_graph
-            LOG.blather("Validating scoping and argument visibility for"
-                        " execution graph with %s nodes and %s edges with"
-                        " density %0.3f", execution_graph.number_of_nodes(),
-                        execution_graph.number_of_edges(),
-                        nx.density(execution_graph))
+            LOG.trace("Validating scoping and argument visibility for"
+                      " execution graph with %s nodes and %s edges with"
+                      " density %0.3f", execution_graph.number_of_nodes(),
+                      execution_graph.number_of_edges(),
+                      nx.density(execution_graph))
         missing = set()
         # Attempt to retain a chain of what was missing (so that the final
         # raised exception for the flow has the nodes that had missing

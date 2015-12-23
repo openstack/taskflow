@@ -67,10 +67,10 @@ class Server(object):
         func_name = reflection.get_callable_name(func)
 
         def _on_run(watch, content, message):
-            LOG.blather("It took %s seconds to get around to running"
-                        " function/method '%s' with"
-                        " message '%s'", watch.elapsed(), func_name,
-                        ku.DelayedPretty(message))
+            LOG.trace("It took %s seconds to get around to running"
+                      " function/method '%s' with"
+                      " message '%s'", watch.elapsed(), func_name,
+                      ku.DelayedPretty(message))
             return func(content, message)
 
         def _on_receive(content, message):

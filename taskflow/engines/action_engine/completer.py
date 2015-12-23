@@ -221,11 +221,11 @@ class Completer(object):
         LOG.debug("Applying resolver '%s' to resolve failure '%s'"
                   " of atom '%s'", resolver, failure, atom)
         tweaked = resolver.apply()
-        # Only show the tweaked node list when blather is on, otherwise
+        # Only show the tweaked node list when trace is on, otherwise
         # just show the amount/count of nodes tweaks...
-        if LOG.isEnabledFor(logging.BLATHER):
-            LOG.blather("Modified/tweaked %s nodes while applying"
-                        " resolver '%s'", tweaked, resolver)
+        if LOG.isEnabledFor(logging.TRACE):
+            LOG.trace("Modified/tweaked %s nodes while applying"
+                      " resolver '%s'", tweaked, resolver)
         else:
             LOG.debug("Modified/tweaked %s nodes while applying"
                       " resolver '%s'", len(tweaked), resolver)
