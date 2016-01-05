@@ -16,7 +16,6 @@
 
 import contextlib
 
-import six
 from stevedore import driver
 
 from taskflow import exceptions as exc
@@ -51,16 +50,7 @@ def fetch(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
     is ``{'a': 'b', 'c': 'd'}`` to the constructor of that board
     instance (also including the name specified).
     """
-    if isinstance(conf, six.string_types):
-        conf = {'board': conf}
-    board = conf['board']
-    try:
-        uri = misc.parse_uri(board)
-    except (TypeError, ValueError):
-        pass
-    else:
-        board = uri.scheme
-        conf = misc.merge_uri(uri, conf.copy())
+    board, conf = misc.extract_driver_and_conf(conf, 'board')
     LOG.debug('Looking for %r jobboard driver in %r', board, namespace)
     try:
         mgr = driver.DriverManager(namespace, board,

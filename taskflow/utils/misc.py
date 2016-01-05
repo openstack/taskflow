@@ -112,6 +112,19 @@ def countdown_iter(start_at, decr=1):
         start_at -= decr
 
 
+def extract_driver_and_conf(conf, conf_key):
+    """Common function to get a driver name and its configuration."""
+    if isinstance(conf, six.string_types):
+        conf = {conf_key: conf}
+    maybe_uri = conf[conf_key]
+    try:
+        uri = parse_uri(maybe_uri)
+    except (TypeError, ValueError):
+        return (maybe_uri, conf)
+    else:
+        return (uri.scheme, merge_uri(uri, conf.copy()))
+
+
 def reverse_enumerate(items):
     """Like reversed(enumerate(items)) but with less copying/cloning..."""
     for i in countdown_iter(len(items)):
