@@ -24,6 +24,7 @@ import time
 import fasteners
 import msgpack
 from oslo_serialization import msgpackutils
+from oslo_utils import excutils
 from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -66,7 +67,8 @@ class RedisJob(base.Job):
     def __init__(self, board, name, sequence, key,
                  uuid=None, details=None,
                  created_on=None, backend=None,
-                 book=None, book_data=None):
+                 book=None, book_data=None,
+                 priority=base.JobPriority.NORMAL):
         super(RedisJob, self).__init__(board, name,
                                        uuid=uuid, details=details,
                                        backend=backend,
@@ -78,11 +80,16 @@ class RedisJob(base.Job):
         self._key = key
         self._last_modified_key = board.join(key + board.LAST_MODIFIED_POSTFIX)
         self._owner_key = board.join(key + board.OWNED_POSTFIX)
+        self._priority = priority
 
     @property
     def key(self):
         """Key (in board listings/trash hash) the job data is stored under."""
         return self._key
+
+    @property
+    def priority(self):
+        return self._priority
 
     @property
     def last_modified_key(self):
@@ -131,21 +138,26 @@ class RedisJob(base.Job):
         if not isinstance(other, RedisJob):
             return NotImplemented
         if self.board.listings_key == other.board.listings_key:
-            if self.created_on == other.created_on:
+            if self.priority == other.priority:
                 return self.sequence < other.sequence
             else:
-                return self.created_on < other.created_on
+                ordered = base.JobPriority.reorder(
+                    (self.priority, self), (other.priority, other))
+                if ordered[0] is self:
+                    return False
+                return True
         else:
+            # Different jobboards with different listing keys...
             return self.board.listings_key < other.board.listings_key
 
     def __eq__(self, other):
         if not isinstance(other, RedisJob):
             return NotImplemented
-        return ((self.board.listings_key, self.created_on, self.sequence) ==
-                (other.board.listings_key, other.created_on, other.sequence))
+        return ((self.board.listings_key, self.priority, self.sequence) ==
+                (other.board.listings_key, other.priority, other.sequence))
 
     def __hash__(self):
-        return hash((self.board.listings_key, self.created_on, self.sequence))
+        return hash((self.board.listings_key, self.priority, self.sequence))
 
     @property
     def created_on(self):
@@ -201,13 +213,6 @@ class RedisJob(base.Job):
             return self._client.transaction(_do_fetch,
                                             listings_key, owner_key,
                                             value_from_callable=True)
-
-    def __str__(self):
-        """Pretty formats the job into something *more* meaningful."""
-        tpl = "%s: %s (uuid=%s, owner_key=%s, sequence=%s, details=%s)"
-        return tpl % (type(self).__name__,
-                      self.name, self.uuid, self.owner_key,
-                      self.sequence, self.details)
 
 
 class RedisJobBoard(base.JobBoard):
@@ -727,11 +732,14 @@ return cmsgpack.pack(result)
             raw_owner = self._client.get(owner_key)
             return self._decode_owner(raw_owner)
 
-    def post(self, name, book=None, details=None):
+    def post(self, name, book=None, details=None,
+             priority=base.JobPriority.NORMAL):
         job_uuid = uuidutils.generate_uuid()
+        job_priority = base.JobPriority.convert(priority)
         posting = base.format_posting(job_uuid, name,
                                       created_on=timeutils.utcnow(),
-                                      book=book, details=details)
+                                      book=book, details=details,
+                                      priority=job_priority)
         with _translate_failures():
             sequence = self._client.incr(self.sequence_key)
             posting.update({
@@ -751,7 +759,8 @@ return cmsgpack.pack(result)
                                 uuid=job_uuid, details=details,
                                 created_on=posting['created_on'],
                                 book=book, book_data=posting.get('book'),
-                                backend=self._persistence)
+                                backend=self._persistence,
+                                priority=job_priority)
 
     def wait(self, timeout=None, initial_delay=0.005,
              max_delay=1.0, sleep_func=time.sleep):
@@ -791,16 +800,32 @@ return cmsgpack.pack(result)
             raw_postings = self._client.hgetall(self.listings_key)
         postings = []
         for raw_job_key, raw_posting in six.iteritems(raw_postings):
-            posting = self._loads(raw_posting)
-            details = posting.get('details', {})
-            job_uuid = posting['uuid']
-            job = RedisJob(self, posting['name'], posting['sequence'],
-                           raw_job_key, uuid=job_uuid, details=details,
-                           created_on=posting['created_on'],
-                           book_data=posting.get('book'),
-                           backend=self._persistence)
-            postings.append(job)
-        return sorted(postings)
+            try:
+                job_data = self._loads(raw_posting)
+                try:
+                    job_priority = job_data['priority']
+                    job_priority = base.JobPriority.convert(job_priority)
+                except KeyError:
+                    job_priority = base.JobPriority.NORMAL
+                job_created_on = job_data['created_on']
+                job_uuid = job_data['uuid']
+                job_name = job_data['name']
+                job_sequence_id = job_data['sequence']
+                job_details = job_data.get('details', {})
+            except (ValueError, TypeError, KeyError):
+                with excutils.save_and_reraise_exception():
+                    LOG.warn("Incorrectly formatted job data found at"
+                             " key: %s[%s]", self.listings_key,
+                             raw_job_key, exc_info=True)
+            else:
+                postings.append(RedisJob(self, job_name, job_sequence_id,
+                                         raw_job_key, uuid=job_uuid,
+                                         details=job_details,
+                                         created_on=job_created_on,
+                                         book_data=job_data.get('book'),
+                                         backend=self._persistence,
+                                         priority=job_priority))
+        return sorted(postings, reverse=True)
 
     def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
         return base.JobBoardIterator(

@@ -20,6 +20,7 @@ import collections
 import contextlib
 import time
 
+import enum
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 import six
@@ -30,15 +31,89 @@ from taskflow.types import notifier
 from taskflow.utils import iter_utils
 
 
+class JobPriority(enum.Enum):
+    """Enum of job priorities (modeled after hadoop job priorities)."""
+
+    #: Extremely urgent job priority.
+    VERY_HIGH = 'VERY_HIGH'
+
+    #: Mildly urgent job priority.
+    HIGH = 'HIGH'
+
+    #: Default job priority.
+    NORMAL = 'NORMAL'
+
+    #: Not needed anytime soon job priority.
+    LOW = 'LOW'
+
+    #: Very much not needed anytime soon job priority.
+    VERY_LOW = 'VERY_LOW'
+
+    @classmethod
+    def convert(cls, value):
+        if isinstance(value, cls):
+            return value
+        try:
+            return cls(value.upper())
+        except (ValueError, AttributeError):
+            valids = [cls.VERY_HIGH, cls.HIGH, cls.NORMAL,
+                      cls.LOW, cls.VERY_LOW]
+            valids = [p.value for p in valids]
+            raise ValueError("'%s' is not a valid priority, valid"
+                             " priorities are %s" % (value, valids))
+
+    @classmethod
+    def reorder(cls, *values):
+        """Reorders (priority, value) tuples -> priority ordered values."""
+        if len(values) == 0:
+            raise ValueError("At least one (priority, value) pair is"
+                             " required")
+        elif len(values) == 1:
+            v1 = values[0]
+            # Even though this isn't used, we do the conversion because
+            # all the other branches in this function do it so we do it
+            # to be consistent (this also will raise on bad values, which
+            # we want to do)...
+            p1 = cls.convert(v1[0])
+            return v1[1]
+        else:
+            # Order very very much matters in this tuple...
+            priority_ordering = (cls.VERY_HIGH, cls.HIGH,
+                                 cls.NORMAL, cls.LOW, cls.VERY_LOW)
+            if len(values) == 2:
+                # It's common to use this in a 2 tuple situation, so
+                # make it avoid all the needed complexity that is done
+                # for greater than 2 tuples.
+                v1 = values[0]
+                v2 = values[1]
+                p1 = cls.convert(v1[0])
+                p2 = cls.convert(v2[0])
+                p1_i = priority_ordering.index(p1)
+                p2_i = priority_ordering.index(p2)
+                if p1_i <= p2_i:
+                    return v1[1], v2[1]
+                else:
+                    return v2[1], v1[1]
+            else:
+                buckets = collections.defaultdict(list)
+                for (p, v) in values:
+                    p = cls.convert(p)
+                    buckets[p].append(v)
+                values = []
+                for p in priority_ordering:
+                    values.extend(buckets[p])
+                return tuple(values)
+
+
 @six.add_metaclass(abc.ABCMeta)
 class Job(object):
     """A abstraction that represents a named and trackable unit of work.
 
-    A job connects a logbook, a owner, last modified and created on dates and
-    any associated state that the job has. Since it is a connector to a
-    logbook, which are each associated with a set of factories that can create
-    set of flows, it is the current top-level container for a piece of work
-    that can be owned by an entity (typically that entity will read those
+    A job connects a logbook, a owner, a priority, last modified and created
+    on dates and any associated state that the job has. Since it is a connected
+    to a logbook, which are each associated with a set of factories that can
+    create set of flows, it is the current top-level container for a piece of
+    work that can be owned by an entity (typically that entity will read those
     logbooks and run any contained flows).
 
     Only one entity will be allowed to own and operate on the flows contained
@@ -84,7 +159,10 @@ class Job(object):
     @abc.abstractproperty
     def state(self):
         """Access the current state of this job."""
-        pass
+
+    @abc.abstractproperty
+    def priority(self):
+        """The :py:class:`~.JobPriority` of this job."""
 
     def wait(self, timeout=None,
              delay=0.01, delay_multiplier=2.0, max_delay=60.0,
@@ -185,9 +263,10 @@ class Job(object):
 
     def __str__(self):
         """Pretty formats the job into something *more* meaningful."""
-        return "%s: %s (uuid=%s, details=%s)" % (type(self).__name__,
-                                                 self.name, self.uuid,
-                                                 self.details)
+        cls_name = type(self).__name__
+        return "%s: %s (priority=%s, uuid=%s, details=%s)" % (
+            cls_name, self.name, self.priority,
+            self.uuid, self.details)
 
 
 class JobBoardIterator(six.Iterator):
@@ -241,6 +320,9 @@ class JobBoardIterator(six.Iterator):
                 self._logger.warn("Failed determining the state of"
                                   " job '%s'", maybe_job, exc_info=True)
             except excp.NotFound:
+                # Attempt to clean this off the board now that we found
+                # it wasn't really there (this **must** gracefully handle
+                # removal already having happened).
                 if self._board_removal_func is not None:
                     self._board_removal_func(maybe_job)
         return job
@@ -282,9 +364,9 @@ class JobBoard(object):
         """Returns an iterator of jobs that are currently on this board.
 
         NOTE(harlowja): the ordering of this iteration should be by posting
-        order (oldest to newest) if possible, but it is left up to the backing
-        implementation to provide the order that best suits it (so don't depend
-        on it always being oldest to newest).
+        order (oldest to newest) with higher priority jobs
+        being provided before lower priority jobs, but it is left up to the
+        backing implementation to provide the order that best suits it..
 
         NOTE(harlowja): the iterator that is returned may support other
         attributes which can be used to further customize how iteration can
@@ -302,15 +384,16 @@ class JobBoard(object):
 
     @abc.abstractmethod
     def wait(self, timeout=None):
-        """Waits a given amount of time for jobs to be posted.
+        """Waits a given amount of time for **any** jobs to be posted.
 
         When jobs are found then an iterator will be returned that can be used
         to iterate over those jobs.
 
         NOTE(harlowja): since a jobboard can be mutated on by multiple external
-        entities at the *same* time the iterator that can be returned *may*
-        still be empty due to other entities removing those jobs after the
-        iterator has been created (be aware of this when using it).
+        entities at the **same** time the iterator that can be
+        returned **may** still be empty due to other entities removing those
+        jobs after the iterator has been created (be aware of this when
+        using it).
 
         :param timeout: float that indicates how long to wait for a job to
             appear (if None then waits forever).
@@ -356,7 +439,7 @@ class JobBoard(object):
         """
 
     @abc.abstractmethod
-    def post(self, name, book=None, details=None):
+    def post(self, name, book=None, details=None, priority=JobPriority.NORMAL):
         """Atomically creates and posts a job to the jobboard.
 
         This posting allowing others to attempt to claim that job (and
@@ -488,10 +571,11 @@ def check_who(meth):
 
 
 def format_posting(uuid, name, created_on=None, last_modified=None,
-                   details=None, book=None):
+                   details=None, book=None, priority=JobPriority.NORMAL):
     posting = {
         'uuid': uuid,
         'name': name,
+        'priority': priority.value,
     }
     if created_on is not None:
         posting['created_on'] = created_on
