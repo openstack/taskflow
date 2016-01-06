@@ -181,6 +181,14 @@ class FailureObjectTestCase(test.TestCase):
         d_f['exc_type_names'] = ['RuntimeError', 'Exception', 'BaseException']
         failure.Failure.validate(d_f)
 
+    def test_cause_exception_args(self):
+        f = _captured_failure('Woot!')
+        d_f = f.to_dict()
+        self.assertEqual(1, len(d_f['exc_args']))
+        self.assertEqual(("Woot!",), d_f['exc_args'])
+        f2 = failure.Failure.from_dict(d_f)
+        self.assertEqual(f.exception_args, f2.exception_args)
+
     def test_dont_catch_base_exception(self):
         try:
             raise SystemExit()
@@ -236,7 +244,8 @@ class FailureObjectTestCase(test.TestCase):
         captured = _captured_failure('Woot!')
         fail_obj = failure.Failure(exception_str=captured.exception_str,
                                    traceback_str=captured.traceback_str,
-                                   exc_type_names=list(captured))
+                                   exc_type_names=list(captured),
+                                   exc_args=list(captured.exception_args))
         self.assertFalse(fail_obj == captured)
         self.assertTrue(fail_obj != captured)
         self.assertTrue(fail_obj.matches(captured))
