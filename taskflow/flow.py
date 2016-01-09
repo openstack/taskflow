@@ -35,6 +35,10 @@ LINK_REASONS = 'reasons'
 # This key denotes a callable that will determine if the target is visited.
 LINK_DECIDER = 'decider'
 
+# Chop off full module names of patterns that are built-in to taskflow...
+_CHOP_PAT = "taskflow.patterns."
+_CHOP_PAT_LEN = len(_CHOP_PAT)
+
 
 @six.add_metaclass(abc.ABCMeta)
 class Flow(object):
@@ -108,8 +112,10 @@ class Flow(object):
         """
 
     def __str__(self):
-        return "%s: %s(len=%d)" % (reflection.get_class_name(self),
-                                   self.name, len(self))
+        cls_name = reflection.get_class_name(self)
+        if cls_name.startswith(_CHOP_PAT):
+            cls_name = cls_name[_CHOP_PAT_LEN:]
+        return "%s: %s(len=%d)" % (cls_name, self.name, len(self))
 
     @property
     def provides(self):
