@@ -16,6 +16,7 @@
 
 import string
 
+import six
 from six.moves import range as compat_range
 
 from taskflow import test
@@ -41,6 +42,32 @@ class IterUtilsTest(test.TestCase):
         ]
         self.assertRaises(ValueError,
                           iter_utils.unique_seen, *iters)
+
+    def test_generate_delays(self):
+        it = iter_utils.generate_delays(1, 60)
+        self.assertEqual(1, six.next(it))
+        self.assertEqual(2, six.next(it))
+        self.assertEqual(4, six.next(it))
+        self.assertEqual(8, six.next(it))
+        self.assertEqual(16, six.next(it))
+        self.assertEqual(32, six.next(it))
+        self.assertEqual(60, six.next(it))
+        self.assertEqual(60, six.next(it))
+
+    def test_generate_delays_custom_multiplier(self):
+        it = iter_utils.generate_delays(1, 60, multiplier=4)
+        self.assertEqual(1, six.next(it))
+        self.assertEqual(4, six.next(it))
+        self.assertEqual(16, six.next(it))
+        self.assertEqual(60, six.next(it))
+        self.assertEqual(60, six.next(it))
+
+    def test_generate_delays_bad(self):
+        self.assertRaises(ValueError, iter_utils.generate_delays, -1, -1)
+        self.assertRaises(ValueError, iter_utils.generate_delays, -1, 2)
+        self.assertRaises(ValueError, iter_utils.generate_delays, 2, -1)
+        self.assertRaises(ValueError, iter_utils.generate_delays, 1, 1,
+                          multiplier=0.5)
 
     def test_unique_seen(self):
         iters = [
