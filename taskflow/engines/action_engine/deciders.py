@@ -135,7 +135,11 @@ class IgnoreDecider(Decider):
                 history[atom_name] = runtime.storage.get(atom_name)
         nay_voters = []
         for ed in self._edge_deciders:
-            if ed.kind in compiler.ATOMS and ed.from_node.name not in history:
+            if (ed.kind in compiler.ATOMS and
+                    # It was an ignored atom (not included in history and the
+                    # only way that is possible is via above loop skipping
+                    # it...)
+                    ed.from_node.name not in history):
                 continue
             if not ed.decider(history=history):
                 nay_voters.append(ed)
