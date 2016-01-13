@@ -326,7 +326,7 @@ class PatternCompiler(object):
         self._compilation = None
         self._matchers = [
             (flow.Flow, FlowCompiler(self._compile)),
-            (task.BaseTask, TaskCompiler()),
+            (task.Task, TaskCompiler()),
         ]
         self._level = 0
 

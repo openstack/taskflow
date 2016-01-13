@@ -228,7 +228,15 @@ class Atom(object):
     submission order).
     """
 
-    def __init__(self, name=None, provides=None, inject=None):
+    default_provides = None
+
+    def __init__(self, name=None, provides=None, requires=None,
+                 auto_extract=True, rebind=None, inject=None,
+                 ignore_list=None):
+
+        if provides is None:
+            provides = self.default_provides
+
         self.name = name
         self.version = (1, 0)
         self.inject = inject
@@ -238,8 +246,13 @@ class Atom(object):
         self.provides = sets.OrderedSet(self.save_as)
         self.rebind = collections.OrderedDict()
 
+        self._build_arg_mapping(self.execute, requires=requires,
+                                rebind=rebind, auto_extract=auto_extract,
+                                ignore_list=ignore_list)
+
     def _build_arg_mapping(self, executor, requires=None, rebind=None,
                            auto_extract=True, ignore_list=None):
+
         required, optional = _build_arg_mapping(self.name, requires, rebind,
                                                 executor, auto_extract,
                                                 ignore_list=ignore_list)
@@ -258,13 +271,76 @@ class Atom(object):
             self.requires -= inject_keys
             self.optional -= inject_keys
 
-    @abc.abstractmethod
-    def execute(self, *args, **kwargs):
-        """Executes this atom."""
+    def pre_execute(self):
+        """Code to be run prior to executing the atom.
+
+        A common pattern for initializing the state of the system prior to
+        running atoms is to define some code in a base class that all your
+        atoms inherit from.  In that class, you can define a ``pre_execute``
+        method and it will always be invoked just prior to your atoms running.
+        """
 
     @abc.abstractmethod
+    def execute(self, *args, **kwargs):
+        """Activate a given atom which will perform some operation and return.
+
+        This method can be used to perform an action on a given set of input
+        requirements (passed in via ``*args`` and ``**kwargs``) to accomplish
+        some type of operation. This operation may provide some named
+        outputs/results as a result of it executing for later reverting (or for
+        other atoms to depend on).
+
+        NOTE(harlowja): the result (if any) that is returned should be
+        persistable so that it can be passed back into this atom if
+        reverting is triggered (especially in the case where reverting
+        happens in a different python process or on a remote machine) and so
+        that the result can be transmitted to other atoms (which may be local
+        or remote).
+
+        :param args: positional arguments that atom requires to execute.
+        :param kwargs: any keyword arguments that atom requires to execute.
+        """
+
+    def post_execute(self):
+        """Code to be run after executing the atom.
+
+        A common pattern for cleaning up global state of the system after the
+        execution of atoms is to define some code in a base class that all your
+        atoms inherit from.  In that class, you can define a ``post_execute``
+        method and it will always be invoked just after your atoms execute,
+        regardless of whether they succeeded or not.
+
+        This pattern is useful if you have global shared database sessions
+        that need to be cleaned up, for example.
+        """
+
+    def pre_revert(self):
+        """Code to be run prior to reverting the atom.
+
+        This works the same as :meth:`.pre_execute`, but for the revert phase.
+        """
+
     def revert(self, *args, **kwargs):
-        """Reverts this atom (undoing any :meth:`execute` side-effects)."""
+        """Revert this atom.
+
+        This method should undo any side-effects caused by previous execution
+        of the atom using the result of the :py:meth:`execute` method and
+        information on the failure which triggered reversion of the flow the
+        atom is contained in (if applicable).
+
+        :param args: positional arguments that the atom required to execute.
+        :param kwargs: any keyword arguments that the atom required to
+                       execute; the special key ``'result'`` will contain
+                       the :py:meth:`execute` result (if any) and
+                       the ``**kwargs`` key ``'flow_failures'`` will contain
+                       any failure information.
+        """
+
+    def post_revert(self):
+        """Code to be run after reverting the atom.
+
+        This works the same as :meth:`.post_execute`, but for the revert phase.
+        """
 
     def __str__(self):
         return "%s==%s" % (self.name, misc.get_version_string(self))

@@ -63,7 +63,7 @@ def _make_matcher(task_name):
 
     def _task_matcher(node):
         item = node.item
-        return isinstance(item, task.BaseTask) and item.name == task_name
+        return isinstance(item, task.Task) and item.name == task_name
 
     return _task_matcher
 

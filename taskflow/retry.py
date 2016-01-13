@@ -154,15 +154,12 @@ class Retry(atom.Atom):
     decisions and outcomes that have occurred (if available).
     """
 
-    default_provides = None
-
     def __init__(self, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None):
-        if provides is None:
-            provides = self.default_provides
-        super(Retry, self).__init__(name, provides)
-        self._build_arg_mapping(self.execute, requires, rebind, auto_extract,
-                                ignore_list=[EXECUTE_REVERT_HISTORY])
+        super(Retry, self).__init__(name=name, provides=provides,
+                                    requires=requires, rebind=rebind,
+                                    auto_extract=auto_extract,
+                                    ignore_list=[EXECUTE_REVERT_HISTORY])
 
     @property
     def name(self):
