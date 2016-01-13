@@ -140,6 +140,8 @@ class Completer(object):
             atom_state, _atom_intention = atom_states[atom.name]
             if atom_state in (st.RUNNING, st.REVERTING):
                 unfinished_atoms.add(atom)
+                LOG.trace("Resuming atom '%s' since it was left in"
+                          " state %s", atom, atom_state)
         return unfinished_atoms
 
     def complete(self, node, outcome, result):
