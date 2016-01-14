@@ -180,10 +180,10 @@ class _ProviderLocator(object):
                                 " produced by %s but was unable to get at"
                                 " that providers results" % (looking_for, p))
                         else:
-                            LOG.blather("Avoiding using the results of"
-                                        " %r (from %s) for name %r because"
-                                        " it was ignored", p.name, p,
-                                        looking_for)
+                            LOG.trace("Avoiding using the results of"
+                                      " %r (from %s) for name %r because"
+                                      " it was ignored", p.name, p,
+                                      looking_for)
                     else:
                         tmp_providers_and_results.append((p, provider_results))
             if tmp_providers_and_results and short_circuit:
