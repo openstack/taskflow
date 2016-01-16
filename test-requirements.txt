@@ -4,33 +4,33 @@
 
 hacking<0.11,>=0.10.0
 oslotest>=1.10.0 # Apache-2.0
-mock>=1.2
-testtools>=1.4.0
-testscenarios>=0.4
+mock>=1.2 # BSD
+testtools>=1.4.0 # MIT
+testscenarios>=0.4 # Apache-2.0/BSD
 
 # Used for testing the WBE engine.
-kombu>=3.0.7
+kombu>=3.0.7 # BSD
 
 # Used for doc style checking
 doc8 # Apache-2.0
 
 # Used for testing zookeeper & backends.
 zake>=0.1.6 # Apache-2.0
-kazoo>=2.2
+kazoo>=2.2 # Apache-2.0
 
 # Used for testing redis jobboards
-redis>=2.10.0
+redis>=2.10.0 # MIT
 
 # Used for testing database persistence backends.
-SQLAlchemy<1.1.0,>=1.0.10
-alembic>=0.8.0
-psycopg2>=2.5
+SQLAlchemy<1.1.0,>=1.0.10 # MIT
+alembic>=0.8.0 # MIT
+psycopg2>=2.5 # LGPL/ZPL
 sqlalchemy-utils # BSD License
 PyMySQL>=0.6.2 # MIT License
 
 # Used for making sure we still work with eventlet.
-eventlet>=0.17.4
+eventlet>=0.17.4 # MIT
 
 # Docs build jobs need these packages.
-sphinx!=1.2.0,!=1.3b1,<1.3,>=1.1.2
+sphinx!=1.2.0,!=1.3b1,<1.3,>=1.1.2 # BSD
 oslosphinx!=3.4.0,>=2.5.0 # Apache-2.0

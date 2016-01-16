@@ -3,15 +3,15 @@
 # process, which may cause wedges in the gate later.
 
 # See: https://bugs.launchpad.net/pbr/+bug/1384919 for why this is here...
-pbr>=1.6
+pbr>=1.6 # Apache-2.0
 
 # Packages needed for using this library.
 
 # Python 2->3 compatibility library.
-six>=1.9.0
+six>=1.9.0 # MIT
 
 # Enum library made for <= python 3.3
-enum34;python_version=='2.7' or python_version=='2.6' or python_version=='3.3'
+enum34;python_version=='2.7' or python_version=='2.6' or python_version=='3.3' # BSD
 
 # For async and/or periodic work
 futurist>=0.6.0 # Apache-2.0
@@ -20,7 +20,7 @@ futurist>=0.6.0 # Apache-2.0
 fasteners>=0.7 # Apache-2.0
 
 # Very nice graph library
-networkx>=1.10
+networkx>=1.10 # BSD
 
 # For contextlib new additions/compatibility for <= python 3.3
 contextlib2>=0.4.0 # PSF License
@@ -29,13 +29,13 @@ contextlib2>=0.4.0 # PSF License
 stevedore>=1.5.0 # Apache-2.0
 
 # Backport for concurrent.futures which exists in 3.2+
-futures>=3.0;python_version=='2.7' or python_version=='2.6'
+futures>=3.0;python_version=='2.7' or python_version=='2.6' # BSD
 
 # Backport for time.monotonic which is in 3.3+
 monotonic>=0.3 # Apache-2.0
 
 # Used for structured input validation
-jsonschema!=2.5.0,<3.0.0,>=2.0.0
+jsonschema!=2.5.0,<3.0.0,>=2.0.0 # MIT
 
 # For the state machine we run with
 automaton>=0.5.0 # Apache-2.0
