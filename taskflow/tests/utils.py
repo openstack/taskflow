@@ -17,6 +17,7 @@
 import contextlib
 import string
 import threading
+import time
 
 import redis
 import six
@@ -338,6 +339,11 @@ class TaskRevertExtraArgs(task.Task):
 
     def revert(self, revert_arg, flow_failures, result, **kwargs):
         pass
+
+
+class SleepTask(task.Task):
+    def execute(self, duration, **kwargs):
+        time.sleep(duration)
 
 
 class EngineTestBase(object):
