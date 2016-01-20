@@ -214,7 +214,7 @@ class TestDurationListener(test.TestCase, EngineMakerMixin):
             l.register()
             l.deregister()
 
-    def test_duration(self):
+    def test_task_duration(self):
         with contextlib.closing(impl_memory.MemoryBackend()) as be:
             flow = lf.Flow("test")
             flow.add(SleepyTask("test-1", sleep_for=0.1))
@@ -229,6 +229,19 @@ class TestDurationListener(test.TestCase, EngineMakerMixin):
             self.assertIn('duration', td.meta)
             self.assertGreaterEqual(0.1, td.meta['duration'])
 
+    def test_flow_duration(self):
+        with contextlib.closing(impl_memory.MemoryBackend()) as be:
+            flow = lf.Flow("test")
+            flow.add(SleepyTask("test-1", sleep_for=0.1))
+            (lb, fd) = persistence_utils.temporary_flow_detail(be)
+            e = self._make_engine(flow, fd, be)
+            with timing.DurationListener(e):
+                e.run()
+            self.assertIsNotNone(fd)
+            self.assertIsNotNone(fd.meta)
+            self.assertIn('duration', fd.meta)
+            self.assertGreaterEqual(0.1, fd.meta['duration'])
+
     @mock.patch.object(timing.LOG, 'warn')
     def test_record_ending_exception(self, mocked_warn):
         with contextlib.closing(impl_memory.MemoryBackend()) as be:
@@ -242,8 +255,8 @@ class TestDurationListener(test.TestCase, EngineMakerMixin):
                 mocked_uam.side_effect = exc.StorageFailure('Woot!')
                 with duration_listener:
                     e.run()
-        mocked_warn.assert_called_once_with(mock.ANY, mock.ANY, 'test-1',
-                                            exc_info=True)
+        mocked_warn.assert_called_once_with(mock.ANY, mock.ANY, 'task',
+                                            'test-1', exc_info=True)
 
 
 class TestEventTimeListener(test.TestCase, EngineMakerMixin):
