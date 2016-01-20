@@ -26,7 +26,6 @@ from taskflow.engines.action_engine import executor as ex
 from taskflow import logging
 from taskflow import retry as retry_atom
 from taskflow import states as st
-from taskflow.types import failure
 
 LOG = logging.getLogger(__name__)
 
@@ -144,24 +143,27 @@ class Completer(object):
                           " state %s", atom, atom_state)
         return unfinished_atoms
 
-    def complete(self, node, outcome, result):
-        """Performs post-execution completion of a node.
+    def complete_failure(self, node, outcome, failure):
+        """Performs post-execution completion of a nodes failure.
 
         Returns whether the result should be saved into an accumulator of
         failures or whether this should not be done.
         """
+        if outcome == ex.EXECUTED:
+            self._process_atom_failure(node, failure)
+            # We resolved something, carry on...
+            return False
+        else:
+            # Reverting failed, always retain the failure...
+            return True
+
+    def complete(self, node, outcome, result):
+        """Performs post-execution completion of a node result."""
         handler = self._runtime.fetch_action(node)
         if outcome == ex.EXECUTED:
             handler.complete_execution(node, result)
         else:
             handler.complete_reversion(node, result)
-        if isinstance(result, failure.Failure):
-            if outcome == ex.EXECUTED:
-                self._process_atom_failure(node, result)
-            else:
-                # Reverting failed, always retain the failure...
-                return True
-        return False
 
     def _determine_resolution(self, atom, failure):
         """Determines which resolution strategy to activate/apply."""
