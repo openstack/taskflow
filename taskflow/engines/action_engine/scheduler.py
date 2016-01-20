@@ -42,6 +42,9 @@ class RetryScheduler(object):
             return self._retry_action.schedule_reversion(retry)
         elif intention == st.RETRY:
             self._retry_action.change_state(retry, st.RETRYING)
+            # This will force the subflow to start processing right *after*
+            # this retry atom executes (since they will be blocked on their
+            # predecessor getting out of the RETRYING/RUNNING state).
             self._runtime.retry_subflow(retry)
             return self._retry_action.schedule_execution(retry)
         else:
