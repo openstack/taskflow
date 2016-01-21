@@ -277,6 +277,13 @@ class ActionEngine(base.Engine):
                         # shop...
                         closed = True
                         self.suspend()
+                    except Exception:
+                        # Capture the failure, and ensure that the
+                        # machine will notice that something externally
+                        # has sent an exception in and that it should
+                        # finish up and reraise.
+                        memory.failures.append(failure.Failure())
+                        closed = True
                     else:
                         if try_suspend:
                             self.suspend()
