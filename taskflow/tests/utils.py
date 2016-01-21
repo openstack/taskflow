@@ -332,6 +332,14 @@ class NeverRunningTask(task.Task):
         assert False, 'This method should not be called'
 
 
+class TaskRevertExtraArgs(task.Task):
+    def execute(self, **kwargs):
+        raise exceptions.ExecutionFailure("We want to force a revert here")
+
+    def revert(self, revert_arg, flow_failures, result, **kwargs):
+        pass
+
+
 class EngineTestBase(object):
     def setUp(self):
         super(EngineTestBase, self).setUp()

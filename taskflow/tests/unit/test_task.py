@@ -49,6 +49,22 @@ class ProgressTask(task.Task):
             self.update_progress(value)
 
 
+class SeparateRevertTask(task.Task):
+    def execute(self, execute_arg):
+        pass
+
+    def revert(self, revert_arg, result, flow_failures):
+        pass
+
+
+class SeparateRevertOptionalTask(task.Task):
+    def execute(self, execute_arg=None):
+        pass
+
+    def revert(self, result, flow_failures, revert_arg=None):
+        pass
+
+
 class TaskTest(test.TestCase):
 
     def test_passed_name(self):
@@ -337,6 +353,26 @@ class TaskTest(test.TestCase):
         listeners = dict(list(b_task.notifier.listeners_iter()))
         self.assertEqual(2, len(listeners[task.EVENT_UPDATE_PROGRESS]))
         self.assertEqual(0, len(a_task.notifier))
+
+    def test_separate_revert_args(self):
+        task = SeparateRevertTask(rebind=('a',), revert_rebind=('b',))
+        self.assertEqual({'execute_arg': 'a'}, task.rebind)
+        self.assertEqual({'revert_arg': 'b'}, task.revert_rebind)
+        self.assertEqual(set(['a', 'b']),
+                         task.requires)
+
+        task = SeparateRevertTask(requires='execute_arg',
+                                  revert_requires='revert_arg')
+
+        self.assertEqual({'execute_arg': 'execute_arg'}, task.rebind)
+        self.assertEqual({'revert_arg': 'revert_arg'}, task.revert_rebind)
+        self.assertEqual(set(['execute_arg', 'revert_arg']),
+                         task.requires)
+
+    def test_separate_revert_optional_args(self):
+        task = SeparateRevertOptionalTask()
+        self.assertEqual(set(['execute_arg']), task.optional)
+        self.assertEqual(set(['revert_arg']), task.revert_optional)
 
 
 class FunctorTaskTest(test.TestCase):

@@ -163,6 +163,26 @@ class ArgumentsPassingTest(utils.EngineTestBase):
             'long_arg_name': 1, 'result': 1
         }, engine.storage.fetch_all())
 
+    def test_revert_rebound_args_required(self):
+        flow = utils.TaskMultiArg(revert_rebind={'z': 'b'})
+        engine = self._make_engine(flow)
+        engine.storage.inject({'a': 1, 'y': 4, 'c': 9, 'x': 17})
+        self.assertRaises(exc.MissingDependencies, engine.run)
+
+    def test_revert_required_args_required(self):
+        flow = utils.TaskMultiArg(revert_requires=['a'])
+        engine = self._make_engine(flow)
+        engine.storage.inject({'y': 4, 'z': 9, 'x': 17})
+        self.assertRaises(exc.MissingDependencies, engine.run)
+
+    def test_derived_revert_args_required(self):
+        flow = utils.TaskRevertExtraArgs()
+        engine = self._make_engine(flow)
+        engine.storage.inject({'y': 4, 'z': 9, 'x': 17})
+        self.assertRaises(exc.MissingDependencies, engine.run)
+        engine.storage.inject({'revert_arg': None})
+        self.assertRaises(exc.ExecutionFailure, engine.run)
+
 
 class SerialEngineTest(ArgumentsPassingTest, test.TestCase):
 
