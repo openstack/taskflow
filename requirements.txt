@@ -49,4 +49,4 @@ retrying!=1.3.0,>=1.2.3 # Apache-2.0
 cachetools>=1.0.0 # MIT License
 
 # For deprecation of things
-debtcollector>=0.3.0 # Apache-2.0
+debtcollector>=1.2.0 # Apache-2.0
