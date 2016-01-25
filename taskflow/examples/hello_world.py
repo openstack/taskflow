@@ -25,8 +25,6 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-import futurist
-
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
 from taskflow.patterns import unordered_flow as uf
@@ -82,35 +80,29 @@ song.add(PrinterTask("conductor@begin",
 
 # Run in parallel using eventlet green threads...
 try:
-    executor = futurist.GreenThreadPoolExecutor()
-except RuntimeError:
+    import eventlet as _eventlet  # noqa
+except ImportError:
     # No eventlet currently active, skip running with it...
     pass
 else:
     print("-- Running in parallel using eventlet --")
-    with executor:
-        e = engines.load(song, executor=executor, engine='parallel')
-        e.run()
-    print("-- Statistics gathered --")
-    print(e.statistics)
+    e = engines.load(song, executor='greenthreaded', engine='parallel',
+                     max_workers=1)
+    e.run()
 
 
 # Run in parallel using real threads...
-with futurist.ThreadPoolExecutor(max_workers=1) as executor:
-    print("-- Running in parallel using threads --")
-    e = engines.load(song, executor=executor, engine='parallel')
-    e.run()
-    print("-- Statistics gathered --")
-    print(e.statistics)
+print("-- Running in parallel using threads --")
+e = engines.load(song, executor='threaded', engine='parallel',
+                 max_workers=1)
+e.run()
 
 
 # Run in parallel using external processes...
-with futurist.ProcessPoolExecutor(max_workers=1) as executor:
-    print("-- Running in parallel using processes --")
-    e = engines.load(song, executor=executor, engine='parallel')
-    e.run()
-    print("-- Statistics gathered --")
-    print(e.statistics)
+print("-- Running in parallel using processes --")
+e = engines.load(song, executor='processes', engine='parallel',
+                 max_workers=1)
+e.run()
 
 
 # Run serially (aka, if the workflow could have been ran in parallel, it will
