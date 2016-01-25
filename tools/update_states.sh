@@ -20,7 +20,7 @@ python $script_dir/state_graph.py -t -f /tmp/states.svg
 $xsltproc $PWD/.diagram-tools/notugly.xsl /tmp/states.svg > $img_dir/task_states.svg
 
 echo "---- Updating flow state diagram ----"
-python $script_dir/state_graph.py -f /tmp/states.svg
+python $script_dir/state_graph.py --flow -f /tmp/states.svg
 $xsltproc $PWD/.diagram-tools/notugly.xsl /tmp/states.svg > $img_dir/flow_states.svg
 
 echo "---- Updating engine state diagram ----"
