@@ -1527,6 +1527,48 @@ class ParallelEngineWithProcessTest(EngineTaskTest,
                                      max_workers=self._EXECUTOR_WORKERS,
                                      **kwargs)
 
+    def test_update_progress_notifications_proxied(self):
+        captured = collections.defaultdict(list)
+
+        def notify_me(event_type, details):
+            captured[event_type].append(details)
+
+        a = utils.MultiProgressingTask('a')
+        a.notifier.register(a.notifier.ANY, notify_me)
+        progress_chunks = list(x / 10.0 for x in range(1, 10))
+        e = self._make_engine(a, store={'progress_chunks': progress_chunks})
+        e.run()
+
+        self.assertEqual(11, len(captured[task.EVENT_UPDATE_PROGRESS]))
+
+    def test_custom_notifications_proxied(self):
+        captured = collections.defaultdict(list)
+
+        def notify_me(event_type, details):
+            captured[event_type].append(details)
+
+        a = utils.EmittingTask('a')
+        a.notifier.register(a.notifier.ANY, notify_me)
+        e = self._make_engine(a)
+        e.run()
+
+        self.assertEqual(1, len(captured['hi']))
+        self.assertEqual(2, len(captured[task.EVENT_UPDATE_PROGRESS]))
+
+    def test_just_custom_notifications_proxied(self):
+        captured = collections.defaultdict(list)
+
+        def notify_me(event_type, details):
+            captured[event_type].append(details)
+
+        a = utils.EmittingTask('a')
+        a.notifier.register('hi', notify_me)
+        e = self._make_engine(a)
+        e.run()
+
+        self.assertEqual(1, len(captured['hi']))
+        self.assertEqual(0, len(captured[task.EVENT_UPDATE_PROGRESS]))
+
 
 class WorkerBasedEngineTest(EngineTaskTest,
                             EngineMultipleResultsTest,
