@@ -37,7 +37,7 @@ def temporary_log_book(backend=None):
     return book
 
 
-def temporary_flow_detail(backend=None):
+def temporary_flow_detail(backend=None, meta=None):
     """Creates a temporary flow detail and logbook in the given backend.
 
     Mainly useful for tests and other use cases where a temporary flow detail
@@ -45,7 +45,14 @@ def temporary_flow_detail(backend=None):
     """
     flow_id = uuidutils.generate_uuid()
     book = temporary_log_book(backend)
-    book.add(models.FlowDetail(name='tmp-flow-detail', uuid=flow_id))
+
+    flow_detail = models.FlowDetail(name='tmp-flow-detail', uuid=flow_id)
+    if meta is not None:
+        if flow_detail.meta is None:
+            flow_detail.meta = {}
+        flow_detail.meta.update(meta)
+    book.add(flow_detail)
+
     if backend is not None:
         with contextlib.closing(backend.get_connection()) as conn:
             conn.save_logbook(book)

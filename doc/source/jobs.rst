@@ -175,6 +175,66 @@ might look like:
         time.sleep(coffee_break_time)
     ...
 
+There are a few ways to provide arguments to the flow.  The first option is to
+add a ``store`` to the flowdetail object in the
+:py:class:`logbook <taskflow.persistence.models.LogBook>`.
+
+You can also provide a ``store`` in the
+:py:class:`job <taskflow.jobs.base.Job>` itself when posting it to the
+job board.  If both ``store`` values are found, they will be combined,
+with the :py:class:`job <taskflow.jobs.base.Job>` ``store``
+overriding the :py:class:`logbook <taskflow.persistence.models.LogBook>`
+``store``.
+
+.. code-block:: python
+
+    import uuid
+
+    from taskflow import engines
+    from taskflow.persistence import backends as persistence_backends
+    from taskflow.persistence import models
+    from taskflow.jobs import backends as job_backends
+
+
+    ...
+    persistence = persistence_backends.fetch({
+        "connection': "mysql",
+        "user": ...,
+        "password": ...,
+    })
+    board = job_backends.fetch('my-board', {
+        "board": "zookeeper",
+    }, persistence=persistence)
+
+    book = models.LogBook('my-book', uuid.uuid4())
+
+    flow_detail = models.FlowDetail('my-job', uuid.uuid4())
+    book.add(flow_detail)
+
+    connection = persistence.get_connection()
+    connection.save_logbook(book)
+
+    flow_detail.meta['store'] = {'a': 1, 'c': 3}
+
+    job_details = {
+        "flow_uuid": flow_detail.uuid,
+        "store": {'a': 2, 'b': 1}
+    }
+
+    engines.save_factory_details(flow_detail, flow_factory,
+                                 factory_args=[],
+                                 factory_kwargs={},
+                                 backend=persistence)
+
+    jobboard = get_jobboard(zk_client)
+    jobboard.connect()
+    job = jobboard.post('my-job', book=book, details=job_details)
+
+    # the flow global parameters are now the combined store values
+    # {'a': 2, 'b': 1', 'c': 3}
+    ...
+
+
 Types
 =====
 
