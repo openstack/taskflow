@@ -499,14 +499,18 @@ class Failure(mixins.StrMixin):
             data['causes'] = tuple(cls.from_dict(d) for d in causes)
         return cls(**data)
 
-    def to_dict(self):
-        """Converts this object to a dictionary."""
+    def to_dict(self, include_args=True):
+        """Converts this object to a dictionary.
+
+        :param include_args: boolean indicating whether to include the
+                             exception args in the output.
+        """
         return {
             'exception_str': self.exception_str,
             'traceback_str': self.traceback_str,
             'exc_type_names': list(self),
             'version': self.DICT_VERSION,
-            'exc_args': self.exception_args,
+            'exc_args': self.exception_args if include_args else tuple(),
             'causes': [f.to_dict() for f in self.causes],
         }
 
