@@ -25,6 +25,7 @@ import fasteners
 import networkx as nx
 from oslo_utils import excutils
 from oslo_utils import strutils
+from oslo_utils import timeutils
 import six
 
 from taskflow.engines.action_engine import builder
@@ -169,6 +170,9 @@ class ActionEngine(base.Engine):
         self._retry_executor = executor.SerialRetryExecutor()
         self._inject_transient = strutils.bool_from_string(
             self._options.get('inject_transient', True))
+        self._gather_statistics = strutils.bool_from_string(
+            self._options.get('gather_statistics', True))
+        self._statistics = {}
 
     @_pre_check(check_compiled=True,
                 # NOTE(harlowja): We can alter the state of the
@@ -179,6 +183,10 @@ class ActionEngine(base.Engine):
                 check_validated=False)
     def suspend(self):
         self._change_state(states.SUSPENDING)
+
+    @property
+    def statistics(self):
+        return self._statistics
 
     @property
     def compilation(self):
@@ -261,9 +269,17 @@ class ActionEngine(base.Engine):
             maxlen=max(1, self.MAX_MACHINE_STATES_RETAINED))
         with _start_stop(self._task_executor, self._retry_executor):
             self._change_state(states.RUNNING)
+            if self._gather_statistics:
+                self._statistics.clear()
+                w = timeutils.StopWatch()
+                w.start()
+            else:
+                w = None
             try:
                 closed = False
-                machine, memory = self._runtime.builder.build(timeout=timeout)
+                machine, memory = self._runtime.builder.build(
+                    self._statistics, timeout=timeout,
+                    gather_statistics=self._gather_statistics)
                 r = runners.FiniteRunner(machine)
                 for transition in r.run_iter(builder.START):
                     last_transitions.append(transition)
@@ -306,6 +322,10 @@ class ActionEngine(base.Engine):
                                 six.itervalues(failures),
                                 six.itervalues(more_failures))
                             failure.Failure.reraise_if_any(fails)
+            finally:
+                if w is not None:
+                    w.stop()
+                    self._statistics['active_for'] = w.elapsed()
 
     @staticmethod
     def _check_compilation(compilation):

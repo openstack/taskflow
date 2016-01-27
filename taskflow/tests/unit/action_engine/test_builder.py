@@ -56,7 +56,7 @@ class BuildersTest(test.TestCase):
 
     def _make_machine(self, flow, initial_state=None):
         runtime = self._make_runtime(flow, initial_state=initial_state)
-        machine, memory = runtime.builder.build()
+        machine, memory = runtime.builder.build({})
         machine_runner = runners.FiniteRunner(machine)
         return (runtime, machine, memory, machine_runner)
 

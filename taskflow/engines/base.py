@@ -80,6 +80,22 @@ class Engine(object):
     def storage(self):
         """The storage unit for this engine."""
 
+    @abc.abstractproperty
+    def statistics(self):
+        """A dictionary of runtime statistics this engine has gathered.
+
+        This dictionary will be empty when the engine has never been
+        ran. When it is running or has ran previously it should have (but
+        may not) have useful and/or informational keys and values when
+        running is underway and/or completed.
+
+        .. warning:: The keys in this dictionary **should** be some what
+                     stable (not changing), but there existence **may**
+                     change between major releases as new statistics are
+                     gathered or removed so before accessing keys ensure that
+                     they actually exist and handle when they do not.
+        """
+
     @abc.abstractmethod
     def compile(self):
         """Compiles the contained flow into a internal representation.
