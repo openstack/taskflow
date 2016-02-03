@@ -1505,13 +1505,14 @@ class WorkerBasedEngineTest(EngineTaskTest,
         self.worker_thread = tu.daemon_thread(self.worker.run)
         self.worker_thread.start()
 
+        # Ensure worker and thread is stopped when test is done; these are
+        # called in reverse order, so make sure we signal the stop before
+        # performing the join (because the reverse won't work).
+        self.addCleanup(self.worker_thread.join)
+        self.addCleanup(self.worker.stop)
+
         # Make sure the worker is started before we can continue...
         self.worker.wait()
-
-    def tearDown(self):
-        self.worker.stop()
-        self.worker_thread.join()
-        super(WorkerBasedEngineTest, self).tearDown()
 
     def _make_engine(self, flow,
                      flow_detail=None, store=None, **kwargs):
