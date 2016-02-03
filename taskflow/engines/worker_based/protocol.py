@@ -20,6 +20,7 @@ import threading
 
 import fasteners
 import futurist
+from oslo_serialization import jsonutils
 from oslo_utils import reflection
 from oslo_utils import timeutils
 import six
@@ -98,6 +99,17 @@ REQUEST = 'REQUEST'
 RESPONSE = 'RESPONSE'
 
 LOG = logging.getLogger(__name__)
+
+
+def failure_to_dict(failure):
+    failure_dict = failure.to_dict()
+    try:
+        # it's possible the exc_args can't be serialized as JSON
+        # if that's the case, just get the failure without them
+        jsonutils.dumps(failure_dict)
+        return failure_dict
+    except (TypeError, ValueError):
+        return failure.to_dict(include_args=False)
 
 
 @six.add_metaclass(abc.ABCMeta)
@@ -301,6 +313,7 @@ class Request(Message):
         convert all `failure.Failure` objects into dictionaries (which will
         then be reconstituted by the receiver).
         """
+
         request = {
             'task_cls': reflection.get_class_name(self._task),
             'task_name': self._task.name,
@@ -311,14 +324,14 @@ class Request(Message):
         if 'result' in self._kwargs:
             result = self._kwargs['result']
             if isinstance(result, ft.Failure):
-                request['result'] = ('failure', result.to_dict())
+                request['result'] = ('failure', failure_to_dict(result))
             else:
                 request['result'] = ('success', result)
         if 'failures' in self._kwargs:
             failures = self._kwargs['failures']
             request['failures'] = {}
             for task, failure in six.iteritems(failures):
-                request['failures'][task] = failure.to_dict()
+                request['failures'][task] = failure_to_dict(failure)
         return request
 
     def set_result(self, result):

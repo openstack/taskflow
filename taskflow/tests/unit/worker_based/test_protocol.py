@@ -162,6 +162,14 @@ class TestProtocol(test.TestCase):
             failures={self.task.name: a_failure.to_dict()})
         self.assertEqual(expected, request.to_dict())
 
+    def test_to_dict_with_invalid_json_failures(self):
+        exc = RuntimeError(Exception("I am not valid JSON"))
+        a_failure = failure.Failure.from_exception(exc)
+        request = self.request(failures={self.task.name: a_failure})
+        expected = self.request_to_dict(
+            failures={self.task.name: a_failure.to_dict(include_args=False)})
+        self.assertEqual(expected, request.to_dict())
+
     @mock.patch('oslo_utils.timeutils.now')
     def test_pending_not_expired(self, now):
         now.return_value = 0
