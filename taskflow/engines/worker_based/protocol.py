@@ -262,7 +262,7 @@ class Request(Message):
         self._watch = timeutils.StopWatch(duration=timeout).start()
         self._state = WAITING
         self._lock = threading.Lock()
-        self._created_on = timeutils.utcnow()
+        self._created_on = timeutils.now()
         self._result = futurist.Future()
         self._result.atom = task
         self._notifier = task.notifier

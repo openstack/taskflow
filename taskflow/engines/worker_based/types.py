@@ -28,25 +28,9 @@ import six
 from taskflow.engines.worker_based import dispatcher
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import logging
-from taskflow.types import cache as base
-from taskflow.types import notifier
 from taskflow.utils import kombu_utils as ku
 
 LOG = logging.getLogger(__name__)
-
-
-class RequestsCache(base.ExpiringCache):
-    """Represents a thread-safe requests cache."""
-
-    def get_waiting_requests(self, worker):
-        """Get list of waiting requests that the given worker can satisfy."""
-        waiting_requests = []
-        with self._lock:
-            for request in six.itervalues(self._data):
-                if request.state == pr.WAITING \
-                   and worker.performs(request.task):
-                    waiting_requests.append(request)
-        return waiting_requests
 
 
 # TODO(harlowja): this needs to be made better, once
@@ -101,12 +85,8 @@ class TopicWorker(object):
 class WorkerFinder(object):
     """Base class for worker finders..."""
 
-    #: Event type emitted when a new worker arrives.
-    WORKER_ARRIVED = 'worker_arrived'
-
     def __init__(self):
         self._cond = threading.Condition()
-        self.notifier = notifier.RestrictedNotifier([self.WORKER_ARRIVED])
 
     @abc.abstractmethod
     def _total_workers(self):
@@ -219,8 +199,6 @@ class ProxyWorkerFinder(WorkerFinder):
                 LOG.debug("Updated worker '%s' (%s total workers are"
                           " currently known)", worker, self._total_workers())
                 self._cond.notify_all()
-        if new_or_updated:
-            self.notifier.notify(self.WORKER_ARRIVED, {'worker': worker})
 
     def clear(self):
         with self._cond:
