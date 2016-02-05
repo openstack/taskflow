@@ -17,7 +17,6 @@
 import functools
 import threading
 
-from futurist import periodics
 from oslo_utils import timeutils
 import six
 
@@ -47,12 +46,7 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         self._ongoing_requests = {}
         self._ongoing_requests_lock = threading.RLock()
         self._transition_timeout = transition_timeout
-        type_handlers = {
-            pr.RESPONSE: dispatcher.Handler(self._process_response,
-                                            validator=pr.Response.validate),
-        }
         self._proxy = proxy.Proxy(uuid, exchange,
-                                  type_handlers=type_handlers,
                                   on_wait=self._on_wait, url=url,
                                   transport=transport,
                                   transport_options=transport_options,
@@ -64,16 +58,17 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         # pre-existing knowledge of the topics those workers are on to gather
         # and update this information).
         self._finder = wt.ProxyWorkerFinder(uuid, self._proxy, topics)
-        self._helpers = tu.ThreadBundle()
-        self._helpers.bind(lambda: tu.daemon_thread(self._proxy.start),
-                           after_start=lambda t: self._proxy.wait(),
-                           before_join=lambda t: self._proxy.stop())
-        p_worker = periodics.PeriodicWorker.create([self._finder])
-        if p_worker:
-            self._helpers.bind(lambda: tu.daemon_thread(p_worker.start),
-                               before_join=lambda t: p_worker.stop(),
-                               after_join=lambda t: p_worker.reset(),
-                               before_start=lambda t: p_worker.reset())
+        self._proxy.dispatcher.type_handlers.update({
+            pr.RESPONSE: dispatcher.Handler(self._process_response,
+                                            validator=pr.Response.validate),
+            pr.NOTIFY: dispatcher.Handler(
+                self._finder.process_response,
+                validator=functools.partial(pr.Notify.validate,
+                                            response=True)),
+        })
+        # Thread that will run the message dispatching (and periodically
+        # call the on_wait callback to do various things) loop...
+        self._helper = None
         self._messages_processed = {
             'finder': self._finder.messages_processed,
         }
@@ -138,8 +133,9 @@ class WorkerTaskExecutor(executor.TaskExecutor):
             return True
         return False
 
-    def _on_wait(self):
-        """This function is called cyclically between draining events."""
+    def _clean(self):
+        if not self._ongoing_requests:
+            return
         with self._ongoing_requests_lock:
             ongoing_requests_uuids = set(six.iterkeys(self._ongoing_requests))
         waiting_requests = {}
@@ -177,6 +173,15 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                                                              logger=LOG)):
                         self._publish_request(request, worker)
                 self._messages_processed['finder'] = new_messages_processed
+
+    def _on_wait(self):
+        """This function is called cyclically between draining events."""
+        # Publish any finding messages (used to locate workers).
+        self._finder.maybe_publish()
+        # Process any expired requests or requests that have no current
+        # worker located (publish messages for those if we now do have
+        # a worker located).
+        self._clean()
 
     def _submit_task(self, task, task_uuid, action, arguments,
                      progress_callback=None, **kwargs):
@@ -249,15 +254,23 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                                              timeout=timeout)
 
     def start(self):
-        """Starts proxy thread and associated topic notification thread."""
-        self._helpers.start()
+        """Starts message processing thread."""
+        if self._helper is not None:
+            raise RuntimeError("Worker executor must be stopped before"
+                               " it can be started")
+        self._helper = tu.daemon_thread(self._proxy.start)
+        self._helper.start()
+        self._proxy.wait()
 
     def stop(self):
-        """Stops proxy thread and associated topic notification thread."""
-        self._helpers.stop()
+        """Stops message processing thread."""
+        if self._helper is not None:
+            self._proxy.stop()
+            self._helper.join()
+            self._helper = None
         with self._ongoing_requests_lock:
             while self._ongoing_requests:
                 _request_uuid, request = self._ongoing_requests.popitem()
                 self._handle_expired_request(request)
-        self._finder.clear()
+        self._finder.reset()
         self._messages_processed['finder'] = self._finder.messages_processed
