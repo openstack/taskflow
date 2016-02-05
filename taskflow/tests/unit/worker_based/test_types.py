@@ -38,7 +38,7 @@ class TestProxyFinder(test.TestCase):
         w, emit = finder._add('dummy-topic', [utils.DummyTask])
         self.assertIsNotNone(w)
         self.assertTrue(emit)
-        self.assertEqual(1, finder._total_workers())
+        self.assertEqual(1, finder.total_workers())
         w2 = finder.get_worker_for_task(utils.DummyTask)
         self.assertEqual(w.identity, w2.identity)
 
@@ -60,7 +60,7 @@ class TestProxyFinder(test.TestCase):
         added.append(finder._add('dummy-topic', [utils.DummyTask]))
         added.append(finder._add('dummy-topic-2', [utils.DummyTask]))
         added.append(finder._add('dummy-topic-3', [utils.NastyTask]))
-        self.assertEqual(3, finder._total_workers())
+        self.assertEqual(3, finder.total_workers())
         w = finder.get_worker_for_task(utils.NastyTask)
         self.assertEqual(added[-1][0].identity, w.identity)
         w = finder.get_worker_for_task(utils.DummyTask)

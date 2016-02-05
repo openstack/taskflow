@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import abc
 import random
 import threading
 
@@ -77,16 +76,24 @@ class TopicWorker(object):
         return r
 
 
-@six.add_metaclass(abc.ABCMeta)
-class WorkerFinder(object):
-    """Base class for worker finders..."""
+class ProxyWorkerFinder(object):
+    """Requests and receives responses about workers topic+task details."""
 
-    def __init__(self):
+    def __init__(self, uuid, proxy, topics,
+                 beat_periodicity=pr.NOTIFY_PERIOD):
         self._cond = threading.Condition()
+        self._proxy = proxy
+        self._topics = topics
+        self._workers = {}
+        self._uuid = uuid
+        self._seen_workers = 0
+        self._messages_processed = 0
+        self._messages_published = 0
+        self._watch = timeutils.StopWatch(duration=beat_periodicity)
 
-    @abc.abstractmethod
-    def _total_workers(self):
-        """Returns how many workers are known."""
+    def total_workers(self):
+        """Number of workers currently known."""
+        return len(self._workers)
 
     def wait_for_workers(self, workers=1, timeout=None):
         """Waits for geq workers to notify they are ready to do work.
@@ -102,9 +109,9 @@ class WorkerFinder(object):
         watch = timeutils.StopWatch(duration=timeout)
         watch.start()
         with self._cond:
-            while self._total_workers() < workers:
+            while len(self._workers) < workers:
                 if watch.expired():
-                    return max(0, workers - self._total_workers())
+                    return max(0, workers - len(self._workers))
                 self._cond.wait(watch.leftover(return_none=True))
             return 0
 
@@ -124,28 +131,9 @@ class WorkerFinder(object):
         else:
             return random.choice(available_workers)
 
-    @abc.abstractmethod
-    def get_worker_for_task(self, task):
-        """Gets a worker that can perform a given task."""
-
-
-class ProxyWorkerFinder(WorkerFinder):
-    """Requests and receives responses about workers topic+task details."""
-
-    def __init__(self, uuid, proxy, topics,
-                 beat_periodicity=pr.NOTIFY_PERIOD):
-        super(ProxyWorkerFinder, self).__init__()
-        self._proxy = proxy
-        self._topics = topics
-        self._workers = {}
-        self._uuid = uuid
-        self._seen_workers = 0
-        self._messages_processed = 0
-        self._messages_published = 0
-        self._watch = timeutils.StopWatch(duration=beat_periodicity)
-
     @property
     def messages_processed(self):
+        """How many notify response messages have been processed."""
         return self._messages_processed
 
     def _next_worker(self, topic, tasks, temporary=False):
@@ -174,9 +162,6 @@ class ProxyWorkerFinder(WorkerFinder):
                                     self._topics, reply_to=self._uuid)
                 self._messages_published += 1
                 self._watch.restart()
-
-    def _total_workers(self):
-        return len(self._workers)
 
     def _add(self, topic, tasks):
         """Adds/updates a worker for the topic for the given tasks."""
@@ -207,7 +192,7 @@ class ProxyWorkerFinder(WorkerFinder):
                                                response.tasks)
             if new_or_updated:
                 LOG.debug("Updated worker '%s' (%s total workers are"
-                          " currently known)", worker, self._total_workers())
+                          " currently known)", worker, len(self._workers))
                 self._cond.notify_all()
             self._messages_processed += 1
 
@@ -220,6 +205,7 @@ class ProxyWorkerFinder(WorkerFinder):
             self._cond.notify_all()
 
     def get_worker_for_task(self, task):
+        """Gets a worker that can perform a given task."""
         available_workers = []
         with self._cond:
             for worker in six.itervalues(self._workers):

@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import futurist
 from oslo_utils import uuidutils
 
 from taskflow.engines.action_engine import executor
@@ -51,9 +50,10 @@ class TestProtocolValidation(test.TestCase):
                           pr.Notify.validate, msg, True)
 
     def test_request(self):
-        msg = pr.Request(utils.DummyTask("hi"), uuidutils.generate_uuid(),
-                         pr.EXECUTE, {}, 1.0)
-        pr.Request.validate(msg.to_dict())
+        request = pr.Request(utils.DummyTask("hi"),
+                             uuidutils.generate_uuid(),
+                             pr.EXECUTE, {}, 1.0)
+        pr.Request.validate(request.to_dict())
 
     def test_request_invalid(self):
         msg = {
@@ -64,11 +64,12 @@ class TestProtocolValidation(test.TestCase):
         self.assertRaises(excp.InvalidFormat, pr.Request.validate, msg)
 
     def test_request_invalid_action(self):
-        msg = pr.Request(utils.DummyTask("hi"), uuidutils.generate_uuid(),
-                         pr.EXECUTE, {}, 1.0)
-        msg = msg.to_dict()
-        msg['action'] = 'NOTHING'
-        self.assertRaises(excp.InvalidFormat, pr.Request.validate, msg)
+        request = pr.Request(utils.DummyTask("hi"),
+                             uuidutils.generate_uuid(),
+                             pr.EXECUTE, {}, 1.0)
+        request = request.to_dict()
+        request['action'] = 'NOTHING'
+        self.assertRaises(excp.InvalidFormat, pr.Request.validate, request)
 
     def test_response_progress(self):
         msg = pr.Response(pr.EVENT, details={'progress': 0.5},
@@ -105,7 +106,6 @@ class TestProtocol(test.TestCase):
                               uuid=self.task_uuid,
                               action=self.task_action,
                               arguments=self.task_args,
-                              progress_callback=None,
                               timeout=self.timeout)
         request_kwargs.update(kwargs)
         return pr.Request(**request_kwargs)
@@ -135,25 +135,28 @@ class TestProtocol(test.TestCase):
         request = self.request()
         self.assertEqual(self.task_uuid, request.uuid)
         self.assertEqual(self.task, request.task)
-        self.assertIsInstance(request.result, futurist.Future)
-        self.assertFalse(request.result.done())
+        self.assertFalse(request.future.done())
 
     def test_to_dict_default(self):
-        self.assertEqual(self.request_to_dict(), self.request().to_dict())
+        request = self.request()
+        self.assertEqual(self.request_to_dict(), request.to_dict())
 
     def test_to_dict_with_result(self):
+        request = self.request(result=333)
         self.assertEqual(self.request_to_dict(result=('success', 333)),
-                         self.request(result=333).to_dict())
+                         request.to_dict())
 
     def test_to_dict_with_result_none(self):
+        request = self.request(result=None)
         self.assertEqual(self.request_to_dict(result=('success', None)),
-                         self.request(result=None).to_dict())
+                         request.to_dict())
 
     def test_to_dict_with_result_failure(self):
         a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
         expected = self.request_to_dict(result=('failure',
                                                 a_failure.to_dict()))
-        self.assertEqual(expected, self.request(result=a_failure).to_dict())
+        request = self.request(result=a_failure)
+        self.assertEqual(expected, request.to_dict())
 
     def test_to_dict_with_failures(self):
         a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
@@ -173,16 +176,16 @@ class TestProtocol(test.TestCase):
     @mock.patch('oslo_utils.timeutils.now')
     def test_pending_not_expired(self, now):
         now.return_value = 0
-        req = self.request()
+        request = self.request()
         now.return_value = self.timeout - 1
-        self.assertFalse(req.expired)
+        self.assertFalse(request.expired)
 
     @mock.patch('oslo_utils.timeutils.now')
     def test_pending_expired(self, now):
         now.return_value = 0
-        req = self.request()
+        request = self.request()
         now.return_value = self.timeout + 1
-        self.assertTrue(req.expired)
+        self.assertTrue(request.expired)
 
     @mock.patch('oslo_utils.timeutils.now')
     def test_running_not_expired(self, now):
@@ -196,5 +199,5 @@ class TestProtocol(test.TestCase):
     def test_set_result(self):
         request = self.request()
         request.set_result(111)
-        result = request.result.result()
+        result = request.future.result()
         self.assertEqual((executor.EXECUTED, 111), result)
