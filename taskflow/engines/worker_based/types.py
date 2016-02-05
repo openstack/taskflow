@@ -152,6 +152,11 @@ class ProxyWorkerFinder(WorkerFinder):
                                             response=True)),
         })
         self._counter = itertools.count()
+        self._messages_processed = 0
+
+    @property
+    def messages_processed(self):
+        return self._messages_processed
 
     def _next_worker(self, topic, tasks, temporary=False):
         if not temporary:
@@ -199,6 +204,7 @@ class ProxyWorkerFinder(WorkerFinder):
                 LOG.debug("Updated worker '%s' (%s total workers are"
                           " currently known)", worker, self._total_workers())
                 self._cond.notify_all()
+            self._messages_processed += 1
 
     def clear(self):
         with self._cond:
