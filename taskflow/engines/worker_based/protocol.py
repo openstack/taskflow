@@ -93,6 +93,10 @@ QUEUE_EXPIRE_TIMEOUT = REQUEST_TIMEOUT
 # Workers notify period.
 NOTIFY_PERIOD = 5
 
+# When a worker hasn't notified in this many seconds, it will get expired from
+# being used/targeted for further work.
+EXPIRES_AFTER = 60
+
 # Message types.
 NOTIFY = 'NOTIFY'
 REQUEST = 'REQUEST'

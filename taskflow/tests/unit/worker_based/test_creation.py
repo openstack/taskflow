@@ -50,7 +50,8 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
                                      transport=None,
                                      transport_options=None,
                                      transition_timeout=mock.ANY,
-                                     retry_options=None)
+                                     retry_options=None,
+                                     worker_expiry=mock.ANY)
         ]
         self.assertEqual(expected_calls, self.master_mock.mock_calls)
 
@@ -66,7 +67,8 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
             transport_options={},
             transition_timeout=200,
             topics=topics,
-            retry_options={})
+            retry_options={},
+            worker_expiry=1)
         expected_calls = [
             mock.call.executor_class(uuid=eng.storage.flow_uuid,
                                      url=broker_url,
@@ -75,7 +77,8 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
                                      transport='memory',
                                      transport_options={},
                                      transition_timeout=200,
-                                     retry_options={})
+                                     retry_options={},
+                                     worker_expiry=1)
         ]
         self.assertEqual(expected_calls, self.master_mock.mock_calls)
 
