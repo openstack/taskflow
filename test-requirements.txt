@@ -5,7 +5,7 @@
 hacking<0.11,>=0.10.0
 oslotest<1.6.0,>=1.5.1 # Apache-2.0
 mock<1.1.0,>=1.0
-testtools!=1.2.0,>=0.9.36
+testtools!=1.2.0,<2.0.0,>=0.9.36
 
 # Used for testing the WBE engine.
 kombu>=2.5.0
