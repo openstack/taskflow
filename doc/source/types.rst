@@ -12,11 +12,6 @@ Types
     into *isolated* libraries (as using these types in this manner is not
     the expected and/or desired usage).
 
-Cache
-=====
-
-.. automodule:: taskflow.types.cache
-
 Entity
 ======
 
