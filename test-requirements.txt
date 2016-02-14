@@ -9,7 +9,7 @@ testtools>=1.4.0 # MIT
 testscenarios>=0.4 # Apache-2.0/BSD
 
 # Used for testing the WBE engine.
-kombu>=3.0.7 # BSD
+kombu>=3.0.25 # BSD
 
 # Used for doc style checking
 doc8 # Apache-2.0
