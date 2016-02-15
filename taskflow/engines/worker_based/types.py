@@ -15,17 +15,13 @@
 #    under the License.
 
 import abc
-import functools
-import itertools
 import random
 import threading
 
-from futurist import periodics
 from oslo_utils import reflection
 from oslo_utils import timeutils
 import six
 
-from taskflow.engines.worker_based import dispatcher
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import logging
 from taskflow.utils import kombu_utils as ku
@@ -132,27 +128,21 @@ class WorkerFinder(object):
     def get_worker_for_task(self, task):
         """Gets a worker that can perform a given task."""
 
-    def clear(self):
-        pass
-
 
 class ProxyWorkerFinder(WorkerFinder):
     """Requests and receives responses about workers topic+task details."""
 
-    def __init__(self, uuid, proxy, topics):
+    def __init__(self, uuid, proxy, topics,
+                 beat_periodicity=pr.NOTIFY_PERIOD):
         super(ProxyWorkerFinder, self).__init__()
         self._proxy = proxy
         self._topics = topics
         self._workers = {}
         self._uuid = uuid
-        self._proxy.dispatcher.type_handlers.update({
-            pr.NOTIFY: dispatcher.Handler(
-                self._process_response,
-                validator=functools.partial(pr.Notify.validate,
-                                            response=True)),
-        })
-        self._counter = itertools.count()
+        self._seen_workers = 0
         self._messages_processed = 0
+        self._messages_published = 0
+        self._watch = timeutils.StopWatch(duration=beat_periodicity)
 
     @property
     def messages_processed(self):
@@ -160,15 +150,30 @@ class ProxyWorkerFinder(WorkerFinder):
 
     def _next_worker(self, topic, tasks, temporary=False):
         if not temporary:
-            return TopicWorker(topic, tasks,
-                               identity=six.next(self._counter))
+            w = TopicWorker(topic, tasks, identity=self._seen_workers)
+            self._seen_workers += 1
+            return w
         else:
             return TopicWorker(topic, tasks)
 
-    @periodics.periodic(pr.NOTIFY_PERIOD, run_immediately=True)
-    def beat(self):
-        """Cyclically called to publish notify message to each topic."""
-        self._proxy.publish(pr.Notify(), self._topics, reply_to=self._uuid)
+    def maybe_publish(self):
+        """Periodically called to publish notify message to each topic.
+
+        These messages (especially the responses) are how this find learns
+        about workers and what tasks they can perform (so that we can then
+        match workers to tasks to run).
+        """
+        if self._messages_published == 0:
+            self._proxy.publish(pr.Notify(),
+                                self._topics, reply_to=self._uuid)
+            self._messages_published += 1
+            self._watch.restart()
+        else:
+            if self._watch.expired():
+                self._proxy.publish(pr.Notify(),
+                                    self._topics, reply_to=self._uuid)
+                self._messages_published += 1
+                self._watch.restart()
 
     def _total_workers(self):
         return len(self._workers)
@@ -191,7 +196,7 @@ class ProxyWorkerFinder(WorkerFinder):
         self._workers[topic] = worker
         return (worker, True)
 
-    def _process_response(self, data, message):
+    def process_response(self, data, message):
         """Process notify message sent from remote side."""
         LOG.debug("Started processing notify response message '%s'",
                   ku.DelayedPretty(message))
@@ -206,9 +211,12 @@ class ProxyWorkerFinder(WorkerFinder):
                 self._cond.notify_all()
             self._messages_processed += 1
 
-    def clear(self):
+    def reset(self):
         with self._cond:
             self._workers.clear()
+            self._messages_processed = 0
+            self._messages_published = 0
+            self._seen_workers = 0
             self._cond.notify_all()
 
     def get_worker_for_task(self, task):

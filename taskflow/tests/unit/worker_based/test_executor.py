@@ -85,8 +85,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
                             on_wait=ex._on_wait,
                             url=self.broker_url, transport=mock.ANY,
                             transport_options=mock.ANY,
-                            retry_options=mock.ANY,
-                            type_handlers=mock.ANY),
+                            retry_options=mock.ANY),
             mock.call.proxy.dispatcher.type_handlers.update(mock.ANY),
         ]
         self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
@@ -284,7 +283,7 @@ class TestWorkerTaskExecutor(test.MockTestCase):
         self.assertTrue(self.proxy_started_event.wait(test_utils.WAIT_TIMEOUT))
 
         # start executor again
-        ex.start()
+        self.assertRaises(RuntimeError, ex.start)
 
         # stop executor
         ex.stop()
