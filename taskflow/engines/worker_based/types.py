@@ -44,6 +44,7 @@ class TopicWorker(object):
             self.tasks.append(task)
         self.topic = topic
         self.identity = identity
+        self.last_seen = None
 
     def performs(self, task):
         if not isinstance(task, six.string_types):
@@ -80,7 +81,8 @@ class ProxyWorkerFinder(object):
     """Requests and receives responses about workers topic+task details."""
 
     def __init__(self, uuid, proxy, topics,
-                 beat_periodicity=pr.NOTIFY_PERIOD):
+                 beat_periodicity=pr.NOTIFY_PERIOD,
+                 worker_expiry=pr.EXPIRES_AFTER):
         self._cond = threading.Condition()
         self._proxy = proxy
         self._topics = topics
@@ -89,8 +91,10 @@ class ProxyWorkerFinder(object):
         self._seen_workers = 0
         self._messages_processed = 0
         self._messages_published = 0
+        self._worker_expiry = worker_expiry
         self._watch = timeutils.StopWatch(duration=beat_periodicity)
 
+    @property
     def total_workers(self):
         """Number of workers currently known."""
         return len(self._workers)
@@ -109,9 +113,9 @@ class ProxyWorkerFinder(object):
         watch = timeutils.StopWatch(duration=timeout)
         watch.start()
         with self._cond:
-            while len(self._workers) < workers:
+            while self.total_workers < workers:
                 if watch.expired():
-                    return max(0, workers - len(self._workers))
+                    return max(0, workers - self.total_workers)
                 self._cond.wait(watch.leftover(return_none=True))
             return 0
 
@@ -192,11 +196,41 @@ class ProxyWorkerFinder(object):
                                                response.tasks)
             if new_or_updated:
                 LOG.debug("Updated worker '%s' (%s total workers are"
-                          " currently known)", worker, len(self._workers))
+                          " currently known)", worker, self.total_workers)
                 self._cond.notify_all()
+            worker.last_seen = timeutils.now()
             self._messages_processed += 1
 
+    def clean(self):
+        """Cleans out any dead/expired/not responding workers.
+
+        Returns how many workers were removed.
+        """
+        if (not self._workers or
+                (self._worker_expiry is None or self._worker_expiry <= 0)):
+            return 0
+        dead_workers = {}
+        with self._cond:
+            now = timeutils.now()
+            for topic, worker in six.iteritems(self._workers):
+                if worker.last_seen is None:
+                    continue
+                secs_since_last_seen = max(0, now - worker.last_seen)
+                if secs_since_last_seen >= self._worker_expiry:
+                    dead_workers[topic] = (worker, secs_since_last_seen)
+            for topic in six.iterkeys(dead_workers):
+                self._workers.pop(topic)
+            if dead_workers:
+                self._cond.notify_all()
+        if dead_workers and LOG.isEnabledFor(logging.INFO):
+            for worker, secs_since_last_seen in six.itervalues(dead_workers):
+                LOG.info("Removed worker '%s' as it has not responded to"
+                         " notification requests in %0.3f seconds",
+                         worker, secs_since_last_seen)
+        return len(dead_workers)
+
     def reset(self):
+        """Resets finders internal state."""
         with self._cond:
             self._workers.clear()
             self._messages_processed = 0

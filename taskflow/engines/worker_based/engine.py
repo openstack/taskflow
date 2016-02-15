@@ -44,6 +44,12 @@ class WorkerBasedActionEngine(engine.ActionEngine):
                               options imply and are expected to be)
     :param retry_options: retry specific options
                           (see: :py:attr:`~.proxy.Proxy.DEFAULT_RETRY_OPTIONS`)
+    :param worker_expiry: numeric value (or negative/zero/None for
+                          infinite) that defines the number of seconds to
+                          continue to send messages to workers that
+                          have **not** responded back to a prior
+                          notification/ping request (this defaults
+                          to 60 seconds).
     """
 
     def __init__(self, flow, flow_detail, backend, options):
@@ -73,4 +79,7 @@ class WorkerBasedActionEngine(engine.ActionEngine):
                 transport=options.get('transport'),
                 transport_options=options.get('transport_options'),
                 transition_timeout=options.get('transition_timeout',
-                                               pr.REQUEST_TIMEOUT))
+                                               pr.REQUEST_TIMEOUT),
+                worker_expiry=options.get('worker_expiry',
+                                          pr.EXPIRES_AFTER),
+                )
