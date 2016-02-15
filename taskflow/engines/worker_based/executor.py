@@ -92,16 +92,19 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                 if response.state == pr.RUNNING:
                     request.transition_and_log_error(pr.RUNNING, logger=LOG)
                 elif response.state == pr.EVENT:
-                    # Proxy the event + details to the task/request notifier...
+                    # Proxy the event + details to the task notifier so
+                    # that it shows up in the local process (and activates
+                    # any local callbacks...); thus making it look like
+                    # the task is running locally (in some regards).
                     event_type = response.data['event_type']
                     details = response.data['details']
-                    request.notifier.notify(event_type, details)
+                    request.task.notifier.notify(event_type, details)
                 elif response.state in (pr.FAILURE, pr.SUCCESS):
                     if request.transition_and_log_error(response.state,
                                                         logger=LOG):
                         with self._ongoing_requests_lock:
                             del self._ongoing_requests[request.uuid]
-                        request.set_result(**response.data)
+                        request.set_result(result=response.data['result'])
                 else:
                     LOG.warning("Unexpected response status '%s'",
                                 response.state)
@@ -184,18 +187,19 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         self._clean()
 
     def _submit_task(self, task, task_uuid, action, arguments,
-                     progress_callback=None, **kwargs):
+                     progress_callback=None, result=pr.NO_RESULT,
+                     failures=None):
         """Submit task request to a worker."""
         request = pr.Request(task, task_uuid, action, arguments,
-                             self._transition_timeout, **kwargs)
+                             timeout=self._transition_timeout,
+                             result=result, failures=failures)
         # Register the callback, so that we can proxy the progress correctly.
         if (progress_callback is not None and
-                request.notifier.can_be_registered(EVENT_UPDATE_PROGRESS)):
-            request.notifier.register(EVENT_UPDATE_PROGRESS, progress_callback)
-            cleaner = functools.partial(request.notifier.deregister,
-                                        EVENT_UPDATE_PROGRESS,
-                                        progress_callback)
-            request.result.add_done_callback(lambda fut: cleaner())
+                task.notifier.can_be_registered(EVENT_UPDATE_PROGRESS)):
+            task.notifier.register(EVENT_UPDATE_PROGRESS, progress_callback)
+            request.future.add_done_callback(
+                lambda _fut: task.notifier.deregister(EVENT_UPDATE_PROGRESS,
+                                                      progress_callback))
         # Get task's worker and publish request if worker was found.
         worker = self._finder.get_worker_for_task(task)
         if worker is not None:
@@ -208,7 +212,7 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                       " worker/s available to process it", request)
             with self._ongoing_requests_lock:
                 self._ongoing_requests[request.uuid] = request
-        return request.result
+        return request.future
 
     def _publish_request(self, request, worker):
         """Publish request to a given topic."""
@@ -238,8 +242,8 @@ class WorkerTaskExecutor(executor.TaskExecutor):
     def revert_task(self, task, task_uuid, arguments, result, failures,
                     progress_callback=None):
         return self._submit_task(task, task_uuid, pr.REVERT, arguments,
-                                 progress_callback=progress_callback,
-                                 result=result, failures=failures)
+                                 result=result, failures=failures,
+                                 progress_callback=progress_callback)
 
     def wait_for_workers(self, workers=1, timeout=None):
         """Waits for geq workers to notify they are ready to do work.

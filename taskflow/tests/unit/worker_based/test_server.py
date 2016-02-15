@@ -75,10 +75,10 @@ class TestServer(test.MockTestCase):
                               uuid=self.task_uuid,
                               action=self.task_action,
                               arguments=self.task_args,
-                              progress_callback=None,
                               timeout=60)
         request_kwargs.update(kwargs)
-        return pr.Request(**request_kwargs).to_dict()
+        request = pr.Request(**request_kwargs)
+        return request.to_dict()
 
     def test_creation(self):
         s = self.server()
