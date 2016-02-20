@@ -153,7 +153,7 @@ class WorkerTaskExecutor(executor.TaskExecutor):
             else:
                 if request.expired:
                     expired_requests[request_uuid] = request
-                elif request.state == pr.WAITING:
+                elif request.current_state == pr.WAITING:
                     waiting_requests[request_uuid] = request
         if expired_requests:
             with self._ongoing_requests_lock:
