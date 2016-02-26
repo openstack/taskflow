@@ -113,7 +113,7 @@ System details:
     @staticmethod
     def _derive_endpoints(tasks):
         """Derive endpoints from list of strings, classes or packages."""
-        derived_tasks = misc.find_subclasses(tasks, t_task.BaseTask)
+        derived_tasks = misc.find_subclasses(tasks, t_task.Task)
         return [endpoint.Endpoint(task) for task in derived_tasks]
 
     def _generate_banner(self):

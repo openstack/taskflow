@@ -44,7 +44,7 @@ EVENT_UPDATE_PROGRESS = 'update_progress'
 
 
 @six.add_metaclass(abc.ABCMeta)
-class BaseTask(atom.Atom):
+class Task(atom.Atom):
     """An abstraction that defines a potential piece of work.
 
     This potential piece of work is expected to be able to contain
@@ -59,10 +59,13 @@ class BaseTask(atom.Atom):
     # or existing internal events...
     TASK_EVENTS = (EVENT_UPDATE_PROGRESS,)
 
-    def __init__(self, name, provides=None, inject=None):
+    def __init__(self, name=None, provides=None, requires=None,
+                 auto_extract=True, rebind=None, inject=None):
         if name is None:
             name = reflection.get_class_name(self)
-        super(BaseTask, self).__init__(name, provides, inject=inject)
+        super(Task, self).__init__(name, provides=provides, requires=requires,
+                                   auto_extract=auto_extract, rebind=rebind,
+                                   inject=inject)
         self._notifier = notifier.RestrictedNotifier(self.TASK_EVENTS)
 
     @property
@@ -75,77 +78,6 @@ class BaseTask(atom.Atom):
         that a task has reached 50% completion...).
         """
         return self._notifier
-
-    def pre_execute(self):
-        """Code to be run prior to executing the task.
-
-        A common pattern for initializing the state of the system prior to
-        running tasks is to define some code in a base class that all your
-        tasks inherit from.  In that class, you can define a ``pre_execute``
-        method and it will always be invoked just prior to your tasks running.
-        """
-
-    @abc.abstractmethod
-    def execute(self, *args, **kwargs):
-        """Activate a given task which will perform some operation and return.
-
-        This method can be used to perform an action on a given set of input
-        requirements (passed in via ``*args`` and ``**kwargs``) to accomplish
-        some type of operation. This operation may provide some named
-        outputs/results as a result of it executing for later reverting (or for
-        other tasks to depend on).
-
-        NOTE(harlowja): the result (if any) that is returned should be
-        persistable so that it can be passed back into this task if
-        reverting is triggered (especially in the case where reverting
-        happens in a different python process or on a remote machine) and so
-        that the result can be transmitted to other tasks (which may be local
-        or remote).
-
-        :param args: positional arguments that task requires to execute.
-        :param kwargs: any keyword arguments that task requires to execute.
-        """
-
-    def post_execute(self):
-        """Code to be run after executing the task.
-
-        A common pattern for cleaning up global state of the system after the
-        execution of tasks is to define some code in a base class that all your
-        tasks inherit from.  In that class, you can define a ``post_execute``
-        method and it will always be invoked just after your tasks execute,
-        regardless of whether they succeded or not.
-
-        This pattern is useful if you have global shared database sessions
-        that need to be cleaned up, for example.
-        """
-
-    def pre_revert(self):
-        """Code to be run prior to reverting the task.
-
-        This works the same as :meth:`.pre_execute`, but for the revert phase.
-        """
-
-    def revert(self, *args, **kwargs):
-        """Revert this task.
-
-        This method should undo any side-effects caused by previous execution
-        of the task using the result of the :py:meth:`execute` method and
-        information on the failure which triggered reversion of the flow the
-        task is contained in (if applicable).
-
-        :param args: positional arguments that the task required to execute.
-        :param kwargs: any keyword arguments that the task required to
-                       execute; the special key ``'result'`` will contain
-                       the :py:meth:`execute` result (if any) and
-                       the ``**kwargs`` key ``'flow_failures'`` will contain
-                       any failure information.
-        """
-
-    def post_revert(self):
-        """Code to be run after reverting the task.
-
-        This works the same as :meth:`.post_execute`, but for the revert phase.
-        """
 
     def copy(self, retain_listeners=True):
         """Clone/copy this task.
@@ -177,29 +109,7 @@ class BaseTask(atom.Atom):
                               {'progress': cleaned_progress})
 
 
-class Task(BaseTask):
-    """Base class for user-defined tasks (derive from it at will!).
-
-    Adds the following features on top of the :py:class:`.BaseTask`:
-
-    - Auto-generates a name from the class name if a name is not
-      explicitly provided.
-    - Automatically adds all :py:meth:`.BaseTask.execute` argument names to
-      the task requirements (items provided by the task may be also specified
-      via ``default_provides`` class attribute or instance property).
-    """
-
-    default_provides = None
-
-    def __init__(self, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None, inject=None):
-        if provides is None:
-            provides = self.default_provides
-        super(Task, self).__init__(name, provides=provides, inject=inject)
-        self._build_arg_mapping(self.execute, requires, rebind, auto_extract)
-
-
-class FunctorTask(BaseTask):
+class FunctorTask(Task):
     """Adaptor to make a task from a callable.
 
     Take any callable pair and make a task from it.
@@ -239,7 +149,7 @@ class FunctorTask(BaseTask):
             return None
 
 
-class ReduceFunctorTask(BaseTask):
+class ReduceFunctorTask(Task):
     """General purpose Task to reduce a list by applying a function.
 
     This Task mimics the behavior of Python's built-in ``reduce`` function. The
@@ -269,20 +179,21 @@ class ReduceFunctorTask(BaseTask):
 
         if name is None:
             name = reflection.get_callable_name(functor)
-        super(ReduceFunctorTask, self).__init__(name=name, provides=provides,
-                                                inject=inject)
+        super(ReduceFunctorTask, self).__init__(name=name,
+                                                provides=provides,
+                                                inject=inject,
+                                                requires=requires,
+                                                rebind=rebind,
+                                                auto_extract=auto_extract)
 
         self._functor = functor
-
-        self._build_arg_mapping(executor=self.execute, requires=requires,
-                                rebind=rebind, auto_extract=auto_extract)
 
     def execute(self, *args, **kwargs):
         l = [kwargs[r] for r in self.requires]
         return compat_reduce(self._functor, l)
 
 
-class MapFunctorTask(BaseTask):
+class MapFunctorTask(Task):
     """General purpose Task to map a function to a list.
 
     This Task mimics the behavior of Python's built-in ``map`` function. The
@@ -314,12 +225,11 @@ class MapFunctorTask(BaseTask):
         if name is None:
             name = reflection.get_callable_name(functor)
         super(MapFunctorTask, self).__init__(name=name, provides=provides,
-                                             inject=inject)
+                                             inject=inject, requires=requires,
+                                             rebind=rebind,
+                                             auto_extract=auto_extract)
 
         self._functor = functor
-
-        self._build_arg_mapping(executor=self.execute, requires=requires,
-                                rebind=rebind, auto_extract=auto_extract)
 
     def execute(self, *args, **kwargs):
         l = [kwargs[r] for r in self.requires]

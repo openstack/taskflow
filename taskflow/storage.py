@@ -303,7 +303,7 @@ class Storage(object):
         self._injected_args = {}
         self._lock = fasteners.ReaderWriterLock()
         self._ensure_matchers = [
-            ((task.BaseTask,), (models.TaskDetail, 'Task')),
+            ((task.Task,), (models.TaskDetail, 'Task')),
             ((retry.Retry,), (models.RetryDetail, 'Retry')),
         ]
         if scope_fetcher is None:
