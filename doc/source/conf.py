@@ -4,6 +4,7 @@ import datetime
 import os
 import subprocess
 import sys
+import time
 
 sys.path.insert(0, os.path.abspath('../..'))
 # -- General configuration ----------------------------------------------------
@@ -73,8 +74,11 @@ htmlhelp_basename = '%sdoc' % project
 
 git_cmd = ["git", "log", "--pretty=format:'%ad, commit %h'", "--date=local",
            "-n1"]
-html_last_updated_fmt = subprocess.Popen(
-    git_cmd, stdout=subprocess.PIPE).communicate()[0]
+try:
+    html_last_updated_fmt = subprocess.Popen(
+        git_cmd, stdout=subprocess.PIPE).communicate()[0]
+except Exception:
+    html_last_updated_fmt = time.ctime()
 
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass
