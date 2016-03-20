@@ -20,6 +20,7 @@ from __future__ import absolute_import
 import contextlib
 import copy
 import functools
+import threading
 import time
 
 from oslo_utils import strutils
@@ -246,6 +247,7 @@ class SQLAlchemyBackend(base.Backend):
             self._engine = self._create_engine(self._conf)
             self._owns_engine = True
         self._validated = False
+        self._upgrade_lock = threading.Lock()
         try:
             self._max_retries = misc.as_int(self._conf.get('max_retries'))
         except TypeError:
@@ -328,7 +330,7 @@ class SQLAlchemyBackend(base.Backend):
         return self._engine
 
     def get_connection(self):
-        conn = Connection(self)
+        conn = Connection(self, upgrade_lock=self._upgrade_lock)
         if not self._validated:
             conn.validate(max_retries=self._max_retries)
             self._validated = True
@@ -344,8 +346,9 @@ class SQLAlchemyBackend(base.Backend):
 
 
 class Connection(base.Connection):
-    def __init__(self, backend):
+    def __init__(self, backend, upgrade_lock):
         self._backend = backend
+        self._upgrade_lock = upgrade_lock
         self._engine = backend.engine
         self._metadata = sa.MetaData()
         self._tables = tables.fetch(self._metadata)
@@ -394,17 +397,18 @@ class Connection(base.Connection):
 
     def upgrade(self):
         try:
-            with contextlib.closing(self._engine.connect()) as conn:
-                # NOTE(imelnikov): Alembic does not support SQLite,
-                # and we don't recommend to use SQLite in production
-                # deployments, so migrations are rarely needed
-                # for SQLite. So we don't bother about working around
-                # SQLite limitations, and create the database directly from
-                # the tables when it is in use...
-                if 'sqlite' in self._engine.url.drivername:
-                    self._metadata.create_all(bind=conn)
-                else:
-                    migration.db_sync(conn)
+            with self._upgrade_lock:
+                with contextlib.closing(self._engine.connect()) as conn:
+                    # NOTE(imelnikov): Alembic does not support SQLite,
+                    # and we don't recommend to use SQLite in production
+                    # deployments, so migrations are rarely needed
+                    # for SQLite. So we don't bother about working around
+                    # SQLite limitations, and create the database directly
+                    # from the tables when it is in use...
+                    if 'sqlite' in self._engine.url.drivername:
+                        self._metadata.create_all(bind=conn)
+                    else:
+                        migration.db_sync(conn)
         except sa_exc.SQLAlchemyError:
             exc.raise_with_cause(exc.StorageFailure,
                                  "Failed upgrading database version")
