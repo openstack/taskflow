@@ -18,6 +18,7 @@ import collections
 import os
 
 import networkx as nx
+from networkx.drawing import nx_pydot
 import six
 
 
@@ -57,7 +58,7 @@ class Graph(nx.Graph):
 
     def export_to_dot(self):
         """Exports the graph to a dot format (requires pydot library)."""
-        return nx.to_pydot(self).to_string()
+        return nx_pydot.to_pydot(self).to_string()
 
     def pformat(self):
         """Pretty formats your graph into a string."""
