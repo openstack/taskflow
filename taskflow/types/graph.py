@@ -115,7 +115,7 @@ class DiGraph(nx.DiGraph):
 
     def export_to_dot(self):
         """Exports the graph to a dot format (requires pydot library)."""
-        return nx.to_pydot(self).to_string()
+        return nx_pydot.to_pydot(self).to_string()
 
     def is_directed_acyclic(self):
         """Returns if this graph is a DAG or not."""
@@ -157,8 +157,20 @@ class DiGraph(nx.DiGraph):
 class OrderedDiGraph(DiGraph):
     """A directed graph subclass with useful utility functions.
 
-    This derivative retains node, edge, insertation and iteration
-    ordering (so that the iteration order matches the insertation
+    This derivative retains node, edge, insertion and iteration
+    ordering (so that the iteration order matches the insertion
+    order).
+    """
+    node_dict_factory = collections.OrderedDict
+    adjlist_dict_factory = collections.OrderedDict
+    edge_attr_dict_factory = collections.OrderedDict
+
+
+class OrderedGraph(Graph):
+    """A graph subclass with useful utility functions.
+
+    This derivative retains node, edge, insertion and iteration
+    ordering (so that the iteration order matches the insertion
     order).
     """
     node_dict_factory = collections.OrderedDict

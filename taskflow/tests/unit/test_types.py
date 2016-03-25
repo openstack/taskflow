@@ -98,6 +98,29 @@ class GraphTest(test.TestCase):
         g3 = graph.merge_graphs(g, g2)
         self.assertEqual(3, len(g3))
 
+    def test_pydot_output(self):
+        # NOTE(harlowja): ensure we use the ordered types here, otherwise
+        # the expected output will vary based on randomized hashing and then
+        # the test will fail randomly...
+        for graph_cls, kind, edge in [(graph.OrderedDiGraph, 'digraph', '->'),
+                                      (graph.OrderedGraph, 'graph', '--')]:
+            g = graph_cls(name='test')
+            g.add_node("a")
+            g.add_node("b")
+            g.add_node("c")
+            g.add_edge("a", "b")
+            g.add_edge("b", "c")
+            expected = """
+strict %(kind)s "test" {
+a;
+b;
+c;
+a %(edge)s b;
+b %(edge)s c;
+}
+""" % ({'kind': kind, 'edge': edge})
+            self.assertEqual(expected.lstrip(), g.export_to_dot())
+
     def test_merge_edges(self):
         g = graph.DiGraph()
         g.add_node("a")

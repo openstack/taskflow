@@ -21,6 +21,9 @@ kazoo>=2.2 # Apache-2.0
 # Used for testing redis jobboards
 redis>=2.10.0 # MIT
 
+# Used for making sure pydot is still working
+pydotplus>=2.0.2 # MIT License
+
 # Used for testing database persistence backends.
 SQLAlchemy<1.1.0,>=1.0.10 # MIT
 alembic>=0.8.0 # MIT
