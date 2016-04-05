@@ -116,6 +116,15 @@ class ActionEngine(base.Engine):
     |                      | has a separate retry  |      |            |
     |                      | behavior).            |      |            |
     +----------------------+-----------------------+------+------------+
+    | ``never_resolve``    | When true, instead    | bool | ``False``  |
+    |                      | of reverting          |      |            |
+    |                      | and trying to resolve |      |            |
+    |                      | a atom failure the    |      |            |
+    |                      | engine will skip      |      |            |
+    |                      | reverting and abort   |      |            |
+    |                      | instead of reverting  |      |            |
+    |                      | and/or retrying.      |      |            |
+    +----------------------+-----------------------+------+------------+
     | ``inject_transient`` | When true, values     | bool | ``True``   |
     |                      | that are local to     |      |            |
     |                      | each atoms scope      |      |            |
