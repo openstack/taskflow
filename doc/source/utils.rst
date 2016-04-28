@@ -13,6 +13,11 @@ Async
 
 .. automodule:: taskflow.utils.async_utils
 
+Banner
+~~~~~~
+
+.. automodule:: taskflow.utils.banner
+
 Deprecation
 ~~~~~~~~~~~
 
