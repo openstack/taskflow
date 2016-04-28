@@ -91,6 +91,8 @@ else:
     with executor:
         e = engines.load(song, executor=executor, engine='parallel')
         e.run()
+    print("-- Statistics gathered --")
+    print(e.statistics)
 
 
 # Run in parallel using real threads...
@@ -98,6 +100,8 @@ with futurist.ThreadPoolExecutor(max_workers=1) as executor:
     print("-- Running in parallel using threads --")
     e = engines.load(song, executor=executor, engine='parallel')
     e.run()
+    print("-- Statistics gathered --")
+    print(e.statistics)
 
 
 # Run in parallel using external processes...
@@ -105,6 +109,8 @@ with futurist.ProcessPoolExecutor(max_workers=1) as executor:
     print("-- Running in parallel using processes --")
     e = engines.load(song, executor=executor, engine='parallel')
     e.run()
+    print("-- Statistics gathered --")
+    print(e.statistics)
 
 
 # Run serially (aka, if the workflow could have been ran in parallel, it will
@@ -112,3 +118,5 @@ with futurist.ProcessPoolExecutor(max_workers=1) as executor:
 print("-- Running serially --")
 e = engines.load(song, engine='serial')
 e.run()
+print("-- Statistics gathered --")
+print(e.statistics)

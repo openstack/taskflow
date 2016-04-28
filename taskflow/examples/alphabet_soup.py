@@ -88,6 +88,6 @@ try:
     e.prepare()
     print("Running...")
     e.run()
-    print("Done...")
+    print("Done: %s" % e.statistics)
 except exceptions.NotImplementedError as e:
     print(e)
