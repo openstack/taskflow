@@ -32,6 +32,7 @@ sys.path.insert(0, top_dir)
 from taskflow.conductors import backends as conductor_backends
 from taskflow import engines
 from taskflow.jobs import backends as job_backends
+from taskflow import logging as taskflow_logging
 from taskflow.patterns import linear_flow as lf
 from taskflow.persistence import backends as persistence_backends
 from taskflow.persistence import logbook
@@ -220,14 +221,15 @@ def check_for_zookeeper(timeout=1):
 
 
 def main():
-    logging.basicConfig(level=logging.ERROR)
     if not check_for_zookeeper():
         return
     if len(sys.argv) == 1:
         main_local()
     elif sys.argv[1] in ('p', 'c'):
         if sys.argv[-1] == "v":
-            logging.basicConfig(level=5)
+            logging.basicConfig(level=taskflow_logging.TRACE)
+        else:
+            logging.basicConfig(level=logging.ERROR)
         if sys.argv[1] == 'p':
             run_poster()
         else:
