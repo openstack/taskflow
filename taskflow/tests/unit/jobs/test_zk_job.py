@@ -260,6 +260,7 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
                 'name': book.name,
                 'uuid': book.uuid,
             },
+            'priority': 'NORMAL',
             'details': {},
         }, jsonutils.loads(misc.binary_decode(paths[path_key]['data'])))
 

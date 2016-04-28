@@ -47,7 +47,8 @@ class ZookeeperJob(base.Job):
 
     def __init__(self, board, name, client, path,
                  uuid=None, details=None, book=None, book_data=None,
-                 created_on=None, backend=None):
+                 created_on=None, backend=None,
+                 priority=base.JobPriority.NORMAL):
         super(ZookeeperJob, self).__init__(board, name,
                                            uuid=uuid, details=details,
                                            backend=backend,
@@ -60,11 +61,16 @@ class ZookeeperJob(base.Job):
         basename = k_paths.basename(self._path)
         self._root = self._path[0:-len(basename)]
         self._sequence = int(basename[len(board.JOB_PREFIX):])
+        self._priority = priority
 
     @property
     def lock_path(self):
         """Path the job lock/claim and owner znode is stored."""
         return self._lock_path
+
+    @property
+    def priority(self):
+        return self._priority
 
     @property
     def path(self):
@@ -175,15 +181,23 @@ class ZookeeperJob(base.Job):
         if not isinstance(other, ZookeeperJob):
             return NotImplemented
         if self.root == other.root:
-            return self.sequence < other.sequence
+            if self.priority == other.priority:
+                return self.sequence < other.sequence
+            else:
+                ordered = base.JobPriority.reorder(
+                    (self.priority, self), (other.priority, other))
+                if ordered[0] is self:
+                    return False
+                return True
         else:
+            # Different jobboards with different roots...
             return self.root < other.root
 
     def __eq__(self, other):
         if not isinstance(other, ZookeeperJob):
             return NotImplemented
-        return ((self.root, self.sequence) ==
-                (other.root, other.sequence))
+        return ((self.root, self.sequence, self.priority) ==
+                (other.root, other.sequence, other.priority))
 
     def __hash__(self):
         return hash(self.path)
@@ -323,11 +337,12 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         if ensure_fresh:
             self._force_refresh()
         with self._job_cond:
-            return sorted(six.itervalues(self._known_jobs))
+            return sorted(six.itervalues(self._known_jobs), reverse=True)
 
     def _force_refresh(self):
         try:
-            children = self._client.get_children(self.path)
+            maybe_children = self._client.get_children(self.path)
+            self._on_job_posting(maybe_children, delayed=False)
         except self._client.handler.timeout_exception:
             excp.raise_with_cause(excp.JobFailure,
                                   "Refreshing failure, operation timed out")
@@ -339,14 +354,13 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         except k_exceptions.KazooException:
             excp.raise_with_cause(excp.JobFailure,
                                   "Refreshing failure, internal error")
-        else:
-            self._on_job_posting(children, delayed=False)
 
     def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
+        board_removal_func = lambda job: self._remove_job(job.path)
         return base.JobBoardIterator(
             self, LOG, only_unclaimed=only_unclaimed,
             ensure_fresh=ensure_fresh, board_fetch_func=self._fetch_jobs,
-            board_removal_func=lambda a_job: self._remove_job(a_job.path))
+            board_removal_func=board_removal_func)
 
     def _remove_job(self, path):
         if path not in self._known_jobs:
@@ -357,41 +371,53 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             LOG.debug("Removed job that was at path '%s'", path)
             self._try_emit(base.REMOVAL, details={'job': job})
 
-    def _process_child(self, path, request):
+    def _process_child(self, path, request, quiet=True):
         """Receives the result of a child data fetch request."""
         job = None
         try:
             raw_data, node_stat = request.get()
             job_data = misc.decode_json(raw_data)
-            created_on = misc.millis_to_datetime(node_stat.ctime)
+            job_created_on = misc.millis_to_datetime(node_stat.ctime)
+            try:
+                job_priority = job_data['priority']
+                job_priority = base.JobPriority.convert(job_priority)
+            except KeyError:
+                job_priority = base.JobPriority.NORMAL
+            job_uuid = job_data['uuid']
+            job_name = job_data['name']
         except (ValueError, TypeError, KeyError):
-            LOG.warn("Incorrectly formatted job data found at path: %s",
-                     path, exc_info=True)
+            with excutils.save_and_reraise_exception(reraise=not quiet):
+                LOG.warn("Incorrectly formatted job data found at path: %s",
+                         path, exc_info=True)
         except self._client.handler.timeout_exception:
-            LOG.warn("Operation timed out fetching job data from path: %s",
-                     path, exc_info=True)
+            with excutils.save_and_reraise_exception(reraise=not quiet):
+                LOG.warn("Operation timed out fetching job data from path: %s",
+                         path, exc_info=True)
         except k_exceptions.SessionExpiredError:
-            LOG.warn("Session expired fetching job data from path: %s", path,
-                     exc_info=True)
+            with excutils.save_and_reraise_exception(reraise=not quiet):
+                LOG.warn("Session expired fetching job data from path: %s",
+                         path, exc_info=True)
         except k_exceptions.NoNodeError:
             LOG.debug("No job node found at path: %s, it must have"
                       " disappeared or was removed", path)
         except k_exceptions.KazooException:
-            LOG.warn("Internal error fetching job data from path: %s",
-                     path, exc_info=True)
+            with excutils.save_and_reraise_exception(reraise=not quiet):
+                LOG.warn("Internal error fetching job data from path: %s",
+                         path, exc_info=True)
         else:
             with self._job_cond:
                 # Now we can offically check if someone already placed this
                 # jobs information into the known job set (if it's already
                 # existing then just leave it alone).
                 if path not in self._known_jobs:
-                    job = ZookeeperJob(self, job_data['name'],
+                    job = ZookeeperJob(self, job_name,
                                        self._client, path,
                                        backend=self._persistence,
-                                       uuid=job_data['uuid'],
+                                       uuid=job_uuid,
                                        book_data=job_data.get("book"),
                                        details=job_data.get("details", {}),
-                                       created_on=created_on)
+                                       created_on=job_created_on,
+                                       priority=job_priority)
                     self._known_jobs[path] = job
                     self._job_cond.notify_all()
         if job is not None:
@@ -442,15 +468,18 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             if delayed:
                 request.rawlink(functools.partial(self._process_child, path))
             else:
-                self._process_child(path, request)
+                self._process_child(path, request, quiet=False)
 
-    def post(self, name, book=None, details=None):
+    def post(self, name, book=None, details=None,
+             priority=base.JobPriority.NORMAL):
         # NOTE(harlowja): Jobs are not ephemeral, they will persist until they
         # are consumed (this may change later, but seems safer to do this until
         # further notice).
+        job_priority = base.JobPriority.convert(priority)
         job_uuid = uuidutils.generate_uuid()
         job_posting = base.format_posting(job_uuid, name,
-                                          book=book, details=details)
+                                          book=book, details=details,
+                                          priority=job_priority)
         raw_job_posting = misc.binary_encode(jsonutils.dumps(job_posting))
         with self._wrap(job_uuid, None,
                         fail_msg_tpl="Posting failure: %s",
@@ -462,7 +491,8 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             job = ZookeeperJob(self, name, self._client, job_path,
                                backend=self._persistence,
                                book=book, details=details, uuid=job_uuid,
-                               book_data=job_posting.get('book'))
+                               book_data=job_posting.get('book'),
+                               priority=job_priority)
             with self._job_cond:
                 self._known_jobs[job_path] = job
                 self._job_cond.notify_all()
