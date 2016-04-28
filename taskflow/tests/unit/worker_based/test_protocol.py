@@ -121,8 +121,8 @@ class TestProtocol(test.TestCase):
 
     def test_request_transitions(self):
         request = self.request()
-        self.assertEqual(pr.WAITING, request.state)
-        self.assertIn(request.state, pr.WAITING_STATES)
+        self.assertEqual(pr.WAITING, request.current_state)
+        self.assertIn(request.current_state, pr.WAITING_STATES)
         self.assertRaises(excp.InvalidState, request.transition, pr.SUCCESS)
         self.assertFalse(request.transition(pr.WAITING))
         self.assertTrue(request.transition(pr.PENDING))
