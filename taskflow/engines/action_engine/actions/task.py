@@ -122,9 +122,9 @@ class TaskAction(base.Action):
     def schedule_reversion(self, task):
         self.change_state(task, states.REVERTING, progress=0.0)
         arguments = self._storage.fetch_mapped_args(
-            task.rebind,
+            task.revert_rebind,
             atom_name=task.name,
-            optional_args=task.optional
+            optional_args=task.revert_optional
         )
         task_uuid = self._storage.get_atom_uuid(task.name)
         task_result = self._storage.get(task.name)

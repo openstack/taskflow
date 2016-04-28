@@ -31,6 +31,10 @@ from taskflow.utils import misc
 _sequence_types = (list, tuple, collections.Sequence)
 _set_types = (set, collections.Set)
 
+# the default list of revert arguments to ignore when deriving
+# revert argument mapping from the revert method signature
+_default_revert_args = ('result', 'flow_failures')
+
 
 def _save_as_to_mapping(save_as):
     """Convert save_as to mapping name => index.
@@ -176,6 +180,17 @@ class Atom(object):
                    injected into the atoms scope before the atom execution
                    commences (this allows for providing atom *local* values
                    that do not need to be provided by other atoms/dependents).
+    :param rebind: A dict of key/value pairs used to define argument
+                   name conversions for inputs to this atom's ``execute``
+                   method.
+    :param revert_rebind: The same as ``rebind`` but for the ``revert``
+                          method. If unpassed, ``rebind`` will be used
+                          instead.
+    :param requires: A set or list of required inputs for this atom's
+                     ``execute`` method.
+    :param revert_requires: A set or list of required inputs for this atom's
+                            ``revert`` method. If unpassed, ```requires`` will
+                            be used.
     :ivar version: An *immutable* version that associates version information
                    with this atom. It can be useful in resuming older versions
                    of atoms. Standard major, minor versioning concepts
@@ -191,12 +206,17 @@ class Atom(object):
                   the names that this atom expects (in a way this is like
                   remapping a namespace of another atom into the namespace
                   of this atom).
+    :ivar revert_rebind: The same as ``rebind`` but for the revert method. This
+                         should only differ from ``rebind`` if the ``revert``
+                         method has a different signature from ``execute`` or
+                         a different ``revert_rebind`` value was received.
     :ivar inject: See parameter ``inject``.
     :ivar name: See parameter ``name``.
     :ivar requires: A :py:class:`~taskflow.types.sets.OrderedSet` of inputs
                     this atom requires to function.
     :ivar optional: A :py:class:`~taskflow.types.sets.OrderedSet` of inputs
-                    that are optional for this atom to function.
+                    that are optional for this atom to ``execute``.
+    :ivar revert_optional: The ``revert`` version of ``optional``.
     :ivar provides: A :py:class:`~taskflow.types.sets.OrderedSet` of outputs
                     this atom produces.
     """
@@ -232,7 +252,7 @@ class Atom(object):
 
     def __init__(self, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None, inject=None,
-                 ignore_list=None):
+                 ignore_list=None, revert_rebind=None, revert_requires=None):
 
         if provides is None:
             provides = self.default_provides
@@ -241,14 +261,30 @@ class Atom(object):
         self.version = (1, 0)
         self.inject = inject
         self.save_as = _save_as_to_mapping(provides)
-        self.requires = sets.OrderedSet()
-        self.optional = sets.OrderedSet()
         self.provides = sets.OrderedSet(self.save_as)
-        self.rebind = collections.OrderedDict()
 
-        self._build_arg_mapping(self.execute, requires=requires,
-                                rebind=rebind, auto_extract=auto_extract,
-                                ignore_list=ignore_list)
+        if ignore_list is None:
+            ignore_list = []
+
+        self.rebind, exec_requires, self.optional = self._build_arg_mapping(
+            self.execute,
+            requires=requires,
+            rebind=rebind, auto_extract=auto_extract,
+            ignore_list=ignore_list
+        )
+
+        revert_ignore = ignore_list + list(_default_revert_args)
+        revert_mapping = self._build_arg_mapping(
+            self.revert,
+            requires=revert_requires or requires,
+            rebind=revert_rebind or rebind,
+            auto_extract=auto_extract,
+            ignore_list=revert_ignore
+        )
+        (self.revert_rebind, addl_requires,
+         self.revert_optional) = revert_mapping
+
+        self.requires = exec_requires.union(addl_requires)
 
     def _build_arg_mapping(self, executor, requires=None, rebind=None,
                            auto_extract=True, ignore_list=None):
@@ -263,13 +299,13 @@ class Atom(object):
         for (arg_name, bound_name) in itertools.chain(six.iteritems(required),
                                                       six.iteritems(optional)):
             rebind.setdefault(arg_name, bound_name)
-        self.rebind = rebind
-        self.requires = sets.OrderedSet(six.itervalues(required))
-        self.optional = sets.OrderedSet(six.itervalues(optional))
+        requires = sets.OrderedSet(six.itervalues(required))
+        optional = sets.OrderedSet(six.itervalues(optional))
         if self.inject:
             inject_keys = frozenset(six.iterkeys(self.inject))
-            self.requires -= inject_keys
-            self.optional -= inject_keys
+            requires -= inject_keys
+            optional -= inject_keys
+        return rebind, requires, optional
 
     def pre_execute(self):
         """Code to be run prior to executing the atom.

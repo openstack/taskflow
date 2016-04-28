@@ -379,8 +379,12 @@ class ActionEngine(base.Engine):
         last_node = None
         missing_nodes = 0
         for atom in self._runtime.analyzer.iterate_nodes(compiler.ATOMS):
-            atom_missing = self.storage.fetch_unsatisfied_args(
+            exec_missing = self.storage.fetch_unsatisfied_args(
                 atom.name, atom.rebind, optional_args=atom.optional)
+            revert_missing = self.storage.fetch_unsatisfied_args(
+                atom.name, atom.revert_rebind,
+                optional_args=atom.revert_optional)
+            atom_missing = exec_missing.union(revert_missing)
             if atom_missing:
                 cause = exc.MissingDependencies(atom,
                                                 sorted(atom_missing),

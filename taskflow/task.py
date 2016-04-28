@@ -60,12 +60,14 @@ class Task(atom.Atom):
     TASK_EVENTS = (EVENT_UPDATE_PROGRESS,)
 
     def __init__(self, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None, inject=None):
+                 auto_extract=True, rebind=None, inject=None,
+                 ignore_list=None, revert_rebind=None, revert_requires=None):
         if name is None:
             name = reflection.get_class_name(self)
         super(Task, self).__init__(name, provides=provides, requires=requires,
                                    auto_extract=auto_extract, rebind=rebind,
-                                   inject=inject)
+                                   inject=inject, revert_rebind=revert_rebind,
+                                   revert_requires=revert_requires)
         self._notifier = notifier.RestrictedNotifier(self.TASK_EVENTS)
 
     @property
@@ -137,7 +139,18 @@ class FunctorTask(Task):
         self._revert = revert
         if version is not None:
             self.version = version
-        self._build_arg_mapping(execute, requires, rebind, auto_extract)
+        mapping = self._build_arg_mapping(execute, requires, rebind,
+                                          auto_extract)
+        self.rebind, exec_requires, self.optional = mapping
+
+        if revert:
+            revert_mapping = self._build_arg_mapping(revert, requires, rebind,
+                                                     auto_extract)
+        else:
+            revert_mapping = (self.rebind, exec_requires, self.optional)
+        (self.revert_rebind, revert_requires,
+         self.revert_optional) = revert_mapping
+        self.requires = exec_requires.union(revert_requires)
 
     def execute(self, *args, **kwargs):
         return self._execute(*args, **kwargs)

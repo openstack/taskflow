@@ -30,12 +30,19 @@ class RetryAction(base.Action):
         super(RetryAction, self).__init__(storage, notifier)
         self._retry_executor = retry_executor
 
-    def _get_retry_args(self, retry, addons=None):
-        arguments = self._storage.fetch_mapped_args(
-            retry.rebind,
-            atom_name=retry.name,
-            optional_args=retry.optional
-        )
+    def _get_retry_args(self, retry, revert=False, addons=None):
+        if revert:
+            arguments = self._storage.fetch_mapped_args(
+                retry.revert_rebind,
+                atom_name=retry.name,
+                optional_args=retry.revert_optional
+            )
+        else:
+            arguments = self._storage.fetch_mapped_args(
+                retry.rebind,
+                atom_name=retry.name,
+                optional_args=retry.optional
+            )
         history = self._storage.get_retry_history(retry.name)
         arguments[retry_atom.EXECUTE_REVERT_HISTORY] = history
         if addons:
@@ -92,7 +99,7 @@ class RetryAction(base.Action):
             retry_atom.REVERT_FLOW_FAILURES: self._storage.get_failures(),
         }
         return self._retry_executor.revert_retry(
-            retry, self._get_retry_args(retry, addons=arg_addons))
+            retry, self._get_retry_args(retry, addons=arg_addons, revert=True))
 
     def on_failure(self, retry, atom, last_failure):
         self._storage.save_retry_failure(retry.name, atom.name, last_failure)
