@@ -111,6 +111,8 @@ class Completer(object):
         self._undefined_resolver = RevertAll(self._runtime)
         self._defer_reverts = strutils.bool_from_string(
             self._runtime.options.get('defer_reverts', False))
+        self._resolve = not strutils.bool_from_string(
+            self._runtime.options.get('never_resolve', False))
 
     def resume(self):
         """Resumes atoms in the contained graph.
@@ -126,14 +128,17 @@ class Completer(object):
         atoms = list(self._analyzer.iterate_nodes(co.ATOMS))
         atom_states = self._storage.get_atoms_states(atom.name
                                                      for atom in atoms)
-        for atom in atoms:
-            atom_state, _atom_intention = atom_states[atom.name]
-            if atom_state == st.FAILURE:
-                self._process_atom_failure(atom, self._storage.get(atom.name))
-        for retry in self._analyzer.iterate_retries(st.RETRYING):
-            for atom, state, intention in self._runtime.retry_subflow(retry):
-                if state:
-                    atom_states[atom.name] = (state, intention)
+        if self._resolve:
+            for atom in atoms:
+                atom_state, _atom_intention = atom_states[atom.name]
+                if atom_state == st.FAILURE:
+                    self._process_atom_failure(
+                        atom, self._storage.get(atom.name))
+            for retry in self._analyzer.iterate_retries(st.RETRYING):
+                retry_affected_atoms_it = self._runtime.retry_subflow(retry)
+                for atom, state, intention in retry_affected_atoms_it:
+                    if state:
+                        atom_states[atom.name] = (state, intention)
         unfinished_atoms = set()
         for atom in atoms:
             atom_state, _atom_intention = atom_states[atom.name]
@@ -149,12 +154,13 @@ class Completer(object):
         Returns whether the result should be saved into an accumulator of
         failures or whether this should not be done.
         """
-        if outcome == ex.EXECUTED:
+        if outcome == ex.EXECUTED and self._resolve:
             self._process_atom_failure(node, failure)
             # We resolved something, carry on...
             return False
         else:
-            # Reverting failed, always retain the failure...
+            # Reverting failed (or resolving was turned off), always
+            # retain the failure...
             return True
 
     def complete(self, node, outcome, result):
