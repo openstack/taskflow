@@ -171,7 +171,6 @@ class ActionEngine(base.Engine):
         self._compilation = None
         self._compiler = compiler.PatternCompiler(flow)
         self._lock = threading.RLock()
-        self._state_lock = threading.RLock()
         self._storage_ensured = False
         self._validated = False
         # Retries are not *currently* executed out of the engines process
@@ -362,18 +361,15 @@ class ActionEngine(base.Engine):
         return compilation
 
     def _change_state(self, state):
-        with self._state_lock:
-            old_state = self.storage.get_flow_state()
-            if not states.check_flow_transition(old_state, state):
-                return
-            self.storage.set_flow_state(state)
-        details = {
-            'engine': self,
-            'flow_name': self.storage.flow_name,
-            'flow_uuid': self.storage.flow_uuid,
-            'old_state': old_state,
-        }
-        self.notifier.notify(state, details)
+        moved, old_state = self.storage.change_flow_state(state)
+        if moved:
+            details = {
+                'engine': self,
+                'flow_name': self.storage.flow_name,
+                'flow_uuid': self.storage.flow_uuid,
+                'old_state': old_state,
+            }
+            self.notifier.notify(state, details)
 
     def _ensure_storage(self):
         """Ensure all contained atoms exist in the storage unit."""

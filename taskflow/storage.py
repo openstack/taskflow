@@ -1117,6 +1117,21 @@ class Storage(object):
             clone.meta.update(update_with)
             self._with_connection(self._save_flow_detail, source, clone)
 
+    @fasteners.write_locked
+    def change_flow_state(self, state):
+        """Transition flow from old state to new state.
+
+        Returns ``(True, old_state)`` if transition was performed,
+        or ``(False, old_state)`` if it was ignored, or raises a
+        :py:class:`~taskflow.exceptions.InvalidState` exception if transition
+        is invalid.
+        """
+        old_state = self.get_flow_state()
+        if not states.check_flow_transition(old_state, state):
+            return (False, old_state)
+        self.set_flow_state(state)
+        return (True, old_state)
+
     @fasteners.read_locked
     def get_flow_state(self):
         """Get state from flow details."""
