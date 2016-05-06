@@ -476,6 +476,24 @@ class ParallelThreadTaskExecutor(ParallelTaskExecutor):
         return futurist.ThreadPoolExecutor(max_workers=max_workers)
 
 
+class ParallelGreenThreadTaskExecutor(ParallelThreadTaskExecutor):
+    """Executes tasks in parallel using a greenthread pool executor."""
+
+    DEFAULT_WORKERS = 1000
+    """
+    Default number of workers when ``None`` is passed; being that
+    greenthreads don't map to native threads or processors very well this
+    is more of a guess/somewhat arbitrary, but it does match what the eventlet
+    greenpool default size is (so at least it's consistent with what eventlet
+    does).
+    """
+
+    def _create_executor(self, max_workers=None):
+        if max_workers is None:
+            max_workers = self.DEFAULT_WORKERS
+        return futurist.GreenThreadPoolExecutor(max_workers=max_workers)
+
+
 class ParallelProcessTaskExecutor(ParallelTaskExecutor):
     """Executes tasks in parallel using a process pool executor.
 

@@ -519,6 +519,12 @@ String (case insensitive)    Executor used
 ``thread``                   :class:`~.executor.ParallelThreadTaskExecutor`
 ``threaded``                 :class:`~.executor.ParallelThreadTaskExecutor`
 ``threads``                  :class:`~.executor.ParallelThreadTaskExecutor`
+``greenthread``              :class:`~.executor.ParallelThreadTaskExecutor`
+                              (greened version)
+``greedthreaded``            :class:`~.executor.ParallelThreadTaskExecutor`
+                              (greened version)
+``greenthreads``             :class:`~.executor.ParallelThreadTaskExecutor`
+                              (greened version)
 ===========================  ===============================================
 
     * ``max_workers``: a integer that will affect the number of parallel
@@ -562,6 +568,9 @@ String (case insensitive)    Executor used
                            executor.ParallelProcessTaskExecutor),
         _ExecutorTextMatch(frozenset(['thread', 'threads', 'threaded']),
                            executor.ParallelThreadTaskExecutor),
+        _ExecutorTextMatch(frozenset(['greenthread', 'greenthreads',
+                                      'greenthreaded']),
+                           executor.ParallelGreenThreadTaskExecutor),
     ]
 
     # Used when no executor is provided (either a string or object)...

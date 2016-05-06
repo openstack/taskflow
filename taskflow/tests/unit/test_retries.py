@@ -14,7 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import futurist
 import testtools
 
 import taskflow.engines
@@ -1305,8 +1304,7 @@ class ParallelEngineWithEventletTest(RetryTest, test.TestCase):
     def _make_engine(self, flow, defer_reverts=None, flow_detail=None,
                      executor=None):
         if executor is None:
-            executor = futurist.GreenThreadPoolExecutor()
-            self.addCleanup(executor.shutdown)
+            executor = 'greenthreads'
         return taskflow.engines.load(flow,
                                      flow_detail=flow_detail,
                                      backend=self.backend,

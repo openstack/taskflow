@@ -1449,8 +1449,7 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
                      flow_detail=None, executor=None, store=None,
                      **kwargs):
         if executor is None:
-            executor = futurist.GreenThreadPoolExecutor()
-            self.addCleanup(executor.shutdown)
+            executor = 'greenthreads'
         return taskflow.engines.load(flow, flow_detail=flow_detail,
                                      backend=self.backend, engine='parallel',
                                      executor=executor,
