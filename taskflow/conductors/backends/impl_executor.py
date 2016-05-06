@@ -31,6 +31,7 @@ from taskflow.conductors import base
 from taskflow import exceptions as excp
 from taskflow.listeners import logging as logging_listener
 from taskflow import logging
+from taskflow import states
 from taskflow.types import timing as tt
 from taskflow.utils import iter_utils
 from taskflow.utils import misc
@@ -185,11 +186,22 @@ class ExecutorConductor(base.Conductor):
                 'engine': engine,
                 'conductor': self,
             }
+
+            def _run_engine():
+                has_suspended = False
+                for _state in engine.run_iter():
+                    if not has_suspended and self._wait_timeout.is_stopped():
+                        self._log.info("Conductor stopped, requesting "
+                                       "suspension of engine running "
+                                       "job %s", job)
+                        engine.suspend()
+                        has_suspended = True
+
             try:
                 for stage_func, event_name in [(engine.compile, 'compilation'),
                                                (engine.prepare, 'preparation'),
                                                (engine.validate, 'validation'),
-                                               (engine.run, 'running')]:
+                                               (_run_engine, 'running')]:
                     self._notifier.notify("%s_start" % event_name,  details)
                     stage_func()
                     self._notifier.notify("%s_end" % event_name, details)
@@ -218,7 +230,11 @@ class ExecutorConductor(base.Conductor):
                     "Job execution failed (consumption proceeding): %s",
                     job, exc_info=True)
             else:
-                self._log.info("Job completed successfully: %s", job)
+                if engine.storage.get_flow_state() == states.SUSPENDED:
+                    self._log.info("Job execution was suspended: %s", job)
+                    consume = False
+                else:
+                    self._log.info("Job completed successfully: %s", job)
             return consume
 
     def _try_finish_job(self, job, consume):
