@@ -23,10 +23,10 @@ values (requirements) and name outputs (provided values).
 Task
 =====
 
-A :py:class:`task <taskflow.task.BaseTask>` (derived from an atom) is a
+A :py:class:`task <taskflow.task.Task>` (derived from an atom) is a
 unit of work that can have an execute & rollback sequence associated with
-it (they are *nearly* analogous to functions). These task objects all derive
-from :py:class:`~taskflow.task.BaseTask` which defines what a task must
+it (they are *nearly* analogous to functions). Your task objects should all
+derive from :py:class:`~taskflow.task.Task` which defines what a task must
 provide in terms of properties and methods.
 
 **For example:**

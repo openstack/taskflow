@@ -704,7 +704,7 @@ class AtomDetail(object):
 class TaskDetail(AtomDetail):
     """A task detail (an atom detail typically associated with a |tt| atom).
 
-    .. |tt| replace:: :py:class:`~taskflow.task.BaseTask`
+    .. |tt| replace:: :py:class:`~taskflow.task.Task`
     """
 
     def reset(self, state):

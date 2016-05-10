@@ -132,30 +132,30 @@ the ``IGNORE`` state.
 
 **RUNNING** - When an engine running the task starts to execute the task, the
 engine will transition the task to the ``RUNNING`` state, and the task will
-stay in this state until the tasks :py:meth:`~taskflow.task.BaseTask.execute`
+stay in this state until the tasks :py:meth:`~taskflow.atom.Atom.execute`
 method returns.
 
 **SUCCESS** - The engine running the task transitions the task to this state
 after the task has finished successfully (ie no exception/s were raised during
-running its :py:meth:`~taskflow.task.BaseTask.execute` method).
+running its :py:meth:`~taskflow.atom.Atom.execute` method).
 
 **FAILURE** - The engine running the task transitions the task to this state
 after it has finished with an error (ie exception/s were raised during
-running its :py:meth:`~taskflow.task.BaseTask.execute` method).
+running its :py:meth:`~taskflow.atom.Atom.execute` method).
 
 **REVERT_FAILURE** - The engine running the task transitions the task to this
 state after it has finished with an error (ie exception/s were raised during
-running its :py:meth:`~taskflow.task.BaseTask.revert` method).
+running its :py:meth:`~taskflow.atom.Atom.revert` method).
 
 **REVERTING** - The engine running a task transitions the task to this state
 when the containing flow the engine is running starts to revert and
-its :py:meth:`~taskflow.task.BaseTask.revert` method is called. Only tasks in
+its :py:meth:`~taskflow.atom.Atom.revert` method is called. Only tasks in
 the ``SUCCESS`` or ``FAILURE`` state can be reverted.  If this method fails (ie
 raises an exception), the task goes to the ``REVERT_FAILURE`` state.
 
 **REVERTED** - The engine running the task transitions the task to this state
 after it has successfully reverted the task (ie no exception/s were raised
-during running its :py:meth:`~taskflow.task.BaseTask.revert` method).
+during running its :py:meth:`~taskflow.atom.Atom.revert` method).
 
 Retry
 =====
