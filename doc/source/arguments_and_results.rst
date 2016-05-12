@@ -2,12 +2,12 @@
 Arguments and results
 =====================
 
-.. |task.execute| replace:: :py:meth:`~taskflow.task.BaseTask.execute`
-.. |task.revert| replace:: :py:meth:`~taskflow.task.BaseTask.revert`
+.. |task.execute| replace:: :py:meth:`~taskflow.atom.Atom.execute`
+.. |task.revert| replace:: :py:meth:`~taskflow.atom.Atom.revert`
 .. |retry.execute| replace:: :py:meth:`~taskflow.retry.Retry.execute`
 .. |retry.revert| replace:: :py:meth:`~taskflow.retry.Retry.revert`
 .. |Retry| replace:: :py:class:`~taskflow.retry.Retry`
-.. |Task| replace:: :py:class:`Task <taskflow.task.BaseTask>`
+.. |Task| replace:: :py:class:`Task <taskflow.task.Task>`
 
 In TaskFlow, all flow and task state goes to (potentially persistent) storage
 (see :doc:`persistence <persistence>` for more details). That includes all the

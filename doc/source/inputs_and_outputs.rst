@@ -62,7 +62,7 @@ task.
 .. note::
 
    There is no difference between processing of
-   :py:class:`Task <taskflow.task.BaseTask>` and
+   :py:class:`Task <taskflow.task.Task>` and
    :py:class:`~taskflow.retry.Retry` inputs and outputs.
 
 ------------------
