@@ -408,15 +408,18 @@ class ActionEngine(base.Engine):
             revert_missing = self.storage.fetch_unsatisfied_args(
                 atom.name, atom.revert_rebind,
                 optional_args=atom.revert_optional)
-            atom_missing = exec_missing.union(revert_missing)
-            if atom_missing:
-                cause = exc.MissingDependencies(atom,
-                                                sorted(atom_missing),
-                                                cause=last_cause)
-                last_cause = cause
-                last_node = atom
-                missing_nodes += 1
-                missing.update(atom_missing)
+            atom_missing = (('execute', exec_missing),
+                            ('revert', revert_missing))
+            for method, method_missing in atom_missing:
+                if method_missing:
+                    cause = exc.MissingDependencies(atom,
+                                                    sorted(method_missing),
+                                                    cause=last_cause,
+                                                    method=method)
+                    last_cause = cause
+                    last_node = atom
+                    missing_nodes += 1
+                    missing.update(method_missing)
         if missing:
             # For when a task is provided (instead of a flow) and that
             # task is the only item in the graph and its missing deps, avoid
