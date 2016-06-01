@@ -187,8 +187,12 @@ class MissingDependencies(DependencyFailure):
     MESSAGE_TPL = ("'%(who)s' requires %(requirements)s but no other entity"
                    " produces said requirements")
 
-    def __init__(self, who, requirements, cause=None):
+    METHOD_TPL = "'%(method)s' method on "
+
+    def __init__(self, who, requirements, cause=None, method=None):
         message = self.MESSAGE_TPL % {'who': who, 'requirements': requirements}
+        if method:
+            message = (self.METHOD_TPL % {'method': method}) + message
         super(MissingDependencies, self).__init__(message, cause=cause)
         self.missing_requirements = requirements
 
