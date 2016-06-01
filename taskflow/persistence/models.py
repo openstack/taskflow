@@ -153,11 +153,11 @@ class LogBook(object):
         if self.created_at is not None:
             lines.append("%s- created_at = %s"
                          % (" " * (indent + 1),
-                            timeutils.isotime(self.created_at)))
+                            self.created_at.isoformat()))
         if self.updated_at is not None:
             lines.append("%s- updated_at = %s"
                          % (" " * (indent + 1),
-                            timeutils.isotime(self.updated_at)))
+                            self.updated_at.isoformat()))
         for flow_detail in self:
             lines.append(flow_detail.pformat(indent=indent + 1,
                                              linesep=linesep))
