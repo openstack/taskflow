@@ -33,7 +33,6 @@ class TestWorker(test.MockTestCase):
         self.broker_url = 'test-url'
         self.exchange = 'test-exchange'
         self.topic = 'test-topic'
-        self.endpoint_count = 29
 
         # patch classes
         self.executor_mock, self.executor_inst_mock = self.patchClass(
@@ -159,7 +158,7 @@ class TestWorker(test.MockTestCase):
     def test_derive_endpoints_from_string_modules(self):
         endpoints = worker.Worker._derive_endpoints(['taskflow.tests.utils'])
 
-        self.assertEqual(self.endpoint_count, len(endpoints))
+        assert any(e.name == self.task_name for e in endpoints)
 
     def test_derive_endpoints_from_string_non_existent_module(self):
         tasks = ['non.existent.module']
@@ -190,7 +189,7 @@ class TestWorker(test.MockTestCase):
     def test_derive_endpoints_from_modules(self):
         endpoints = worker.Worker._derive_endpoints([utils])
 
-        self.assertEqual(self.endpoint_count, len(endpoints))
+        assert any(e.name == self.task_name for e in endpoints)
 
     def test_derive_endpoints_unexpected_task_type(self):
         self.assertRaises(TypeError, worker.Worker._derive_endpoints, [111])
