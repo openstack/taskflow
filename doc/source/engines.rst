@@ -284,7 +284,7 @@ analyzing the current state of the task; which is determined by looking at the
 state in the task detail object for that task and analyzing edges of the graph
 for things like retry atom which can influence what a tasks intention should be
 (this is aided by the usage of the
-:py:class:`~taskflow.engines.action_engine.analyzer.Analyzer` helper
+:py:class:`~taskflow.engines.action_engine.selector.Selector` helper
 object which was designed to provide helper methods for this analysis). Once
 these intentions are determined and associated with each task (the intention is
 also stored in the :py:class:`~taskflow.persistence.models.AtomDetail` object)
@@ -299,7 +299,7 @@ This stage selects which atoms are eligible to run by using a
 :py:class:`~taskflow.engines.action_engine.scheduler.Scheduler` implementation
 (the default implementation looks at their intention, checking if predecessor
 atoms have ran and so-on, using a
-:py:class:`~taskflow.engines.action_engine.analyzer.Analyzer` helper
+:py:class:`~taskflow.engines.action_engine.selector.Selector` helper
 object as needed) and submits those atoms to a previously provided compatible
 `executor`_ for asynchronous execution. This
 :py:class:`~taskflow.engines.action_engine.scheduler.Scheduler` will return a
@@ -444,7 +444,6 @@ Components
     other locations **without** notice (and without the typical deprecation
     cycle).
 
-.. automodule:: taskflow.engines.action_engine.analyzer
 .. automodule:: taskflow.engines.action_engine.builder
 .. automodule:: taskflow.engines.action_engine.compiler
 .. automodule:: taskflow.engines.action_engine.completer
@@ -453,6 +452,7 @@ Components
 .. automodule:: taskflow.engines.action_engine.process_executor
 .. automodule:: taskflow.engines.action_engine.runtime
 .. automodule:: taskflow.engines.action_engine.scheduler
+.. automodule:: taskflow.engines.action_engine.selector
 .. autoclass:: taskflow.engines.action_engine.scopes.ScopeWalker
     :special-members: __iter__
 .. automodule:: taskflow.engines.action_engine.traversal

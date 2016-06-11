@@ -76,11 +76,10 @@ class RevertAll(Strategy):
 
     def __init__(self, runtime):
         super(RevertAll, self).__init__(runtime)
-        self._analyzer = runtime.analyzer
 
     def apply(self):
         return self._runtime.reset_atoms(
-            self._analyzer.iterate_nodes(co.ATOMS),
+            self._runtime.iterate_nodes(co.ATOMS),
             state=None, intention=st.REVERT)
 
 
@@ -106,7 +105,6 @@ class Completer(object):
 
     def __init__(self, runtime):
         self._runtime = weakref.proxy(runtime)
-        self._analyzer = runtime.analyzer
         self._storage = runtime.storage
         self._undefined_resolver = RevertAll(self._runtime)
         self._defer_reverts = strutils.bool_from_string(
@@ -125,7 +123,7 @@ class Completer(object):
         atoms that were previously not finished (due to a RUNNING or REVERTING
         attempt not previously finishing).
         """
-        atoms = list(self._analyzer.iterate_nodes(co.ATOMS))
+        atoms = list(self._runtime.iterate_nodes(co.ATOMS))
         atom_states = self._storage.get_atoms_states(atom.name
                                                      for atom in atoms)
         if self._resolve:
@@ -134,7 +132,7 @@ class Completer(object):
                 if atom_state == st.FAILURE:
                     self._process_atom_failure(
                         atom, self._storage.get(atom.name))
-            for retry in self._analyzer.iterate_retries(st.RETRYING):
+            for retry in self._runtime.iterate_retries(st.RETRYING):
                 retry_affected_atoms_it = self._runtime.retry_subflow(retry)
                 for atom, state, intention in retry_affected_atoms_it:
                     if state:
@@ -173,7 +171,7 @@ class Completer(object):
 
     def _determine_resolution(self, atom, failure):
         """Determines which resolution strategy to activate/apply."""
-        retry = self._analyzer.find_retry(atom)
+        retry = self._runtime.find_retry(atom)
         if retry is not None:
             # Ask retry controller what to do in case of failure.
             handler = self._runtime.fetch_action(retry)

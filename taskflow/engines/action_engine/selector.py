@@ -27,8 +27,8 @@ from taskflow.utils import iter_utils
 LOG = logging.getLogger(__name__)
 
 
-class Analyzer(object):
-    """Analyzes a compilation and aids in execution processes.
+class Selector(object):
+    """Selector that uses a compilation and aids in execution processes.
 
     Its primary purpose is to get the next atoms for execution or reversion
     by utilizing the compilations underlying structures (graphs, nodes and
@@ -45,8 +45,8 @@ class Analyzer(object):
     def iter_next_atoms(self, atom=None):
         """Iterate next atoms to run (originating from atom or all atoms)."""
         if atom is None:
-            return iter_utils.unique_seen((self.browse_atoms_for_execute(),
-                                           self.browse_atoms_for_revert()),
+            return iter_utils.unique_seen((self._browse_atoms_for_execute(),
+                                           self._browse_atoms_for_revert()),
                                           seen_selector=operator.itemgetter(0))
         state = self._storage.get_atom_state(atom.name)
         intention = self._storage.get_atom_intention(atom.name)
@@ -56,17 +56,17 @@ class Analyzer(object):
                     (atom, deciders.NoOpDecider()),
                 ])
             elif intention == st.EXECUTE:
-                return self.browse_atoms_for_execute(atom=atom)
+                return self._browse_atoms_for_execute(atom=atom)
             else:
                 return iter([])
         elif state == st.REVERTED:
-            return self.browse_atoms_for_revert(atom=atom)
+            return self._browse_atoms_for_revert(atom=atom)
         elif state == st.FAILURE:
-            return self.browse_atoms_for_revert()
+            return self._browse_atoms_for_revert()
         else:
             return iter([])
 
-    def browse_atoms_for_execute(self, atom=None):
+    def _browse_atoms_for_execute(self, atom=None):
         """Browse next atoms to execute.
 
         This returns a iterator of atoms that *may* be ready to be
@@ -74,7 +74,7 @@ class Analyzer(object):
         of that atom, otherwise it will examine the whole graph.
         """
         if atom is None:
-            atom_it = self.iterate_nodes(co.ATOMS)
+            atom_it = self._runtime.iterate_nodes(co.ATOMS)
         else:
             # NOTE(harlowja): the reason this uses breadth first is so that
             # when deciders are applied that those deciders can be applied
@@ -90,7 +90,7 @@ class Analyzer(object):
             if is_ready:
                 yield (atom, late_decider)
 
-    def browse_atoms_for_revert(self, atom=None):
+    def _browse_atoms_for_revert(self, atom=None):
         """Browse next atoms to revert.
 
         This returns a iterator of atoms that *may* be ready to be be
@@ -99,7 +99,7 @@ class Analyzer(object):
         graph.
         """
         if atom is None:
-            atom_it = self.iterate_nodes(co.ATOMS)
+            atom_it = self._runtime.iterate_nodes(co.ATOMS)
         else:
             atom_it = traversal.breadth_first_iterate(
                 self._execution_graph, atom, traversal.Direction.BACKWARD,
@@ -226,43 +226,3 @@ class Analyzer(object):
         return self._get_maybe_ready(atom, st.REVERTING, [st.REVERT, st.RETRY],
                                      connected_fetcher, ready_checker,
                                      decider_fetcher, for_what='revert')
-
-    def iterate_retries(self, state=None):
-        """Iterates retry atoms that match the provided state.
-
-        If no state is provided it will yield back all retry atoms.
-        """
-        if state:
-            atoms = list(self.iterate_nodes((co.RETRY,)))
-            atom_states = self._storage.get_atoms_states(atom.name
-                                                         for atom in atoms)
-            for atom in atoms:
-                atom_state, _atom_intention = atom_states[atom.name]
-                if atom_state == state:
-                    yield atom
-        else:
-            for atom in self.iterate_nodes((co.RETRY,)):
-                yield atom
-
-    def iterate_nodes(self, allowed_kinds):
-        """Yields back all nodes of specified kinds in the execution graph."""
-        for node, node_data in self._execution_graph.nodes_iter(data=True):
-            if node_data['kind'] in allowed_kinds:
-                yield node
-
-    def find_retry(self, node):
-        """Returns the retry atom associated to the given node (or none)."""
-        return self._execution_graph.node[node].get(co.RETRY)
-
-    def is_success(self):
-        """Checks if all atoms in the execution graph are in 'happy' state."""
-        atoms = list(self.iterate_nodes(co.ATOMS))
-        atom_states = self._storage.get_atoms_states(atom.name
-                                                     for atom in atoms)
-        for atom in atoms:
-            atom_state, _atom_intention = atom_states[atom.name]
-            if atom_state == st.IGNORE:
-                continue
-            if atom_state != st.SUCCESS:
-                return False
-        return True

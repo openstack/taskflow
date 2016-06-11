@@ -375,8 +375,8 @@ class ActionEngine(base.Engine):
     def _ensure_storage(self):
         """Ensure all contained atoms exist in the storage unit."""
         self.storage.ensure_atoms(
-            self._runtime.analyzer.iterate_nodes(compiler.ATOMS))
-        for atom in self._runtime.analyzer.iterate_nodes(compiler.ATOMS):
+            self._runtime.iterate_nodes(compiler.ATOMS))
+        for atom in self._runtime.iterate_nodes(compiler.ATOMS):
             if atom.inject:
                 self.storage.inject_atom_args(atom.name, atom.inject,
                                               transient=self._inject_transient)
@@ -402,7 +402,7 @@ class ActionEngine(base.Engine):
         last_cause = None
         last_node = None
         missing_nodes = 0
-        for atom in self._runtime.analyzer.iterate_nodes(compiler.ATOMS):
+        for atom in self._runtime.iterate_nodes(compiler.ATOMS):
             exec_missing = self.storage.fetch_unsatisfied_args(
                 atom.name, atom.rebind, optional_args=atom.optional)
             revert_missing = self.storage.fetch_unsatisfied_args(

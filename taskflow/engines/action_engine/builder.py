@@ -112,7 +112,7 @@ class MachineBuilder(object):
 
     def __init__(self, runtime, waiter):
         self._runtime = weakref.proxy(runtime)
-        self._analyzer = runtime.analyzer
+        self._selector = runtime.selector
         self._completer = runtime.completer
         self._scheduler = runtime.scheduler
         self._storage = runtime.storage
@@ -150,7 +150,7 @@ class MachineBuilder(object):
 
         def iter_next_atoms(atom=None, apply_deciders=True):
             # Yields and filters and tweaks the next atoms to run...
-            maybe_atoms_it = self._analyzer.iter_next_atoms(atom=atom)
+            maybe_atoms_it = self._selector.iter_next_atoms(atom=atom)
             for atom, late_decider in maybe_atoms_it:
                 if apply_deciders:
                     proceed = late_decider.check_and_affect(self._runtime)
@@ -188,7 +188,7 @@ class MachineBuilder(object):
                           " since (at least) %s atoms have been left in an"
                           " unfinished state", leftover_atoms)
                 return SUSPENDED
-            elif self._analyzer.is_success():
+            elif self._runtime.is_success():
                 return SUCCESS
             else:
                 return REVERTED
