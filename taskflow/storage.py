@@ -407,6 +407,18 @@ class Storage(object):
                 self._failures.setdefault(atom_name, {})
         return atom_ids
 
+    @property
+    def lock(self):
+        """Reader/writer lock used to ensure multi-thread safety.
+
+        This does **not** protect against the **same** storage objects being
+        used by multiple engines/users across multiple processes (or
+        different machines); certain backends handle that situation better
+        than others (for example by using sequence identifiers) and it's a
+        ongoing work in progress to make that better).
+        """
+        return self._lock
+
     def ensure_atom(self, atom):
         """Ensure there is an atomdetail for the **given** atom.
 
