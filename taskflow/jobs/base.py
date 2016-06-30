@@ -173,7 +173,7 @@ class Job(object):
         otherwise return true (a job failure exception may also be raised if
         the job information can not be read, for whatever reason). Periodic
         state checks will happen every ``delay`` seconds where ``delay`` will
-        be multipled by the given multipler after a state is found that is
+        be multiplied by the given multipler after a state is found that is
         **not** complete.
 
         Note that if no timeout is given this is equivalent to blocking

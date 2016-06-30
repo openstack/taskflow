@@ -673,7 +673,7 @@ class ParallelProcessTaskExecutor(base.ParallelTaskExecutor):
         def rebind_task():
             # Creates and binds proxies for all events the task could receive
             # so that when the clone runs in another process that this task
-            # can recieve the same notifications (thus making it look like the
+            # can receive the same notifications (thus making it look like the
             # the notifications are transparently happening in this process).
             needed = set()
             for (event_type, listeners) in task.notifier.listeners_iter():

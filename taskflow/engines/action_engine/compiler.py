@@ -101,11 +101,11 @@ class Compilation(object):
 
     @property
     def hierarchy(self):
-        """The hierachy of patterns (as a tree structure)."""
+        """The hierarchy of patterns (as a tree structure)."""
         return self._hierarchy
 
 
-def _overlap_occurence_detector(to_graph, from_graph):
+def _overlap_occurrence_detector(to_graph, from_graph):
     """Returns how many nodes in 'from' graph are in 'to' graph (if any)."""
     return iter_utils.count(node for node in from_graph.nodes_iter()
                             if node in to_graph)
@@ -167,7 +167,7 @@ class FlowCompiler(object):
             for child in flow)
         decomposed_graphs = list(six.itervalues(decomposed))
         graph = gr.merge_graphs(graph, *decomposed_graphs,
-                                overlap_detector=_overlap_occurence_detector)
+                                overlap_detector=_overlap_occurrence_detector)
         for u, v, attr_dict in flow.iter_links():
             u_graph = decomposed[u]
             v_graph = decomposed[v]
@@ -270,7 +270,7 @@ class PatternCompiler(object):
     of tasks ``(b, c)`` and task ``d``.
 
     The algorithm that will be performed (mirroring the above described logic)
-    will go through the following steps (the tree hierachy building is left
+    will go through the following steps (the tree hierarchy building is left
     out as that is more obvious)::
 
         Compiling f

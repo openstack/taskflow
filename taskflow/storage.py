@@ -1028,7 +1028,7 @@ class Storage(object):
                           optional_args=None):
         """Fetch ``execute`` arguments for an atom using its args mapping."""
         def _extract_first_from(name, sources):
-            """Extracts/returns first occurence of key in list of dicts."""
+            """Extracts/returns first occurrence of key in list of dicts."""
             for i, source in enumerate(sources):
                 if not source:
                     continue
