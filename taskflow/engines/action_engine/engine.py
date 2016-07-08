@@ -332,12 +332,12 @@ class ActionEngine(base.Engine):
                     if new_state not in self.IGNORABLE_STATES:
                         self._change_state(new_state)
                         if new_state not in self.NO_RERAISING_STATES:
-                            failures = self.storage.get_failures()
-                            more_failures = self.storage.get_revert_failures()
-                            fails = itertools.chain(
-                                six.itervalues(failures),
-                                six.itervalues(more_failures))
-                            failure.Failure.reraise_if_any(fails)
+                            e_failures = self.storage.get_execute_failures()
+                            r_failures = self.storage.get_revert_failures()
+                            er_failures = itertools.chain(
+                                six.itervalues(e_failures),
+                                six.itervalues(r_failures))
+                            failure.Failure.reraise_if_any(er_failures)
             finally:
                 if w is not None:
                     w.stop()
