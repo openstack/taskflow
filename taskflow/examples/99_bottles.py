@@ -110,7 +110,7 @@ def make_bottles(count):
 
 
 def run_conductor(only_run_once=False):
-    # This continuously consumers until its stopped via ctrl-c or other
+    # This continuously runs consumers until its stopped via ctrl-c or other
     # kill signal...
     event_watches = {}
 
