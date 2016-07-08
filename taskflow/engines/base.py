@@ -93,7 +93,7 @@ class Engine(object):
         If a flow had previously ended up (from a prior engine
         :py:func:`.run`) in the ``FAILURE``, ``SUCCESS`` or ``REVERTED``
         states (or for some reason it ended up in an intermediary state) it
-        can be desireable to make it possible to run it again. Calling this
+        can be desirable to make it possible to run it again. Calling this
         method enables that to occur (without causing a state transition
         failure, which would typically occur if :py:meth:`.run` is called
         directly without doing a reset).

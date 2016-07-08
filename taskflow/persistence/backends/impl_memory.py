@@ -52,7 +52,7 @@ class FakeFilesystem(object):
     :meth:`~taskflow.persistence.backends.impl_memory.FakeFilesystem.get`
     or other read-only actions (like calling into
     :meth:`~taskflow.persistence.backends.impl_memory.FakeFilesystem.ls`)
-    are occuring at the same time.
+    are occurring at the same time.
 
     Example usage:
 

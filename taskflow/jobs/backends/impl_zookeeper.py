@@ -406,7 +406,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                          path, exc_info=True)
         else:
             with self._job_cond:
-                # Now we can offically check if someone already placed this
+                # Now we can officially check if someone already placed this
                 # jobs information into the known job set (if it's already
                 # existing then just leave it alone).
                 if path not in self._known_jobs:

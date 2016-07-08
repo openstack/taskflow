@@ -205,7 +205,7 @@ class Node(object):
     def disassociate(self):
         """Removes this node from its parent (if any).
 
-        :returns: occurences of this node that were removed from its parent.
+        :returns: occurrences of this node that were removed from its parent.
         """
         occurrences = 0
         if self.parent is not None:

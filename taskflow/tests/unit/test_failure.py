@@ -460,7 +460,7 @@ class FailureCausesTest(test.TestCase):
         f = f.causes[0]
         self.assertEqual(0, len(f.causes))
 
-    def test_causes_supress_context(self):
+    def test_causes_suppress_context(self):
         f = None
         try:
             try:

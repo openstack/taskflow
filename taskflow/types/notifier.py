@@ -137,7 +137,7 @@ class Notifier(object):
     into :py:meth:`.register` or :py:meth:`.reset` at the same time could
     potentially end badly. It is thread-safe when
     only :py:meth:`.notify` calls or other read-only actions (like calling
-    into :py:meth:`.is_registered`) are occuring at the same time.
+    into :py:meth:`.is_registered`) are occurring at the same time.
 
     .. _pub/sub: http://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern
     """
@@ -145,7 +145,7 @@ class Notifier(object):
     #: Keys that can *not* be used in callbacks arguments
     RESERVED_KEYS = ('details',)
 
-    #: Kleene star constant that is used to recieve all notifications
+    #: Kleene star constant that is used to receive all notifications
     ANY = '*'
 
     #: Events which can *not* be used to trigger notifications

@@ -324,7 +324,7 @@ class Failure(mixins.StrMixin):
         """Re-raise exceptions if argument is not empty.
 
         If argument is empty list/tuple/iterator, this method returns
-        None. If argument is coverted into a list with a
+        None. If argument is converted into a list with a
         single ``Failure`` object in it, that failure is reraised. Else, a
         :class:`~taskflow.exceptions.WrappedFailure` exception
         is raised with the failure list as causes.
@@ -378,9 +378,9 @@ class Failure(mixins.StrMixin):
             #
             # See: https://www.python.org/dev/peps/pep-0415/ for why/what
             # the '__suppress_context__' is/means/implies...
-            supress_context = getattr(exc_val,
-                                      '__suppress_context__', False)
-            if supress_context:
+            suppress_context = getattr(exc_val,
+                                       '__suppress_context__', False)
+            if suppress_context:
                 attr_lookups = ['__cause__']
             else:
                 attr_lookups = ['__cause__', '__context__']

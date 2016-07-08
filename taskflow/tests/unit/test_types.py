@@ -151,13 +151,13 @@ b %(edge)s c;
         self.assertRaises(ValueError,
                           graph.merge_graphs, g, g2)
 
-        def occurence_detector(to_graph, from_graph):
+        def occurrence_detector(to_graph, from_graph):
             return sum(1 for node in from_graph.nodes_iter()
                        if node in to_graph)
 
         self.assertRaises(ValueError,
                           graph.merge_graphs, g, g2,
-                          overlap_detector=occurence_detector)
+                          overlap_detector=occurrence_detector)
 
         g3 = graph.merge_graphs(g, g2, allow_overlaps=True)
         self.assertEqual(3, len(g3))
