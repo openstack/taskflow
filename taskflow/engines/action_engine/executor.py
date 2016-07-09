@@ -19,7 +19,6 @@ import abc
 import futurist
 import six
 
-from taskflow import logging
 from taskflow import task as ta
 from taskflow.types import failure
 from taskflow.types import notifier
@@ -27,8 +26,6 @@ from taskflow.types import notifier
 # Execution and reversion outcomes.
 EXECUTED = 'executed'
 REVERTED = 'reverted'
-
-LOG = logging.getLogger(__name__)
 
 
 def _execute_retry(retry, arguments):

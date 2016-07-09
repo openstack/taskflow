@@ -24,12 +24,9 @@ from oslo_utils import uuidutils
 import six
 
 from taskflow import exceptions as exc
-from taskflow import logging
 from taskflow import states
 from taskflow.types import failure as ft
 from taskflow.utils import misc
-
-LOG = logging.getLogger(__name__)
 
 
 # Internal helpers...
