@@ -15,12 +15,9 @@
 #    under the License.
 
 from taskflow.engines.action_engine.actions import base
-from taskflow import logging
 from taskflow import retry as retry_atom
 from taskflow import states
 from taskflow.types import failure
-
-LOG = logging.getLogger(__name__)
 
 
 class RetryAction(base.Action):
