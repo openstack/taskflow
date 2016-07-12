@@ -80,4 +80,4 @@ class TestEndpoint(test.TestCase):
                                      progress_callback=None,
                                      result=self.task_result,
                                      failures={})
-        self.assertEqual(None, result)
+        self.assertIsNone(result)

@@ -179,7 +179,7 @@ class StorageTestMixin(object):
     def test_reset_unknown_task(self):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task'))
-        self.assertEqual(None, s.reset('my task'))
+        self.assertIsNone(s.reset('my task'))
 
     def test_fetch_by_name(self):
         s = self._get_storage()
@@ -215,7 +215,7 @@ class StorageTestMixin(object):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task'))
         self.assertEqual(0.0, s.get_task_progress('my task'))
-        self.assertEqual(None, s.get_task_progress_details('my task'))
+        self.assertIsNone(s.get_task_progress_details('my task'))
 
     def test_task_progress(self):
         s = self._get_storage()
@@ -248,7 +248,7 @@ class StorageTestMixin(object):
 
         s.set_task_progress('my task', 0.8, {})
         self.assertEqual(0.8, s.get_task_progress('my task'))
-        self.assertEqual(None, s.get_task_progress_details('my task'))
+        self.assertIsNone(s.get_task_progress_details('my task'))
 
     def test_fetch_result_not_ready(self):
         s = self._get_storage()

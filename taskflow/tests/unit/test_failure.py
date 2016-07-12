@@ -64,7 +64,7 @@ class GeneralFailureObjTestsMixin(object):
 
     def test_check_str_not_there(self):
         val = 'ValueError'
-        self.assertEqual(None, self.fail_obj.check(val))
+        self.assertIsNone(self.fail_obj.check(val))
 
     def test_check_type(self):
         self.assertIs(self.fail_obj.check(RuntimeError), RuntimeError)
@@ -306,7 +306,7 @@ class WrappedFailureTestCase(test.TestCase):
         fail_obj = _captured_failure('Woot!')
         wf = exceptions.WrappedFailure([fail_obj])
         self.assertEqual(RuntimeError, wf.check(RuntimeError))
-        self.assertEqual(None, wf.check(ValueError))
+        self.assertIsNone(wf.check(ValueError))
 
     def test_two_failures(self):
         fls = [
