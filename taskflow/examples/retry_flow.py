@@ -43,14 +43,14 @@ from taskflow import task
 
 class CallJim(task.Task):
     def execute(self, jim_number):
-        print ("Calling jim %s." % jim_number)
+        print("Calling jim %s." % jim_number)
         if jim_number != 555:
             raise Exception("Wrong number!")
         else:
-            print ("Hello Jim!")
+            print("Hello Jim!")
 
     def revert(self, jim_number, **kwargs):
-        print ("Wrong number, apologizing.")
+        print("Wrong number, apologizing.")
 
 
 # Create your flow and associated tasks (the work to be done).
