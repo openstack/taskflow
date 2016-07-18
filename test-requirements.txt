@@ -28,7 +28,7 @@ pydotplus>=2.0.2 # MIT License
 SQLAlchemy<1.1.0,>=1.0.10 # MIT
 alembic>=0.8.4 # MIT
 psycopg2>=2.5 # LGPL/ZPL
-sqlalchemy-utils # BSD License
+SQLAlchemy-Utils # BSD License
 PyMySQL>=0.6.2 # MIT License
 
 # Used for making sure we still work with eventlet.
