@@ -103,7 +103,7 @@ class CachedPropertyTest(test.TestCase):
             def b(self):
                 return 'b'
 
-        self.assertEqual(None, inspect.getdoc(A.b))
+        self.assertIsNone(inspect.getdoc(A.b))
 
     def test_threaded_access_property(self):
         called = collections.deque()
@@ -172,7 +172,7 @@ class UriParseTest(test.TestCase):
         url = "rsync://test@www.yahoo.com:873"
         parsed = misc.parse_uri(url)
         self.assertEqual('test', parsed.username)
-        self.assertEqual(None, parsed.password)
+        self.assertIsNone(parsed.password)
 
 
 class TestSequenceMinus(test.TestCase):
