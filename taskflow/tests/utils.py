@@ -375,6 +375,9 @@ class FailureMatcher(object):
     def __eq__(self, other):
         return self._failure.matches(other)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class OneReturnRetry(retry.AlwaysRevert):
 

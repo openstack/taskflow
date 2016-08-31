@@ -156,6 +156,9 @@ class RedisJob(base.Job):
         return ((self.board.listings_key, self.priority, self.sequence) ==
                 (other.board.listings_key, other.priority, other.sequence))
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash((self.board.listings_key, self.priority, self.sequence))
 

@@ -67,6 +67,9 @@ class TopicWorker(object):
         else:
             return other.identity == self.identity
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __repr__(self):
         r = reflection.get_class_name(self, fully_qualified=False)
         if self.identity is not self._NO_IDENTITY:

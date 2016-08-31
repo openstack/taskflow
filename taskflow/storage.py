@@ -231,6 +231,9 @@ class _Provider(object):
     def __eq__(self, other):
         return (self.name, self.index) == (other.name, other.index)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 def _item_from(container, index):
     """Attempts to fetch a index/key from a given container."""

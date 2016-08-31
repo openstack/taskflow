@@ -201,6 +201,9 @@ class ZookeeperJob(base.Job):
         return ((self.root, self.sequence, self.priority) ==
                 (other.root, other.sequence, other.priority))
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __hash__(self):
         return hash(self.path)
 
