@@ -123,6 +123,9 @@ class Listener(object):
         else:
             return NotImplemented
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class Notifier(object):
     """A notification (`pub/sub`_ *like*) helper class.
