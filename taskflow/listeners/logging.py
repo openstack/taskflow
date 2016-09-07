@@ -111,7 +111,8 @@ class DynamicLoggingListener(base.Listener):
                  flow_listen_for=base.DEFAULT_LISTEN_FOR,
                  retry_listen_for=base.DEFAULT_LISTEN_FOR,
                  log=None, failure_level=logging.WARNING,
-                 level=logging.DEBUG, hide_inputs_outputs_of=()):
+                 level=logging.DEBUG, hide_inputs_outputs_of=(),
+                 fail_formatter=None):
         super(DynamicLoggingListener, self).__init__(
             engine, task_listen_for=task_listen_for,
             flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
@@ -129,8 +130,12 @@ class DynamicLoggingListener(base.Listener):
         }
         self._hide_inputs_outputs_of = frozenset(hide_inputs_outputs_of)
         self._logger = misc.pick_first_not_none(log, self._LOGGER, LOG)
-        self._fail_formatter = formatters.FailureFormatter(
-            self._engine, hide_inputs_outputs_of=self._hide_inputs_outputs_of)
+        if fail_formatter is None:
+            self._fail_formatter = formatters.FailureFormatter(
+                self._engine,
+                hide_inputs_outputs_of=self._hide_inputs_outputs_of)
+        else:
+            self._fail_formatter = fail_formatter
 
     def _flow_receiver(self, state, details):
         """Gets called on flow state changes."""
