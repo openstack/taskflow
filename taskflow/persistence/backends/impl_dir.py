@@ -24,6 +24,7 @@ import shutil
 import cachetools
 import fasteners
 from oslo_serialization import jsonutils
+from oslo_utils import fileutils
 
 from taskflow import exceptions as exc
 from taskflow.persistence import path_based
@@ -146,7 +147,7 @@ class Connection(path_based.PathBasedConnection):
 
     def _ensure_path(self, path):
         with _storagefailure_wrapper():
-            misc.ensure_tree(path)
+            fileutils.ensure_tree(path)
 
     def _create_link(self, src_path, dest_path, transaction):
         with _storagefailure_wrapper():

@@ -18,7 +18,6 @@
 import collections
 import contextlib
 import datetime
-import errno
 import inspect
 import os
 import re
@@ -465,24 +464,6 @@ def as_int(obj, quiet=False):
         raise TypeError("Can not translate '%s' (%s) to an integer"
                         % (obj, type(obj)))
     return obj
-
-
-# Taken from oslo-incubator file-utils but since that module pulls in a large
-# amount of other files it does not seem so useful to include that full
-# module just for this function.
-def ensure_tree(path):
-    """Create a directory (and any ancestor directories required).
-
-    :param path: Directory to create
-    """
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if e.errno == errno.EEXIST:
-            if not os.path.isdir(path):
-                raise
-        else:
-            raise
 
 
 @contextlib.contextmanager
