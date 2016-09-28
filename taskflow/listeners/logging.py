@@ -35,7 +35,7 @@ class LoggingListener(base.DumpingListener):
     It listens for task and flow notifications and writes those notifications
     to a provided logger, or logger of its module
     (``taskflow.listeners.logging``) if none is provided (and no class
-    attribute is overriden). The log level can also be
+    attribute is overridden). The log level can also be
     configured, ``logging.DEBUG`` is used by default when none is provided.
     """
 
@@ -74,8 +74,8 @@ class DynamicLoggingListener(base.Listener):
     It listens for task and flow notifications and writes those notifications
     to a provided logger, or logger of its module
     (``taskflow.listeners.logging``) if none is provided (and no class
-    attribute is overriden). The log level can *slightly* be configured
-    and ``logging.DEBUG`` or ``logging.WARNING`` (unless overriden via a
+    attribute is overridden). The log level can *slightly* be configured
+    and ``logging.DEBUG`` or ``logging.WARNING`` (unless overridden via a
     constructor parameter) will be selected automatically based on the
     execution state and results produced.
 
