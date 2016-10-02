@@ -30,6 +30,7 @@ from taskflow.engines.action_engine import scheduler as sched
 from taskflow.engines.action_engine import scopes as sc
 from taskflow.engines.action_engine import traversal as tr
 from taskflow import exceptions as exc
+from taskflow import logging
 from taskflow import states as st
 from taskflow.utils import misc
 
@@ -38,6 +39,8 @@ from taskflow.flow import (LINK_DECIDER, LINK_DECIDER_DEPTH)  # noqa
 # Small helper to make the edge decider tuples more easily useable...
 _EdgeDecider = collections.namedtuple('_EdgeDecider',
                                       'from_node,kind,decider,depth')
+
+LOG = logging.getLogger(__name__)
 
 
 class Runtime(object):
@@ -139,6 +142,8 @@ class Runtime(object):
             metadata['scheduler'] = scheduler
             metadata['edge_deciders'] = tuple(deciders_it)
             metadata['action'] = action
+            LOG.trace("Compiled %s metadata for node %s (%s)",
+                      metadata, node.name, node_kind)
             self._atom_cache[node.name] = metadata
         # TODO(harlowja): optimize the different decider depths to avoid
         # repeated full successor searching; this can be done by searching
