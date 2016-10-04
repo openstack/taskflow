@@ -417,7 +417,7 @@ lookup order to find (or fail) a atoms requirement lookup/request:
 
 .. note::
 
-    To examine this this information when debugging it is recommended to
+    To examine this information when debugging it is recommended to
     enable the ``BLATHER`` logging level (level 5). At this level the storage
     and scope code/layers will log what is being searched for and what is
     being found.
