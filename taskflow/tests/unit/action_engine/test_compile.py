@@ -599,7 +599,7 @@ class PatternCompileTest(test.TestCase):
         self.assertIs(c2, g.node['b']['retry'])
         self.assertIs(c2, g.node['c']['retry'])
         self.assertIs(c1, g.node['c2']['retry'])
-        self.assertIs(None, g.node['c1'].get('retry'))
+        self.assertIsNone(g.node['c1'].get('retry'))
 
     def test_retry_subflows_hierarchy(self):
         c1 = retry.AlwaysRevert("c1")
@@ -624,4 +624,4 @@ class PatternCompileTest(test.TestCase):
         self.assertIs(c1, g.node['d']['retry'])
         self.assertIs(c1, g.node['b']['retry'])
         self.assertIs(c1, g.node['c']['retry'])
-        self.assertIs(None, g.node['c1'].get('retry'))
+        self.assertIsNone(g.node['c1'].get('retry'))
