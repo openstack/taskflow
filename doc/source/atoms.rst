@@ -106,7 +106,7 @@ Area of influence
 -----------------
 
 Each retry atom is associated with a flow and it can *influence* how the
-atoms (or nested flows) contained in that that flow retry or revert (using
+atoms (or nested flows) contained in that flow retry or revert (using
 the previously mentioned patterns and decision enumerations):
 
 *For example:*
