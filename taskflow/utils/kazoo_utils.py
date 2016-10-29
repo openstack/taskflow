@@ -173,7 +173,7 @@ def make_client(conf):
       based, but `gevent`_, or `eventlet`_ ones can be provided as needed)
 
     .. _client: http://kazoo.readthedocs.org/en/latest/api/client.html
-    .. _kazoo: kazoo.readthedocs.org/
+    .. _kazoo: http://kazoo.readthedocs.org/
     .. _retry: http://kazoo.readthedocs.org/en/latest/api/retry.html
     .. _gevent: http://kazoo.readthedocs.org/en/latest/api/\
                 handlers/gevent.html
