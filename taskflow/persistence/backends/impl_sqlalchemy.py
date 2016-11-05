@@ -24,12 +24,12 @@ import threading
 import time
 
 from oslo_utils import strutils
-import retrying
 import six
 import sqlalchemy as sa
 from sqlalchemy import exc as sa_exc
 from sqlalchemy import pool as sa_pool
 from sqlalchemy import sql
+import tenacity
 
 from taskflow import exceptions as exc
 from taskflow import logging
@@ -375,14 +375,12 @@ class Connection(base.Connection):
             # Other failures we likely can't fix by retrying...
             return False
 
-        @retrying.retry(stop_max_attempt_number=max(0, int(max_retries)),
-                        # Ensure that the 2 ** retry number
-                        # is converted into milliseconds (thus why this
-                        # multiplies by 1000.0) because thats what retrying
-                        # lib. uses internally for whatever reason.
-                        wait_exponential_multiplier=1000.0,
-                        wrap_exception=False,
-                        retry_on_exception=_retry_on_exception)
+        @tenacity.retry(
+            stop=tenacity.stop_after_attempt(max(0, int(max_retries))),
+            wait=tenacity.wait_exponential(),
+            reraise=True,
+            retry=tenacity.retry_if_exception(_retry_on_exception)
+        )
         def _try_connect(engine):
             # See if we can make a connection happen.
             #
