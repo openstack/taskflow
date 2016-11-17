@@ -188,7 +188,7 @@ overriding the :py:class:`logbook <taskflow.persistence.models.LogBook>`
 
 .. code-block:: python
 
-    import uuid
+    from oslo_utils import uuidutils
 
     from taskflow import engines
     from taskflow.persistence import backends as persistence_backends
@@ -206,9 +206,9 @@ overriding the :py:class:`logbook <taskflow.persistence.models.LogBook>`
         "board": "zookeeper",
     }, persistence=persistence)
 
-    book = models.LogBook('my-book', uuid.uuid4())
+    book = models.LogBook('my-book', uuidutils.generate_uuid())
 
-    flow_detail = models.FlowDetail('my-job', uuid.uuid4())
+    flow_detail = models.FlowDetail('my-job', uuidutils.generate_uuid())
     book.add(flow_detail)
 
     connection = persistence.get_connection()
