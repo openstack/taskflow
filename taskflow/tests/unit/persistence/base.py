@@ -311,7 +311,7 @@ class PersistenceTestMixin(object):
             lb2 = conn.get_logbook(lb_id)
             fd2 = lb2.find(fd.uuid)
             td2 = fd2.find(td.uuid)
-            self.assertIsNot(td2, None)
+            self.assertIsNotNone(td2)
             self.assertEqual('detail-1', td2.name)
             self.assertEqual('4.2', td2.version)
             self.assertEqual(states.EXECUTE, td2.intention)

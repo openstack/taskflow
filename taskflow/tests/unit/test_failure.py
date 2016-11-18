@@ -70,7 +70,7 @@ class GeneralFailureObjTestsMixin(object):
         self.assertIs(self.fail_obj.check(RuntimeError), RuntimeError)
 
     def test_check_type_not_there(self):
-        self.assertIs(self.fail_obj.check(ValueError), None)
+        self.assertIsNone(self.fail_obj.check(ValueError))
 
 
 class CaptureFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
@@ -102,10 +102,10 @@ class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
                                         exc_type_names=list(fail_obj))
 
     def test_value_lost(self):
-        self.assertIs(self.fail_obj.exception, None)
+        self.assertIsNone(self.fail_obj.exception)
 
     def test_no_exc_info(self):
-        self.assertIs(self.fail_obj.exc_info, None)
+        self.assertIsNone(self.fail_obj.exc_info)
 
     def test_pformat_traceback(self):
         text = self.fail_obj.pformat(traceback=True)
@@ -205,7 +205,7 @@ class FailureObjectTestCase(test.TestCase):
         self.assertEqual(expected, str(exc))
 
     def test_empty_does_not_reraise(self):
-        self.assertIs(failure.Failure.reraise_if_any([]), None)
+        self.assertIsNone(failure.Failure.reraise_if_any([]))
 
     def test_reraises_one(self):
         fls = [_captured_failure('Woot!')]
@@ -269,7 +269,7 @@ class FailureObjectTestCase(test.TestCase):
 
     def test_compares_to_none(self):
         captured = _captured_failure('Woot!')
-        self.assertNotEqual(captured, None)
+        self.assertIsNotNone(captured)
         self.assertFalse(captured.matches(None))
 
     def test_pformat_traceback(self):
