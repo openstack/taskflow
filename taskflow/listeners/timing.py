@@ -63,8 +63,9 @@ class DurationListener(base.Listener):
         for item_type, timers in six.iteritems(self._timers):
             leftover_timers = len(timers)
             if leftover_timers:
-                LOG.warn("%s %s(s) did not enter %s states", leftover_timers,
-                         item_type, FINISHED_STATES)
+                LOG.warning("%s %s(s) did not enter %s states",
+                            leftover_timers,
+                            item_type, FINISHED_STATES)
             timers.clear()
 
     def _record_ending(self, timer, item_type, item_name, state):
@@ -80,8 +81,8 @@ class DurationListener(base.Listener):
             else:
                 storage.update_atom_metadata(item_name, meta_update)
         except exc.StorageFailure:
-            LOG.warn("Failure to store duration update %s for %s %s",
-                     meta_update, item_type, item_name, exc_info=True)
+            LOG.warning("Failure to store duration update %s for %s %s",
+                        meta_update, item_type, item_name, exc_info=True)
 
     def _task_receiver(self, state, details):
         task_name = details['task_name']
@@ -151,8 +152,8 @@ class EventTimeListener(base.Listener):
             # Don't let storage failures throw exceptions in a listener method.
             self._engine.storage.update_atom_metadata(atom_name, meta_update)
         except exc.StorageFailure:
-            LOG.warn("Failure to store timestamp %s for atom %s",
-                     meta_update, atom_name, exc_info=True)
+            LOG.warning("Failure to store timestamp %s for atom %s",
+                        meta_update, atom_name, exc_info=True)
 
     def _flow_receiver(self, state, details):
         meta_update = {'%s-timestamp' % state: time.time()}
@@ -160,8 +161,8 @@ class EventTimeListener(base.Listener):
             # Don't let storage failures throw exceptions in a listener method.
             self._engine.storage.update_flow_metadata(meta_update)
         except exc.StorageFailure:
-            LOG.warn("Failure to store timestamp %s for flow %s",
-                     meta_update, details['flow_name'], exc_info=True)
+            LOG.warning("Failure to store timestamp %s for flow %s",
+                        meta_update, details['flow_name'], exc_info=True)
 
     def _task_receiver(self, state, details):
         self._record_atom_event(state, details['task_name'])

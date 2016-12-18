@@ -817,9 +817,9 @@ return cmsgpack.pack(result)
                 job_details = job_data.get('details', {})
             except (ValueError, TypeError, KeyError):
                 with excutils.save_and_reraise_exception():
-                    LOG.warn("Incorrectly formatted job data found at"
-                             " key: %s[%s]", self.listings_key,
-                             raw_job_key, exc_info=True)
+                    LOG.warning("Incorrectly formatted job data found at"
+                                " key: %s[%s]", self.listings_key,
+                                raw_job_key, exc_info=True)
             else:
                 postings.append(RedisJob(self, job_name, job_sequence_id,
                                          raw_job_key, uuid=job_uuid,

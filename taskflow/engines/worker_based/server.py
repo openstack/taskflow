@@ -142,9 +142,9 @@ class Server(object):
         try:
             reply_to = message.properties['reply_to']
         except KeyError:
-            LOG.warn("The 'reply_to' message property is missing"
-                     " in received notify message '%s'",
-                     ku.DelayedPretty(message), exc_info=True)
+            LOG.warning("The 'reply_to' message property is missing"
+                        " in received notify message '%s'",
+                        ku.DelayedPretty(message), exc_info=True)
         else:
             response = pr.Notify(topic=self._topic,
                                  tasks=self._endpoints.keys())
@@ -177,8 +177,9 @@ class Server(object):
             work = pr.Request.from_dict(request, task_uuid=task_uuid)
         except ValueError:
             with misc.capture_failure() as failure:
-                LOG.warn("Failed to parse request contents from message '%s'",
-                         ku.DelayedPretty(message), exc_info=True)
+                LOG.warning("Failed to parse request contents"
+                            " from message '%s'",
+                            ku.DelayedPretty(message), exc_info=True)
                 reply_callback(result=pr.failure_to_dict(failure))
                 return
 
@@ -187,10 +188,10 @@ class Server(object):
             endpoint = self._endpoints[work.task_cls]
         except KeyError:
             with misc.capture_failure() as failure:
-                LOG.warn("The '%s' task endpoint does not exist, unable"
-                         " to continue processing request message '%s'",
-                         work.task_cls, ku.DelayedPretty(message),
-                         exc_info=True)
+                LOG.warning("The '%s' task endpoint does not exist, unable"
+                            " to continue processing request message '%s'",
+                            work.task_cls, ku.DelayedPretty(message),
+                            exc_info=True)
                 reply_callback(result=pr.failure_to_dict(failure))
                 return
         else:
@@ -198,10 +199,10 @@ class Server(object):
                 handler = getattr(endpoint, work.action)
             except AttributeError:
                 with misc.capture_failure() as failure:
-                    LOG.warn("The '%s' handler does not exist on task endpoint"
-                             " '%s', unable to continue processing request"
-                             " message '%s'", work.action, endpoint,
-                             ku.DelayedPretty(message), exc_info=True)
+                    LOG.warning("The '%s' handler does not exist on task"
+                                " endpoint '%s', unable to continue processing"
+                                " request message '%s'", work.action, endpoint,
+                                ku.DelayedPretty(message), exc_info=True)
                     reply_callback(result=pr.failure_to_dict(failure))
                     return
             else:
@@ -209,9 +210,10 @@ class Server(object):
                     task = endpoint.generate(name=work.task_name)
                 except Exception:
                     with misc.capture_failure() as failure:
-                        LOG.warn("The '%s' task '%s' generation for request"
-                                 " message '%s' failed", endpoint, work.action,
-                                 ku.DelayedPretty(message), exc_info=True)
+                        LOG.warning("The '%s' task '%s' generation for request"
+                                    " message '%s' failed", endpoint,
+                                    work.action, ku.DelayedPretty(message),
+                                    exc_info=True)
                         reply_callback(result=pr.failure_to_dict(failure))
                         return
                 else:
@@ -237,9 +239,9 @@ class Server(object):
             result = handler(task, **work.arguments)
         except Exception:
             with misc.capture_failure() as failure:
-                LOG.warn("The '%s' endpoint '%s' execution for request"
-                         " message '%s' failed", endpoint, work.action,
-                         ku.DelayedPretty(message), exc_info=True)
+                LOG.warning("The '%s' endpoint '%s' execution for request"
+                            " message '%s' failed", endpoint, work.action,
+                            ku.DelayedPretty(message), exc_info=True)
                 reply_callback(result=pr.failure_to_dict(failure))
         else:
             # And be done with it!

@@ -263,8 +263,8 @@ class TaskTest(test.TestCase):
         a_task.execute(values)
         self.assertEqual(values, result)
 
-    @mock.patch.object(task.LOG, 'warn')
-    def test_update_progress_lower_bound(self, mocked_warn):
+    @mock.patch.object(task.LOG, 'warning')
+    def test_update_progress_lower_bound(self, mocked_warning):
         result = []
 
         def progress_callback(event_type, details):
@@ -274,10 +274,10 @@ class TaskTest(test.TestCase):
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
         a_task.execute([-1.0, -0.5, 0.0])
         self.assertEqual([0.0, 0.0, 0.0], result)
-        self.assertEqual(2, mocked_warn.call_count)
+        self.assertEqual(2, mocked_warning.call_count)
 
-    @mock.patch.object(task.LOG, 'warn')
-    def test_update_progress_upper_bound(self, mocked_warn):
+    @mock.patch.object(task.LOG, 'warning')
+    def test_update_progress_upper_bound(self, mocked_warning):
         result = []
 
         def progress_callback(event_type, details):
@@ -287,10 +287,10 @@ class TaskTest(test.TestCase):
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
         a_task.execute([1.0, 1.5, 2.0])
         self.assertEqual([1.0, 1.0, 1.0], result)
-        self.assertEqual(2, mocked_warn.call_count)
+        self.assertEqual(2, mocked_warning.call_count)
 
-    @mock.patch.object(notifier.LOG, 'warn')
-    def test_update_progress_handler_failure(self, mocked_warn):
+    @mock.patch.object(notifier.LOG, 'warning')
+    def test_update_progress_handler_failure(self, mocked_warning):
 
         def progress_callback(*args, **kwargs):
             raise Exception('Woot!')
@@ -298,7 +298,7 @@ class TaskTest(test.TestCase):
         a_task = ProgressTask()
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, progress_callback)
         a_task.execute([0.5])
-        self.assertEqual(1, mocked_warn.call_count)
+        self.assertEqual(1, mocked_warning.call_count)
 
     def test_register_handler_is_none(self):
         a_task = MyTask()

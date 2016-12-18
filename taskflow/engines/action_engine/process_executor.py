@@ -504,16 +504,16 @@ class DispatcherHandler(asyncore.dispatcher):
             try:
                 self.reader.feed(data)
             except (IOError, UnknownSender):
-                LOG.warn("Invalid received message", exc_info=True)
+                LOG.warning("Invalid received message", exc_info=True)
                 self.handle_close()
             except _DECODE_ENCODE_ERRORS:
-                LOG.warn("Badly formatted message", exc_info=True)
+                LOG.warning("Badly formatted message", exc_info=True)
                 self.handle_close()
             except (ValueError, su.ValidationError):
-                LOG.warn("Failed validating message", exc_info=True)
+                LOG.warning("Failed validating message", exc_info=True)
                 self.handle_close()
             except ChallengeIgnored:
-                LOG.warn("Failed challenge sequence", exc_info=True)
+                LOG.warning("Failed challenge sequence", exc_info=True)
                 self.handle_close()
 
 

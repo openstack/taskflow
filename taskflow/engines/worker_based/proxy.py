@@ -162,9 +162,9 @@ class Proxy(object):
         # Filter out any empty keys...
         routing_keys = [r_k for r_k in routing_keys if r_k]
         if not routing_keys:
-            LOG.warn("No routing key/s specified; unable to send '%s'"
-                     " to any target queue on exchange '%s'", msg,
-                     self._exchange_name)
+            LOG.warning("No routing key/s specified; unable to send '%s'"
+                        " to any target queue on exchange '%s'", msg,
+                        self._exchange_name)
             return
 
         def _publish(producer, routing_key):

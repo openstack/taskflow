@@ -132,12 +132,12 @@ def upgrade():
         for fkey_descriptor in _get_foreign_keys():
             op.create_foreign_key(**fkey_descriptor)
     except NotImplementedError as e:
-        LOG.warn("Foreign keys are not supported: %s", e)
+        LOG.warning("Foreign keys are not supported: %s", e)
     try:
         for index_descriptor in _get_indexes():
             op.create_index(**index_descriptor)
     except NotImplementedError as e:
-        LOG.warn("Indexes are not supported: %s", e)
+        LOG.warning("Indexes are not supported: %s", e)
 
 
 def downgrade():

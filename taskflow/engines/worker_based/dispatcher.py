@@ -135,9 +135,9 @@ class TypeDispatcher(object):
                 except excp.InvalidFormat as e:
                     message.reject_log_error(
                         logger=LOG, errors=(kombu_exc.MessageStateError,))
-                    LOG.warn("Message '%s' (%s) was rejected due to it being"
-                             " in an invalid format: %s",
-                             ku.DelayedPretty(message), message_type, e)
+                    LOG.warning("Message '%s' (%s) was rejected due to it"
+                                " being in an invalid format: %s",
+                                ku.DelayedPretty(message), message_type, e)
                     return
             message.ack_log_error(logger=LOG,
                                   errors=(kombu_exc.MessageStateError,))

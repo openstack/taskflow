@@ -425,23 +425,24 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             job_name = job_data['name']
         except (ValueError, TypeError, KeyError):
             with excutils.save_and_reraise_exception(reraise=not quiet):
-                LOG.warn("Incorrectly formatted job data found at path: %s",
-                         path, exc_info=True)
+                LOG.warning("Incorrectly formatted job data found at path: %s",
+                            path, exc_info=True)
         except self._client.handler.timeout_exception:
             with excutils.save_and_reraise_exception(reraise=not quiet):
-                LOG.warn("Operation timed out fetching job data from path: %s",
-                         path, exc_info=True)
+                LOG.warning("Operation timed out fetching job data from"
+                            " from path: %s",
+                            path, exc_info=True)
         except k_exceptions.SessionExpiredError:
             with excutils.save_and_reraise_exception(reraise=not quiet):
-                LOG.warn("Session expired fetching job data from path: %s",
-                         path, exc_info=True)
+                LOG.warning("Session expired fetching job data from path: %s",
+                            path, exc_info=True)
         except k_exceptions.NoNodeError:
             LOG.debug("No job node found at path: %s, it must have"
                       " disappeared or was removed", path)
         except k_exceptions.KazooException:
             with excutils.save_and_reraise_exception(reraise=not quiet):
-                LOG.warn("Internal error fetching job data from path: %s",
-                         path, exc_info=True)
+                LOG.warning("Internal error fetching job data from path: %s",
+                            path, exc_info=True)
         else:
             with self._job_cond:
                 # Now we can officially check if someone already placed this
@@ -747,9 +748,9 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         self._last_states.appendleft(state)
         if state == k_states.KazooState.LOST:
             self._connected = False
-            LOG.warn("Connection to zookeeper has been lost")
+            LOG.warning("Connection to zookeeper has been lost")
         elif state == k_states.KazooState.SUSPENDED:
-            LOG.warn("Connection to zookeeper has been suspended")
+            LOG.warning("Connection to zookeeper has been suspended")
             self._suspended = True
         else:
             # Must be CONNECTED then (as there are only 3 enums)

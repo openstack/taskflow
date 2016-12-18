@@ -212,9 +212,9 @@ class Notifier(object):
             try:
                 listener(event_type, details.copy())
             except Exception:
-                LOG.warn("Failure calling listener %s to notify about event"
-                         " %s, details: %s", listener, event_type,
-                         details, exc_info=True)
+                LOG.warning("Failure calling listener %s to notify about event"
+                            " %s, details: %s", listener, event_type,
+                            details, exc_info=True)
 
     def register(self, event_type, callback,
                  args=None, kwargs=None, details_filter=None):
