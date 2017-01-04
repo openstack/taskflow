@@ -31,9 +31,6 @@ stevedore>=1.17.1 # Apache-2.0
 # Backport for concurrent.futures which exists in 3.2+
 futures>=3.0;python_version=='2.7' or python_version=='2.6' # BSD
 
-# Backport for time.monotonic which is in 3.3+
-monotonic>=0.6 # Apache-2.0
-
 # Used for structured input validation
 jsonschema!=2.5.0,<3.0.0,>=2.0.0 # MIT
 
