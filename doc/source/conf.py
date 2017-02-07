@@ -40,7 +40,7 @@ exclude_patterns = ['_build']
 # General information about the project.
 project = u'TaskFlow'
 copyright = u'%s, OpenStack Foundation' % datetime.date.today().year
-source_tree = 'http://git.openstack.org/cgit/openstack/taskflow/tree'
+source_tree = 'https://git.openstack.org/cgit/openstack/taskflow/tree'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
