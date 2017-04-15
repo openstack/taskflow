@@ -110,7 +110,9 @@ class ExecutorConductor(base.Conductor):
     def __init__(self, name, jobboard,
                  persistence=None, engine=None,
                  engine_options=None, wait_timeout=None,
-                 log=None, max_simultaneous_jobs=MAX_SIMULTANEOUS_JOBS):
+                 log=None, max_simultaneous_jobs=None):
+        if max_simultaneous_jobs is None:
+              max_simultaneous_jobs = MAX_SIMULTANEOUS_JOBS
         super(ExecutorConductor, self).__init__(
             name, jobboard, persistence=persistence,
             engine=engine, engine_options=engine_options)
