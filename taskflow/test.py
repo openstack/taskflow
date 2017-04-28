@@ -22,7 +22,6 @@ import logging
 import fixtures
 import mock
 from oslotest import base
-from oslotest import mockpatch
 import six
 
 from testtools import compat
@@ -198,8 +197,8 @@ class MockTestCase(TestCase):
 
     def patch(self, target, autospec=True, **kwargs):
         """Patch target and attach it to the master mock."""
-        f = self.useFixture(mockpatch.Patch(target,
-                                            autospec=autospec, **kwargs))
+        f = self.useFixture(fixtures.MockPatch(target,
+                                               autospec=autospec, **kwargs))
         mocked = f.mock
         attach_as = kwargs.pop('attach_as', None)
         if attach_as is not None:
@@ -218,8 +217,8 @@ class MockTestCase(TestCase):
         else:
             instance_mock = mock.Mock()
 
-        f = self.useFixture(mockpatch.PatchObject(module, name,
-                                                  autospec=autospec))
+        f = self.useFixture(fixtures.MockPatchObject(module, name,
+                                                     autospec=autospec))
         class_mock = f.mock
         class_mock.return_value = instance_mock
 
