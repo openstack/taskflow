@@ -147,7 +147,7 @@ class Server(object):
                      ku.DelayedPretty(message), exc_info=True)
         else:
             response = pr.Notify(topic=self._topic,
-                                 tasks=self._endpoints.keys())
+                                 tasks=list(self._endpoints.keys()))
             try:
                 self._proxy.publish(response, routing_key=reply_to)
             except Exception:
