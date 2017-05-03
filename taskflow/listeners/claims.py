@@ -70,9 +70,9 @@ class CheckingClaimListener(base.Listener):
         try:
             engine.suspend()
         except exceptions.TaskFlowException as e:
-            LOG.warn("Failed suspending engine '%s', (previously owned by"
-                     " '%s'):%s%s", engine, self._owner, os.linesep,
-                     e.pformat())
+            LOG.warning("Failed suspending engine '%s', (previously owned by"
+                        " '%s'):%s%s", engine, self._owner, os.linesep,
+                        e.pformat())
 
     def _flow_receiver(self, state, details):
         self._claim_checker(state, details)
@@ -97,6 +97,7 @@ class CheckingClaimListener(base.Listener):
             LOG.debug("Job '%s' is still claimed (actively owned by '%s')",
                       self._job, self._owner)
         else:
-            LOG.warn("Job '%s' has lost its claim (previously owned by '%s')",
-                     self._job, self._owner)
+            LOG.warning("Job '%s' has lost its claim"
+                        " (previously owned by '%s')",
+                        self._job, self._owner)
             self._on_job_loss(self._engine, state, details)

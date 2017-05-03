@@ -242,8 +242,8 @@ class TestDurationListener(test.TestCase, EngineMakerMixin):
             self.assertIn('duration', fd.meta)
             self.assertGreaterEqual(0.1, fd.meta['duration'])
 
-    @mock.patch.object(timing.LOG, 'warn')
-    def test_record_ending_exception(self, mocked_warn):
+    @mock.patch.object(timing.LOG, 'warning')
+    def test_record_ending_exception(self, mocked_warning):
         with contextlib.closing(impl_memory.MemoryBackend()) as be:
             flow = lf.Flow("test")
             flow.add(test_utils.TaskNoRequiresNoReturns("test-1"))
@@ -255,8 +255,8 @@ class TestDurationListener(test.TestCase, EngineMakerMixin):
                 mocked_uam.side_effect = exc.StorageFailure('Woot!')
                 with duration_listener:
                     e.run()
-        mocked_warn.assert_called_once_with(mock.ANY, mock.ANY, 'task',
-                                            'test-1', exc_info=True)
+        mocked_warning.assert_called_once_with(mock.ANY, mock.ANY, 'task',
+                                               'test-1', exc_info=True)
 
 
 class TestEventTimeListener(test.TestCase, EngineMakerMixin):

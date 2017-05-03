@@ -103,8 +103,9 @@ class Task(atom.Atom):
         :param progress: task progress float value between 0.0 and 1.0
         """
         def on_clamped():
-            LOG.warn("Progress value must be greater or equal to 0.0 or less"
-                     " than or equal to 1.0 instead of being '%s'", progress)
+            LOG.warning("Progress value must be greater or equal to 0.0 or"
+                        " less than or equal to 1.0 instead of being '%s'",
+                        progress)
         cleaned_progress = misc.clamp(progress, 0.0, 1.0,
                                       on_clamped=on_clamped)
         self._notifier.notify(EVENT_UPDATE_PROGRESS,
