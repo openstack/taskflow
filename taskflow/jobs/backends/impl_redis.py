@@ -410,12 +410,10 @@ if redis.call("hexists", listings_key, job_key) == 1 then
             -- Owner is the same, leave it alone...
             redis.call("set", last_modified_key, last_modified_blob)
             apply_ttl(owner_key, ms_expiry)
-            result["status"] = "${ok}"
-        else
-            result["status"] = "${error}"
-            result["reason"] = "${already_claimed}"
-            result["owner"] = owner
         end
+        result["status"] = "${error}"
+        result["reason"] = "${already_claimed}"
+        result["owner"] = owner
     else
         redis.call("set", owner_key, expected_owner)
         redis.call("set", last_modified_key, last_modified_blob)
