@@ -102,7 +102,7 @@ class SuspendTest(utils.EngineTestBase):
                     'b.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         self.assertEqual(states.REVERTED, engine.storage.get_flow_state())
         expected = ['a.t REVERTING', 'a.t REVERTED(None)']
         self.assertEqual(expected, capturer.values)
@@ -132,7 +132,7 @@ class SuspendTest(utils.EngineTestBase):
         # pretend we are resuming
         engine2 = self._make_engine(flow, engine.storage._flowdetail)
         with utils.CaptureListener(engine2, capture_flow=False) as capturer2:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine2.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine2.run)
         self.assertEqual(states.REVERTED, engine2.storage.get_flow_state())
         expected = ['a.t REVERTING',
                     'a.t REVERTED(None)']
@@ -169,7 +169,7 @@ class SuspendTest(utils.EngineTestBase):
         )
         engine2 = self._make_engine(flow2, engine.storage._flowdetail)
         with utils.CaptureListener(engine2, capture_flow=False) as capturer2:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine2.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine2.run)
         self.assertEqual(states.REVERTED, engine2.storage.get_flow_state())
         expected = ['a.t REVERTING', 'a.t REVERTED(None)']
         self.assertEqual(expected, capturer2.values)

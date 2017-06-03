@@ -89,7 +89,7 @@ class CaptureFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
         self.assertIs(exc_info[1], self.fail_obj.exception)
 
     def test_reraises(self):
-        self.assertRaisesRegexp(RuntimeError, '^Woot!$', self.fail_obj.reraise)
+        self.assertRaisesRegex(RuntimeError, '^Woot!$', self.fail_obj.reraise)
 
 
 class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
@@ -209,8 +209,8 @@ class FailureObjectTestCase(test.TestCase):
 
     def test_reraises_one(self):
         fls = [_captured_failure('Woot!')]
-        self.assertRaisesRegexp(RuntimeError, '^Woot!$',
-                                failure.Failure.reraise_if_any, fls)
+        self.assertRaisesRegex(RuntimeError, '^Woot!$',
+                               failure.Failure.reraise_if_any, fls)
 
     def test_reraises_several(self):
         fls = [

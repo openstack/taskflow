@@ -65,8 +65,8 @@ class FunctorTaskTest(test.TestCase):
             t(bof.run_one, revert=bof.revert_one),
             t(bof.run_fail)
         )
-        self.assertRaisesRegexp(RuntimeError, '^Woot',
-                                taskflow.engines.run, flow)
+        self.assertRaisesRegex(RuntimeError, '^Woot',
+                               taskflow.engines.run, flow)
         self.assertEqual(['one', 'fail', 'revert one'], values)
 
     def test_lambda_functors(self):

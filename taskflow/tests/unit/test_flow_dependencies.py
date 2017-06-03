@@ -233,14 +233,14 @@ class FlowDependenciesTest(test.TestCase):
 
     def test_graph_cyclic_dependency(self):
         flow = gf.Flow('g-3-cyclic')
-        self.assertRaisesRegexp(exceptions.DependencyFailure, '^No path',
-                                flow.add,
-                                utils.TaskOneArgOneReturn(provides='a',
-                                                          requires=['b']),
-                                utils.TaskOneArgOneReturn(provides='b',
-                                                          requires=['c']),
-                                utils.TaskOneArgOneReturn(provides='c',
-                                                          requires=['a']))
+        self.assertRaisesRegex(exceptions.DependencyFailure, '^No path',
+                               flow.add,
+                               utils.TaskOneArgOneReturn(provides='a',
+                                                         requires=['b']),
+                               utils.TaskOneArgOneReturn(provides='b',
+                                                         requires=['c']),
+                               utils.TaskOneArgOneReturn(provides='c',
+                                                         requires=['a']))
 
     def test_task_requires_and_provides_same_values(self):
         flow = lf.Flow('lf', utils.TaskOneArgOneReturn('rt', requires='x',

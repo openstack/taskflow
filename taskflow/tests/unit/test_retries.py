@@ -103,7 +103,7 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'y': 4})
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         self.assertEqual({'y': 4}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
@@ -142,7 +142,7 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'y': 4})
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Gotcha', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Gotcha', engine.run)
         self.assertEqual({'y': 4, 'x': 1}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
@@ -468,7 +468,7 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'y': 2})
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         self.assertEqual({'y': 2}, engine.storage.fetch_all())
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
@@ -494,8 +494,8 @@ class RetryTest(utils.EngineTestBase):
         flow = lf.Flow('test', retry=utils.OneReturnRetry(provides='x')).add(
             utils.FailingTask('fail'))
         engine = self._make_engine(flow)
-        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
-        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+        self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
+        self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
 
     def test_run_just_retry(self):
         flow = utils.OneReturnRetry(provides='x')
@@ -596,7 +596,7 @@ class RetryTest(utils.EngineTestBase):
             utils.FailingTask('t2'))
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(1)',
@@ -645,7 +645,7 @@ class RetryTest(utils.EngineTestBase):
         flow = lf.Flow('flow-1', retry1).add(utils.FailingTaskWithOneArg('t1'))
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(3)',
@@ -688,7 +688,7 @@ class RetryTest(utils.EngineTestBase):
         flow = lf.Flow('flow-1', retry1).add(utils.FailingTaskWithOneArg('t1'))
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(2)',
@@ -728,7 +728,7 @@ class RetryTest(utils.EngineTestBase):
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['flow-1.f RUNNING',
                     'task1.t RUNNING',
                     'task1.t SUCCESS(5)',
@@ -778,7 +778,7 @@ class RetryTest(utils.EngineTestBase):
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['flow-1.f RUNNING',
                     'task1.t RUNNING',
                     'task1.t SUCCESS(5)',
@@ -825,7 +825,7 @@ class RetryTest(utils.EngineTestBase):
         flow = lf.Flow('flow-1', retry1).add(utils.ConditionalTask('t1'))
         engine = self._make_engine(flow)
         engine.storage.inject({'y': 1})
-        self.assertRaisesRegexp(exc.NotFound, '^No elements left', engine.run)
+        self.assertRaisesRegex(exc.NotFound, '^No elements left', engine.run)
 
     def test_parameterized_for_each_with_list(self):
         values = [3, 2, 5]
@@ -834,7 +834,7 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'values': values, 'y': 1})
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(3)',
@@ -870,7 +870,7 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'values': values, 'y': 1})
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['flow-1.f RUNNING',
                     'r1.r RUNNING',
                     'r1.r SUCCESS(3)',
@@ -911,7 +911,7 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'values': values, 'y': 1})
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['flow-1.f RUNNING',
                     'task-1.t RUNNING',
                     'task-1.t SUCCESS(5)',
@@ -955,7 +955,7 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         engine.storage.inject({'values': values, 'y': 1})
         with utils.CaptureListener(engine) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['flow-1.f RUNNING',
                     'task-1.t RUNNING',
                     'task-1.t SUCCESS(5)',
@@ -994,7 +994,7 @@ class RetryTest(utils.EngineTestBase):
         flow = lf.Flow('flow-1', retry1).add(utils.ConditionalTask('t1'))
         engine = self._make_engine(flow)
         engine.storage.inject({'values': values, 'y': 1})
-        self.assertRaisesRegexp(exc.NotFound, '^No elements left', engine.run)
+        self.assertRaisesRegex(exc.NotFound, '^No elements left', engine.run)
 
     def _pretend_to_run_a_flow_and_crash(self, when):
         flow = uf.Flow('flow-1', retry.Times(3, provides='x')).add(
@@ -1109,7 +1109,7 @@ class RetryTest(utils.EngineTestBase):
         r = FailingRetry()
         flow = lf.Flow('testflow', r)
         engine = self._make_engine(flow)
-        self.assertRaisesRegexp(ValueError, '^OMG', engine.run)
+        self.assertRaisesRegex(ValueError, '^OMG', engine.run)
         self.assertEqual(1, len(engine.storage.get_retry_histories()))
         self.assertEqual(0, len(r.history))
         self.assertEqual([], list(r.history.outcomes_iter()))
@@ -1120,7 +1120,7 @@ class RetryTest(utils.EngineTestBase):
         r = NastyFailingRetry()
         flow = lf.Flow('testflow', r)
         engine = self._make_engine(flow)
-        self.assertRaisesRegexp(ValueError, '^WOOT', engine.run)
+        self.assertRaisesRegex(ValueError, '^WOOT', engine.run)
 
     def test_nested_provides_graph_reverts_correctly(self):
         flow = gf.Flow("test").add(
@@ -1135,7 +1135,7 @@ class RetryTest(utils.EngineTestBase):
         engine.storage.save('b', 11)
         engine.storage.save('a', 10)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
-            self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+            self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         expected = ['c.t RUNNING',
                     'c.t FAILURE(Failure: RuntimeError: Woot!)',
                     'a.t REVERTING',
