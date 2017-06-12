@@ -200,15 +200,15 @@ class GraphFlowTest(test.TestCase):
         task1 = _task('task1')
         task2 = _task('task2')
         f = gf.Flow('test').add(task2)
-        self.assertRaisesRegexp(ValueError, 'Node .* not found to link from',
-                                f.link, task1, task2)
+        self.assertRaisesRegex(ValueError, 'Node .* not found to link from',
+                               f.link, task1, task2)
 
     def test_graph_flow_link_to_unknown_node(self):
         task1 = _task('task1')
         task2 = _task('task2')
         f = gf.Flow('test').add(task1)
-        self.assertRaisesRegexp(ValueError, 'Node .* not found to link to',
-                                f.link, task1, task2)
+        self.assertRaisesRegex(ValueError, 'Node .* not found to link to',
+                               f.link, task1, task2)
 
     def test_graph_flow_link_raises_on_cycle(self):
         task1 = _task('task1', provides=['a'])
@@ -288,8 +288,8 @@ class TargetedGraphFlowTest(test.TestCase):
         task1 = _task('task1', provides=['a'], requires=[])
         task2 = _task('task2', provides=['b'], requires=['a'])
         f.add(task1)
-        self.assertRaisesRegexp(ValueError, '^Node .* not found',
-                                f.set_target, task2)
+        self.assertRaisesRegex(ValueError, '^Node .* not found',
+                               f.set_target, task2)
 
     def test_targeted_flow_one_node(self):
         f = gf.TargetedFlow("test")

@@ -54,8 +54,8 @@ class PatternCompileTest(test.TestCase):
 
     def test_wrong_object(self):
         msg_regex = '^Unknown object .* requested to compile'
-        self.assertRaisesRegexp(TypeError, msg_regex,
-                                compiler.PatternCompiler(42).compile)
+        self.assertRaisesRegex(TypeError, msg_regex,
+                               compiler.PatternCompiler(42).compile)
 
     def test_empty(self):
         flo = lf.Flow("test")
@@ -458,18 +458,18 @@ class PatternCompileTest(test.TestCase):
             test_utils.DummyTask(name="a")
         )
         e = engines.load(flo)
-        self.assertRaisesRegexp(exc.Duplicate,
-                                '^Atoms with duplicate names',
-                                e.compile)
+        self.assertRaisesRegex(exc.Duplicate,
+                               '^Atoms with duplicate names',
+                               e.compile)
 
     def test_checks_for_dups_globally(self):
         flo = gf.Flow("test").add(
             gf.Flow("int1").add(test_utils.DummyTask(name="a")),
             gf.Flow("int2").add(test_utils.DummyTask(name="a")))
         e = engines.load(flo)
-        self.assertRaisesRegexp(exc.Duplicate,
-                                '^Atoms with duplicate names',
-                                e.compile)
+        self.assertRaisesRegex(exc.Duplicate,
+                               '^Atoms with duplicate names',
+                               e.compile)
 
     def test_retry_in_linear_flow(self):
         flo = lf.Flow("test", retry.AlwaysRevert("c"))

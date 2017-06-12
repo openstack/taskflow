@@ -122,8 +122,8 @@ class TestCase(base.BaseTestCase):
 
         self.assertRaises(exc_class, access_func)
 
-    def assertRaisesRegexp(self, exc_class, pattern, callable_obj,
-                           *args, **kwargs):
+    def assertRaisesRegex(self, exc_class, pattern, callable_obj,
+                          *args, **kwargs):
         # TODO(harlowja): submit a pull/review request to testtools to add
         # this method to there codebase instead of having it exist in ours
         # since it really doesn't belong here.

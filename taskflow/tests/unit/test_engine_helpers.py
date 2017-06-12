@@ -54,27 +54,27 @@ class FlowFromDetailTestCase(test.TestCase):
     def test_no_meta(self):
         _lb, flow_detail = p_utils.temporary_flow_detail()
         self.assertEqual({}, flow_detail.meta)
-        self.assertRaisesRegexp(ValueError,
-                                '^Cannot .* no factory information saved.$',
-                                taskflow.engines.flow_from_detail,
-                                flow_detail)
+        self.assertRaisesRegex(ValueError,
+                               '^Cannot .* no factory information saved.$',
+                               taskflow.engines.flow_from_detail,
+                               flow_detail)
 
     def test_no_factory_in_meta(self):
         _lb, flow_detail = p_utils.temporary_flow_detail()
-        self.assertRaisesRegexp(ValueError,
-                                '^Cannot .* no factory information saved.$',
-                                taskflow.engines.flow_from_detail,
-                                flow_detail)
+        self.assertRaisesRegex(ValueError,
+                               '^Cannot .* no factory information saved.$',
+                               taskflow.engines.flow_from_detail,
+                               flow_detail)
 
     def test_no_importable_function(self):
         _lb, flow_detail = p_utils.temporary_flow_detail()
         flow_detail.meta = dict(factory=dict(
             name='you can not import me, i contain spaces'
         ))
-        self.assertRaisesRegexp(ImportError,
-                                '^Could not import factory',
-                                taskflow.engines.flow_from_detail,
-                                flow_detail)
+        self.assertRaisesRegex(ImportError,
+                               '^Could not import factory',
+                               taskflow.engines.flow_from_detail,
+                               flow_detail)
 
     def test_no_arg_factory(self):
         name = 'some.test.factory'
@@ -110,10 +110,10 @@ class LoadFromFactoryTestCase(test.TestCase):
         def factory():
             pass
 
-        self.assertRaisesRegexp(ValueError,
-                                'Flow factory .* is not reimportable',
-                                taskflow.engines.load_from_factory,
-                                factory)
+        self.assertRaisesRegex(ValueError,
+                               'Flow factory .* is not reimportable',
+                               taskflow.engines.load_from_factory,
+                               factory)
 
     def test_it_works(self):
         engine = taskflow.engines.load_from_factory(

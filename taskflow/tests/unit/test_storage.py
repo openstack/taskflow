@@ -191,9 +191,9 @@ class StorageTestMixin(object):
 
     def test_fetch_unknown_name(self):
         s = self._get_storage()
-        self.assertRaisesRegexp(exceptions.NotFound,
-                                "^Name 'xxx' is not mapped",
-                                s.fetch, 'xxx')
+        self.assertRaisesRegex(exceptions.NotFound,
+                               "^Name 'xxx' is not mapped",
+                               s.fetch, 'xxx')
 
     def test_flow_metadata_update(self):
         s = self._get_storage()
@@ -375,8 +375,8 @@ class StorageTestMixin(object):
 
     def test_get_state_of_unknown_task(self):
         s = self._get_storage()
-        self.assertRaisesRegexp(exceptions.NotFound, '^Unknown',
-                                s.get_atom_state, 'my task')
+        self.assertRaisesRegex(exceptions.NotFound, '^Unknown',
+                               s.get_atom_state, 'my task')
 
     def test_task_by_name(self):
         s = self._get_storage()
@@ -414,9 +414,9 @@ class StorageTestMixin(object):
 
     def test_unknown_task_by_name(self):
         s = self._get_storage()
-        self.assertRaisesRegexp(exceptions.NotFound,
-                                '^Unknown atom',
-                                s.get_atom_uuid, '42')
+        self.assertRaisesRegex(exceptions.NotFound,
+                               '^Unknown atom',
+                               s.get_atom_uuid, '42')
 
     def test_initial_flow_state(self):
         s = self._get_storage()
@@ -439,23 +439,23 @@ class StorageTestMixin(object):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task', provides=set(['result'])))
         s.save('my task', {})
-        self.assertRaisesRegexp(exceptions.NotFound,
-                                '^Unable to find result', s.fetch, 'result')
+        self.assertRaisesRegex(exceptions.NotFound,
+                               '^Unable to find result', s.fetch, 'result')
 
     def test_empty_result_is_checked(self):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task', provides=['a']))
         s.save('my task', ())
-        self.assertRaisesRegexp(exceptions.NotFound,
-                                '^Unable to find result', s.fetch, 'a')
+        self.assertRaisesRegex(exceptions.NotFound,
+                               '^Unable to find result', s.fetch, 'a')
 
     def test_short_result_is_checked(self):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task', provides=['a', 'b']))
         s.save('my task', ['result'])
         self.assertEqual('result', s.fetch('a'))
-        self.assertRaisesRegexp(exceptions.NotFound,
-                                '^Unable to find result', s.fetch, 'b')
+        self.assertRaisesRegex(exceptions.NotFound,
+                               '^Unable to find result', s.fetch, 'b')
 
     def test_ensure_retry(self):
         s = self._get_storage()
@@ -466,9 +466,9 @@ class StorageTestMixin(object):
     def test_ensure_retry_and_task_with_same_name(self):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my retry'))
-        self.assertRaisesRegexp(exceptions.Duplicate,
-                                '^Atom detail', s.ensure_atom,
-                                test_utils.NoopRetry('my retry'))
+        self.assertRaisesRegex(exceptions.Duplicate,
+                               '^Atom detail', s.ensure_atom,
+                               test_utils.NoopRetry('my retry'))
 
     def test_save_retry_results(self):
         s = self._get_storage()
@@ -516,9 +516,9 @@ class StorageTestMixin(object):
         self.assertEqual({'my retry': a_failure}, s.get_failures())
 
     def test_logbook_get_unknown_atom_type(self):
-        self.assertRaisesRegexp(TypeError,
-                                'Unknown atom',
-                                models.atom_detail_class, 'some_detail')
+        self.assertRaisesRegex(TypeError,
+                               'Unknown atom',
+                               models.atom_detail_class, 'some_detail')
 
     def test_save_task_intention(self):
         s = self._get_storage()

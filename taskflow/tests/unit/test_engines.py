@@ -1390,7 +1390,7 @@ class EngineCheckingTaskTest(utils.EngineTestBase):
             utils.FailingTask('fail1')
         )
         engine = self._make_engine(flow)
-        self.assertRaisesRegexp(RuntimeError, '^Woot', engine.run)
+        self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
 
 
 class SerialEngineTest(EngineTaskTest,
