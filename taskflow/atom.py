@@ -211,7 +211,7 @@ class Atom(object):
                          method has a different signature from ``execute`` or
                          a different ``revert_rebind`` value was received.
     :ivar inject: See parameter ``inject``.
-    :ivar name: See parameter ``name``.
+    :ivar Atom.name: See parameter ``name``.
     :ivar requires: A :py:class:`~taskflow.types.sets.OrderedSet` of inputs
                     this atom requires to function.
     :ivar optional: A :py:class:`~taskflow.types.sets.OrderedSet` of inputs

@@ -500,7 +500,7 @@ class AtomDetail(object):
                    ``execute`` method or from other sources.
     :ivar revert_results: Any results the atom produced from either its
                           ``revert`` method or from other sources.
-    :ivar failure: If the atom failed (due to its ``execute`` method
+    :ivar AtomDetail.failure: If the atom failed (due to its ``execute`` method
                    raising) this will be a
                    :py:class:`~taskflow.types.failure.Failure` object that
                    represents that failure (if there was no failure this

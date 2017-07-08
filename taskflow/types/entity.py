@@ -21,7 +21,7 @@ class Entity(object):
     :ivar kind: **immutable** type/kind that identifies this
                 entity (typically unique to a library/application)
     :type kind: string
-    :ivar name: **immutable** name that can be used to uniquely
+    :ivar Entity.name: **immutable** name that can be used to uniquely
                 identify this entity among many other entities
     :type name: string
     :ivar metadata: **immutable** dictionary of metadata that is

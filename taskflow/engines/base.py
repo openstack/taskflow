@@ -27,10 +27,12 @@ from taskflow.utils import misc
 class Engine(object):
     """Base for all engines implementations.
 
-    :ivar notifier: A notification object that will dispatch events that
-                    occur related to the flow the engine contains.
+    :ivar Engine.notifier: A notification object that will dispatch
+                    events that occur related to the flow the engine
+                    contains.
     :ivar atom_notifier: A notification object that will dispatch events that
                          occur related to the atoms the engine contains.
+
     """
 
     def __init__(self, flow, flow_detail, backend, options):
