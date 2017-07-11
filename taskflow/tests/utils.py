@@ -19,6 +19,7 @@ import string
 import threading
 import time
 
+from oslo_utils import timeutils
 import redis
 import six
 
@@ -102,6 +103,15 @@ class DummyTask(task.Task):
 
     def execute(self, context, *args, **kwargs):
         pass
+
+
+class EmittingTask(task.Task):
+    TASK_EVENTS = (task.EVENT_UPDATE_PROGRESS, 'hi')
+
+    def execute(self, *args, **kwargs):
+        self.notifier.notify('hi',
+                             details={'sent_on': timeutils.utcnow(),
+                                      'args': args, 'kwargs': kwargs})
 
 
 class AddOneSameProvidesRequires(task.Task):
