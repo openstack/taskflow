@@ -31,7 +31,7 @@ This abstraction serves the following *major* purposes:
   vs. stop.
 * *Something you create...*
 
-.. _stevedore: http://docs.openstack.org/developer/stevedore/
+.. _stevedore: https://docs.openstack.org/stevedore/latest/
 
 How it is used
 ==============

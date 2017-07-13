@@ -56,7 +56,7 @@ WAITING = 'WAITING'
 ANALYZING = 'ANALYZING'
 
 # Job state transitions
-# See: http://docs.openstack.org/developer/taskflow/states.html
+# See: https://docs.openstack.org/taskflow/latest/user/states.html
 
 _ALLOWED_JOB_TRANSITIONS = frozenset((
     # Job is being claimed.
@@ -87,7 +87,7 @@ def check_job_transition(old_state, new_state):
 
 
 # Flow state transitions
-# See: http://docs.openstack.org/developer/taskflow/states.html#flow
+# See: https://docs.openstack.org/taskflow/latest/user/states.html#flow
 
 _ALLOWED_FLOW_TRANSITIONS = frozenset((
     (PENDING, RUNNING),       # run it!
@@ -159,7 +159,7 @@ def check_flow_transition(old_state, new_state):
 
 
 # Task state transitions
-# See: http://docs.openstack.org/developer/taskflow/states.html#task
+# See: https://docs.openstack.org/taskflow/latest/user/states.html#task
 
 _ALLOWED_TASK_TRANSITIONS = frozenset((
     (PENDING, RUNNING),       # run it!
@@ -191,7 +191,7 @@ def check_task_transition(old_state, new_state):
 
 
 # Retry state transitions
-# See: http://docs.openstack.org/developer/taskflow/states.html#retry
+# See: https://docs.openstack.org/taskflow/latest/user/states.html#retry
 
 _ALLOWED_RETRY_TRANSITIONS = list(_ALLOWED_TASK_TRANSITIONS)
 _ALLOWED_RETRY_TRANSITIONS.extend([

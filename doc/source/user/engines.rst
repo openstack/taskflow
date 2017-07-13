@@ -466,7 +466,7 @@ Hierarchy
     taskflow.engines.worker_based.engine.WorkerBasedActionEngine
     :parts: 1
 
-.. _automaton: http://docs.openstack.org/developer/automaton/
+.. _automaton: https://docs.openstack.org/automaton/latest/
 .. _multiprocessing: https://docs.python.org/2/library/multiprocessing.html
 .. _future: https://docs.python.org/dev/library/concurrent.futures.html#future-objects
 .. _executor: https://docs.python.org/dev/library/concurrent.futures.html#concurrent.futures.Executor

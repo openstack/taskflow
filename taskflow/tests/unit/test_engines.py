@@ -234,7 +234,7 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
     def test_many_results_storage_provided_visible_to(self):
         # This works as expected due to docs listed at
         #
-        # http://docs.openstack.org/developer/taskflow/engines.html#scoping
+        # https://docs.openstack.org/taskflow/latest/user/engines.html#scoping
         flow = lf.Flow("flow")
         flow.add(utils.AddOneSameProvidesRequires('a'))
         flow.add(utils.AddOneSameProvidesRequires('b'))

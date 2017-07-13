@@ -23,9 +23,9 @@ and declarative manner (and more!) to be used with OpenStack and other
 projects.
 
 * Free software: Apache license
-* Documentation: http://docs.openstack.org/developer/taskflow
-* Source: http://git.openstack.org/cgit/openstack/taskflow
-* Bugs: http://bugs.launchpad.net/taskflow/
+* Documentation: https://docs.openstack.org/taskflow/latest/
+* Source: https://git.openstack.org/cgit/openstack/taskflow
+* Bugs: https://bugs.launchpad.net/taskflow/
 
 Join us
 -------
@@ -74,4 +74,4 @@ We also have sphinx documentation in ``docs/source``.
 .. _kombu: http://kombu.readthedocs.org/
 .. _eventlet: http://eventlet.net/
 .. _tox: http://tox.testrun.org/
-.. _developer documentation: http://docs.openstack.org/developer/taskflow/
+.. _developer documentation: https://docs.openstack.org/taskflow/latest/

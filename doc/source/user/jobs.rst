@@ -368,5 +368,5 @@ Hierarchy
 .. _paradigm shift: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts#Workflow_ownership_transfer
 .. _zookeeper: http://zookeeper.apache.org/
 .. _kazoo: http://kazoo.readthedocs.org/
-.. _stevedore: http://docs.openstack.org/developer/stevedore/
+.. _stevedore: https://docs.openstack.org/stevedore/latest
 .. _redis: http://redis.io/
