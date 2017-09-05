@@ -37,8 +37,8 @@ from taskflow.patterns import linear_flow as lf
 from taskflow.persistence import backends as persistence_backends
 from taskflow.persistence import models
 from taskflow import task
-from taskflow.types import timing
 
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 # Instructions!
@@ -122,7 +122,7 @@ def run_conductor(only_run_once=False):
         print("Event '%s' has been received..." % event)
         print("Details = %s" % details)
         if event.endswith("_start"):
-            w = timing.StopWatch()
+            w = timeutils.StopWatch()
             w.start()
             base_event = event[0:-len("_start")]
             event_watches[base_event] = w
