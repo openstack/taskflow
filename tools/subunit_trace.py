@@ -90,7 +90,7 @@ def cleanup_test_name(name, strip_tags=True, strip_scenarios=False):
 
     Make it possible to strip out the testscenarios information (not to
     be confused with tempest scenarios) however that's often needed to
-    indentify generated negative tests.
+    identify generated negative tests.
     """
     if strip_tags:
         tags_start = name.find('[')
