@@ -22,7 +22,6 @@ try:
 except ImportError:
     from contextlib2 import ExitStack  # noqa
 
-from debtcollector import removals
 from oslo_utils import excutils
 from oslo_utils import timeutils
 import six
@@ -129,8 +128,7 @@ class ExecutorConductor(base.Conductor):
         raise excp.NotImplementedError("This method must be implemented but"
                                        " it has not been")
 
-    @removals.removed_kwarg('timeout', version="0.8", removal_version="2.0")
-    def stop(self, timeout=None):
+    def stop(self):
         """Requests the conductor to stop dispatching.
 
         This method can be used to request that a conductor stop its
