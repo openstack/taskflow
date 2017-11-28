@@ -216,6 +216,10 @@ class Proxy(object):
                 self._running.set()
                 try:
                     while self._running.is_set():
+                        # This seems to be required when failures occur in
+                        #  rabbitmq, as the consumer doesn't show up in rabbit
+                        #  as a valid consumer without it. (mmontgomery)
+                        consumer.consume()
                         safe_drain(conn, self._drain_events_timeout)
                         if self._on_wait is not None:
                             self._on_wait()
