@@ -1,0 +1,21 @@
+sphinx>=1.6.2 # BSD
+openstackdocstheme>=1.17.0 # Apache-2.0
+reno>=2.5.0 # Apache-2.0
+
+doc8>=0.6.0 # Apache-2.0
+
+# This copies requirements from [extra] section of setup.cfg.
+# These need to be installed for some code analysis done
+# via "inheritance-diagram" directive.
+
+kombu!=4.0.2,>=4.0.0 # BSD
+kazoo>=2.2 # Apache-2.0
+zake>=0.1.6 # Apache-2.0
+redis>=2.10.0 # MIT
+
+eventlet!=0.18.3,!=0.20.1,<0.21.0,>=0.18.2 # MIT
+SQLAlchemy!=1.1.5,!=1.1.6,!=1.1.7,!=1.1.8,>=1.0.10 # MIT
+alembic>=0.8.10 # MIT
+SQLAlchemy-Utils>=0.30.11 # BSD License
+PyMySQL>=0.7.6 # MIT License
+psycopg2>=2.6.2 # LGPL/ZPL
