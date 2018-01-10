@@ -16,8 +16,10 @@
 
 import collections
 import threading
+import time
 
 import kombu
+from amqp import ChannelError
 from kombu import exceptions as kombu_exceptions
 import six
 
@@ -169,13 +171,31 @@ class Proxy(object):
 
         def _publish(producer, routing_key):
             queue = self._make_queue(routing_key, self._exchange)
-            producer.publish(body=msg.to_dict(),
-                             routing_key=routing_key,
-                             exchange=self._exchange,
-                             declare=[queue],
-                             type=msg.TYPE,
-                             reply_to=reply_to,
-                             correlation_id=correlation_id)
+            try:
+                producer.publish(body=msg.to_dict(),
+                                 routing_key=routing_key,
+                                 exchange=self._exchange,
+                                 declare=[queue],
+                                 type=msg.TYPE,
+                                 reply_to=reply_to,
+                                 correlation_id=correlation_id)
+            except ChannelError as ex:
+                # NOTE: This exception may be triggered by a race condition.
+                # Simply retrying will solve the error most of the time and
+                # should work well enough as a workaround until the race condition
+                # itself can be fixed.
+                # See https://bugs.launchpad.net/neutron/+bug/1318721 for details.
+                # See http://lists.rabbitmq.com/pipermail/rabbitmq-discuss/2014-May/035923.html
+                # for rabbitmq mailing list discussion
+                LOG.exception(_("Publish message to queue failed with (%s), retrying"), ex)
+                time.sleep(4)
+                producer.publish(body=msg.to_dict(),
+                                 routing_key=routing_key,
+                                 exchange=self._exchange,
+                                 declare=[queue],
+                                 type=msg.TYPE,
+                                 reply_to=reply_to,
+                                 correlation_id=correlation_id)
 
         def _publish_errback(exc, interval):
             LOG.exception('Publishing error: %s', exc)
