@@ -25,6 +25,10 @@ from taskflow.tests import utils
 from taskflow.types import failure
 
 
+class Unserializable(object):
+    pass
+
+
 class TestProtocolValidation(test.TestCase):
     def test_send_notify(self):
         msg = pr.Notify()
@@ -166,7 +170,7 @@ class TestProtocol(test.TestCase):
         self.assertEqual(expected, request.to_dict())
 
     def test_to_dict_with_invalid_json_failures(self):
-        exc = RuntimeError(Exception("I am not valid JSON"))
+        exc = RuntimeError(Unserializable())
         a_failure = failure.Failure.from_exception(exc)
         request = self.request(failures={self.task.name: a_failure})
         expected = self.request_to_dict(
