@@ -54,7 +54,10 @@ def _are_equal_exc_info_tuples(ei1, ei2):
     # copy_exc_info above.
     if ei1[0] is not ei2[0]:
         return False
-    if not all((type(ei1[1]) == type(ei2[1]),
+    # NOTE(dhellmann): The flake8/pep8 error E721 does not apply here
+    # because we want the types to be exactly the same, not just have
+    # one be inherited from the other.
+    if not all((type(ei1[1]) == type(ei2[1]),  # noqa: E721
                 _exception_message(ei1[1]) == _exception_message(ei2[1]),
                 repr(ei1[1]) == repr(ei2[1]))):
         return False

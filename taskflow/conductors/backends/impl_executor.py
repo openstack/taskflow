@@ -180,7 +180,7 @@ class ExecutorConductor(base.Conductor):
                                                (engine.prepare, 'preparation'),
                                                (engine.validate, 'validation'),
                                                (_run_engine, 'running')]:
-                    self._notifier.notify("%s_start" % event_name,  details)
+                    self._notifier.notify("%s_start" % event_name, details)
                     stage_func()
                     self._notifier.notify("%s_end" % event_name, details)
             except excp.WrappedFailure as e:
