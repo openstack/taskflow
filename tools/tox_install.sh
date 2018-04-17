@@ -26,5 +26,10 @@ pip install -c"$localfile" openstack-requirements
 # install will be constrained and we need to unconstrain it.
 edit-constraints "$localfile" -- "$CLIENT_NAME"
 
+if [ -z "$@" ]; then
+    echo "No packages to be installed."
+    exit 0
+fi
+
 pip install -c"$localfile" -U "$@"
 exit $?
