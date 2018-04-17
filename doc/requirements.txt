@@ -16,7 +16,7 @@ kazoo>=2.2 # Apache-2.0
 zake>=0.1.6 # Apache-2.0
 redis>=2.10.0 # MIT
 
-eventlet!=0.18.3,!=0.20.1,<0.21.0,>=0.18.2 # MIT
+eventlet!=0.18.3,!=0.20.1,!=0.21.0  # MIT
 SQLAlchemy!=1.1.5,!=1.1.6,!=1.1.7,!=1.1.8,>=1.0.10 # MIT
 alembic>=0.8.10 # MIT
 SQLAlchemy-Utils>=0.30.11 # BSD License
