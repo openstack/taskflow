@@ -471,5 +471,5 @@ Hierarchy
 .. _future: https://docs.python.org/dev/library/concurrent.futures.html#future-objects
 .. _executor: https://docs.python.org/dev/library/concurrent.futures.html#concurrent.futures.Executor
 .. _networkx: https://networkx.github.io/
-.. _futures backport: https://pypi.python.org/pypi/futures
+.. _futures backport: https://pypi.org/project/futures
 .. _process pool executor: https://docs.python.org/dev/library/concurrent.futures.html#processpoolexecutor

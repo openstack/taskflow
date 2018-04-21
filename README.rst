@@ -11,11 +11,11 @@ TaskFlow
 ========
 
 .. image:: https://img.shields.io/pypi/v/taskflow.svg
-    :target: https://pypi.python.org/pypi/taskflow/
+    :target: https://pypi.org/project/taskflow/
     :alt: Latest Version
 
 .. image:: https://img.shields.io/pypi/dm/taskflow.svg
-    :target: https://pypi.python.org/pypi/taskflow/
+    :target: https://pypi.org/project/taskflow/
     :alt: Downloads
 
 A library to do [jobs, tasks, flows] in a highly available, easy to understand

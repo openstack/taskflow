@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This requires https://pypi.python.org/pypi/zk_shell/ to be installed...
+# This requires https://pypi.org/project/zk_shell/ to be installed...
 
 set -e
 
