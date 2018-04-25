@@ -11,14 +11,16 @@ debtcollector==1.2.0
 decorator==3.4.0
 doc8==0.6.0
 docutils==0.11
+enum34==1.0.4;python_version=='2.7' or python_version=='2.6' or python_version=='3.3'
 eventlet==0.18.2
 extras==1.0.0
 fasteners==0.7.0
 fixtures==3.0.0
 flake8==2.2.4
+futures==3.0.0;python_version=='2.7' or python_version=='2.6'
 futurist==1.2.0
 greenlet==0.4.10
-hacking==0.10.3
+hacking==0.10.0
 imagesize==0.7.1
 iso8601==0.1.11
 Jinja2==2.10
@@ -62,12 +64,12 @@ requestsexceptions==1.2.0
 restructuredtext-lint==1.1.1
 six==1.10.0
 snowballstemmer==1.2.1
-Sphinx==1.6.5
+Sphinx==1.6.2
 sphinxcontrib-websupport==1.0.1
-SQLAlchemy==1.0.10
 SQLAlchemy-Utils==0.30.11
+SQLAlchemy==1.0.10
 stevedore==1.20.0
-tenacity==3.2.1
+tenacity==4.4.0
 testrepository==0.0.18
 testscenarios==0.4
 testtools==2.2.0
