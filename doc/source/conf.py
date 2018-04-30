@@ -96,6 +96,8 @@ latex_documents = [
 # Keep source order
 autodoc_member_order = 'bysource'
 
+html_last_updated_fmt = '%Y-%m-%d %H:%M'
+
 # Always include members
 autodoc_default_flags = ['members', 'show-inheritance']
 
