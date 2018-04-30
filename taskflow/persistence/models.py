@@ -301,13 +301,15 @@ class FlowDetail(object):
     guaranteed to be persisted when a save (or update) occurs via some backend
     connection.
 
-    :ivar state: The state of the flow associated with this flow detail.
     :ivar meta: A dictionary of meta-data associated with this flow detail.
     """
     def __init__(self, name, uuid):
         self._uuid = uuid
         self._name = name
         self._atomdetails_by_id = {}
+        # TODO(bnemec): This should be documented as an ivar, but can't be due
+        # to https://github.com/sphinx-doc/sphinx/issues/2549
+        #: The state of the flow associated with this flow detail.
         self.state = None
         self.meta = {}
 
@@ -486,7 +488,6 @@ class AtomDetail(object):
     guaranteed to be persisted when a save (or update) occurs via some backend
     connection.
 
-    :ivar state: The state of the atom associated with this atom detail.
     :ivar intention: The execution strategy of the atom associated
                      with this atom detail (used by an engine/others to
                      determine if the associated atom needs to be
@@ -515,6 +516,9 @@ class AtomDetail(object):
     def __init__(self, name, uuid):
         self._uuid = uuid
         self._name = name
+        # TODO(bnemec): This should be documented as an ivar, but can't be due
+        # to https://github.com/sphinx-doc/sphinx/issues/2549
+        #: The state of the atom associated with this atom detail.
         self.state = None
         self.intention = states.EXECUTE
         self.results = None

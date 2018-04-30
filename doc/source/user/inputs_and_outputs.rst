@@ -99,9 +99,9 @@ prior to running:
    >>> engines.run(flo)
    Traceback (most recent call last):
       ...
-   taskflow.exceptions.MissingDependencies:
-   taskflow.patterns.linear_flow.Flow: cat-dog;
-   2 requires ['meow', 'woof'] but no other entity produces said requirements
+   taskflow.exceptions.MissingDependencies: 'linear_flow.Flow: cat-dog(len=2)' requires ['meow', 'woof'] but no other entity produces said requirements
+    MissingDependencies: 'execute' method on '__main__.DogTalk==1.0' requires ['woof'] but no other entity produces said requirements
+    MissingDependencies: 'execute' method on '__main__.CatTalk==1.0' requires ['meow'] but no other entity produces said requirements
 
 The recommended way to provide flow inputs is to use the ``store`` parameter
 of the engine helpers (:py:func:`~taskflow.engines.helpers.run` or

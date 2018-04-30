@@ -189,7 +189,7 @@ class Atom(object):
     :param requires: A set or list of required inputs for this atom's
                      ``execute`` method.
     :param revert_requires: A set or list of required inputs for this atom's
-                            ``revert`` method. If unpassed, ```requires`` will
+                            ``revert`` method. If unpassed, ``requires`` will
                             be used.
     :ivar version: An *immutable* version that associates version information
                    with this atom. It can be useful in resuming older versions
@@ -212,8 +212,6 @@ class Atom(object):
                          a different ``revert_rebind`` value was received.
     :ivar inject: See parameter ``inject``.
     :ivar Atom.name: See parameter ``name``.
-    :ivar requires: A :py:class:`~taskflow.types.sets.OrderedSet` of inputs
-                    this atom requires to function.
     :ivar optional: A :py:class:`~taskflow.types.sets.OrderedSet` of inputs
                     that are optional for this atom to ``execute``.
     :ivar revert_optional: The ``revert`` version of ``optional``.
@@ -284,6 +282,10 @@ class Atom(object):
         (self.revert_rebind, addl_requires,
          self.revert_optional) = revert_mapping
 
+        # TODO(bnemec): This should be documented as an ivar, but can't be due
+        # to https://github.com/sphinx-doc/sphinx/issues/2549
+        #: A :py:class:`~taskflow.types.sets.OrderedSet` of inputs this atom
+        #: requires to function.
         self.requires = exec_requires.union(addl_requires)
 
     def _build_arg_mapping(self, executor, requires=None, rebind=None,
