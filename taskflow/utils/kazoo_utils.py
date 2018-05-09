@@ -172,22 +172,22 @@ def make_client(conf):
       client with alternate async strategies (the default is `thread`_
       based, but `gevent`_, or `eventlet`_ ones can be provided as needed)
 
-    .. _client: http://kazoo.readthedocs.org/en/latest/api/client.html
-    .. _kazoo: http://kazoo.readthedocs.org/
-    .. _retry: http://kazoo.readthedocs.org/en/latest/api/retry.html
-    .. _gevent: http://kazoo.readthedocs.org/en/latest/api/\
+    .. _client: https://kazoo.readthedocs.io/en/latest/api/client.html
+    .. _kazoo: https://kazoo.readthedocs.io/
+    .. _retry: https://kazoo.readthedocs.io/en/latest/api/retry.html
+    .. _gevent: https://kazoo.readthedocs.io/en/latest/api/\
                 handlers/gevent.html
-    .. _eventlet: http://kazoo.readthedocs.org/en/latest/api/\
+    .. _eventlet: https://kazoo.readthedocs.io/en/latest/api/\
                   handlers/eventlet.html
-    .. _thread: http://kazoo.readthedocs.org/en/latest/api/\
+    .. _thread: https://kazoo.readthedocs.io/en/latest/api/\
                 handlers/threading.html
     """
-    # See: http://kazoo.readthedocs.org/en/latest/api/client.html
+    # See: https://kazoo.readthedocs.io/en/latest/api/client.html
     client_kwargs = {
         'read_only': bool(conf.get('read_only')),
         'randomize_hosts': bool(conf.get('randomize_hosts')),
     }
-    # See: http://kazoo.readthedocs.org/en/latest/api/retry.html
+    # See: https://kazoo.readthedocs.io/en/latest/api/retry.html
     if 'command_retry' in conf:
         client_kwargs['command_retry'] = conf['command_retry']
     if 'connection_retry' in conf:

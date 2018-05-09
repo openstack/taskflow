@@ -235,7 +235,7 @@ version      TEXT      False
 parent_uuid  VARCHAR   False
 ===========  ========  =============
 
-.. _sqlalchemy: http://www.sqlalchemy.org/docs/
+.. _sqlalchemy: https://docs.sqlalchemy.org/en/latest/
 .. _ACID: https://en.wikipedia.org/wiki/ACID
 
 .. note::
@@ -254,8 +254,8 @@ parent_uuid  VARCHAR   False
     ``traditional`` when selecting your mysql + sqlalchemy based
     backend (see the `mysql modes`_ documentation for what this implies).
 
-.. _1416088: http://bugs.launchpad.net/taskflow/+bug/1416088
-.. _mysql modes: http://dev.mysql.com/doc/refman/5.0/en/sql-mode.html
+.. _1416088: https://bugs.launchpad.net/taskflow/+bug/1416088
+.. _mysql modes: https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html
 
 Zookeeper
 ---------
@@ -276,7 +276,7 @@ as the database connection types listed previously).
     for implementation details.
 
 .. _zookeeper: http://zookeeper.apache.org
-.. _kazoo: http://kazoo.readthedocs.org/
+.. _kazoo: https://kazoo.readthedocs.io/en/latest/
 
 Interfaces
 ==========

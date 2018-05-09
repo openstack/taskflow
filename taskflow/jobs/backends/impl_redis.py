@@ -253,9 +253,9 @@ class RedisJobBoard(base.JobBoard):
     claim is kept alive while it is being worked on by using
     the :py:meth:`~.RedisJob.extend_expiry` method periodically.
 
-    .. _msgpack: http://msgpack.org/
-    .. _redis: http://redis.io/
-    .. _hash: http://redis.io/topics/data-types#hashes
+    .. _msgpack: https://msgpack.org/
+    .. _redis: https://redis.io/
+    .. _hash: https://redis.io/topics/data-types#hashes
     """
 
     CLIENT_CONF_TRANSFERS = tuple([

@@ -211,7 +211,7 @@ class ZookeeperJob(base.Job):
 class ZookeeperJobBoard(base.NotifyingJobBoard):
     """A jobboard backed by `zookeeper`_.
 
-    Powered by the `kazoo <http://kazoo.readthedocs.org/>`_ library.
+    Powered by the `kazoo <https://kazoo.readthedocs.io/en/latest/>`_ library.
 
     This jobboard creates *sequenced* persistent znodes in a directory in
     zookeeper and uses zookeeper watches to notify other jobboards of
@@ -244,7 +244,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     specification
 
     .. _zookeeper: http://zookeeper.apache.org/
-    .. _json: http://json.org/
+    .. _json: https://json.org/
     """
 
     #: Transaction support was added in 3.4.0 so we need at least that version.

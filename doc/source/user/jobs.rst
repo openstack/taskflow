@@ -334,8 +334,8 @@ the claim by then, therefore both would be *working* on a job.
    (combine this with the prior suggestions and *most* dual-engine issues
    should be avoided).
 
-.. _idempotent: http://en.wikipedia.org/wiki/Idempotence
-.. _preemptable: http://en.wikipedia.org/wiki/Preemption_%28computing%29
+.. _idempotent: https://en.wikipedia.org/wiki/Idempotence
+.. _preemptable: https://en.wikipedia.org/wiki/Preemption_%28computing%29
 
 Interfaces
 ==========
@@ -367,6 +367,6 @@ Hierarchy
 
 .. _paradigm shift: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts#Workflow_ownership_transfer
 .. _zookeeper: http://zookeeper.apache.org/
-.. _kazoo: http://kazoo.readthedocs.org/
+.. _kazoo: https://kazoo.readthedocs.io/en/latest/
 .. _stevedore: https://docs.openstack.org/stevedore/latest
-.. _redis: http://redis.io/
+.. _redis: https://redis.io/

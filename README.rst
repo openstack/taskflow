@@ -31,7 +31,7 @@ projects.
 Join us
 -------
 
-- http://launchpad.net/taskflow
+- https://launchpad.net/taskflow
 
 Testing and requirements
 ------------------------
@@ -70,8 +70,8 @@ We also have sphinx documentation in ``docs/source``.
 
     $ python setup.py build_sphinx
 
-.. _kazoo: https://kazoo.readthedocs.org/
+.. _kazoo: https://kazoo.readthedocs.io/en/latest/
 .. _sqlalchemy: https://www.sqlalchemy.org/
-.. _kombu: https://kombu.readthedocs.org/
+.. _kombu: https://kombu.readthedocs.io/en/latest/
 .. _eventlet: http://eventlet.net/
 .. _tox: https://tox.testrun.org/
