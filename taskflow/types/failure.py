@@ -121,7 +121,7 @@ class Failure(mixins.StrMixin):
       side-effects that the receiver would not have intended to have caused).
 
     TODO(harlowja): use parts of http://bugs.python.org/issue17911 and the
-    backport at https://pypi.python.org/pypi/traceback2/ to (hopefully)
+    backport at https://pypi.org/project/traceback2/ to (hopefully)
     simplify the methods and contents of this object...
     """
     DICT_VERSION = 1
