@@ -20,7 +20,7 @@ futurist>=1.2.0 # Apache-2.0
 fasteners>=0.7.0 # Apache-2.0
 
 # Very nice graph library
-networkx<2.0,>=1.10 # BSD
+networkx>=1.10 # BSD
 
 # For contextlib new additions/compatibility for <= python 3.3
 contextlib2>=0.4.0 # PSF License
