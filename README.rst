@@ -69,9 +69,9 @@ We also have sphinx documentation in ``docs/source``.
 
     $ python setup.py build_sphinx
 
-.. _kazoo: http://kazoo.readthedocs.org/
-.. _sqlalchemy: http://www.sqlalchemy.org/
-.. _kombu: http://kombu.readthedocs.org/
+.. _kazoo: https://kazoo.readthedocs.org/
+.. _sqlalchemy: https://www.sqlalchemy.org/
+.. _kombu: https://kombu.readthedocs.org/
 .. _eventlet: http://eventlet.net/
-.. _tox: http://tox.testrun.org/
+.. _tox: https://tox.testrun.org/
 .. _developer documentation: https://docs.openstack.org/taskflow/latest/

@@ -8,7 +8,7 @@ consistent and reliable.* [#f1]_
 .. note::
 
     If you are just getting started or looking for an overview please
-    visit: http://wiki.openstack.org/wiki/TaskFlow which provides better
+    visit: https://wiki.openstack.org/wiki/TaskFlow which provides better
     introductory material, description of high level goals and related content.
 
 .. toctree::

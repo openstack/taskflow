@@ -19,8 +19,8 @@ TaskFlow into your project:
   by adding or adjusting functionality in this library.
 
 .. _IRC: irc://chat.freenode.net/openstack-state-management
-.. _best practices: http://wiki.openstack.org/wiki/TaskFlow/Best_practices
-.. _paradigm shifts: http://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts
+.. _best practices: https://wiki.openstack.org/wiki/TaskFlow/Best_practices
+.. _paradigm shifts: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts
 .. _openstack-dev: mailto:openstack-dev@lists.openstack.org
 
 User Guide
