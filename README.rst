@@ -26,6 +26,7 @@ projects.
 * Documentation: https://docs.openstack.org/taskflow/latest/
 * Source: https://git.openstack.org/cgit/openstack/taskflow
 * Bugs: https://bugs.launchpad.net/taskflow/
+* Release notes: https://docs.openstack.org/releasenotes/taskflow/
 
 Join us
 -------
