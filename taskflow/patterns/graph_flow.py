@@ -367,6 +367,6 @@ class TargetedFlow(Flow):
             return self._graph
         nodes = [self._target]
         nodes.extend(self._graph.bfs_predecessors_iter(self._target))
-        self._subgraph = self._graph.subgraph(nodes)
+        self._subgraph = gr.DiGraph(data=self._graph.subgraph(nodes))
         self._subgraph.freeze()
         return self._subgraph

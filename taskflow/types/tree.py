@@ -402,7 +402,7 @@ class Node(object):
         """
         g = graph.OrderedDiGraph()
         for node in self.bfs_iter(include_self=True, right_to_left=True):
-            g.add_node(node.item, attr_dict=node.metadata)
+            g.add_node(node.item, **node.metadata)
             if node is not self:
                 g.add_edge(node.parent.item, node.item)
         return g

@@ -73,7 +73,7 @@ class PatternCompileTest(test.TestCase):
             compiler.PatternCompiler(flo).compile())
         self.assertEqual(8, len(g))
 
-        order = g.topological_sort()
+        order = list(g.topological_sort())
         self.assertEqual(['test', 'a', 'b', 'c',
                           "sub-test", 'd', "sub-test[$]",
                           'test[$]'], order)
@@ -430,7 +430,7 @@ class PatternCompileTest(test.TestCase):
         self.assertTrue(g.has_edge(flow, a))
         self.assertTrue(g.has_edge(a, empty_flow))
 
-        empty_flow_successors = g.successors(empty_flow)
+        empty_flow_successors = list(g.successors(empty_flow))
         self.assertEqual(1, len(empty_flow_successors))
         empty_flow_terminal = empty_flow_successors[0]
         self.assertIs(empty_flow, empty_flow_terminal.flow)

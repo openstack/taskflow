@@ -21,6 +21,8 @@ import networkx as nx
 from networkx.drawing import nx_pydot
 import six
 
+from taskflow.utils import misc
+
 
 def _common_format(g, edge_notation):
     lines = []
@@ -47,7 +49,10 @@ class Graph(nx.Graph):
     """A graph subclass with useful utility functions."""
 
     def __init__(self, data=None, name=''):
-        super(Graph, self).__init__(name=name, data=data)
+        if misc.nx_version() == '1':
+            super(Graph, self).__init__(name=name, data=data)
+        else:
+            super(Graph, self).__init__(name=name, incoming_graph_data=data)
         self.frozen = False
 
     def freeze(self):
@@ -64,12 +69,67 @@ class Graph(nx.Graph):
         """Pretty formats your graph into a string."""
         return os.linesep.join(_common_format(self, "<->"))
 
+    def nodes_iter(self, data=False):
+        """Returns an iterable object over the nodes.
+
+        Type of iterable returned object depends on which version
+        of networkx is used. When networkx < 2.0 is used , method
+        returns an iterator, but if networkx > 2.0 is used, it returns
+        NodeView of the Graph which is also iterable.
+        """
+        if misc.nx_version() == '1':
+            return super(Graph, self).nodes_iter(data=data)
+        return super(Graph, self).nodes(data=data)
+
+    def edges_iter(self, nbunch=None, data=False, default=None):
+        """Returns an iterable object over the edges.
+
+        Type of iterable returned object depends on which version
+        of networkx is used. When networkx < 2.0 is used , method
+        returns an iterator, but if networkx > 2.0 is used, it returns
+        EdgeView of the Graph which is also iterable.
+        """
+        if misc.nx_version() == '1':
+            return super(Graph, self).edges_iter(nbunch=nbunch, data=data,
+                                                 default=default)
+        return super(Graph, self).edges(nbunch=nbunch, data=data,
+                                        default=default)
+
+    def add_edge(self, u, v, attr_dict=None, **attr):
+        """Add an edge between u and v."""
+        if misc.nx_version() == '1':
+            return super(Graph, self).add_edge(u, v, attr_dict=attr_dict,
+                                               **attr)
+        if attr_dict is not None:
+            return super(Graph, self).add_edge(u, v, **attr_dict)
+        return super(Graph, self).add_edge(u, v, **attr)
+
+    def add_node(self, n, attr_dict=None, **attr):
+        """Add a single node n and update node attributes."""
+        if misc.nx_version() == '1':
+            return super(Graph, self).add_node(n, attr_dict=attr_dict, **attr)
+        if attr_dict is not None:
+            return super(Graph, self).add_node(n, **attr_dict)
+        return super(Graph, self).add_node(n, **attr)
+
+    def fresh_copy(self):
+        """Return a fresh copy graph with the same data structure.
+
+        A fresh copy has no nodes, edges or graph attributes. It is
+        the same data structure as the current graph. This method is
+        typically used to create an empty version of the graph.
+        """
+        return Graph()
+
 
 class DiGraph(nx.DiGraph):
     """A directed graph subclass with useful utility functions."""
 
     def __init__(self, data=None, name=''):
-        super(DiGraph, self).__init__(name=name, data=data)
+        if misc.nx_version() == '1':
+            super(DiGraph, self).__init__(name=name, data=data)
+        else:
+            super(DiGraph, self).__init__(name=name, incoming_graph_data=data)
         self.frozen = False
 
     def freeze(self):
@@ -124,13 +184,13 @@ class DiGraph(nx.DiGraph):
     def no_successors_iter(self):
         """Returns an iterator for all nodes with no successors."""
         for n in self.nodes_iter():
-            if not len(self.successors(n)):
+            if not len(list(self.successors(n))):
                 yield n
 
     def no_predecessors_iter(self):
         """Returns an iterator for all nodes with no predecessors."""
         for n in self.nodes_iter():
-            if not len(self.predecessors(n)):
+            if not len(list(self.predecessors(n))):
                 yield n
 
     def bfs_predecessors_iter(self, n):
@@ -153,6 +213,71 @@ class DiGraph(nx.DiGraph):
                     if pred_pred not in visited:
                         queue.append(pred_pred)
 
+    def add_edge(self, u, v, attr_dict=None, **attr):
+        """Add an edge between u and v."""
+        if misc.nx_version() == '1':
+            return super(DiGraph, self).add_edge(u, v, attr_dict=attr_dict,
+                                                 **attr)
+        if attr_dict is not None:
+            return super(DiGraph, self).add_edge(u, v, **attr_dict)
+        return super(DiGraph, self).add_edge(u, v, **attr)
+
+    def add_node(self, n, attr_dict=None, **attr):
+        """Add a single node n and update node attributes."""
+        if misc.nx_version() == '1':
+            return super(DiGraph, self).add_node(n, attr_dict=attr_dict,
+                                                 **attr)
+        if attr_dict is not None:
+            return super(DiGraph, self).add_node(n, **attr_dict)
+        return super(DiGraph, self).add_node(n, **attr)
+
+    def successors_iter(self, n):
+        """Returns an iterator over successor nodes of n."""
+        if misc.nx_version() == '1':
+            return super(DiGraph, self).successors_iter(n)
+        return super(DiGraph, self).successors(n)
+
+    def predecessors_iter(self, n):
+        """Return an iterator over predecessor nodes of n."""
+        if misc.nx_version() == '1':
+            return super(DiGraph, self).predecessors_iter(n)
+        return super(DiGraph, self).predecessors(n)
+
+    def nodes_iter(self, data=False):
+        """Returns an iterable object over the nodes.
+
+        Type of iterable returned object depends on which version
+        of networkx is used. When networkx < 2.0 is used , method
+        returns an iterator, but if networkx > 2.0 is used, it returns
+        NodeView of the Graph which is also iterable.
+        """
+        if misc.nx_version() == '1':
+            return super(DiGraph, self).nodes_iter(data=data)
+        return super(DiGraph, self).nodes(data=data)
+
+    def edges_iter(self, nbunch=None, data=False, default=None):
+        """Returns an iterable object over the edges.
+
+        Type of iterable returned object depends on which version
+        of networkx is used. When networkx < 2.0 is used , method
+        returns an iterator, but if networkx > 2.0 is used, it returns
+        EdgeView of the Graph which is also iterable.
+        """
+        if misc.nx_version() == '1':
+            return super(DiGraph, self).edges_iter(nbunch=nbunch, data=data,
+                                                   default=default)
+        return super(DiGraph, self).edges(nbunch=nbunch, data=data,
+                                          default=default)
+
+    def fresh_copy(self):
+        """Return a fresh copy graph with the same data structure.
+
+        A fresh copy has no nodes, edges or graph attributes. It is
+        the same data structure as the current graph. This method is
+        typically used to create an empty version of the graph.
+        """
+        return DiGraph()
+
 
 class OrderedDiGraph(DiGraph):
     """A directed graph subclass with useful utility functions.
@@ -162,8 +287,21 @@ class OrderedDiGraph(DiGraph):
     order).
     """
     node_dict_factory = collections.OrderedDict
-    adjlist_dict_factory = collections.OrderedDict
+    if misc.nx_version() == '1':
+        adjlist_dict_factory = collections.OrderedDict
+    else:
+        adjlist_outer_dict_factory = collections.OrderedDict
+        adjlist_inner_dict_factory = collections.OrderedDict
     edge_attr_dict_factory = collections.OrderedDict
+
+    def fresh_copy(self):
+        """Return a fresh copy graph with the same data structure.
+
+        A fresh copy has no nodes, edges or graph attributes. It is
+        the same data structure as the current graph. This method is
+        typically used to create an empty version of the graph.
+        """
+        return OrderedDiGraph()
 
 
 class OrderedGraph(Graph):
@@ -174,8 +312,21 @@ class OrderedGraph(Graph):
     order).
     """
     node_dict_factory = collections.OrderedDict
-    adjlist_dict_factory = collections.OrderedDict
+    if misc.nx_version() == '1':
+        adjlist_dict_factory = collections.OrderedDict
+    else:
+        adjlist_outer_dict_factory = collections.OrderedDict
+        adjlist_inner_dict_factory = collections.OrderedDict
     edge_attr_dict_factory = collections.OrderedDict
+
+    def fresh_copy(self):
+        """Return a fresh copy graph with the same data structure.
+
+        A fresh copy has no nodes, edges or graph attributes. It is
+        the same data structure as the current graph. This method is
+        typically used to create an empty version of the graph.
+        """
+        return OrderedGraph()
 
 
 def merge_graphs(graph, *graphs, **kwargs):
