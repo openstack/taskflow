@@ -75,4 +75,3 @@ We also have sphinx documentation in ``docs/source``.
 .. _kombu: https://kombu.readthedocs.org/
 .. _eventlet: http://eventlet.net/
 .. _tox: https://tox.testrun.org/
-.. _developer documentation: https://docs.openstack.org/taskflow/latest/
