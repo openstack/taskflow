@@ -28,7 +28,7 @@ pip-log.txt
 nosetests.xml
 .venv
 cover
-.testrepository
+.stestr/
 htmlcov
 
 # Translations
