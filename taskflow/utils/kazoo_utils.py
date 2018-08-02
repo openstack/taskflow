@@ -21,6 +21,10 @@ import six
 from six.moves import zip as compat_zip
 
 from taskflow import exceptions as exc
+from taskflow import logging
+
+
+LOG = logging.getLogger(__name__)
 
 
 def _parse_hosts(hosts):
@@ -186,6 +190,7 @@ def make_client(conf):
     client_kwargs = {
         'read_only': bool(conf.get('read_only')),
         'randomize_hosts': bool(conf.get('randomize_hosts')),
+        'logger': LOG,
     }
     # See: https://kazoo.readthedocs.io/en/latest/api/retry.html
     if 'command_retry' in conf:
