@@ -1,0 +1,12 @@
+- project:
+    post:
+      jobs:
+        - openstack-tox-cover
+    templates:
+      - check-requirements
+      - openstack-python-jobs
+      - openstack-python35-jobs
+      - publish-openstack-docs-pti
+      - release-notes-jobs-python3
+      - lib-forward-testing
+      - periodic-stable-jobs
