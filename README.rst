@@ -14,10 +14,6 @@ TaskFlow
     :target: https://pypi.org/project/taskflow/
     :alt: Latest Version
 
-.. image:: https://img.shields.io/pypi/dm/taskflow.svg
-    :target: https://pypi.org/project/taskflow/
-    :alt: Downloads
-
 A library to do [jobs, tasks, flows] in a highly available, easy to understand
 and declarative manner (and more!) to be used with OpenStack and other
 projects.
