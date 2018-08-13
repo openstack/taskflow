@@ -48,6 +48,7 @@ pbr==2.0.0
 pep8==1.5.7
 prettytable==0.7.2
 psycopg2==2.6.2
+pydot==1.2.4
 pydotplus==2.0.2
 pyflakes==0.8.1
 Pygments==2.2.0
