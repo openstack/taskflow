@@ -258,7 +258,7 @@ class WrappedFailure(mixins.StrMixin, Exception):
     why this object *may* be reraised instead of the original exception.
 
     :param causes: the :py:class:`~taskflow.types.failure.Failure` objects
-                   that caused this this exception to be raised.
+                   that caused this exception to be raised.
     """
 
     def __init__(self, causes):
