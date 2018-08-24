@@ -129,7 +129,7 @@ Using this function to fetch a backend might look like:
 
     ...
     persistence = backends.fetch(conf={
-        "connection': "mysql",
+        "connection": "mysql",
         "user": ...,
         "password": ...,
     })
