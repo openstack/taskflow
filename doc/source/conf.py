@@ -94,5 +94,5 @@ latex_documents = [
 autodoc_member_order = 'bysource'
 
 # Always include members
-autodoc_default_flags = ['members', 'show-inheritance']
+autodoc_default_options = {'members': None, 'show-inheritance': None}
 
