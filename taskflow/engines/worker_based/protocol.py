@@ -31,6 +31,7 @@ from taskflow.engines.action_engine import executor
 from taskflow import exceptions as excp
 from taskflow import logging
 from taskflow.types import failure as ft
+from taskflow.utils import misc
 from taskflow.utils import schema_utils as su
 
 # NOTE(skudriashev): This is protocol states and events, which are not
@@ -47,8 +48,8 @@ EVENT = 'EVENT'
 # for).
 WAITING_STATES = (WAITING, PENDING)
 
-# Once these states have been entered a request can no longer be
-# automatically expired.
+# When these starts are entered the internally maintained watch is stopped
+# and the task at that point may take forever to finish.
 STOP_TIMER_STATES = (RUNNING, SUCCESS, FAILURE)
 
 # Remote task actions.
@@ -72,9 +73,6 @@ REQUEST_TIMEOUT = 60
 # no longer needed.
 QUEUE_EXPIRE_TIMEOUT = REQUEST_TIMEOUT
 
-# Workers notify period.
-NOTIFY_PERIOD = 5
-
 # When a worker hasn't notified in this many seconds, it will get expired from
 # being used/targeted for further work.
 EXPIRES_AFTER = 60
@@ -86,6 +84,10 @@ RESPONSE = 'RESPONSE'
 
 # Object that denotes nothing (none can actually be valid).
 NO_RESULT = object()
+
+# Worker liveliness states
+WORKER_FOUND = 'WORKER_FOUND'
+WORKER_LOST = 'WORKER_LOST'
 
 LOG = logging.getLogger(__name__)
 
@@ -115,6 +117,9 @@ def build_a_machine(freeze=True):
 
     # Worker has started executing a request.
     m.add_transition(PENDING, RUNNING, make_an_event(RUNNING))
+
+    # Worker has gone away.
+    m.add_transition(RUNNING, WAITING, make_an_event(WAITING))
 
     # Worker failed to construct/process a request to run (either the worker
     # did not transition to RUNNING in the given timeout or the worker itself
@@ -148,6 +153,47 @@ def failure_to_dict(failure):
         return failure.to_dict(include_args=False)
 
 
+class Capabilities(object):
+    """Helpers to dump and load & validate workers capabilities."""
+
+    #: Expected data schema (in json schema format).
+    SCHEMA = {
+        "type": "object",
+        'properties': {
+            'topic': {
+                'type': 'string',
+            },
+            'tasks': {
+                'type': 'array',
+                "items": {
+                    "type": "string",
+                },
+            },
+        },
+        'required': ['tasks', 'topic'],
+        "additionalProperties": False,
+    }
+
+    @staticmethod
+    def dumps(topic, tasks):
+        return misc.binary_encode(jsonutils.dumps({
+            'topic': topic,
+            'tasks': tasks,
+        }))
+
+    @classmethod
+    def loads(cls, blob):
+        data = misc.decode_json(blob)
+        try:
+            su.schema_validate(data, cls.SCHEMA)
+        except su.ValidationError as e:
+            raise excp.InvalidFormat("%s data not of the"
+                                     " expected format: %s"
+                                     % (cls.__name__, e.message), e)
+        else:
+            return (data['topic'], data['tasks'])
+
+
 @six.add_metaclass(abc.ABCMeta)
 class Message(object):
     """Base class for all message types."""
@@ -173,22 +219,7 @@ class Notify(Message):
     # worker response schema (that's why there are two schemas here).
 
     #: Expected notify *response* message schema (in json schema format).
-    RESPONSE_SCHEMA = {
-        "type": "object",
-        'properties': {
-            'topic': {
-                "type": "string",
-            },
-            'tasks': {
-                "type": "array",
-                "items": {
-                    "type": "string",
-                },
-            }
-        },
-        "required": ["topic", 'tasks'],
-        "additionalProperties": False,
-    }
+    RESPONSE_SCHEMA = Capabilities.SCHEMA
 
     #: Expected *sender* request message schema (in json schema format).
     SENDER_SCHEMA = {
@@ -255,6 +286,7 @@ class Request(Message):
         |  PENDING   | on_running | RUNNING |    .     |    .    |
         |  RUNNING   | on_failure | FAILURE |    .     |    .    |
         |  RUNNING   | on_success | SUCCESS |    .     |    .    |
+        |  RUNNING   | on_waiting | WAITING |    .     |    .    |
         | SUCCESS[$] |     .      |    .    |    .     |    .    |
         | WAITING[^] | on_failure | FAILURE |    .     |    .    |
         | WAITING[^] | on_pending | PENDING |    .     |    .    |
@@ -320,6 +352,7 @@ class Request(Message):
         self.created_on = timeutils.now()
         self.future = futurist.Future()
         self.future.atom = task
+        self._worker = None
 
     @property
     def current_state(self):
@@ -403,6 +436,7 @@ class Request(Message):
         old_state = self._machine.current_state
         if old_state == new_state:
             return False
+
         try:
             self._machine.process_event(make_an_event(new_state))
         except (machine_excp.NotFound, machine_excp.InvalidState) as e:
@@ -414,7 +448,11 @@ class Request(Message):
                 self._watch.stop()
             LOG.debug("Transitioned '%s' from %s state to %s state", self,
                       old_state, new_state)
-            return True
+
+        self._state = new_state
+        LOG.debug("Transitioned '%s' from %s state to %s state", self,
+                  old_state, new_state)
+        return True
 
     @classmethod
     def validate(cls, data):
@@ -473,6 +511,19 @@ class Request(Message):
             for task, fail_data in six.iteritems(failures):
                 arguments['failures'][task] = ft.Failure.from_dict(fail_data)
         return _WorkUnit(task_cls, task_name, action, arguments)
+
+    @property
+    def worker(self):
+        """Current assigned worker."""
+        return self._worker
+
+    def attach_worker(self, worker):
+        """Assign a worker to this request for reference"""
+        self._worker = worker
+
+    def detach_worker(self):
+        """Remove worker assignment from this request"""
+        self._worker = None
 
 
 class Response(Message):

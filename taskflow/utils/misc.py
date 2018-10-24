@@ -47,6 +47,59 @@ NUMERIC_TYPES = six.integer_types + (float,)
 _SCHEME_REGEX = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
 
 
+class Activator(object):
+    """Tiny helper that starts and stops things *smartly* in bulk.
+
+    NOTE(harlowja): :py:meth:`.start` and :py:meth:`.stop` should **not** be
+    called by different threads at the same time, as local object state will
+    not be maintained correctly if that happens (due to the delayed pop
+    that occurs **after** each things stop has succeeded).
+    """
+
+    #: Callable attributes that objects to start/stop **must** have.
+    REQUIRED_ATTRS = frozenset(['start', 'stop'])
+
+    def __init__(self, it):
+        self._need_stop = []
+        self._need_start = tuple(self._validate_and_return(thing)
+                                 for thing in it)
+
+    @property
+    def need_to_be_stopped(self):
+        return len(self._need_stop)
+
+    @property
+    def need_to_be_started(self):
+        return len(self._need_start[len(self._need_stop):])
+
+    @classmethod
+    def _validate_and_return(cls, thing):
+        """Checks if provided thing is able to be started/stopped."""
+        for attr_name in cls.REQUIRED_ATTRS:
+            cb = getattr(thing, attr_name)
+            if not six.callable(cb):
+                raise ValueError("Attribute '%s' on '%s' must be"
+                                 " callable" % (attr_name, thing))
+        return thing
+
+    def start(self):
+        """Starts any not started things (from first not started to last)."""
+        need_start = self._need_start[len(self._need_stop):]
+        for thing in need_start:
+            thing.start()
+            self._need_stop.append(thing)
+
+    def stop(self):
+        """Stops all started things (from last to first)."""
+        while self._need_stop:
+            thing = self._need_stop[-1]
+            thing.stop()
+            # Only clear it after it works (in-case it raises...); instead
+            # of removing it before (and then having it fail); which would
+            # leave this thing to stop in a messed up state...
+            self._need_stop.pop()
+
+
 class StrEnum(str, enum.Enum):
     """An enumeration that is also a string and can be compared to strings."""
 
@@ -61,9 +114,22 @@ class StrEnum(str, enum.Enum):
 class StringIO(six.StringIO):
     """String buffer with some small additions."""
 
-    def write_nl(self, value, linesep=os.linesep):
+    def write_nl(self, value='', linesep=os.linesep):
+        """Writes the given value and then a newline."""
         self.write(value)
         self.write(linesep)
+
+    def getvalue(self, fix_newlines=False):
+        if not six.PY2:
+            blob = super(StringIO, self).getvalue()
+        else:
+            # This is an old-style class in python 2.x so we can't use the
+            # other call mechanism to call into the parent...
+            blob = six.StringIO.getvalue(self)
+        if fix_newlines:
+            return os.linesep.join(blob.splitlines())
+        else:
+            return blob
 
 
 class BytesIO(six.BytesIO):
@@ -263,11 +329,6 @@ def clamp(value, minimum, maximum, on_clamped=None):
         if on_clamped is not None:
             on_clamped()
     return value
-
-
-def fix_newlines(text, replacement=os.linesep):
-    """Fixes text that *may* end with wrong nl by replacing with right nl."""
-    return replacement.join(text.splitlines())
 
 
 def binary_encode(text, encoding='utf-8', errors='strict'):

@@ -14,9 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import six
+
 from taskflow.engines.action_engine import engine
 from taskflow.engines.worker_based import executor
 from taskflow.engines.worker_based import protocol as pr
+from taskflow.engines.worker_based import types as wt
 
 
 class WorkerBasedActionEngine(engine.ActionEngine):
@@ -70,16 +73,19 @@ class WorkerBasedActionEngine(engine.ActionEngine):
                                 % (executor.WorkerTaskExecutor, type(e)))
             return e
         except KeyError:
+            default_finder = wt.ProxyWorkerFinder.generate_factory(options)
+            finder_factory = options.get('finder_factory', default_finder)
+            if not six.callable(finder_factory):
+                raise ValueError("finder_factory must be callable")
+
             return executor.WorkerTaskExecutor(
-                uuid=flow_detail.uuid,
+                flow_detail.uuid,
+                options.get('exchange', 'default'),
+                finder_factory,
                 url=options.get('url'),
-                exchange=options.get('exchange', 'default'),
                 retry_options=options.get('retry_options'),
-                topics=options.get('topics', []),
                 transport=options.get('transport'),
                 transport_options=options.get('transport_options'),
                 transition_timeout=options.get('transition_timeout',
                                                pr.REQUEST_TIMEOUT),
-                worker_expiry=options.get('worker_expiry',
-                                          pr.EXPIRES_AFTER),
             )

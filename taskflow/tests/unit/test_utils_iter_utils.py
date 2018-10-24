@@ -18,6 +18,7 @@ import string
 
 import six
 from six.moves import range as compat_range
+import testscenarios
 
 from taskflow import test
 from taskflow.utils import iter_utils
@@ -154,3 +155,53 @@ class IterUtilsTest(test.TestCase):
         it = iter(string.ascii_lowercase)
         self.assertEqual(list(string.ascii_lowercase),
                          list(iter_utils.while_is_not(it, '')))
+
+
+class TestReversedEnumerate(testscenarios.TestWithScenarios, test.TestCase):
+    scenarios = [
+        ('ten', {'sample': [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]}),
+        ('empty', {'sample': []}),
+        ('negative', {'sample': [-1, -2, -3]}),
+        ('one', {'sample': [1]}),
+        ('abc', {'sample': ['a', 'b', 'c']}),
+        ('ascii_letters', {'sample': list(string.ascii_letters)}),
+    ]
+
+    def test_sample_equivalence(self):
+        expected = list(reversed(list(enumerate(self.sample))))
+        actual = list(iter_utils.reverse_enumerate(self.sample))
+        self.assertEqual(expected, actual)
+
+
+class TestCountdownIter(test.TestCase):
+    def test_expected_count(self):
+        upper = 100
+        it = iter_utils.countdown_iter(upper)
+        items = []
+        for i in it:
+            self.assertEqual(upper, i)
+            upper -= 1
+            items.append(i)
+        self.assertEqual(0, upper)
+        self.assertEqual(100, len(items))
+
+    def test_no_count(self):
+        it = iter_utils.countdown_iter(0)
+        self.assertEqual(0, len(list(it)))
+        it = iter_utils.countdown_iter(-1)
+        self.assertEqual(0, len(list(it)))
+
+    def test_expected_count_custom_decr(self):
+        upper = 100
+        it = iter_utils.countdown_iter(upper, decr=2)
+        items = []
+        for i in it:
+            self.assertEqual(upper, i)
+            upper -= 2
+            items.append(i)
+        self.assertEqual(0, upper)
+        self.assertEqual(50, len(items))
+
+    def test_invalid_decr(self):
+        it = iter_utils.countdown_iter(10, -1)
+        self.assertRaises(ValueError, six.next, it)

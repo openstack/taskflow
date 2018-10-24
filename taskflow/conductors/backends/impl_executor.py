@@ -288,7 +288,7 @@ class ExecutorConductor(base.Conductor):
                     ensure_fresh = False
                 job_it = itertools.takewhile(
                     self._can_claim_more_jobs,
-                    self._jobboard.iterjobs(ensure_fresh=ensure_fresh))
+                    self._jobboard.iterjobs(only_unclaimed=True, ensure_fresh=ensure_fresh))
                 for job in job_it:
                     self._log.debug("Trying to claim job: %s", job)
                     try:
