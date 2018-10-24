@@ -141,18 +141,6 @@ def build_a_machine(freeze=True):
     return m
 
 
-def failure_to_dict(failure):
-    """Attempts to convert a failure object into a jsonifyable dictionary."""
-    failure_dict = failure.to_dict()
-    try:
-        # it's possible the exc_args can't be serialized as JSON
-        # if that's the case, just get the failure without them
-        jsonutils.dumps(failure_dict)
-        return failure_dict
-    except (TypeError, ValueError):
-        return failure.to_dict(include_args=False)
-
-
 class Capabilities(object):
     """Helpers to dump and load & validate workers capabilities."""
 
@@ -395,13 +383,13 @@ class Request(Message):
         if self._result is not NO_RESULT:
             result = self._result
             if isinstance(result, ft.Failure):
-                request['result'] = ('failure', failure_to_dict(result))
+                request['result'] = ('failure', result.to_dict())
             else:
                 request['result'] = ('success', result)
         if self._failures:
             request['failures'] = {}
             for atom_name, failure in six.iteritems(self._failures):
-                request['failures'][atom_name] = failure_to_dict(failure)
+                request['failures'][atom_name] = failure.to_dict()
         return request
 
     def transition_and_log_error(self, new_state, logger=None):

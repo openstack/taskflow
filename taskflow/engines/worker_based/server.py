@@ -180,7 +180,7 @@ class Server(object):
                 LOG.warning("Failed to parse request contents"
                             " from message '%s'",
                             ku.DelayedPretty(message), exc_info=True)
-                reply_callback(result=pr.failure_to_dict(failure))
+                reply_callback(result=failure.to_dict())
                 return
 
         # Now fetch the task endpoint (and action handler on it).
@@ -192,7 +192,7 @@ class Server(object):
                             " to continue processing request message '%s'",
                             work.task_cls, ku.DelayedPretty(message),
                             exc_info=True)
-                reply_callback(result=pr.failure_to_dict(failure))
+                reply_callback(result=failure.to_dict())
                 return
         else:
             try:
@@ -203,7 +203,7 @@ class Server(object):
                                 " endpoint '%s', unable to continue processing"
                                 " request message '%s'", work.action, endpoint,
                                 ku.DelayedPretty(message), exc_info=True)
-                    reply_callback(result=pr.failure_to_dict(failure))
+                    reply_callback(result=failure.to_dict())
                     return
             else:
                 try:
@@ -214,7 +214,7 @@ class Server(object):
                                     " message '%s' failed", endpoint,
                                     work.action, ku.DelayedPretty(message),
                                     exc_info=True)
-                        reply_callback(result=pr.failure_to_dict(failure))
+                        reply_callback(result=failure.to_dict())
                         return
                 else:
                     if not reply_callback(state=pr.RUNNING):
@@ -242,7 +242,7 @@ class Server(object):
                 LOG.warning("The '%s' endpoint '%s' execution for request"
                             " message '%s' failed", endpoint, work.action,
                             ku.DelayedPretty(message), exc_info=True)
-                reply_callback(result=pr.failure_to_dict(failure))
+                reply_callback(result=failure.to_dict())
         else:
             # And be done with it!
             if isinstance(result, ft.Failure):
