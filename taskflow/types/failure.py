@@ -20,6 +20,7 @@ import os
 import sys
 import traceback
 
+from oslo_serialization import jsonutils
 from oslo_utils import encodeutils
 from oslo_utils import reflection
 import six
@@ -500,20 +501,34 @@ class Failure(mixins.StrMixin):
         causes = data.get('causes')
         if causes is not None:
             data['causes'] = tuple(cls.from_dict(d) for d in causes)
+
         return cls(**data)
 
-    def to_dict(self, include_args=True):
-        """Converts this object to a dictionary.
+    @staticmethod
+    def safe_encode(data):
+        """Encodes exception arguments into types that can be serialized
+        as JSON by kombu"""
+        try:
+            primitive = jsonutils.to_primitive(data)
+        except ValueError:
+            # last-ditch effort, try to force it to a string
+            try:
+                primitive = six.text_type(data)
+            except TypeError:
+                primitive = data
 
-        :param include_args: boolean indicating whether to include the
-                             exception args in the output.
-        """
+        if not isinstance(primitive, six.string_types + (list, dict)):
+            return "[Unserializable data]"
+
+        return primitive
+
+    def to_dict(self):
         return {
             'exception_str': self.exception_str,
             'traceback_str': self.traceback_str,
             'exc_type_names': list(self),
             'version': self.DICT_VERSION,
-            'exc_args': self.exception_args if include_args else tuple(),
+            'exc_args': [self.safe_encode(arg for arg in self.exception_args)],
             'causes': [f.to_dict() for f in self.causes],
         }
 

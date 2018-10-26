@@ -19,6 +19,8 @@ import threading
 
 import kombu
 from kombu import exceptions as kombu_exceptions
+from kombu import serialization as kombu_serialization
+from oslo_serialization import jsonutils
 import six
 
 from taskflow.engines.worker_based import dispatcher
@@ -39,6 +41,11 @@ _ConnectionDetails = collections.namedtuple('_ConnectionDetails',
 _TransportDetails = collections.namedtuple('_TransportDetails',
                                            ['options', 'driver_type',
                                             'driver_name', 'driver_version'])
+
+SERIALIZER = 'json'
+
+kombu_serialization.register(SERIALIZER, jsonutils.dumps, jsonutils.loads,
+                             content_type='application/json', content_encoding='utf-8')
 
 
 class Proxy(object):
@@ -175,7 +182,8 @@ class Proxy(object):
                              declare=[queue],
                              type=msg.TYPE,
                              reply_to=reply_to,
-                             correlation_id=correlation_id)
+                             correlation_id=correlation_id,
+                             serializer=SERIALIZER)
 
         def _publish_errback(exc, interval):
             LOG.exception('Publishing error: %s', exc)
