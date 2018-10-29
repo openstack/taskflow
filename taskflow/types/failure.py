@@ -528,7 +528,7 @@ class Failure(mixins.StrMixin):
             'traceback_str': self.traceback_str,
             'exc_type_names': list(self),
             'version': self.DICT_VERSION,
-            'exc_args': [self.safe_encode(arg for arg in self.exception_args)],
+            'exc_args': tuple([self.safe_encode(arg) for arg in self.exception_args]),
             'causes': [f.to_dict() for f in self.causes],
         }
 

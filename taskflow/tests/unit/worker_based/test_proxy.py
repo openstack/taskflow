@@ -171,7 +171,8 @@ class TestProxy(test.MockTestCase):
                                               correlation_id=task_uuid,
                                               declare=[self.queue_inst_mock],
                                               type=msg_mock.TYPE,
-                                              reply_to=None)
+                                              reply_to=None,
+                                              serializer='json')
         ], routing_key)
         self.master_mock.assert_has_calls(master_mock_calls)
 
