@@ -15,6 +15,16 @@
 #    under the License.
 
 import collections
+
+# TODO(smcginnis) update this once six has support for collections.abc
+# (https://github.com/benjaminp/six/pull/241) or clean up once we drop py2.7.
+try:
+    from collections.abc import Hashable
+    from collections.abc import Set
+except ImportError:
+    from collections import Hashable
+    from collections import Set
+
 import itertools
 
 import six
@@ -32,7 +42,7 @@ def _merge_in(target, iterable=None, sentinel=_sentinel):
     return target
 
 
-class OrderedSet(collections.Set, collections.Hashable):
+class OrderedSet(Set, Hashable):
     """A read-only hashable set that retains insertion/initial ordering.
 
     It should work in all existing places that ``frozenset`` is used.
