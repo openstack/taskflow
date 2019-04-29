@@ -16,8 +16,8 @@ in the TaskFlow `source tree`_.
     improve them. The higher the quality and the clearer the examples are the
     better and more useful they are for everyone.
 
-.. _examples: http://git.openstack.org/cgit/openstack/taskflow/tree/taskflow/examples
-.. _source tree: http://git.openstack.org/cgit/openstack/taskflow/
+.. _examples: https://opendev.org/openstack/taskflow/src/branch/master/taskflow/examples
+.. _source tree: https://opendev.org/openstack/taskflow/
 
 Hello world
 ===========
