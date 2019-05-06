@@ -20,7 +20,7 @@ SQLAlchemy!=1.1.5,!=1.1.6,!=1.1.7,!=1.1.8,>=1.0.10 # MIT
 alembic>=0.8.10 # MIT
 SQLAlchemy-Utils>=0.30.11 # BSD License
 PyMySQL>=0.7.6 # MIT License
-psycopg2>=2.6.2 # LGPL/ZPL
+psycopg2>=2.7.0 # LGPL/ZPL
 
 # test
 pydotplus>=2.0.2 # MIT License
