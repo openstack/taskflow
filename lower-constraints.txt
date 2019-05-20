@@ -7,7 +7,6 @@ Babel==2.3.4
 cachetools==2.0.0
 chardet==3.0.4
 contextlib2==0.4.0
-debtcollector==1.2.0
 decorator==3.4.0
 doc8==0.6.0
 docutils==0.11
