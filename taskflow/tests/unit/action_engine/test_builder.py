@@ -37,7 +37,7 @@ class BuildersTest(test.TestCase):
         compilation = compiler.PatternCompiler(flow).compile()
         flow_detail = pu.create_flow_detail(flow)
         store = storage.Storage(flow_detail)
-        nodes_iter = compilation.execution_graph.nodes_iter(data=True)
+        nodes_iter = compilation.execution_graph.nodes(data=True)
         for node, node_attrs in nodes_iter:
             if node_attrs['kind'] in ('task', 'retry'):
                 store.ensure_atom(node)

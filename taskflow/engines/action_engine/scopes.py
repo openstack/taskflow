@@ -81,7 +81,7 @@ class ScopeWalker(object):
         if self._predecessors is None:
             predecessors = set(
                 node for node in graph.bfs_predecessors_iter(self._atom)
-                if graph.node[node]['kind'] in co.ATOMS)
+                if graph.nodes[node]['kind'] in co.ATOMS)
             self._predecessors = predecessors.copy()
         else:
             predecessors = self._predecessors.copy()

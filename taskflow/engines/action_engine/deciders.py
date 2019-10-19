@@ -98,8 +98,8 @@ def _affect_atom(atom, runtime):
 def _affect_direct_task_neighbors(atom, runtime):
     def _walk_neighbors():
         execution_graph = runtime.compilation.execution_graph
-        for node in execution_graph.successors_iter(atom):
-            node_data = execution_graph.node[node]
+        for node in execution_graph.successors(atom):
+            node_data = execution_graph.nodes[node]
             if node_data['kind'] == compiler.TASK:
                 yield node
     successors_iter = _walk_neighbors()

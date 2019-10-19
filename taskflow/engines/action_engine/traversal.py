@@ -34,9 +34,9 @@ def _extract_connectors(execution_graph, starting_node, direction,
                         through_flows=True, through_retries=True,
                         through_tasks=True):
     if direction == Direction.FORWARD:
-        connected_iter = execution_graph.successors_iter
+        connected_iter = execution_graph.successors
     else:
-        connected_iter = execution_graph.predecessors_iter
+        connected_iter = execution_graph.predecessors
     connected_to_functors = {}
     if through_flows:
         connected_to_functors[co.FLOW] = connected_iter
@@ -64,7 +64,7 @@ def breadth_first_iterate(execution_graph, starting_node, direction,
     q = collections.deque(initial_nodes_iter)
     while q:
         node = q.popleft()
-        node_attrs = execution_graph.node[node]
+        node_attrs = execution_graph.nodes[node]
         if not node_attrs.get('noop'):
             yield node
         try:
@@ -92,7 +92,7 @@ def depth_first_iterate(execution_graph, starting_node, direction,
     stack = list(initial_nodes_iter)
     while stack:
         node = stack.pop()
-        node_attrs = execution_graph.node[node]
+        node_attrs = execution_graph.nodes[node]
         if not node_attrs.get('noop'):
             yield node
         try:

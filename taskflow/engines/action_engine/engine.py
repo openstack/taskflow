@@ -349,7 +349,7 @@ class ActionEngine(base.Engine):
         seen = set()
         dups = set()
         execution_graph = compilation.execution_graph
-        for node, node_attrs in execution_graph.nodes_iter(data=True):
+        for node, node_attrs in execution_graph.nodes(data=True):
             if node_attrs['kind'] in compiler.ATOMS:
                 atom_name = node.name
                 if atom_name in seen:

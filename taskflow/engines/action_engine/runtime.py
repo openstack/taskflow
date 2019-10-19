@@ -66,13 +66,13 @@ class Runtime(object):
         """Iterates through all nodes, deciders that alter atoms execution."""
         # This is basically a reverse breadth first exploration, with
         # special logic to further traverse down flow nodes as needed...
-        predecessors_iter = graph.predecessors_iter
+        predecessors_iter = graph.predecessors
         nodes = collections.deque((u_node, atom)
                                   for u_node in predecessors_iter(atom))
         visited = set()
         while nodes:
             u_node, v_node = nodes.popleft()
-            u_node_kind = graph.node[u_node]['kind']
+            u_node_kind = graph.nodes[u_node]['kind']
             u_v_data = graph.adj[u_node][v_node]
             try:
                 decider = u_v_data[LINK_DECIDER]
@@ -121,7 +121,7 @@ class Runtime(object):
             com.RETRY: self.retry_action,
         }
         graph = self._compilation.execution_graph
-        for node, node_data in graph.nodes_iter(data=True):
+        for node, node_data in graph.nodes(data=True):
             node_kind = node_data['kind']
             if node_kind in com.FLOWS:
                 continue
@@ -265,7 +265,7 @@ class Runtime(object):
     def iterate_nodes(self, allowed_kinds):
         """Yields back all nodes of specified kinds in the execution graph."""
         graph = self._compilation.execution_graph
-        for node, node_data in graph.nodes_iter(data=True):
+        for node, node_data in graph.nodes(data=True):
             if node_data['kind'] in allowed_kinds:
                 yield node
 
@@ -285,7 +285,7 @@ class Runtime(object):
     def find_retry(self, node):
         """Returns the retry atom associated to the given node (or none)."""
         graph = self._compilation.execution_graph
-        return graph.node[node].get(com.RETRY)
+        return graph.nodes[node].get(com.RETRY)
 
     def reset_atoms(self, atoms, state=st.PENDING, intention=st.EXECUTE):
         """Resets all the provided atoms to the given state and intention."""
