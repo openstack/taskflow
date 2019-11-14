@@ -19,6 +19,7 @@ import binascii
 import collections
 import errno
 import functools
+import hashlib
 import hmac
 import math
 import os
@@ -265,7 +266,7 @@ def _create_random_string(desired_length):
 
 
 def _calculate_hmac(auth_key, body):
-    mac = hmac.new(auth_key, body).hexdigest()
+    mac = hmac.new(auth_key, body, hashlib.md5).hexdigest()
     if isinstance(mac, six.text_type):
         mac = mac.encode("ascii")
     return mac
