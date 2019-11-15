@@ -152,8 +152,7 @@ b %(edge)s c;
                           graph.merge_graphs, g, g2)
 
         def occurrence_detector(to_graph, from_graph):
-            return sum(1 for node in from_graph.nodes_iter()
-                       if node in to_graph)
+            return sum(1 for node in from_graph.nodes if node in to_graph)
 
         self.assertRaises(ValueError,
                           graph.merge_graphs, g, g2,
@@ -588,8 +587,8 @@ CEO
         dead_chicken = tree.Node("chicken.1", alive=False)
         root.add(dead_chicken)
         g = root.to_digraph()
-        self.assertEqual(g.node['chickens'], {'alive': True})
-        self.assertEqual(g.node['chicken.1'], {'alive': False})
+        self.assertEqual(g.nodes['chickens'], {'alive': True})
+        self.assertEqual(g.nodes['chicken.1'], {'alive': False})
 
 
 class OrderedSetTest(test.TestCase):

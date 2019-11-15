@@ -107,7 +107,7 @@ class Compilation(object):
 
 def _overlap_occurrence_detector(to_graph, from_graph):
     """Returns how many nodes in 'from' graph are in 'to' graph (if any)."""
-    return iter_utils.count(node for node in from_graph.nodes_iter()
+    return iter_utils.count(node for node in from_graph.nodes
                             if node in to_graph)
 
 
@@ -180,9 +180,9 @@ class FlowCompiler(object):
             graph.add_node(flow.retry, kind=RETRY)
             _add_update_edges(graph, [flow], [flow.retry],
                               attr_dict={LINK_INVARIANT: True})
-            for node in graph.nodes_iter():
+            for node in graph.nodes:
                 if node is not flow.retry and node is not flow:
-                    graph.node[node].setdefault(RETRY, flow.retry)
+                    graph.nodes[node].setdefault(RETRY, flow.retry)
             from_nodes = [flow.retry]
             attr_dict = {LINK_INVARIANT: True, LINK_RETRY: True}
         else:

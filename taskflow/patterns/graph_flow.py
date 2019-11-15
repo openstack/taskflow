@@ -224,7 +224,7 @@ class Flow(flow.Flow):
                 retry_provides.add(value)
                 provided[value].append(self._retry)
 
-        for node in self._graph.nodes_iter():
+        for node in self._graph.nodes:
             for value in self._unsatisfied_requires(node, self._graph,
                                                     retry_provides):
                 required[value].append(node)
@@ -292,12 +292,12 @@ class Flow(flow.Flow):
             yield n
 
     def iter_links(self):
-        return self._get_subgraph().edges_iter(data=True)
+        return self._get_subgraph().edges(data=True)
 
     def iter_nodes(self):
         g = self._get_subgraph()
         for n in g.topological_sort():
-            yield n, g.node[n]
+            yield n, g.nodes[n]
 
     @property
     def requires(self):
@@ -307,7 +307,7 @@ class Flow(flow.Flow):
             requires.update(self._retry.requires)
             retry_provides.update(self._retry.provides)
         g = self._get_subgraph()
-        for node in g.nodes_iter():
+        for node in g.nodes:
             requires.update(self._unsatisfied_requires(node, g,
                                                        retry_provides))
         return frozenset(requires)
@@ -367,6 +367,7 @@ class TargetedFlow(Flow):
             return self._graph
         nodes = [self._target]
         nodes.extend(self._graph.bfs_predecessors_iter(self._target))
-        self._subgraph = gr.DiGraph(data=self._graph.subgraph(nodes))
+        self._subgraph = gr.DiGraph(
+            incoming_graph_data=self._graph.subgraph(nodes))
         self._subgraph.freeze()
         return self._subgraph

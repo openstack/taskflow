@@ -44,11 +44,11 @@ class Flow(flow.Flow):
             yield item
 
     def iter_links(self):
-        for (u, v, e_data) in self._graph.edges_iter(data=True):
+        for (u, v, e_data) in self._graph.edges(data=True):
             yield (u, v, e_data)
 
     def iter_nodes(self):
-        for n, n_data in self._graph.nodes_iter(data=True):
+        for n, n_data in self._graph.nodes(data=True):
             yield (n, n_data)
 
     @property

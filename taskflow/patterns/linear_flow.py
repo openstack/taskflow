@@ -55,7 +55,7 @@ class Flow(flow.Flow):
         return len(self._graph)
 
     def __iter__(self):
-        for item in self._graph.nodes_iter():
+        for item in self._graph.nodes:
             yield item
 
     @property
@@ -71,9 +71,9 @@ class Flow(flow.Flow):
         return frozenset(requires)
 
     def iter_nodes(self):
-        for (n, n_data) in self._graph.nodes_iter(data=True):
+        for (n, n_data) in self._graph.nodes(data=True):
             yield (n, n_data)
 
     def iter_links(self):
-        for (u, v, e_data) in self._graph.edges_iter(data=True):
+        for (u, v, e_data) in self._graph.edges(data=True):
             yield (u, v, e_data)

@@ -33,9 +33,9 @@ def _replicate_graph_with_names(compilation):
     # original/source flow).
     g = compilation.execution_graph
     n_g = g.__class__(name=g.name)
-    for node, node_data in g.nodes_iter(data=True):
+    for node, node_data in g.nodes(data=True):
         n_g.add_node(node.name, attr_dict=node_data)
-    for u, v, u_v_data in g.edges_iter(data=True):
+    for u, v, u_v_data in g.edges(data=True):
         n_g.add_edge(u.name, v.name, attr_dict=u_v_data)
     return n_g
 
@@ -435,7 +435,7 @@ class PatternCompileTest(test.TestCase):
         empty_flow_terminal = empty_flow_successors[0]
         self.assertIs(empty_flow, empty_flow_terminal.flow)
         self.assertEqual(compiler.FLOW_END,
-                         g.node[empty_flow_terminal]['kind'])
+                         g.nodes[empty_flow_terminal]['kind'])
         self.assertTrue(g.has_edge(empty_flow_terminal, b))
 
     def test_empty_flow_in_graph_flow_linkage(self):
@@ -506,7 +506,7 @@ class PatternCompileTest(test.TestCase):
             ('c2', 'test2[$]', {'invariant': True}),
             ('test2[$]', 'test[$]', {'invariant': True}),
         ])
-        self.assertIs(c1, g.node['c2']['retry'])
+        self.assertIs(c1, g.nodes['c2']['retry'])
         self.assertItemsEqual(['test'], list(g.no_predecessors_iter()))
         self.assertItemsEqual(['test[$]'], list(g.no_successors_iter()))
 
@@ -527,8 +527,8 @@ class PatternCompileTest(test.TestCase):
 
         self.assertItemsEqual(['test'], g.no_predecessors_iter())
         self.assertItemsEqual(['test[$]'], g.no_successors_iter())
-        self.assertIs(c, g.node['a']['retry'])
-        self.assertIs(c, g.node['b']['retry'])
+        self.assertIs(c, g.nodes['a']['retry'])
+        self.assertIs(c, g.nodes['b']['retry'])
 
     def test_retry_in_unordered_flow_with_tasks(self):
         c = retry.AlwaysRevert("c")
@@ -548,8 +548,8 @@ class PatternCompileTest(test.TestCase):
 
         self.assertItemsEqual(['test'], list(g.no_predecessors_iter()))
         self.assertItemsEqual(['test[$]'], list(g.no_successors_iter()))
-        self.assertIs(c, g.node['a']['retry'])
-        self.assertIs(c, g.node['b']['retry'])
+        self.assertIs(c, g.nodes['a']['retry'])
+        self.assertIs(c, g.nodes['b']['retry'])
 
     def test_retry_in_graph_flow_with_tasks(self):
         r = retry.AlwaysRevert("r")
@@ -569,9 +569,9 @@ class PatternCompileTest(test.TestCase):
 
         self.assertItemsEqual(['test'], g.no_predecessors_iter())
         self.assertItemsEqual(['test[$]'], g.no_successors_iter())
-        self.assertIs(r, g.node['a']['retry'])
-        self.assertIs(r, g.node['b']['retry'])
-        self.assertIs(r, g.node['c']['retry'])
+        self.assertIs(r, g.nodes['a']['retry'])
+        self.assertIs(r, g.nodes['b']['retry'])
+        self.assertIs(r, g.nodes['c']['retry'])
 
     def test_retries_hierarchy(self):
         c1 = retry.AlwaysRevert("c1")
@@ -594,12 +594,12 @@ class PatternCompileTest(test.TestCase):
             ('test2[$]', 'd', {'invariant': True}),
             ('d', 'test[$]', {'invariant': True}),
         ])
-        self.assertIs(c1, g.node['a']['retry'])
-        self.assertIs(c1, g.node['d']['retry'])
-        self.assertIs(c2, g.node['b']['retry'])
-        self.assertIs(c2, g.node['c']['retry'])
-        self.assertIs(c1, g.node['c2']['retry'])
-        self.assertIsNone(g.node['c1'].get('retry'))
+        self.assertIs(c1, g.nodes['a']['retry'])
+        self.assertIs(c1, g.nodes['d']['retry'])
+        self.assertIs(c2, g.nodes['b']['retry'])
+        self.assertIs(c2, g.nodes['c']['retry'])
+        self.assertIs(c1, g.nodes['c2']['retry'])
+        self.assertIsNone(g.nodes['c1'].get('retry'))
 
     def test_retry_subflows_hierarchy(self):
         c1 = retry.AlwaysRevert("c1")
@@ -620,8 +620,8 @@ class PatternCompileTest(test.TestCase):
             ('test2[$]', 'd', {'invariant': True}),
             ('d', 'test[$]', {'invariant': True}),
         ])
-        self.assertIs(c1, g.node['a']['retry'])
-        self.assertIs(c1, g.node['d']['retry'])
-        self.assertIs(c1, g.node['b']['retry'])
-        self.assertIs(c1, g.node['c']['retry'])
-        self.assertIsNone(g.node['c1'].get('retry'))
+        self.assertIs(c1, g.nodes['a']['retry'])
+        self.assertIs(c1, g.nodes['d']['retry'])
+        self.assertIs(c1, g.nodes['b']['retry'])
+        self.assertIs(c1, g.nodes['c']['retry'])
+        self.assertIsNone(g.nodes['c1'].get('retry'))

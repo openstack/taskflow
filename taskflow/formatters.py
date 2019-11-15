@@ -44,11 +44,11 @@ def _fetch_predecessor_tree(graph, atom):
     stack = [(root, atom)]
     while stack:
         parent, node = stack.pop()
-        for pred_node in graph.predecessors_iter(node):
-            pred_node_data = graph.node[pred_node]
+        for pred_node in graph.predecessors(node):
+            pred_node_data = graph.nodes[pred_node]
             if pred_node_data['kind'] == compiler.FLOW_END:
                 # Jump over and/or don't show flow end nodes...
-                for pred_pred_node in graph.predecessors_iter(pred_node):
+                for pred_pred_node in graph.predecessors(pred_node):
                     stack.append((parent, pred_pred_node))
             else:
                 child = tree.Node(pred_node, **pred_node_data)

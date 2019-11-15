@@ -27,7 +27,6 @@ import threading
 import types
 
 import enum
-import networkx as nx
 from oslo_serialization import jsonutils
 from oslo_serialization import msgpackutils
 from oslo_utils import encodeutils
@@ -540,7 +539,3 @@ def safe_copy_dict(obj):
         return {}
     # default to a shallow copy to avoid most ownership issues
     return dict(obj)
-
-
-def nx_version():
-    return nx.__version__.split('.')[0]
