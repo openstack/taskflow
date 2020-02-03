@@ -1,11 +1,9 @@
 - project:
     templates:
       - check-requirements
-      - lib-forward-testing
       - lib-forward-testing-python3
       - openstack-lower-constraints-jobs
       - openstack-cover-jobs
-      - openstack-python-jobs
       - openstack-python3-ussuri-jobs
       - periodic-stable-jobs
       - publish-openstack-docs-pti

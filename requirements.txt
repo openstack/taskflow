@@ -10,9 +10,6 @@ pbr!=2.1.0,>=2.0.0 # Apache-2.0
 # Python 2->3 compatibility library.
 six>=1.10.0 # MIT
 
-# Enum library made for <= python 3.3
-enum34>=1.0.4;python_version=='2.7' or python_version=='2.6' or python_version=='3.3' # BSD
-
 # For async and/or periodic work
 futurist>=1.2.0 # Apache-2.0
 
@@ -20,17 +17,10 @@ futurist>=1.2.0 # Apache-2.0
 fasteners>=0.7.0 # Apache-2.0
 
 # Very nice graph library
-networkx>=2.1.0,<2.3;python_version<'3.0'  # BSD
-networkx>=2.1.0;python_version>='3.4'  # BSD
-
-# For contextlib new additions/compatibility for <= python 3.3
-contextlib2>=0.4.0;python_version<'3.0' # PSF License
+networkx>=2.1.0 # BSD
 
 # Used for backend storage engine loading.
 stevedore>=1.20.0 # Apache-2.0
-
-# Backport for concurrent.futures which exists in 3.2+
-futures>=3.0.0;python_version=='2.7' or python_version=='2.6' # BSD
 
 # Used for structured input validation
 jsonschema>=2.6.0 # MIT

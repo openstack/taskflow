@@ -24,7 +24,7 @@ psycopg2>=2.7.0 # LGPL/ZPL
 
 # test
 pydotplus>=2.0.2 # MIT License
-hacking<0.11,>=0.10.0
+hacking<2.1,>=2.0
 oslotest>=3.2.0 # Apache-2.0
 mock>=2.0.0 # BSD
 testtools>=2.2.0 # MIT
