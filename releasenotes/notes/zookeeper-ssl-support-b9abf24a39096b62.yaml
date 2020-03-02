@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    SSL support for zookeeper backend (kazoo client). Now the following options
+    can be passed to zookeeper config: *keyfile*, *keyfile_password*,
+    *certfile*, *use_ssl*, *verify_certs*.

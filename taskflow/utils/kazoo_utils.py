@@ -175,6 +175,13 @@ def make_client(conf):
     - ``handler``: a kazoo handler object that can be used to provide the
       client with alternate async strategies (the default is `thread`_
       based, but `gevent`_, or `eventlet`_ ones can be provided as needed)
+    - ``keyfile`` : SSL keyfile to use for authentication
+    - ``keyfile_password``: SSL keyfile password
+    -  ``certfile``: SSL certfile to use for authentication
+    - ``ca``: SSL CA file to use for authentication
+    - ``use_ssl``: argument to control whether SSL is used or not
+    - ``verify_certs``: when using SSL, argument to bypass
+        certs verification
 
     .. _client: https://kazoo.readthedocs.io/en/latest/api/client.html
     .. _kazoo: https://kazoo.readthedocs.io/
@@ -191,6 +198,12 @@ def make_client(conf):
         'read_only': bool(conf.get('read_only')),
         'randomize_hosts': bool(conf.get('randomize_hosts')),
         'logger': LOG,
+        'keyfile': conf.get('keyfile', None),
+        'keyfile_password': conf.get('keyfile_password', None),
+        'certfile': conf.get('certfile', None),
+        'use_ssl': conf.get('use_ssl', False),
+        'verify_certs': conf.get('verify_certs', True),
+
     }
     # See: https://kazoo.readthedocs.io/en/latest/api/retry.html
     if 'command_retry' in conf:

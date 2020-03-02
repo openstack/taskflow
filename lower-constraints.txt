@@ -22,7 +22,7 @@ imagesize==0.7.1
 iso8601==0.1.11
 Jinja2==2.10
 jsonschema==2.6.0
-kazoo==2.2
+kazoo==2.6.0
 keystoneauth1==3.4.0
 kombu==4.0.0
 linecache2==1.0.0
