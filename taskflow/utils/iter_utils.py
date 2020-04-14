@@ -14,7 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
+from collections import abc
 import itertools
 
 import six
@@ -25,7 +25,7 @@ def _ensure_iterable(func):
 
     @six.wraps(func)
     def wrapper(it, *args, **kwargs):
-        if not isinstance(it, collections.Iterable):
+        if not isinstance(it, abc.Iterable):
             raise ValueError("Iterable expected, but '%s' is not"
                              " iterable" % it)
         return func(it, *args, **kwargs)
@@ -109,7 +109,7 @@ def unique_seen(its, seen_selector=None):
 
     all_its = list(its)
     for it in all_its:
-        if not isinstance(it, collections.Iterable):
+        if not isinstance(it, abc.Iterable):
             raise ValueError("Iterable expected, but '%s' is"
                              " not iterable" % it)
     return _gen_it(all_its)

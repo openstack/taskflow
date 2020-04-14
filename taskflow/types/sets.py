@@ -15,16 +15,8 @@
 #    under the License.
 
 import collections
-
-# TODO(smcginnis) update this once six has support for collections.abc
-# (https://github.com/benjaminp/six/pull/241) or clean up once we drop py2.7.
-try:
-    from collections.abc import Hashable
-    from collections.abc import Set
-except ImportError:
-    from collections import Hashable
-    from collections import Set
-
+from collections.abc import Hashable
+from collections.abc import Set
 import itertools
 
 import six

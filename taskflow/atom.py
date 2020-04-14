@@ -17,6 +17,7 @@
 
 import abc
 import collections
+from collections import abc as cabc
 import itertools
 
 from oslo_utils import reflection
@@ -28,8 +29,8 @@ from taskflow.utils import misc
 
 
 # Helper types tuples...
-_sequence_types = (list, tuple, collections.Sequence)
-_set_types = (set, collections.Set)
+_sequence_types = (list, tuple, cabc.Sequence)
+_set_types = (set, cabc.Set)
 
 # the default list of revert arguments to ignore when deriving
 # revert argument mapping from the revert method signature
