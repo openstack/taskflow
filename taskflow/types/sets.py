@@ -15,8 +15,7 @@
 #    under the License.
 
 import collections
-from collections.abc import Hashable
-from collections.abc import Set
+from collections import abc
 import itertools
 
 import six
@@ -34,7 +33,7 @@ def _merge_in(target, iterable=None, sentinel=_sentinel):
     return target
 
 
-class OrderedSet(Set, Hashable):
+class OrderedSet(abc.Set, abc.Hashable):
     """A read-only hashable set that retains insertion/initial ordering.
 
     It should work in all existing places that ``frozenset`` is used.

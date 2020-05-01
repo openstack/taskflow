@@ -13,14 +13,10 @@
 #    under the License.
 
 import abc
+import contextlib
 import functools
 import itertools
 import threading
-
-try:
-    from contextlib import ExitStack  # noqa
-except ImportError:
-    from contextlib2 import ExitStack  # noqa
 
 from oslo_utils import excutils
 from oslo_utils import timeutils
@@ -154,7 +150,7 @@ class ExecutorConductor(base.Conductor):
     def _dispatch_job(self, job):
         engine = self._engine_from_job(job)
         listeners = self._listeners_from_job(job, engine)
-        with ExitStack() as stack:
+        with contextlib.ExitStack() as stack:
             for listener in listeners:
                 stack.enter_context(listener)
             self._log.debug("Dispatching engine for job '%s'", job)
