@@ -16,6 +16,12 @@ consistent and reliable.* [#f1]_
 
    user/index
 
+Release Notes
+=============
+
+Read also the `taskflow Release Notes
+<https://docs.openstack.org/releasenotes/taskflow/>`_.
+
 Indices and tables
 ==================
 
