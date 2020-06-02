@@ -16,9 +16,10 @@ extensions = [
 ]
 
 # openstackdocstheme options
-repository_name = 'openstack/taskflow'
-bug_project = 'taskflow'
-bug_tag = ''
+openstackdocs_repo_name = 'openstack/taskflow'
+openstackdocs_auto_name = False
+openstackdocs_bug_project = 'taskflow'
+openstackdocs_bug_tag = ''
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['templates']
@@ -45,7 +46,7 @@ add_function_parentheses = True
 add_module_names = True
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 # Prefixes that are ignored for sorting the Python module index
 modindex_common_prefix = ['taskflow.']

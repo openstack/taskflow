@@ -62,8 +62,6 @@ requestsexceptions==1.2.0
 restructuredtext-lint==1.1.1
 six==1.10.0
 snowballstemmer==1.2.1
-Sphinx==1.6.2
-sphinxcontrib-websupport==1.0.1
 SQLAlchemy-Utils==0.30.11
 SQLAlchemy==1.0.10
 stevedore==1.20.0
