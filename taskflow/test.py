@@ -182,7 +182,7 @@ class TestCase(base.BaseTestCase):
         except exceptions.WrappedFailure as e:
             self.assertThat(e, FailureRegexpMatcher(exc_class, pattern))
 
-    def assertItemsEqual(self, seq1, seq2, msg=None):
+    def assertCountEqual(self, seq1, seq2, msg=None):
         matcher = ItemsEqual(seq1)
         self.assertThat(seq2, matcher)
 

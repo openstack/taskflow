@@ -355,7 +355,7 @@ class RetryTest(utils.EngineTestBase):
                     'task1.t SUCCESS(5)',
                     'task2.t SUCCESS(None)',
                     'flow-1.f SUCCESS']
-        self.assertItemsEqual(capturer.values, expected)
+        self.assertCountEqual(capturer.values, expected)
 
     def test_nested_flow_reverts_parent_retries(self):
         retry1 = retry.Times(3, 'r1', provides='x')
@@ -715,7 +715,7 @@ class RetryTest(utils.EngineTestBase):
                     'r1.r REVERTING',
                     'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
-        self.assertItemsEqual(capturer.values, expected)
+        self.assertCountEqual(capturer.values, expected)
 
     def test_nested_for_each_revert(self):
         collection = [3, 2, 3, 5]
@@ -897,7 +897,7 @@ class RetryTest(utils.EngineTestBase):
                     'r1.r REVERTING',
                     'r1.r REVERTED(None)',
                     'flow-1.f REVERTED']
-        self.assertItemsEqual(capturer.values, expected)
+        self.assertCountEqual(capturer.values, expected)
 
     def test_nested_parameterized_for_each_revert(self):
         values = [3, 2, 5]
@@ -1144,7 +1144,7 @@ class RetryTest(utils.EngineTestBase):
                     'c.t REVERTED(None)',
                     'b.t REVERTING',
                     'b.t REVERTED(None)']
-        self.assertItemsEqual(capturer.values[:8], expected)
+        self.assertCountEqual(capturer.values[:8], expected)
         # Task 'a' was or was not executed again, both cases are ok.
         self.assertIsSuperAndSubsequence(capturer.values[8:], [
             'b.t RUNNING',
@@ -1173,7 +1173,7 @@ class RetryTest(utils.EngineTestBase):
                     'c.t REVERTED(None)',
                     'b.t REVERTING',
                     'b.t REVERTED(None)']
-        self.assertItemsEqual(capturer.values[:4], expected)
+        self.assertCountEqual(capturer.values[:4], expected)
         expected = ['test2_retry.r RETRYING',
                     'b.t PENDING',
                     'c.t PENDING',
@@ -1185,7 +1185,7 @@ class RetryTest(utils.EngineTestBase):
                     'c.t RUNNING',
                     'a.t SUCCESS(5)',
                     'c.t SUCCESS(5)']
-        self.assertItemsEqual(expected, capturer.values[4:])
+        self.assertCountEqual(expected, capturer.values[4:])
         self.assertEqual(st.SUCCESS, engine.storage.get_flow_state())
 
 
@@ -1225,7 +1225,7 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
                     'task2.t RUNNING',
                     'task2.t SUCCESS(None)',
                     'task1.t SUCCESS(5)']
-        self.assertItemsEqual(capturer.values, expected)
+        self.assertCountEqual(capturer.values, expected)
 
     def test_when_subflow_fails_revert_success_tasks(self):
         waiting_task = utils.WaitForOneFromTask('task2', 'task1',
@@ -1268,7 +1268,7 @@ class RetryParallelExecutionTest(utils.EngineTestBase):
                     'task2.t SUCCESS(5)',
                     'task3.t RUNNING',
                     'task3.t SUCCESS(None)']
-        self.assertItemsEqual(capturer.values, expected)
+        self.assertCountEqual(capturer.values, expected)
 
 
 class SerialEngineTest(RetryTest, test.TestCase):
