@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Allow to use Sentinel for Redis connections. New variable *sentinel* can be
+    passed to Redis jobboard. It is None by default, Sentinel name should be passed
+    to enable this functionality.
