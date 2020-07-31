@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Limit retries for storage failures on saving flow/task state in the storage.
+    Previously on StorageFailure exception may cause an endless loop during
+    execution of flows throwing errors and retrying to save details.
+

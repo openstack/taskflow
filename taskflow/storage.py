@@ -21,6 +21,7 @@ import fasteners
 from oslo_utils import reflection
 from oslo_utils import uuidutils
 import six
+import tenacity
 
 from taskflow import exceptions
 from taskflow import logging
@@ -33,6 +34,8 @@ from taskflow.utils import misc
 
 LOG = logging.getLogger(__name__)
 
+RETRY_ATTEMPTS = 3
+RETRY_WAIT_TIMEOUT = 5
 
 _EXECUTE_STATES_WITH_RESULTS = (
     # The atom ``execute`` worked out :)
@@ -449,6 +452,10 @@ class Storage(object):
         # This never changes (so no read locking needed).
         return self._backend
 
+    @tenacity.retry(retry=tenacity.retry_if_exception_type(
+                    exception_types=exceptions.StorageFailure),
+                    stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
+                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT))
     def _save_flow_detail(self, conn, original_flow_detail, flow_detail):
         # NOTE(harlowja): we need to update our contained flow detail if
         # the result of the update actually added more (aka another process
@@ -482,6 +489,10 @@ class Storage(object):
             else:
                 return (ad, ad)
 
+    @tenacity.retry(retry=tenacity.retry_if_exception_type(
+                    exception_types=exceptions.StorageFailure),
+                    stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
+                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT))
     def _save_atom_detail(self, conn, original_atom_detail, atom_detail):
         # NOTE(harlowja): we need to update our contained atom detail if
         # the result of the update actually added more (aka another process
