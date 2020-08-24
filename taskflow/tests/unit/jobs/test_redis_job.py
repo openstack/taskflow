@@ -15,6 +15,7 @@
 #    under the License.
 
 import time
+from unittest import mock
 
 from oslo_utils import uuidutils
 import six
@@ -102,3 +103,36 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
     def setUp(self):
         super(RedisJobboardTest, self).setUp()
         self.client, self.board = self.create_board()
+
+    def test__make_client(self):
+        conf = {'host': '127.0.0.1',
+                'port': 6379,
+                'password': 'secret',
+                'namespace': 'test'
+                }
+        test_conf = {
+            'host': '127.0.0.1',
+            'port': 6379,
+            'password': 'secret',
+        }
+        with mock.patch('taskflow.utils.redis_utils.RedisClient') as mock_ru:
+            impl_redis.RedisJobBoard('test-board', conf)
+            mock_ru.assert_called_once_with(**test_conf)
+
+    def test__make_client_sentinel(self):
+        conf = {'host': '127.0.0.1',
+                'port': 26379,
+                'password': 'secret',
+                'namespace': 'test',
+                'sentinel': 'mymaster',
+                'sentinel_kwargs': {'password': 'senitelsecret'}}
+        with mock.patch('redis.sentinel.Sentinel') as mock_sentinel:
+            impl_redis.RedisJobBoard('test-board', conf)
+            test_conf = {
+                'password': 'secret',
+            }
+            mock_sentinel.assert_called_once_with(
+                [('127.0.0.1', 26379)],
+                sentinel_kwargs={'password': 'senitelsecret'},
+                **test_conf)
+            mock_sentinel().master_for.assert_called_once_with('mymaster')

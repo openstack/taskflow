@@ -29,6 +29,7 @@ from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from redis import exceptions as redis_exceptions
+from redis import sentinel
 import six
 from six.moves import range as compat_range
 
@@ -567,7 +568,19 @@ return cmsgpack.pack(result)
                     client_conf[key] = value_type_converter(conf[key])
                 else:
                     client_conf[key] = conf[key]
-        return ru.RedisClient(**client_conf)
+        if conf.get('sentinel') is not None:
+            sentinel_conf = {}
+            # sentinel do not have ssl kwargs
+            for key in client_conf:
+                if 'ssl' not in key:
+                    sentinel_conf[key] = client_conf[key]
+            s = sentinel.Sentinel([(sentinel_conf.pop('host'),
+                                    sentinel_conf.pop('port'))],
+                                  sentinel_kwargs=conf.get('sentinel_kwargs'),
+                                  **sentinel_conf)
+            return s.master_for(conf['sentinel'])
+        else:
+            return ru.RedisClient(**client_conf)
 
     def __init__(self, name, conf,
                  client=None, persistence=None):
