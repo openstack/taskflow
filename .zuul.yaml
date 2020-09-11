@@ -4,7 +4,7 @@
       - lib-forward-testing-python3
       - openstack-lower-constraints-jobs
       - openstack-cover-jobs
-      - openstack-python3-victoria-jobs
+      - openstack-python3-wallaby-jobs
       - periodic-stable-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
