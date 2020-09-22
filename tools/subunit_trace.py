@@ -285,8 +285,7 @@ def main():
     outcomes = testtools.StreamToDict(
         functools.partial(show_outcome, sys.stdout,
                           print_failures=args.print_failures,
-                          failonly=args.failonly
-                      ))
+                          failonly=args.failonly))
     summary = testtools.StreamSummary()
     result = testtools.CopyStreamResult([starts, outcomes, summary])
     result.startTestRun()
@@ -305,4 +304,3 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main())
-
