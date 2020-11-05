@@ -62,4 +62,6 @@ doc/build/
 env
 
 # files created by releasenotes build
+RELEASENOTES.rst
+releasenotes/notes/reno.cache
 releasenotes/build
