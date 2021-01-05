@@ -15,10 +15,10 @@
 #    under the License.
 
 import socket
+from unittest import mock
 
 from taskflow.engines.worker_based import proxy
 from taskflow import test
-from taskflow.test import mock
 from taskflow.utils import threading_utils
 
 

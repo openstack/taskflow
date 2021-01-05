@@ -16,9 +16,9 @@
 
 import collections
 import logging
+from unittest import mock
 
 import fixtures
-import mock
 from oslotest import base
 import six
 
