@@ -41,17 +41,17 @@ def _get_indexes():
     # up and fetched, so attempt to ensure that that is done quickly.
     indexes = [
         {
-            'name': 'logbook_uuid_idx',
+            'index_name': 'logbook_uuid_idx',
             'table_name': 'logbooks',
             'columns': ['uuid'],
         },
         {
-            'name': 'flowdetails_uuid_idx',
+            'index_name': 'flowdetails_uuid_idx',
             'table_name': 'flowdetails',
             'columns': ['uuid'],
         },
         {
-            'name': 'taskdetails_uuid_idx',
+            'index_name': 'taskdetails_uuid_idx',
             'table_name': 'taskdetails',
             'columns': ['uuid'],
         },
@@ -63,18 +63,18 @@ def _get_foreign_keys():
     f_keys = [
         # Flow details uuid -> logbook parent uuid
         {
-            'name': 'flowdetails_ibfk_1',
-            'source': 'flowdetails',
-            'referent': 'logbooks',
+            'constraint_name': 'flowdetails_ibfk_1',
+            'source_table': 'flowdetails',
+            'referent_table': 'logbooks',
             'local_cols': ['parent_uuid'],
             'remote_cols': ['uuid'],
             'ondelete': 'CASCADE',
         },
         # Task details uuid -> flow details parent uuid
         {
-            'name': 'taskdetails_ibfk_1',
-            'source': 'taskdetails',
-            'referent': 'flowdetails',
+            'constraint_name': 'taskdetails_ibfk_1',
+            'source_table': 'taskdetails',
+            'referent_table': 'flowdetails',
             'local_cols': ['parent_uuid'],
             'remote_cols': ['uuid'],
             'ondelete': 'CASCADE',
