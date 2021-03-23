@@ -9,7 +9,7 @@ default_language_version:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: ebc15addedad713c86ef18ae9632c88e187dd0af  # v3.1.0
+    rev: 9136088a246768144165fcc3ecc3d31bb686920a # v3.3.0
     hooks:
       - id: trailing-whitespace
       # Replaces or checks mixed line ending
@@ -27,9 +27,13 @@ repos:
       - id: debug-statements
       - id: check-yaml
         files: .*\.(yaml|yml)$
-  - repo: https://gitlab.com/pycqa/flake8
-    rev: 181bb46098dddf7e2d45319ea654b4b4d58c2840 # 3.8.3
+  - repo: local
     hooks:
       - id: flake8
+        name: flake8
         additional_dependencies:
           - hacking>=3.0.1,<3.1.0
+        language: python
+        entry: flake8
+        files: '^.*\.py$'
+        exclude: '^(doc|releasenotes|tools)/.*$'
