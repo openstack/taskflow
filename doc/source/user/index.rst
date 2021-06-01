@@ -18,7 +18,7 @@ TaskFlow into your project:
   knowing your use cases and learning how we can help make your lives easier
   by adding or adjusting functionality in this library.
 
-.. _IRC: irc://chat.freenode.net/openstack-state-management
+.. _IRC: irc://irc.oftc.net/openstack-oslo
 .. _best practices: https://wiki.openstack.org/wiki/TaskFlow/Best_practices
 .. _paradigm shifts: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts
 .. _openstack-dev: mailto:openstack-dev@lists.openstack.org

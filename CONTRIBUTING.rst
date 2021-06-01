@@ -14,3 +14,9 @@ Pull requests submitted through GitHub will be ignored.
 Bugs should be filed on Launchpad, not GitHub:
 
    https://bugs.launchpad.net/taskflow
+
+The mailing list is (prefix subjects with "[Oslo][TaskFlow]"):
+
+   https://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
+
+Questions and discussions take place in #openstack-oslo on irc.OFTC.net.
