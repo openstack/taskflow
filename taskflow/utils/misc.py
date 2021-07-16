@@ -15,7 +15,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import collections
+import collections.abc
 import contextlib
 import datetime
 import inspect
@@ -525,7 +525,7 @@ def is_iterable(obj):
     :return: True if object is iterable and is not a string
     """
     return (not isinstance(obj, six.string_types) and
-            isinstance(obj, collections.Iterable))
+            isinstance(obj, collections.abc.Iterable))
 
 
 def safe_copy_dict(obj):
