@@ -16,10 +16,11 @@
 
 import collections
 
+from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from sqlalchemy import Table, Column, String, ForeignKey, DateTime, Enum
-import sqlalchemy_utils as su
+from sqlalchemy_utils.types import json as json_type
 
 from taskflow.persistence import models
 from taskflow import states
@@ -34,6 +35,24 @@ STATE_LENGTH = 255
 VERSION_LENGTH = 64
 
 
+class JSONType(json_type.JSONType):
+    """Customized JSONType using oslo.serialization for json operations"""
+
+    def process_bind_param(self, value, dialect):
+        if dialect.name == 'postgresql' and json_type.has_postgres_json:
+            return value
+        if value is not None:
+            value = jsonutils.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if dialect.name == 'postgresql':
+            return value
+        if value is not None:
+            value = jsonutils.loads(value)
+        return value
+
+
 def fetch(metadata):
     """Returns the master set of table objects (which is also there schema)."""
     logbooks = Table('logbooks', metadata,
@@ -41,7 +60,7 @@ def fetch(metadata):
                             default=timeutils.utcnow),
                      Column('updated_at', DateTime,
                             onupdate=timeutils.utcnow),
-                     Column('meta', su.JSONType),
+                     Column('meta', JSONType),
                      Column('name', String(length=NAME_LENGTH)),
                      Column('uuid', String(length=UUID_LENGTH),
                             primary_key=True, nullable=False, unique=True,
@@ -54,7 +73,7 @@ def fetch(metadata):
                         Column('parent_uuid', String(length=UUID_LENGTH),
                                ForeignKey('logbooks.uuid',
                                           ondelete='CASCADE')),
-                        Column('meta', su.JSONType),
+                        Column('meta', JSONType),
                         Column('name', String(length=NAME_LENGTH)),
                         Column('state', String(length=STATE_LENGTH)),
                         Column('uuid', String(length=UUID_LENGTH),
@@ -65,7 +84,7 @@ def fetch(metadata):
                                default=timeutils.utcnow),
                         Column('updated_at', DateTime,
                                onupdate=timeutils.utcnow),
-                        Column('meta', su.JSONType),
+                        Column('meta', JSONType),
                         Column('parent_uuid', String(length=UUID_LENGTH),
                                ForeignKey('flowdetails.uuid',
                                           ondelete='CASCADE')),
@@ -75,10 +94,10 @@ def fetch(metadata):
                         Column('uuid', String(length=UUID_LENGTH),
                                primary_key=True, nullable=False, unique=True,
                                default=uuidutils.generate_uuid),
-                        Column('failure', su.JSONType),
-                        Column('results', su.JSONType),
-                        Column('revert_results', su.JSONType),
-                        Column('revert_failure', su.JSONType),
+                        Column('failure', JSONType),
+                        Column('results', JSONType),
+                        Column('revert_results', JSONType),
+                        Column('revert_failure', JSONType),
                         Column('atom_type', Enum(*models.ATOM_TYPES,
                                                  name='atom_types')),
                         Column('intention', Enum(*states.INTENTIONS,
