@@ -211,11 +211,18 @@ class ExecutorConductor(base.Conductor):
                     self._log.info("Job completed successfully: %s", job)
             return consume
 
-    def _try_finish_job(self, job, consume):
+    def _try_finish_job(self, job, consume, trash=False):
         try:
             if consume:
                 self._jobboard.consume(job, self._name)
                 self._notifier.notify("job_consumed", {
+                    'job': job,
+                    'conductor': self,
+                    'persistence': self._persistence,
+                })
+            elif trash:
+                self._jobboard.trash(job, self._name)
+                self._notifier.notify("job_trashed", {
                     'job': job,
                     'conductor': self,
                     'persistence': self._persistence,
@@ -237,6 +244,7 @@ class ExecutorConductor(base.Conductor):
 
     def _on_job_done(self, job, fut):
         consume = False
+        trash = False
         try:
             consume = fut.result()
         except KeyboardInterrupt:
@@ -244,8 +252,9 @@ class ExecutorConductor(base.Conductor):
                 self._log.warn("Job dispatching interrupted: %s", job)
         except Exception:
             self._log.warn("Job dispatching failed: %s", job, exc_info=True)
+            trash = True
         try:
-            self._try_finish_job(job, consume)
+            self._try_finish_job(job, consume, trash)
         finally:
             self._dispatched.discard(fut)
 
