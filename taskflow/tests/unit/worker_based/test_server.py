@@ -213,7 +213,7 @@ class TestServer(test.MockTestCase):
         ]
         self.master_mock.assert_has_calls(master_mock_calls)
 
-    @mock.patch("taskflow.engines.worker_based.server.LOG.warn")
+    @mock.patch("taskflow.engines.worker_based.server.LOG.warning")
     def test_process_request_parse_message_failure(self, mocked_exception):
         self.message_mock.properties = {}
         request = self.make_request()
