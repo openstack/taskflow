@@ -321,7 +321,7 @@ class ActionEngine(base.Engine):
             except Exception:
                 with excutils.save_and_reraise_exception():
                     LOG.exception("Engine execution has failed, something"
-                                  " bad must of happened (last"
+                                  " bad must have happened (last"
                                   " %s machine transitions were %s)",
                                   last_transitions.maxlen,
                                   list(last_transitions))
