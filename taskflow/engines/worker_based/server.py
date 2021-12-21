@@ -164,8 +164,8 @@ class Server(object):
             # in the first place...).
             reply_to, task_uuid = self._parse_message(message)
         except ValueError:
-            LOG.warn("Failed to parse request attributes from message '%s'",
-                     ku.DelayedPretty(message), exc_info=True)
+            LOG.warning("Failed to parse request attributes from message '%s'",
+                        ku.DelayedPretty(message), exc_info=True)
             return
         else:
             # prepare reply callback
