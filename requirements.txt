@@ -14,7 +14,7 @@ six>=1.10.0 # MIT
 futurist>=1.2.0 # Apache-2.0
 
 # For reader/writer + interprocess locks.
-fasteners>=0.7.0 # Apache-2.0
+fasteners>=0.17.3 # Apache-2.0
 
 # Very nice graph library
 networkx>=2.1.0 # BSD
