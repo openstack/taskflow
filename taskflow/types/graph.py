@@ -15,11 +15,11 @@
 #    under the License.
 
 import collections
+import io
 import os
 
 import networkx as nx
 from networkx.drawing import nx_pydot
-import six
 
 
 def _common_format(g, edge_notation):
@@ -128,7 +128,7 @@ class DiGraph(nx.DiGraph):
         cycles = list(nx.cycles.recursive_simple_cycles(self))
         lines.append("Cycles: %s" % len(cycles))
         for cycle in cycles:
-            buf = six.StringIO()
+            buf = io.StringIO()
             buf.write("%s" % (cycle[0]))
             for i in range(1, len(cycle)):
                 buf.write(" --> %s" % (cycle[i]))
@@ -251,7 +251,7 @@ def merge_graphs(graph, *graphs, **kwargs):
     tmp_graph = graph
     allow_overlaps = kwargs.get('allow_overlaps', False)
     overlap_detector = kwargs.get('overlap_detector')
-    if overlap_detector is not None and not six.callable(overlap_detector):
+    if overlap_detector is not None and not callable(overlap_detector):
         raise ValueError("Overlap detection callback expected to be callable")
     elif overlap_detector is None:
         overlap_detector = (lambda to_graph, from_graph:

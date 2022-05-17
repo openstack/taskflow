@@ -18,8 +18,6 @@ import logging
 import os
 import sys
 
-import six
-
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
@@ -81,6 +79,6 @@ for f in flows:
 while engine_iters:
     for it in list(engine_iters):
         try:
-            print(six.next(it))
+            print(next(it))
         except StopIteration:
             engine_iters.remove(it)

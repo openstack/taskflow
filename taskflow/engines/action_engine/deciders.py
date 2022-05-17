@@ -17,8 +17,6 @@
 import abc
 import itertools
 
-import six
-
 from taskflow import deciders
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import traversal
@@ -28,8 +26,7 @@ from taskflow import states
 LOG = logging.getLogger(__name__)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Decider(object):
+class Decider(object, metaclass=abc.ABCMeta):
     """Base class for deciders.
 
     Provides interface to be implemented by sub-classes.
@@ -135,7 +132,7 @@ class IgnoreDecider(Decider):
             states_intentions = runtime.storage.get_atoms_states(
                 ed.from_node.name for ed in self._edge_deciders
                 if ed.kind in compiler.ATOMS)
-            for atom_name in six.iterkeys(states_intentions):
+            for atom_name in states_intentions.keys():
                 atom_state, _atom_intention = states_intentions[atom_name]
                 if atom_state != states.IGNORE:
                     history[atom_name] = runtime.storage.get(atom_name)
@@ -155,7 +152,7 @@ class IgnoreDecider(Decider):
             LOG.trace("Out of %s deciders there were %s 'do no run it'"
                       " voters, %s 'do run it' voters and %s 'ignored'"
                       " voters for transition to atom '%s' given history %s",
-                      sum(len(eds) for eds in six.itervalues(voters)),
+                      sum(len(eds) for eds in voters.values()),
                       list(ed.from_node.name
                            for ed in voters['do_not_run_it']),
                       list(ed.from_node.name for ed in voters['run_it']),

@@ -25,8 +25,6 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-from six.moves import range as compat_range
-
 from taskflow import engines
 from taskflow.engines.worker_based import worker
 from taskflow.patterns import linear_flow as lf
@@ -124,7 +122,7 @@ if __name__ == "__main__":
     try:
         # Create a set of worker threads to simulate actual remote workers...
         print('Running %s workers.' % (MEMORY_WORKERS))
-        for i in compat_range(0, MEMORY_WORKERS):
+        for i in range(0, MEMORY_WORKERS):
             # Give each one its own unique topic name so that they can
             # correctly communicate with the engine (they will all share the
             # same exchange).

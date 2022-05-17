@@ -18,12 +18,12 @@
 import abc
 import collections
 import contextlib
+import functools
 import time
 
 import enum
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
 
 from taskflow import exceptions as excp
 from taskflow import states
@@ -105,8 +105,7 @@ class JobPriority(enum.Enum):
                 return tuple(values)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Job(object):
+class Job(object, metaclass=abc.ABCMeta):
     """A abstraction that represents a named and trackable unit of work.
 
     A job connects a logbook, a owner, a priority, last modified and created
@@ -195,7 +194,7 @@ class Job(object):
                 return False
             if self.state == states.COMPLETE:
                 return True
-            sleepy_secs = six.next(delay_gen)
+            sleepy_secs = next(delay_gen)
             if w is not None:
                 sleepy_secs = min(w.leftover(), sleepy_secs)
             sleep_func(sleepy_secs)
@@ -269,7 +268,7 @@ class Job(object):
             self.uuid, self.details)
 
 
-class JobBoardIterator(six.Iterator):
+class JobBoardIterator(object):
     """Iterator over a jobboard that iterates over potential jobs.
 
     It provides the following attributes:
@@ -342,8 +341,7 @@ class JobBoardIterator(six.Iterator):
             return job
 
 
-@six.add_metaclass(abc.ABCMeta)
-class JobBoard(object):
+class JobBoard(object, metaclass=abc.ABCMeta):
     """A place where jobs can be posted, reposted, claimed and transferred.
 
     There can be multiple implementations of this job board, depending on the
@@ -559,9 +557,9 @@ class NotifyingJobBoard(JobBoard):
 
 def check_who(meth):
 
-    @six.wraps(meth)
+    @functools.wraps(meth)
     def wrapper(self, job, who, *args, **kwargs):
-        if not isinstance(who, six.string_types):
+        if not isinstance(who, str):
             raise TypeError("Job applicant must be a string type")
         if len(who) == 0:
             raise ValueError("Job applicant must be non-empty")

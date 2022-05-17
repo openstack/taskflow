@@ -16,9 +16,6 @@
 
 import string
 
-import six
-from six.moves import range as compat_range
-
 from taskflow import test
 from taskflow.utils import iter_utils
 
@@ -46,22 +43,22 @@ class IterUtilsTest(test.TestCase):
 
     def test_generate_delays(self):
         it = iter_utils.generate_delays(1, 60)
-        self.assertEqual(1, six.next(it))
-        self.assertEqual(2, six.next(it))
-        self.assertEqual(4, six.next(it))
-        self.assertEqual(8, six.next(it))
-        self.assertEqual(16, six.next(it))
-        self.assertEqual(32, six.next(it))
-        self.assertEqual(60, six.next(it))
-        self.assertEqual(60, six.next(it))
+        self.assertEqual(1, next(it))
+        self.assertEqual(2, next(it))
+        self.assertEqual(4, next(it))
+        self.assertEqual(8, next(it))
+        self.assertEqual(16, next(it))
+        self.assertEqual(32, next(it))
+        self.assertEqual(60, next(it))
+        self.assertEqual(60, next(it))
 
     def test_generate_delays_custom_multiplier(self):
         it = iter_utils.generate_delays(1, 60, multiplier=4)
-        self.assertEqual(1, six.next(it))
-        self.assertEqual(4, six.next(it))
-        self.assertEqual(16, six.next(it))
-        self.assertEqual(60, six.next(it))
-        self.assertEqual(60, six.next(it))
+        self.assertEqual(1, next(it))
+        self.assertEqual(4, next(it))
+        self.assertEqual(16, next(it))
+        self.assertEqual(60, next(it))
+        self.assertEqual(60, next(it))
 
     def test_generate_delays_bad(self):
         self.assertRaises(ValueError, iter_utils.generate_delays, -1, -1)
@@ -99,7 +96,7 @@ class IterUtilsTest(test.TestCase):
         self.assertRaises(ValueError, iter_utils.fill, 2, 2)
 
     def test_fill_many_empty(self):
-        result = list(iter_utils.fill(compat_range(0, 50), 500))
+        result = list(iter_utils.fill(range(0, 50), 500))
         self.assertEqual(450, sum(1 for x in result if x is None))
         self.assertEqual(50, sum(1 for x in result if x is not None))
 
@@ -134,10 +131,10 @@ class IterUtilsTest(test.TestCase):
     def test_count(self):
         self.assertEqual(0, iter_utils.count([]))
         self.assertEqual(1, iter_utils.count(['a']))
-        self.assertEqual(10, iter_utils.count(compat_range(0, 10)))
-        self.assertEqual(1000, iter_utils.count(compat_range(0, 1000)))
-        self.assertEqual(0, iter_utils.count(compat_range(0)))
-        self.assertEqual(0, iter_utils.count(compat_range(-1)))
+        self.assertEqual(10, iter_utils.count(range(0, 10)))
+        self.assertEqual(1000, iter_utils.count(range(0, 1000)))
+        self.assertEqual(0, iter_utils.count(range(0)))
+        self.assertEqual(0, iter_utils.count(range(-1)))
 
     def test_bad_while_is_not(self):
         self.assertRaises(ValueError, iter_utils.while_is_not, 2, 'a')

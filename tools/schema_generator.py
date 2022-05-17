@@ -17,7 +17,6 @@
 import contextlib
 import re
 
-import six
 import tabulate
 
 from taskflow.persistence.backends import impl_sqlalchemy
@@ -37,9 +36,9 @@ SCHEMA_QUERY = "pragma table_info(%s)"
 
 def to_bool_string(val):
     if isinstance(val, (int, bool)):
-        return six.text_type(bool(val))
-    if not isinstance(val, six.string_types):
-        val = six.text_type(val)
+        return str(bool(val))
+    if not isinstance(val, str):
+        val = str(val)
     if val.lower() in ('0', 'false'):
         return 'False'
     if val.lower() in ('1', 'true'):

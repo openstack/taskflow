@@ -18,8 +18,6 @@ import collections
 from collections import abc
 import itertools
 
-import six
-
 
 # Used for values that don't matter in sets backed by dicts...
 _sentinel = object()
@@ -59,7 +57,7 @@ class OrderedSet(abc.Set, abc.Hashable):
         return len(self._data)
 
     def __iter__(self):
-        for value in six.iterkeys(self._data):
+        for value in self._data.keys():
             yield value
 
     def __setstate__(self, items):

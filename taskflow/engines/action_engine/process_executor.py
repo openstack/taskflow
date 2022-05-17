@@ -30,7 +30,6 @@ import time
 
 import futurist
 from oslo_utils import excutils
-import six
 
 from taskflow.engines.action_engine import executor as base
 from taskflow import logging
@@ -79,19 +78,6 @@ SCHEMAS = {
         "additionalProperties": True,
     },
 }
-
-# See http://bugs.python.org/issue1457119 for why this is so complex...
-_DECODE_ENCODE_ERRORS = [pickle.PickleError, TypeError]
-try:
-    import cPickle
-    _DECODE_ENCODE_ERRORS.append(cPickle.PickleError)
-    del cPickle
-except (ImportError, AttributeError):
-    pass
-_DECODE_ENCODE_ERRORS = tuple(_DECODE_ENCODE_ERRORS)
-
-# Use the best pickle from here on out...
-from six.moves import cPickle as pickle
 
 
 class UnknownSender(Exception):
@@ -142,13 +128,13 @@ class Reader(object):
     ])
 
     def __init__(self, auth_key, dispatch_func, msg_limit=-1):
-        if not six.callable(dispatch_func):
+        if not callable(dispatch_func):
             raise ValueError("Expected provided dispatch function"
                              " to be callable")
         self.auth_key = auth_key
         self.dispatch_func = dispatch_func
         msg_limiter = iter_utils.iter_forever(msg_limit)
-        self.msg_count = six.next(msg_limiter)
+        self.msg_count = next(msg_limiter)
         self._msg_limiter = msg_limiter
         self._buffer = misc.BytesIO()
         self._state = None
@@ -200,7 +186,7 @@ class Reader(object):
             # (instead of the receiver discarding it after the fact)...
             functools.partial(_decode_message, self.auth_key, data,
                               self._memory['mac']))
-        self.msg_count = six.next(self._msg_limiter)
+        self.msg_count = next(self._msg_limiter)
         self._memory.clear()
 
     def _transition(self):
@@ -267,7 +253,7 @@ def _create_random_string(desired_length):
 
 def _calculate_hmac(auth_key, body):
     mac = hmac.new(auth_key, body, hashlib.md5).hexdigest()
-    if isinstance(mac, six.text_type):
+    if isinstance(mac, str):
         mac = mac.encode("ascii")
     return mac
 
@@ -427,11 +413,8 @@ class DispatcherHandler(asyncore.dispatcher):
     CHUNK_SIZE = 8192
 
     def __init__(self, sock, addr, dispatcher):
-        if six.PY2:
-            asyncore.dispatcher.__init__(self, map=dispatcher.map, sock=sock)
-        else:
-            super(DispatcherHandler, self).__init__(map=dispatcher.map,
-                                                    sock=sock)
+        super(DispatcherHandler, self).__init__(map=dispatcher.map,
+                                                sock=sock)
         self.blobs_to_write = list(dispatcher.challenge_pieces)
         self.reader = Reader(dispatcher.auth_key, self._dispatch)
         self.targets = dispatcher.targets
@@ -508,7 +491,7 @@ class DispatcherHandler(asyncore.dispatcher):
             except (IOError, UnknownSender):
                 LOG.warning("Invalid received message", exc_info=True)
                 self.handle_close()
-            except _DECODE_ENCODE_ERRORS:
+            except (pickle.PickleError, TypeError):
                 LOG.warning("Badly formatted message", exc_info=True)
                 self.handle_close()
             except (ValueError, su.ValidationError):
@@ -526,10 +509,7 @@ class Dispatcher(asyncore.dispatcher):
     MAX_BACKLOG = 5
 
     def __init__(self, map, auth_key, identity):
-        if six.PY2:
-            asyncore.dispatcher.__init__(self, map=map)
-        else:
-            super(Dispatcher, self).__init__(map=map)
+        super(Dispatcher, self).__init__(map=map)
         self.identity = identity
         self.challenge_pieces = _encode_message(auth_key, CHALLENGE,
                                                 identity, reverse=True)

@@ -16,7 +16,6 @@
 
 from automaton import exceptions as excp
 from automaton import runners
-import six
 
 from taskflow.engines.action_engine import builder
 from taskflow.engines.action_engine import compiler
@@ -70,30 +69,30 @@ class BuildersTest(test.TestCase):
             flow, initial_state=st.RUNNING)
 
         it = machine_runner.run_iter(builder.START)
-        prior_state, new_state = six.next(it)
+        prior_state, new_state = next(it)
         self.assertEqual(st.RESUMING, new_state)
         self.assertEqual(0, len(memory.failures))
 
-        prior_state, new_state = six.next(it)
+        prior_state, new_state = next(it)
         self.assertEqual(st.SCHEDULING, new_state)
         self.assertEqual(0, len(memory.failures))
 
-        prior_state, new_state = six.next(it)
+        prior_state, new_state = next(it)
         self.assertEqual(st.WAITING, new_state)
         self.assertEqual(0, len(memory.failures))
 
-        prior_state, new_state = six.next(it)
+        prior_state, new_state = next(it)
         self.assertEqual(st.ANALYZING, new_state)
         self.assertEqual(0, len(memory.failures))
 
-        prior_state, new_state = six.next(it)
+        prior_state, new_state = next(it)
         self.assertEqual(builder.GAME_OVER, new_state)
         self.assertEqual(0, len(memory.failures))
-        prior_state, new_state = six.next(it)
+        prior_state, new_state = next(it)
         self.assertEqual(st.SUCCESS, new_state)
         self.assertEqual(0, len(memory.failures))
 
-        self.assertRaises(StopIteration, six.next, it)
+        self.assertRaises(StopIteration, next, it)
 
     def test_run_iterations_reverted(self):
         flow = lf.Flow("root")

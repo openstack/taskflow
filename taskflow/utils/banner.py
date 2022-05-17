@@ -17,8 +17,6 @@
 import os
 import string
 
-import six
-
 from taskflow.utils import misc
 from taskflow import version
 
@@ -62,7 +60,7 @@ def make_banner(what, chapters):
     buf.write_nl(BANNER_HEADER)
     if chapters:
         buf.write_nl("*%s*" % what)
-        chapter_names = sorted(six.iterkeys(chapters))
+        chapter_names = sorted(chapters.keys())
     else:
         buf.write("*%s*" % what)
         chapter_names = []
@@ -73,7 +71,7 @@ def make_banner(what, chapters):
         else:
             buf.write("%s:" % (chapter_name))
         if isinstance(chapter_contents, dict):
-            section_names = sorted(six.iterkeys(chapter_contents))
+            section_names = sorted(chapter_contents.keys())
             for j, section_name in enumerate(section_names):
                 if j + 1 < len(section_names):
                     buf.write_nl("  %s => %s"

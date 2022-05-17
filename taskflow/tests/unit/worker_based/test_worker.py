@@ -14,8 +14,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import io
 from oslo_utils import reflection
-import six
 
 from taskflow.engines.worker_based import endpoint
 from taskflow.engines.worker_based import worker
@@ -66,7 +66,7 @@ class TestWorker(test.MockTestCase):
         self.assertEqual(master_mock_calls, self.master_mock.mock_calls)
 
     def test_banner_writing(self):
-        buf = six.StringIO()
+        buf = io.StringIO()
         w = self.worker()
         w.run(banner_writer=buf.write)
         w.wait()

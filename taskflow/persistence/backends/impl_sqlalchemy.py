@@ -22,7 +22,6 @@ import threading
 import time
 
 from oslo_utils import strutils
-import six
 import sqlalchemy as sa
 from sqlalchemy import exc as sa_exc
 from sqlalchemy import pool as sa_pool
@@ -116,7 +115,7 @@ def _log_statements(log_level, conn, cursor, statement, parameters, *args):
 def _in_any(reason, err_haystack):
     """Checks if any elements of the haystack are in the given reason."""
     for err in err_haystack:
-        if reason.find(six.text_type(err)) != -1:
+        if reason.find(str(err)) != -1:
             return True
     return False
 
@@ -173,10 +172,10 @@ def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
     try:
         dbapi_conn.cursor().execute('select 1')
     except dbapi_conn.OperationalError as ex:
-        if _in_any(six.text_type(ex.args[0]), MY_SQL_GONE_WAY_AWAY_ERRORS):
+        if _in_any(str(ex.args[0]), MY_SQL_GONE_WAY_AWAY_ERRORS):
             LOG.warning('Got mysql server has gone away', exc_info=True)
             raise sa_exc.DisconnectionError("Database server went away")
-        elif _in_any(six.text_type(ex.args[0]), POSTGRES_GONE_WAY_AWAY_ERRORS):
+        elif _in_any(str(ex.args[0]), POSTGRES_GONE_WAY_AWAY_ERRORS):
             LOG.warning('Got postgres server has gone away', exc_info=True)
             raise sa_exc.DisconnectionError("Database server went away")
         else:
@@ -285,13 +284,13 @@ class SQLAlchemyBackend(base.Backend):
             txn_isolation_levels = conf.pop('isolation_levels',
                                             DEFAULT_TXN_ISOLATION_LEVELS)
             level_applied = False
-            for (driver, level) in six.iteritems(txn_isolation_levels):
+            for (driver, level) in txn_isolation_levels.items():
                 if driver == e_url.drivername:
                     engine_args['isolation_level'] = level
                     level_applied = True
                     break
             if not level_applied:
-                for (driver, level) in six.iteritems(txn_isolation_levels):
+                for (driver, level) in txn_isolation_levels.items():
                     if e_url.drivername.find(driver) != -1:
                         engine_args['isolation_level'] = level
                         break
@@ -362,7 +361,7 @@ class Connection(base.Connection):
         def _retry_on_exception(exc):
             LOG.warning("Engine connection (validate) failed due to '%s'", exc)
             if isinstance(exc, sa_exc.OperationalError) and \
-               _is_db_connection_error(six.text_type(exc.args[0])):
+               _is_db_connection_error(str(exc.args[0])):
                 # We may be able to fix this by retrying...
                 return True
             if isinstance(exc, (sa_exc.TimeoutError,

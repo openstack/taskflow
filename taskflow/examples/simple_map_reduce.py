@@ -33,8 +33,6 @@ sys.path.insert(0, self_dir)
 # produced values and perform a final summation and this result will then be
 # printed (and verified to ensure the calculation was as expected).
 
-import six
-
 from taskflow import engines
 from taskflow.patterns import linear_flow
 from taskflow.patterns import unordered_flow
@@ -51,7 +49,7 @@ class TotalReducer(task.Task):
     def execute(self, *args, **kwargs):
         # Reduces all mapped summed outputs into a single value.
         total = 0
-        for (k, v) in six.iteritems(kwargs):
+        for (k, v) in kwargs.items():
             # If any other kwargs was passed in, we don't want to use those
             # in the calculation of the total...
             if k.startswith('reduction_'):

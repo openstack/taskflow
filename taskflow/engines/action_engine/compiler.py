@@ -18,7 +18,6 @@ import threading
 
 import fasteners
 from oslo_utils import excutils
-import six
 
 from taskflow import flow
 from taskflow import logging
@@ -165,7 +164,7 @@ class FlowCompiler(object):
         decomposed = dict(
             (child, self._deep_compiler_func(child, parent=tree_node)[0])
             for child in flow)
-        decomposed_graphs = list(six.itervalues(decomposed))
+        decomposed_graphs = list(decomposed.values())
         graph = gr.merge_graphs(graph, *decomposed_graphs,
                                 overlap_detector=_overlap_occurrence_detector)
         for u, v, attr_dict in flow.iter_links():

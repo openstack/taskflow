@@ -17,8 +17,6 @@
 import logging
 import os
 
-import six
-
 from taskflow import exceptions
 from taskflow.listeners import base
 from taskflow import states
@@ -58,7 +56,7 @@ class CheckingClaimListener(base.Listener):
         if on_job_loss is None:
             self._on_job_loss = self._suspend_engine_on_loss
         else:
-            if not six.callable(on_job_loss):
+            if not callable(on_job_loss):
                 raise ValueError("Custom 'on_job_loss' handler must be"
                                  " callable")
             self._on_job_loss = on_job_loss

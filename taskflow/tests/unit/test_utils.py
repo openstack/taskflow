@@ -20,7 +20,6 @@ import random
 import string
 import time
 
-import six
 import testscenarios
 
 from taskflow import test
@@ -241,7 +240,7 @@ class TestCountdownIter(test.TestCase):
 
     def test_invalid_decr(self):
         it = misc.countdown_iter(10, -1)
-        self.assertRaises(ValueError, six.next, it)
+        self.assertRaises(ValueError, next, it)
 
 
 class TestMergeUri(test.TestCase):

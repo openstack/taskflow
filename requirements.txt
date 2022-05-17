@@ -7,9 +7,6 @@ pbr!=2.1.0,>=2.0.0 # Apache-2.0
 
 # Packages needed for using this library.
 
-# Python 2->3 compatibility library.
-six>=1.10.0 # MIT
-
 # For async and/or periodic work
 futurist>=1.2.0 # Apache-2.0
 

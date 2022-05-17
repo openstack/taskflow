@@ -14,8 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
-
 from taskflow.engines.worker_based import endpoint as ep
 from taskflow.engines.worker_based import protocol as pr
 from taskflow.engines.worker_based import server
@@ -143,7 +141,7 @@ class TestServer(test.MockTestCase):
             (self.task.name, self.task.name, 'revert',
              dict(arguments=self.task_args,
                   failures=dict((i, utils.FailureMatcher(f))
-                                for i, f in six.iteritems(failures)))),
+                                for i, f in failures.items()))),
             (task_cls, task_name, action, task_args))
 
     @mock.patch("taskflow.engines.worker_based.server.LOG.critical")

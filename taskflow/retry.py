@@ -18,7 +18,6 @@
 import abc
 
 import enum
-import six
 
 from taskflow import atom
 from taskflow import exceptions as exc
@@ -100,7 +99,7 @@ class History(object):
                 self._contents[index],
             ]
         for (provided, outcomes) in contents:
-            for (owner, outcome) in six.iteritems(outcomes):
+            for (owner, outcome) in outcomes.items():
                 yield (owner, outcome)
 
     def __len__(self):
@@ -136,8 +135,7 @@ class History(object):
         return iter(self._contents)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Retry(atom.Atom):
+class Retry(atom.Atom, metaclass=abc.ABCMeta):
     """A class that can decide how to resolve execution failures.
 
     This abstract base class is used to inherit from and provide different

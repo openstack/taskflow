@@ -21,8 +21,6 @@ from collections import abc as cabc
 import itertools
 
 from oslo_utils import reflection
-import six
-from six.moves import zip as compat_zip
 
 from taskflow.types import sets
 from taskflow.utils import misc
@@ -47,7 +45,7 @@ def _save_as_to_mapping(save_as):
     # atom returns is pretty crucial for other later operations.
     if save_as is None:
         return collections.OrderedDict()
-    if isinstance(save_as, six.string_types):
+    if isinstance(save_as, str):
         # NOTE(harlowja): this means that your atom will only return one item
         # instead of a dictionary-like object or a indexable object (like a
         # list or tuple).
@@ -83,7 +81,7 @@ def _build_rebind_dict(req_args, rebind_args):
         # the required argument names (if they are the same length then
         # this determines how to remap the required argument names to the
         # rebound ones).
-        rebind = collections.OrderedDict(compat_zip(req_args, rebind_args))
+        rebind = collections.OrderedDict(zip(req_args, rebind_args))
         if len(req_args) < len(rebind_args):
             # Extra things were rebound, that may be because of *args
             # or **kwargs (or some other reason); so just keep all of them
@@ -128,7 +126,7 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
 
     # Add additional manually provided requirements to required mappings.
     if reqs:
-        if isinstance(reqs, six.string_types):
+        if isinstance(reqs, str):
             required.update({reqs: reqs})
         else:
             required.update((a, a) for a in reqs)
@@ -139,7 +137,7 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
     # Determine if there are optional arguments that we may or may not take.
     if do_infer:
         opt_args = sets.OrderedSet(all_args)
-        opt_args = opt_args - set(itertools.chain(six.iterkeys(required),
+        opt_args = opt_args - set(itertools.chain(required.keys(),
                                                   iter(ignore_list)))
         optional = collections.OrderedDict((a, a) for a in opt_args)
     else:
@@ -147,7 +145,7 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
 
     # Check if we are given some extra arguments that we aren't able to accept.
     if not reflection.accepts_kwargs(function):
-        extra_args = sets.OrderedSet(six.iterkeys(required))
+        extra_args = sets.OrderedSet(required.keys())
         extra_args -= all_args
         if extra_args:
             raise ValueError('Extra arguments given to atom %s: %s'
@@ -161,8 +159,7 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
     return required, optional
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Atom(object):
+class Atom(object, metaclass=abc.ABCMeta):
     """An unit of work that causes a flow to progress (in some manner).
 
     An atom is a named object that operates with input data to perform
@@ -299,13 +296,13 @@ class Atom(object):
         # key value, then well there is no rebinding happening, otherwise
         # there will be.
         rebind = collections.OrderedDict()
-        for (arg_name, bound_name) in itertools.chain(six.iteritems(required),
-                                                      six.iteritems(optional)):
+        for (arg_name, bound_name) in itertools.chain(required.items(),
+                                                      optional.items()):
             rebind.setdefault(arg_name, bound_name)
-        requires = sets.OrderedSet(six.itervalues(required))
-        optional = sets.OrderedSet(six.itervalues(optional))
+        requires = sets.OrderedSet(required.values())
+        optional = sets.OrderedSet(optional.values())
         if self.inject:
-            inject_keys = frozenset(six.iterkeys(self.inject))
+            inject_keys = frozenset(self.inject.keys())
             requires -= inject_keys
             optional -= inject_keys
         return rebind, requires, optional

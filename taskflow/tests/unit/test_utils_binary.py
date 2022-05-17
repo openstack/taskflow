@@ -14,24 +14,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
-
 from taskflow import test
 from taskflow.utils import misc
 
 
 def _bytes(data):
-    if six.PY3:
-        return data.encode(encoding='utf-8')
-    else:
-        return data
+    return data.encode(encoding='utf-8')
 
 
 class BinaryEncodeTest(test.TestCase):
 
     def _check(self, data, expected_result):
         result = misc.binary_encode(data)
-        self.assertIsInstance(result, six.binary_type)
+        self.assertIsInstance(result, bytes)
         self.assertEqual(expected_result, result)
 
     def test_simple_binary(self):
@@ -50,7 +45,7 @@ class BinaryEncodeTest(test.TestCase):
 
     def test_unicode_other_encoding(self):
         result = misc.binary_encode(u'mañana', 'latin-1')
-        self.assertIsInstance(result, six.binary_type)
+        self.assertIsInstance(result, bytes)
         self.assertEqual(u'mañana'.encode('latin-1'), result)
 
 
@@ -58,7 +53,7 @@ class BinaryDecodeTest(test.TestCase):
 
     def _check(self, data, expected_result):
         result = misc.binary_decode(data)
-        self.assertIsInstance(result, six.text_type)
+        self.assertIsInstance(result, str)
         self.assertEqual(expected_result, result)
 
     def test_simple_text(self):
@@ -78,7 +73,7 @@ class BinaryDecodeTest(test.TestCase):
     def test_unicode_other_encoding(self):
         data = u'mañana'.encode('latin-1')
         result = misc.binary_decode(data, 'latin-1')
-        self.assertIsInstance(result, six.text_type)
+        self.assertIsInstance(result, str)
         self.assertEqual(u'mañana', result)
 
 
@@ -94,7 +89,7 @@ class DecodeJsonTest(test.TestCase):
 
     def test_handles_invalid_unicode(self):
         self.assertRaises(ValueError, misc.decode_json,
-                          six.b('{"\xf1": 1}'))
+                          '{"\xf1": 1}'.encode('latin-1'))
 
     def test_handles_bad_json(self):
         self.assertRaises(ValueError, misc.decode_json,

@@ -19,7 +19,6 @@ import threading
 
 import kombu
 from kombu import exceptions as kombu_exceptions
-import six
 
 from taskflow.engines.worker_based import dispatcher
 from taskflow import logging
@@ -85,7 +84,7 @@ class Proxy(object):
         ensure_options = self.DEFAULT_RETRY_OPTIONS.copy()
         if retry_options is not None:
             # Override the defaults with any user provided values...
-            for k in set(six.iterkeys(ensure_options)):
+            for k in set(ensure_options.keys()):
                 if k in retry_options:
                     # Ensure that the right type is passed in...
                     val = retry_options[k]
@@ -154,7 +153,7 @@ class Proxy(object):
 
     def publish(self, msg, routing_key, reply_to=None, correlation_id=None):
         """Publish message to the named exchange with given routing key."""
-        if isinstance(routing_key, six.string_types):
+        if isinstance(routing_key, str):
             routing_keys = [routing_key]
         else:
             routing_keys = routing_key

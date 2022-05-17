@@ -15,15 +15,15 @@
 #    under the License.
 
 import enum
+import functools
 
 import redis
 from redis import exceptions as redis_exceptions
-import six
 
 
 def _raise_on_closed(meth):
 
-    @six.wraps(meth)
+    @functools.wraps(meth)
     def wrapper(self, *args, **kwargs):
         if self.closed:
             raise redis_exceptions.ConnectionError("Connection has been"

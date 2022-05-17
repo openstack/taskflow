@@ -18,11 +18,9 @@
 
 import abc
 import copy
+import functools
 
 from oslo_utils import reflection
-import six
-from six.moves import map as compat_map
-from six.moves import reduce as compat_reduce
 
 from taskflow import atom
 from taskflow import logging
@@ -43,8 +41,7 @@ REVERT_FLOW_FAILURES = 'flow_failures'
 EVENT_UPDATE_PROGRESS = 'update_progress'
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Task(atom.Atom):
+class Task(atom.Atom, metaclass=abc.ABCMeta):
     """An abstraction that defines a potential piece of work.
 
     This potential piece of work is expected to be able to contain
@@ -125,11 +122,11 @@ class FunctorTask(Task):
     def __init__(self, execute, name=None, provides=None,
                  requires=None, auto_extract=True, rebind=None, revert=None,
                  version=None, inject=None):
-        if not six.callable(execute):
+        if not callable(execute):
             raise ValueError("Function to use for executing must be"
                              " callable")
         if revert is not None:
-            if not six.callable(revert):
+            if not callable(revert):
                 raise ValueError("Function to use for reverting must"
                                  " be callable")
         if name is None:
@@ -175,7 +172,7 @@ class ReduceFunctorTask(Task):
     def __init__(self, functor, requires, name=None, provides=None,
                  auto_extract=True, rebind=None, inject=None):
 
-        if not six.callable(functor):
+        if not callable(functor):
             raise ValueError("Function to use for reduce must be callable")
 
         f_args = reflection.get_callable_args(functor)
@@ -204,7 +201,7 @@ class ReduceFunctorTask(Task):
 
     def execute(self, *args, **kwargs):
         l = [kwargs[r] for r in self.requires]
-        return compat_reduce(self._functor, l)
+        return functools.reduce(self._functor, l)
 
 
 class MapFunctorTask(Task):
@@ -224,7 +221,7 @@ class MapFunctorTask(Task):
     def __init__(self, functor, requires, name=None, provides=None,
                  auto_extract=True, rebind=None, inject=None):
 
-        if not six.callable(functor):
+        if not callable(functor):
             raise ValueError("Function to use for map must be callable")
 
         f_args = reflection.get_callable_args(functor)
@@ -247,4 +244,4 @@ class MapFunctorTask(Task):
 
     def execute(self, *args, **kwargs):
         l = [kwargs[r] for r in self.requires]
-        return list(compat_map(self._functor, l))
+        return list(map(self._functor, l))

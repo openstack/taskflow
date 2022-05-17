@@ -18,7 +18,6 @@ import contextlib
 
 from oslo_utils import importutils
 from oslo_utils import reflection
-import six
 import stevedore.driver
 
 from taskflow import exceptions as exc
@@ -68,7 +67,7 @@ def _fetch_factory(factory_name):
 
 
 def _fetch_validate_factory(flow_factory):
-    if isinstance(flow_factory, six.string_types):
+    if isinstance(flow_factory, str):
         factory_fun = _fetch_factory(flow_factory)
         factory_name = flow_factory
     else:

@@ -16,8 +16,6 @@
 
 import threading
 
-import six
-
 
 class Timeout(object):
     """An object which represents a timeout.
@@ -62,7 +60,7 @@ def convert_to_timeout(value=None, default_value=None,
     """
     if value is None:
         value = default_value
-    if isinstance(value, (int, float) + six.string_types):
+    if isinstance(value, (int, float, str)):
         return Timeout(float(value), event_factory=event_factory)
     elif isinstance(value, Timeout):
         return value

@@ -17,14 +17,11 @@
 
 import abc
 
-import six
-
 from taskflow.types import notifier
 from taskflow.utils import misc
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Engine(object):
+class Engine(object, metaclass=abc.ABCMeta):
     """Base for all engines implementations.
 
     :ivar Engine.notifier: A notification object that will dispatch

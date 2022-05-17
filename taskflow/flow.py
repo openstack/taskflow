@@ -17,7 +17,6 @@
 import abc
 
 from oslo_utils import reflection
-import six
 
 # Link metadata keys that have inherent/special meaning.
 #
@@ -43,8 +42,7 @@ _CHOP_PAT_LEN = len(_CHOP_PAT)
 LINK_DECIDER_DEPTH = 'decider_depth'
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Flow(object):
+class Flow(object, metaclass=abc.ABCMeta):
     """The base abstract class of all flow implementations.
 
     A flow is a structure that defines relationships between tasks. You can
@@ -60,7 +58,7 @@ class Flow(object):
     """
 
     def __init__(self, name, retry=None):
-        self._name = six.text_type(name)
+        self._name = str(name)
         self._retry = retry
         # NOTE(akarpinska): if retry doesn't have a name,
         # the name of its owner will be assigned

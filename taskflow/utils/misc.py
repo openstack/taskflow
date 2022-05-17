@@ -18,7 +18,9 @@
 import collections.abc
 import contextlib
 import datetime
+import functools
 import inspect
+import io
 import os
 import re
 import socket
@@ -33,13 +35,12 @@ from oslo_utils import encodeutils
 from oslo_utils import importutils
 from oslo_utils import netutils
 from oslo_utils import reflection
-import six
 
 from taskflow.types import failure
 
 
 UNKNOWN_HOSTNAME = "<unknown>"
-NUMERIC_TYPES = six.integer_types + (float,)
+NUMERIC_TYPES = (int, float)
 
 # NOTE(imelnikov): regular expression to get scheme from URI,
 # see RFC 3986 section 3.1
@@ -57,7 +58,7 @@ class StrEnum(str, enum.Enum):
         return super(StrEnum, cls).__new__(cls, *args, **kwargs)
 
 
-class StringIO(six.StringIO):
+class StringIO(io.StringIO):
     """String buffer with some small additions."""
 
     def write_nl(self, value, linesep=os.linesep):
@@ -65,7 +66,7 @@ class StringIO(six.StringIO):
         self.write(linesep)
 
 
-class BytesIO(six.BytesIO):
+class BytesIO(io.BytesIO):
     """Byte buffer with some small additions."""
 
     def reset(self):
@@ -118,7 +119,7 @@ def countdown_iter(start_at, decr=1):
 
 def extract_driver_and_conf(conf, conf_key):
     """Common function to get a driver name and its configuration."""
-    if isinstance(conf, six.string_types):
+    if isinstance(conf, str):
         conf = {conf_key: conf}
     maybe_uri = conf[conf_key]
     try:
@@ -161,7 +162,7 @@ def merge_uri(uri, conf):
     for (k, v, is_not_empty_value_func) in specials:
         if is_not_empty_value_func(v):
             conf.setdefault(k, v)
-    for (k, v) in six.iteritems(uri.params()):
+    for (k, v) in uri.params().items():
         conf.setdefault(k, v)
     return conf
 
@@ -182,7 +183,7 @@ def find_subclasses(locations, base_cls, exclude_hidden=True):
     derived = set()
     for item in locations:
         module = None
-        if isinstance(item, six.string_types):
+        if isinstance(item, str):
             try:
                 pkg, cls = item.split(':')
             except ValueError:
@@ -221,7 +222,7 @@ def pick_first_not_none(*values):
 def parse_uri(uri):
     """Parses a uri into its components."""
     # Do some basic validation before continuing...
-    if not isinstance(uri, six.string_types):
+    if not isinstance(uri, str):
         raise TypeError("Can only parse string types to uri data, "
                         "and not '%s' (%s)" % (uri, type(uri)))
     match = _SCHEME_REGEX.match(uri)
@@ -236,7 +237,7 @@ def disallow_when_frozen(excp_cls):
 
     def decorator(f):
 
-        @six.wraps(f)
+        @functools.wraps(f)
         def wrapper(self, *args, **kwargs):
             if self.frozen:
                 raise excp_cls()
@@ -274,7 +275,7 @@ def binary_encode(text, encoding='utf-8', errors='strict'):
 
     Does nothing if data is already a binary string (raises on unknown types).
     """
-    if isinstance(text, six.binary_type):
+    if isinstance(text, bytes):
         return text
     else:
         return encodeutils.safe_encode(text, encoding=encoding,
@@ -286,7 +287,7 @@ def binary_decode(data, encoding='utf-8', errors='strict'):
 
     Does nothing if data is already a text string (raises on unknown types).
     """
-    if isinstance(data, six.text_type):
+    if isinstance(data, str):
         return data
     else:
         return encodeutils.safe_decode(data, incoming=encoding,
@@ -426,7 +427,7 @@ def get_version_string(obj):
     if isinstance(obj_version, (list, tuple)):
         obj_version = '.'.join(str(item) for item in obj_version)
     if obj_version is not None and not isinstance(obj_version,
-                                                  six.string_types):
+                                                  str):
         obj_version = str(obj_version)
     return obj_version
 
@@ -524,7 +525,7 @@ def is_iterable(obj):
     :param obj: object to be tested for iterable
     :return: True if object is iterable and is not a string
     """
-    return (not isinstance(obj, six.string_types) and
+    return (not isinstance(obj, str) and
             isinstance(obj, collections.abc.Iterable))
 
 

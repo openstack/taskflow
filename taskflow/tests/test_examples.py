@@ -34,8 +34,6 @@ import re
 import subprocess
 import sys
 
-import six
-
 from taskflow import test
 
 ROOT_DIR = os.path.abspath(
@@ -118,8 +116,7 @@ class ExampleAdderMeta(type):
         return type.__new__(cls, name, parents, dct)
 
 
-@six.add_metaclass(ExampleAdderMeta)
-class ExamplesTestCase(test.TestCase):
+class ExamplesTestCase(test.TestCase, metaclass=ExampleAdderMeta):
     """Runs the examples, and checks the outputs against expected outputs."""
 
     def _check_example(self, name):

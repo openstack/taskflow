@@ -28,7 +28,6 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
 sys.path.insert(0, top_dir)
 
 import futurist
-import six
 
 from taskflow import engines
 from taskflow.patterns import unordered_flow as uf
@@ -73,7 +72,7 @@ with futurist.ThreadPoolExecutor() as ex:
         # and there is no more engine work to be done.
         for it in cloned_iters:
             try:
-                six.next(it)
+                next(it)
             except StopIteration:
                 try:
                     iters.remove(it)

@@ -17,7 +17,6 @@
 import abc
 
 from oslo_utils import excutils
-import six
 
 from taskflow import logging
 from taskflow import states
@@ -161,8 +160,7 @@ class Listener(object):
                         self._engine, exc_info=True)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class DumpingListener(Listener):
+class DumpingListener(Listener, metaclass=abc.ABCMeta):
     """Abstract base class for dumping listeners.
 
     This provides a simple listener that can be attached to an engine which can

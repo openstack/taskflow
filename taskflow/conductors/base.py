@@ -17,7 +17,6 @@ import os
 import threading
 
 import fasteners
-import six
 
 from taskflow import engines
 from taskflow import exceptions as excp
@@ -26,8 +25,7 @@ from taskflow.types import notifier
 from taskflow.utils import misc
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Conductor(object):
+class Conductor(object, metaclass=abc.ABCMeta):
     """Base for all conductor implementations.
 
     Conductors act as entities which extract jobs from a jobboard, assign

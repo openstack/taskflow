@@ -30,8 +30,6 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from redis import exceptions as redis_exceptions
 from redis import sentinel
-import six
-from six.moves import range as compat_range
 
 from taskflow import exceptions as exc
 from taskflow.jobs import base
@@ -620,9 +618,9 @@ return cmsgpack.pack(result)
         key_pieces = [key_piece]
         if more_key_pieces:
             key_pieces.extend(more_key_pieces)
-        for i in compat_range(0, len(namespace_pieces)):
+        for i in range(0, len(namespace_pieces)):
             namespace_pieces[i] = misc.binary_encode(namespace_pieces[i])
-        for i in compat_range(0, len(key_pieces)):
+        for i in range(0, len(key_pieces)):
             key_pieces[i] = misc.binary_encode(key_pieces[i])
         namespace = b"".join(namespace_pieces)
         key = self.KEY_PIECE_SEP.join(key_pieces)
@@ -696,7 +694,7 @@ return cmsgpack.pack(result)
                     'already_claimed': self.SCRIPT_ALREADY_CLAIMED,
                 }
                 prepared_scripts = {}
-                for n, raw_script_tpl in six.iteritems(self.SCRIPT_TEMPLATES):
+                for n, raw_script_tpl in self.SCRIPT_TEMPLATES.items():
                     script_tpl = string.Template(raw_script_tpl)
                     script_blob = script_tpl.substitute(**script_params)
                     script = self._client.register_script(script_blob)
@@ -761,7 +759,7 @@ return cmsgpack.pack(result)
             })
         with _translate_failures():
             raw_posting = self._dumps(posting)
-            raw_job_uuid = six.b(job_uuid)
+            raw_job_uuid = job_uuid.encode('latin-1')
             was_posted = bool(self._client.hsetnx(self.listings_key,
                                                   raw_job_uuid, raw_posting))
             if not was_posted:
@@ -813,7 +811,7 @@ return cmsgpack.pack(result)
         with _translate_failures():
             raw_postings = self._client.hgetall(self.listings_key)
         postings = []
-        for raw_job_key, raw_posting in six.iteritems(raw_postings):
+        for raw_job_key, raw_posting in raw_postings.items():
             try:
                 job_data = self._loads(raw_posting)
                 try:

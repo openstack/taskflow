@@ -20,7 +20,6 @@ import functools
 import threading
 
 import futurist
-import six
 import testtools
 
 import taskflow.engines
@@ -350,7 +349,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
             engine_it = engine.run_iter()
             while True:
                 try:
-                    engine_state = six.next(engine_it)
+                    engine_state = next(engine_it)
                     if engine_state not in engine_states:
                         engine_states[engine_state] = 1
                     else:
@@ -1318,7 +1317,7 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
     def test_graph_flow_conditional_history(self):
 
         def even_odd_decider(history, allowed):
-            total = sum(six.itervalues(history))
+            total = sum(history.values())
             if total == allowed:
                 return True
             return False

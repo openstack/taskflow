@@ -21,7 +21,7 @@ import shutil
 import sys
 import tempfile
 
-from six.moves import urllib_parse
+from urllib import parse as urllib_parse
 
 from taskflow import exceptions
 from taskflow.persistence import backends

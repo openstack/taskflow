@@ -25,7 +25,6 @@ import futurist
 from oslo_serialization import jsonutils
 from oslo_utils import reflection
 from oslo_utils import timeutils
-import six
 
 from taskflow.engines.action_engine import executor
 from taskflow import exceptions as excp
@@ -148,8 +147,7 @@ def failure_to_dict(failure):
         return failure.to_dict(include_args=False)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Message(object):
+class Message(object, metaclass=abc.ABCMeta):
     """Base class for all message types."""
 
     def __repr__(self):
@@ -292,7 +290,7 @@ class Request(Message):
             },
             'action': {
                 "type": "string",
-                "enum": list(six.iterkeys(ACTION_TO_EVENT)),
+                "enum": list(ACTION_TO_EVENT.keys()),
             },
             # Keyword arguments that end up in the revert() or execute()
             # method of the remote task.
@@ -367,7 +365,7 @@ class Request(Message):
                 request['result'] = ('success', result)
         if self._failures:
             request['failures'] = {}
-            for atom_name, failure in six.iteritems(self._failures):
+            for atom_name, failure in self._failures.items():
                 request['failures'][atom_name] = failure_to_dict(failure)
         return request
 
@@ -431,7 +429,7 @@ class Request(Message):
             # Validate all failure dictionaries that *may* be present...
             failures = []
             if 'failures' in data:
-                failures.extend(six.itervalues(data['failures']))
+                failures.extend(data['failures'].values())
             result = data.get('result')
             if result is not None:
                 result_data_type, result_data = result
@@ -470,7 +468,7 @@ class Request(Message):
                 arguments['result'] = result_data
         if failures is not None:
             arguments['failures'] = {}
-            for task, fail_data in six.iteritems(failures):
+            for task, fail_data in failures.items():
                 arguments['failures'][task] = ft.Failure.from_dict(fail_data)
         return _WorkUnit(task_cls, task_name, action, arguments)
 

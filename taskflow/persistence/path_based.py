@@ -15,15 +15,13 @@
 #    under the License.
 
 import abc
-import six
 
 from taskflow import exceptions as exc
 from taskflow.persistence import base
 from taskflow.persistence import models
 
 
-@six.add_metaclass(abc.ABCMeta)
-class PathBasedBackend(base.Backend):
+class PathBasedBackend(base.Backend, metaclass=abc.ABCMeta):
     """Base class for persistence backends that address data by path
 
     Subclasses of this backend write logbooks, flow details, and atom details
@@ -48,8 +46,7 @@ class PathBasedBackend(base.Backend):
         return self._path
 
 
-@six.add_metaclass(abc.ABCMeta)
-class PathBasedConnection(base.Connection):
+class PathBasedConnection(base.Connection, metaclass=abc.ABCMeta):
     """Base class for path based backend connections."""
 
     def __init__(self, backend):

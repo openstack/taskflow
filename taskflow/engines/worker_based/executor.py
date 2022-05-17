@@ -18,7 +18,6 @@ import functools
 import threading
 
 from oslo_utils import timeutils
-import six
 
 from taskflow.engines.action_engine import executor
 from taskflow.engines.worker_based import dispatcher
@@ -141,7 +140,7 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         if not self._ongoing_requests:
             return
         with self._ongoing_requests_lock:
-            ongoing_requests_uuids = set(six.iterkeys(self._ongoing_requests))
+            ongoing_requests_uuids = set(self._ongoing_requests.keys())
         waiting_requests = {}
         expired_requests = {}
         for request_uuid in ongoing_requests_uuids:

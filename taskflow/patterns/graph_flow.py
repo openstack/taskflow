@@ -15,8 +15,7 @@
 #    under the License.
 
 import collections
-
-import six
+import functools
 
 from taskflow import deciders as de
 from taskflow import exceptions as exc
@@ -109,7 +108,7 @@ class Flow(flow.Flow):
         if not self._graph.has_node(v):
             raise ValueError("Node '%s' not found to link to" % (v))
         if decider is not None:
-            if not six.callable(decider):
+            if not callable(decider):
                 raise ValueError("Decider boolean callback must be callable")
         self._swap(self._link(u, v, manual=True,
                               decider=decider, decider_depth=decider_depth))
@@ -316,7 +315,7 @@ class Flow(flow.Flow):
 def _reset_cached_subgraph(func):
     """Resets cached subgraph after execution, in case it was affected."""
 
-    @six.wraps(func)
+    @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         result = func(self, *args, **kwargs)
         self._subgraph = None
