@@ -65,7 +65,8 @@ class Terminator(object):
         return self._name
 
     def __str__(self):
-        return "%s[$]" % (self._flow,)
+        flow_name = ("%s" % self._flow).strip('"')
+        return '"%s[$]"' % flow_name
 
 
 class Compilation(object):
