@@ -15,10 +15,9 @@
 #    under the License.
 
 import collections
+import io
 import itertools
 import os
-
-import six
 
 from taskflow.types import graph
 from taskflow.utils import iter_utils
@@ -279,9 +278,9 @@ class Node(object):
         """
         if stringify_node is None:
             # Default to making a unicode string out of the nodes item...
-            stringify_node = lambda node: six.text_type(node.item)
+            stringify_node = lambda node: str(node.item)
         expected_lines = self.child_count(only_direct=False) + 1
-        buff = six.StringIO()
+        buff = io.StringIO()
         conn = vertical_conn + horizontal_conn
         stop_at_parent = self
         for i, node in enumerate(self.dfs_iter(include_self=True), 1):

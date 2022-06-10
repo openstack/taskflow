@@ -16,9 +16,6 @@
 
 import string
 
-import six
-import testtools
-
 from taskflow import exceptions as exc
 from taskflow import test
 
@@ -109,7 +106,6 @@ class TestExceptions(test.TestCase):
         ex = exc.TaskFlowException("Broken")
         self.assertRaises(ValueError, ex.pformat, indent=-100)
 
-    @testtools.skipIf(not six.PY3, 'py3.x is not available')
     def test_raise_with_cause(self):
         capture = None
         try:

@@ -14,12 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import _thread
 import collections
 import multiprocessing
 import threading
-
-import six
-from six.moves import _thread
 
 from taskflow.utils import misc
 
@@ -106,7 +104,7 @@ class ThreadBundle(object):
                                  before_join, after_join)
         for attr_name in builder.fields:
             cb = getattr(builder, attr_name)
-            if not six.callable(cb):
+            if not callable(cb):
                 raise ValueError("Provided callback for argument"
                                  " '%s' must be callable" % attr_name)
         with self._lock:

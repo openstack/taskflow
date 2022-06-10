@@ -18,7 +18,6 @@ import time
 from unittest import mock
 
 from oslo_utils import uuidutils
-import six
 import testtools
 
 from taskflow import exceptions as excp
@@ -44,7 +43,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
         namespace = uuidutils.generate_uuid()
         client = ru.RedisClient()
         config = {
-            'namespace': six.b("taskflow-%s" % namespace),
+            'namespace': ("taskflow-%s" % namespace).encode('latin-1'),
         }
         kwargs = {
             'client': client,

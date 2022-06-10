@@ -28,7 +28,6 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
 sys.path.insert(0, top_dir)
 
 import futurist
-from six.moves import range as compat_range
 
 from taskflow import engines
 from taskflow.patterns import unordered_flow as uf
@@ -86,9 +85,9 @@ def main():
         tbl = []
         cols = random.randint(1, 100)
         rows = random.randint(1, 100)
-        for _i in compat_range(0, rows):
+        for _i in range(0, rows):
             row = []
-            for _j in compat_range(0, cols):
+            for _j in range(0, cols):
                 row.append(random.random())
             tbl.append(row)
 
@@ -112,7 +111,7 @@ def main():
     #
     # TODO(harlowja): probably easier just to sort instead of search...
     computed_tbl = []
-    for i in compat_range(0, len(tbl)):
+    for i in range(0, len(tbl)):
         for t in f:
             if t.index == i:
                 computed_tbl.append(e.storage.get(t.name))

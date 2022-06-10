@@ -20,7 +20,6 @@ import os
 import random
 import tempfile
 
-import six
 import testtools
 
 
@@ -123,8 +122,8 @@ class SqlitePersistenceTest(test.TestCase, base.PersistenceTestMixin):
             self.db_location = None
 
 
-@six.add_metaclass(abc.ABCMeta)
-class BackendPersistenceTestMixin(base.PersistenceTestMixin):
+class BackendPersistenceTestMixin(base.PersistenceTestMixin,
+                                  metaclass=abc.ABCMeta):
     """Specifies a backend type and does required setup and teardown."""
 
     def _get_connection(self):

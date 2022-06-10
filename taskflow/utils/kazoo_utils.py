@@ -17,8 +17,6 @@
 from kazoo import client
 from kazoo import exceptions as k_exc
 from oslo_utils import reflection
-import six
-from six.moves import zip as compat_zip
 
 from taskflow import exceptions as exc
 from taskflow import logging
@@ -28,11 +26,11 @@ LOG = logging.getLogger(__name__)
 
 
 def _parse_hosts(hosts):
-    if isinstance(hosts, six.string_types):
+    if isinstance(hosts, str):
         return hosts.strip()
     if isinstance(hosts, (dict)):
         host_ports = []
-        for (k, v) in six.iteritems(hosts):
+        for (k, v) in hosts.items():
             host_ports.append("%s:%s" % (k, v))
         hosts = host_ports
     if isinstance(hosts, (list, set, tuple)):
@@ -89,7 +87,7 @@ def checked_commit(txn):
         return []
     results = txn.commit()
     failures = []
-    for op, result in compat_zip(txn.operations, results):
+    for op, result in zip(txn.operations, results):
         if isinstance(result, k_exc.KazooException):
             failures.append((op, result))
     if len(results) < len(txn.operations):
@@ -211,7 +209,7 @@ def make_client(conf):
     if 'connection_retry' in conf:
         client_kwargs['connection_retry'] = conf['connection_retry']
     hosts = _parse_hosts(conf.get("hosts", "localhost:2181"))
-    if not hosts or not isinstance(hosts, six.string_types):
+    if not hosts or not isinstance(hosts, str):
         raise TypeError("Invalid hosts format, expected "
                         "non-empty string/list, not '%s' (%s)"
                         % (hosts, type(hosts)))

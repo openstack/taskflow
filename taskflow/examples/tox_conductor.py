@@ -34,7 +34,6 @@ sys.path.insert(0, top_dir)
 
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
 from zake import fake_client
 
 from taskflow.conductors import backends as conductors
@@ -114,7 +113,7 @@ def review_iter():
     """Makes reviews (never-ending iterator/generator)."""
     review_id_gen = itertools.count(0)
     while True:
-        review_id = six.next(review_id_gen)
+        review_id = next(review_id_gen)
         review = {
             'id': review_id,
         }
@@ -172,7 +171,7 @@ def generate_reviewer(client, saver, name=NAME):
         review_generator = review_iter()
         with contextlib.closing(jb):
             while not no_more.is_set():
-                review = six.next(review_generator)
+                review = next(review_generator)
                 details = {
                     'store': {
                         'review': review,

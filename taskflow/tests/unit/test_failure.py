@@ -14,12 +14,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import pickle
 import sys
 
 from oslo_utils import encodeutils
-import six
-from six.moves import cPickle as pickle
-import testtools
 
 from taskflow import exceptions
 from taskflow import test
@@ -338,23 +336,16 @@ class NonAsciiExceptionsTestCase(test.TestCase):
         fail = failure.Failure.from_exception(excp)
         self.assertEqual(encodeutils.exception_to_unicode(excp),
                          fail.exception_str)
-        # This is slightly different on py2 vs py3... due to how
-        # __str__ or __unicode__ is called and what is expected from
-        # both...
-        if six.PY2:
-            msg = encodeutils.exception_to_unicode(excp)
-            expected = 'Failure: ValueError: %s' % msg.encode('utf-8')
-        else:
-            expected = u'Failure: ValueError: \xc8'
+        expected = u'Failure: ValueError: \xc8'
         self.assertEqual(expected, str(fail))
 
     def test_exception_non_ascii_unicode(self):
         hi_ru = u'привет'
         fail = failure.Failure.from_exception(ValueError(hi_ru))
         self.assertEqual(hi_ru, fail.exception_str)
-        self.assertIsInstance(fail.exception_str, six.text_type)
+        self.assertIsInstance(fail.exception_str, str)
         self.assertEqual(u'Failure: ValueError: %s' % hi_ru,
-                         six.text_type(fail))
+                         str(fail))
 
     def test_wrapped_failure_non_ascii_unicode(self):
         hi_cn = u'嗨'
@@ -364,7 +355,7 @@ class NonAsciiExceptionsTestCase(test.TestCase):
         wrapped_fail = exceptions.WrappedFailure([fail])
         expected_result = (u"WrappedFailure: "
                            "[Failure: ValueError: %s]" % (hi_cn))
-        self.assertEqual(expected_result, six.text_type(wrapped_fail))
+        self.assertEqual(expected_result, str(wrapped_fail))
 
     def test_failure_equality_with_non_ascii_str(self):
         bad_string = chr(200)
@@ -379,7 +370,6 @@ class NonAsciiExceptionsTestCase(test.TestCase):
         self.assertEqual(fail, copied)
 
 
-@testtools.skipIf(not six.PY3, 'this test only works on python 3.x')
 class FailureCausesTest(test.TestCase):
 
     @classmethod
@@ -392,7 +382,7 @@ class FailureCausesTest(test.TestCase):
             cls._raise_many(messages)
             raise e
         except RuntimeError as e1:
-            six.raise_from(e, e1)
+            raise e from e1
 
     def test_causes(self):
         f = None
@@ -467,7 +457,7 @@ class FailureCausesTest(test.TestCase):
                 self._raise_many(["Still still not working",
                                   "Still not working", "Not working"])
             except RuntimeError as e:
-                six.raise_from(e, None)
+                raise e from None
         except RuntimeError:
             f = failure.Failure()
 

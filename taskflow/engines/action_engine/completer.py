@@ -19,7 +19,6 @@ import weakref
 
 from oslo_utils import reflection
 from oslo_utils import strutils
-import six
 
 from taskflow.engines.action_engine import compiler as co
 from taskflow.engines.action_engine import executor as ex
@@ -30,8 +29,7 @@ from taskflow import states as st
 LOG = logging.getLogger(__name__)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Strategy(object):
+class Strategy(object, metaclass=abc.ABCMeta):
     """Failure resolution strategy base class."""
 
     strategy = None

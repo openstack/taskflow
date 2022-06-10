@@ -16,17 +16,16 @@
 
 import collections
 import copy
+import io
 import os
 import sys
 import traceback
 
 from oslo_utils import encodeutils
 from oslo_utils import reflection
-import six
 
 from taskflow import exceptions as exc
 from taskflow.utils import iter_utils
-from taskflow.utils import mixins
 from taskflow.utils import schema_utils as su
 
 
@@ -68,7 +67,7 @@ def _are_equal_exc_info_tuples(ei1, ei2):
     return tb1 == tb2
 
 
-class Failure(mixins.StrMixin):
+class Failure():
     """An immutable object that represents failure.
 
     Failure objects encapsulate exception information so that they can be
@@ -210,7 +209,7 @@ class Failure(mixins.StrMixin):
             if kwargs:
                 raise TypeError(
                     'Failure.__init__ got unexpected keyword argument(s): %s'
-                    % ', '.join(six.iterkeys(kwargs)))
+                    % ', '.join(kwargs.keys()))
 
     @classmethod
     def from_exception(cls, exception):
@@ -343,7 +342,12 @@ class Failure(mixins.StrMixin):
     def reraise(self):
         """Re-raise captured exception."""
         if self._exc_info:
-            six.reraise(*self._exc_info)
+            tp, value, tb = self._exc_info
+            if value is None:
+                value = tp()
+            if value.__traceback__ is not tb:
+                raise value.with_traceback(tb)
+            raise value
         else:
             raise exc.WrappedFailure([self])
 
@@ -424,12 +428,12 @@ class Failure(mixins.StrMixin):
             self._causes = tuple(self._extract_causes_iter(self.exception))
             return self._causes
 
-    def __unicode__(self):
+    def __str__(self):
         return self.pformat()
 
     def pformat(self, traceback=False):
         """Pretty formats the failure object into a string."""
-        buf = six.StringIO()
+        buf = io.StringIO()
         if not self._exc_type_names:
             buf.write('Failure: %s' % (self._exception_str))
         else:

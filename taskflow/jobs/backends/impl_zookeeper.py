@@ -30,7 +30,6 @@ from oslo_serialization import jsonutils
 from oslo_utils import excutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
 
 from taskflow.conductors import base as c_base
 from taskflow import exceptions as excp
@@ -373,7 +372,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             if ensure_fresh:
                 self._force_refresh()
             with self._job_cond:
-                return sorted(six.itervalues(self._known_jobs))
+                return sorted(self._known_jobs.values())
 
     def _force_refresh(self):
         try:
@@ -479,7 +478,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         investigate_paths = []
         pending_removals = []
         with self._job_cond:
-            for path in six.iterkeys(self._known_jobs):
+            for path in self._known_jobs.keys():
                 if path not in child_paths:
                     pending_removals.append(path)
         for path in child_paths:

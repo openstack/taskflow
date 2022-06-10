@@ -15,15 +15,13 @@
 #    under the License.
 
 from collections import abc
+import functools
 import itertools
-
-import six
-from six.moves import range as compat_range
 
 
 def _ensure_iterable(func):
 
-    @six.wraps(func)
+    @functools.wraps(func)
     def wrapper(it, *args, **kwargs):
         if not isinstance(it, abc.Iterable):
             raise ValueError("Iterable expected, but '%s' is not"
@@ -147,5 +145,5 @@ def iter_forever(limit):
         while True:
             yield next(i)
     else:
-        for i in compat_range(0, limit):
+        for i in range(0, limit):
             yield i

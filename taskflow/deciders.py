@@ -14,8 +14,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import six
-
 from taskflow.utils import misc
 
 
@@ -74,7 +72,7 @@ class Depth(misc.StrEnum):
         if isinstance(desired_depth, cls):
             # Nothing to do in the first place...
             return desired_depth
-        if not isinstance(desired_depth, six.string_types):
+        if not isinstance(desired_depth, str):
             raise TypeError("Unexpected desired depth type, string type"
                             " expected, not %s" % type(desired_depth))
         try:

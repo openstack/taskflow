@@ -21,7 +21,6 @@ import time
 
 from oslo_serialization import jsonutils
 from oslo_utils import reflection
-import six
 from zake import fake_client
 
 import taskflow.engines
@@ -111,7 +110,7 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
         children = self.client.storage.get_children("/taskflow",
                                                     only_direct=False)
         removed = 0
-        for p, data in six.iteritems(children):
+        for p, data in children.items():
             if p.endswith(".lock"):
                 self.client.storage.pop(p)
                 removed += 1
@@ -121,7 +120,7 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
         children = self.client.storage.get_children("/taskflow",
                                                     only_direct=False)
         altered = 0
-        for p, data in six.iteritems(children):
+        for p, data in children.items():
             if p.endswith(".lock"):
                 self.client.set(p, misc.binary_encode(
                     jsonutils.dumps({'owner': new_owner})))

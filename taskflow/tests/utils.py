@@ -21,7 +21,6 @@ import time
 
 from oslo_utils import timeutils
 import redis
-import six
 
 from taskflow import exceptions
 from taskflow.listeners import capturing
@@ -137,7 +136,7 @@ class GiveBackRevert(task.Task):
         result = kwargs.get('result')
         # If this somehow fails, timeout, or other don't send back a
         # valid result...
-        if isinstance(result, six.integer_types):
+        if isinstance(result, int):
             return result + 1
 
 
@@ -153,12 +152,8 @@ class LongArgNameTask(task.Task):
         return long_arg_name
 
 
-if six.PY3:
-    RUNTIME_ERROR_CLASSES = ['RuntimeError', 'Exception',
-                             'BaseException', 'object']
-else:
-    RUNTIME_ERROR_CLASSES = ['RuntimeError', 'StandardError', 'Exception',
-                             'BaseException', 'object']
+RUNTIME_ERROR_CLASSES = ['RuntimeError', 'Exception', 'BaseException',
+                         'object']
 
 
 class ProvidesRequiresTask(task.Task):
@@ -410,11 +405,11 @@ class WaitForOneFromTask(ProgressingTask):
 
     def __init__(self, name, wait_for, wait_states, **kwargs):
         super(WaitForOneFromTask, self).__init__(name, **kwargs)
-        if isinstance(wait_for, six.string_types):
+        if isinstance(wait_for, str):
             self.wait_for = [wait_for]
         else:
             self.wait_for = wait_for
-        if isinstance(wait_states, six.string_types):
+        if isinstance(wait_states, str):
             self.wait_states = [wait_states]
         else:
             self.wait_states = wait_states

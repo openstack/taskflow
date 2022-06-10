@@ -19,7 +19,6 @@ import threading
 
 from oslo_utils import reflection
 from oslo_utils import timeutils
-import six
 
 from taskflow.engines.worker_based import protocol as pr
 from taskflow import logging
@@ -39,7 +38,7 @@ class TopicWorker(object):
     def __init__(self, topic, tasks, identity=_NO_IDENTITY):
         self.tasks = []
         for task in tasks:
-            if not isinstance(task, six.string_types):
+            if not isinstance(task, str):
                 task = reflection.get_class_name(task)
             self.tasks.append(task)
         self.topic = topic
@@ -47,7 +46,7 @@ class TopicWorker(object):
         self.last_seen = None
 
     def performs(self, task):
-        if not isinstance(task, six.string_types):
+        if not isinstance(task, str):
             task = reflection.get_class_name(task)
         return task in self.tasks
 
@@ -215,18 +214,18 @@ class ProxyWorkerFinder(object):
         dead_workers = {}
         with self._cond:
             now = timeutils.now()
-            for topic, worker in six.iteritems(self._workers):
+            for topic, worker in self._workers.items():
                 if worker.last_seen is None:
                     continue
                 secs_since_last_seen = max(0, now - worker.last_seen)
                 if secs_since_last_seen >= self._worker_expiry:
                     dead_workers[topic] = (worker, secs_since_last_seen)
-            for topic in six.iterkeys(dead_workers):
+            for topic in dead_workers.keys():
                 self._workers.pop(topic)
             if dead_workers:
                 self._cond.notify_all()
         if dead_workers and LOG.isEnabledFor(logging.INFO):
-            for worker, secs_since_last_seen in six.itervalues(dead_workers):
+            for worker, secs_since_last_seen in dead_workers.values():
                 LOG.info("Removed worker '%s' as it has not responded to"
                          " notification requests in %0.3f seconds",
                          worker, secs_since_last_seen)
@@ -245,7 +244,7 @@ class ProxyWorkerFinder(object):
         """Gets a worker that can perform a given task."""
         available_workers = []
         with self._cond:
-            for worker in six.itervalues(self._workers):
+            for worker in self._workers.values():
                 if worker.performs(task):
                     available_workers.append(worker)
         if available_workers:

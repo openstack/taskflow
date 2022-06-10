@@ -20,7 +20,6 @@ from unittest import mock
 
 import fixtures
 from oslotest import base
-import six
 
 from testtools import compat
 from testtools import matchers
@@ -105,7 +104,7 @@ class TestCase(base.BaseTestCase):
 
         # Testtools seems to want equals objects instead of just keys?
         compare_dict = {}
-        for k in list(six.iterkeys(expected)):
+        for k in list(expected.keys()):
             if not isinstance(expected[k], matchers.Equals):
                 compare_dict[k] = matchers.Equals(expected[k])
             else:

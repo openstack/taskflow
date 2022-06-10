@@ -20,7 +20,6 @@ import copy
 import logging
 
 from oslo_utils import reflection
-import six
 
 LOG = logging.getLogger(__name__)
 
@@ -164,7 +163,7 @@ class Notifier(object):
         :rtype: number
         """
         count = 0
-        for (_event_type, listeners) in six.iteritems(self._topics):
+        for (_event_type, listeners) in self._topics.items():
             count += len(listeners)
         return count
 
@@ -235,10 +234,10 @@ class Notifier(object):
         :param kwargs: key-value pair arguments
         :type kwargs: dictionary
         """
-        if not six.callable(callback):
+        if not callable(callback):
             raise ValueError("Event callback must be callable")
         if details_filter is not None:
-            if not six.callable(details_filter):
+            if not callable(details_filter):
                 raise ValueError("Details filter must be callable")
         if not self.can_be_registered(event_type):
             raise ValueError("Disallowed event type '%s' can not have a"
@@ -280,7 +279,7 @@ class Notifier(object):
     def copy(self):
         c = copy.copy(self)
         c._topics = collections.defaultdict(list)
-        for (event_type, listeners) in six.iteritems(self._topics):
+        for (event_type, listeners) in self._topics.items():
             c._topics[event_type] = listeners[:]
         return c
 
@@ -292,7 +291,7 @@ class Notifier(object):
         itself wraps a provided callback (and its details filter
         callback, if any).
         """
-        for event_type, listeners in six.iteritems(self._topics):
+        for event_type, listeners in self._topics.items():
             if listeners:
                 yield (event_type, listeners)
 

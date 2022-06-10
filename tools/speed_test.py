@@ -18,11 +18,10 @@ Profile a simple engine build/load/compile/prepare/validate/run.
 
 import argparse
 import cProfile as profiler
+import io
 import pstats
 
 from oslo_utils import timeutils
-import six
-from six.moves import range as compat_range
 
 from taskflow import engines
 from taskflow.patterns import linear_flow as lf
@@ -50,7 +49,7 @@ class ProfileIt(object):
 
     def __exit__(self, exc_tp, exc_v, exc_tb):
         self.profile.disable()
-        buf = six.StringIO()
+        buf = io.StringIO()
         ps = pstats.Stats(self.profile, stream=buf)
         ps = ps.sort_stats(*self.stats_ordering)
         percent_limit = max(0.0, max(1.0, self.args.limit / 100.0))

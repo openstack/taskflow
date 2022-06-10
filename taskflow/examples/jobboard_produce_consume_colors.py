@@ -30,8 +30,6 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-import six
-from six.moves import range as compat_range
 from zake import fake_client
 
 from taskflow import exceptions as excp
@@ -139,7 +137,7 @@ def producer(ident, client):
     name = "P-%s" % (ident)
     safe_print(name, "started")
     with backends.backend(name, SHARED_CONF.copy(), client=client) as board:
-        for i in compat_range(0, PRODUCER_UNITS):
+        for i in range(0, PRODUCER_UNITS):
             job_name = "%s-%s" % (name, i)
             details = {
                 'color': random.choice(['red', 'blue']),
@@ -151,22 +149,22 @@ def producer(ident, client):
 
 
 def main():
-    if six.PY3:
-        # TODO(harlowja): Hack to make eventlet work right, remove when the
-        # following is fixed: https://github.com/eventlet/eventlet/issues/230
-        from taskflow.utils import eventlet_utils as _eu  # noqa
-        try:
-            import eventlet as _eventlet  # noqa
-        except ImportError:
-            pass
+    # TODO(harlowja): Hack to make eventlet work right, remove when the
+    # following is fixed: https://github.com/eventlet/eventlet/issues/230
+    from taskflow.utils import eventlet_utils as _eu  # noqa
+    try:
+        import eventlet as _eventlet  # noqa
+    except ImportError:
+        pass
+
     with contextlib.closing(fake_client.FakeClient()) as c:
         created = []
-        for i in compat_range(0, PRODUCERS):
+        for i in range(0, PRODUCERS):
             p = threading_utils.daemon_thread(producer, i + 1, c)
             created.append(p)
             p.start()
         consumed = collections.deque()
-        for i in compat_range(0, WORKERS):
+        for i in range(0, WORKERS):
             w = threading_utils.daemon_thread(worker, i + 1, c, consumed)
             created.append(w)
             w.start()

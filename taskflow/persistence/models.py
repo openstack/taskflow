@@ -21,7 +21,6 @@ import os
 
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-import six
 
 from taskflow import exceptions as exc
 from taskflow import states
@@ -259,7 +258,7 @@ class LogBook(object):
         return self._name
 
     def __iter__(self):
-        for fd in six.itervalues(self._flowdetails_by_id):
+        for fd in self._flowdetails_by_id.values():
             yield fd
 
     def __len__(self):
@@ -464,15 +463,14 @@ class FlowDetail(object):
         return self._name
 
     def __iter__(self):
-        for ad in six.itervalues(self._atomdetails_by_id):
+        for ad in self._atomdetails_by_id.values():
             yield ad
 
     def __len__(self):
         return len(self._atomdetails_by_id)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class AtomDetail(object):
+class AtomDetail(object, metaclass=abc.ABCMeta):
     """A collection of atom specific runtime information and metadata.
 
     This is a base **abstract** class that contains attributes that are used
@@ -887,7 +885,7 @@ class RetryDetail(AtomDetail):
         # contain tracebacks, which are not copyable.
         for (data, failures) in self.results:
             copied_failures = {}
-            for (key, failure) in six.iteritems(failures):
+            for (key, failure) in failures.items():
                 copied_failures[key] = failure
             results.append((data, copied_failures))
         clone.results = results
@@ -980,7 +978,7 @@ class RetryDetail(AtomDetail):
             new_results = []
             for (data, failures) in results:
                 new_failures = {}
-                for (key, data) in six.iteritems(failures):
+                for (key, data) in failures.items():
                     new_failures[key] = ft.Failure.from_dict(data)
                 new_results.append((data, new_failures))
             return new_results
@@ -998,7 +996,7 @@ class RetryDetail(AtomDetail):
             new_results = []
             for (data, failures) in results:
                 new_failures = {}
-                for (key, failure) in six.iteritems(failures):
+                for (key, failure) in failures.items():
                     new_failures[key] = failure.to_dict()
                 new_results.append((data, new_failures))
             return new_results
@@ -1041,7 +1039,7 @@ class RetryDetail(AtomDetail):
         # contain tracebacks, which are not copyable.
         for (data, failures) in other.results:
             copied_failures = {}
-            for (key, failure) in six.iteritems(failures):
+            for (key, failure) in failures.items():
                 if deep_copy:
                     copied_failures[key] = failure.copy()
                 else:
@@ -1056,8 +1054,8 @@ _DETAIL_TO_NAME = {
     TaskDetail: 'TASK_DETAIL',
 }
 _NAME_TO_DETAIL = dict((name, cls)
-                       for (cls, name) in six.iteritems(_DETAIL_TO_NAME))
-ATOM_TYPES = list(six.iterkeys(_NAME_TO_DETAIL))
+                       for (cls, name) in _DETAIL_TO_NAME.items())
+ATOM_TYPES = list(_NAME_TO_DETAIL.keys())
 
 
 def atom_detail_class(atom_type):

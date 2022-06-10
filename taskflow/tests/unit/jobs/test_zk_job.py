@@ -21,7 +21,6 @@ from kazoo.protocol import paths as k_paths
 from kazoo.recipe import watchers
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
-import six
 import testtools
 from zake import fake_client
 from zake import utils as zake_utils
@@ -171,7 +170,7 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             # Forcefully delete the owner from the backend storage to make
             # sure the job becomes unclaimed (this may happen if some admin
             # manually deletes the lock).
-            paths = list(six.iteritems(self.client.storage.paths))
+            paths = list(self.client.storage.paths.items())
             for (path, value) in paths:
                 if path in self.bad_paths:
                     continue
@@ -192,7 +191,7 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             # Forcefully delete the lock from the backend storage to make
             # sure the job becomes unclaimed (this may happen if some admin
             # manually deletes the lock).
-            paths = list(six.iteritems(self.client.storage.paths))
+            paths = list(self.client.storage.paths.items())
             for (path, value) in paths:
                 if path in self.bad_paths:
                     continue
@@ -215,7 +214,7 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
 
             trashed = []
             jobs = []
-            paths = list(six.iteritems(self.client.storage.paths))
+            paths = list(self.client.storage.paths.items())
             for (path, value) in paths:
                 if path in self.bad_paths:
                     continue
@@ -244,14 +243,14 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         # Remove paths that got created due to the running process that we are
         # not interested in...
         paths = {}
-        for (path, data) in six.iteritems(self.client.storage.paths):
+        for (path, data) in self.client.storage.paths.items():
             if path in self.bad_paths:
                 continue
             paths[path] = data
 
         # Check the actual data that was posted.
         self.assertEqual(1, len(paths))
-        path_key = list(six.iterkeys(paths))[0]
+        path_key = list(paths.keys())[0]
         self.assertTrue(len(paths[path_key]['data']) > 0)
         self.assertDictEqual({
             'uuid': posted_job.uuid,

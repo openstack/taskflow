@@ -24,8 +24,6 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-from six.moves import range as compat_range
-
 from taskflow import engines
 from taskflow.engines.worker_based import worker
 from taskflow.patterns import unordered_flow as uf
@@ -84,7 +82,7 @@ class MandelCalculator(task.Task):
         def mandelbrot(x, y, max_iters):
             c = complex(x, y)
             z = 0.0j
-            for i in compat_range(max_iters):
+            for i in range(max_iters):
                 z = z * z + c
                 if (z.real * z.real + z.imag * z.imag) >= 4:
                     return i
@@ -95,10 +93,10 @@ class MandelCalculator(task.Task):
         pixel_size_x = (max_x - min_x) / width
         pixel_size_y = (max_y - min_y) / height
         block = []
-        for y in compat_range(chunk[0], chunk[1]):
+        for y in range(chunk[0], chunk[1]):
             row = []
             imag = min_y + y * pixel_size_y
-            for x in compat_range(0, width):
+            for x in range(0, width):
                 real = min_x + x * pixel_size_x
                 row.append(mandelbrot(real, imag, max_iters))
             block.append(row)
@@ -133,7 +131,7 @@ def calculate(engine_conf):
     # Compose our workflow.
     height, _width = IMAGE_SIZE
     chunk_size = int(math.ceil(height / float(CHUNK_COUNT)))
-    for i in compat_range(0, CHUNK_COUNT):
+    for i in range(0, CHUNK_COUNT):
         chunk_name = 'chunk_%s' % i
         task_name = "calculation_%s" % i
         # Break the calculation up into chunk size pieces.
@@ -225,7 +223,7 @@ def create_fractal():
     try:
         # Create a set of workers to simulate actual remote workers.
         print('Running %s workers.' % (WORKERS))
-        for i in compat_range(0, WORKERS):
+        for i in range(0, WORKERS):
             worker_conf['topic'] = 'calculator_%s' % (i + 1)
             worker_topics.append(worker_conf['topic'])
             w = worker.Worker(**worker_conf)

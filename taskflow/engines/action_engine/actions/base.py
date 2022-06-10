@@ -16,13 +16,10 @@
 
 import abc
 
-import six
-
 from taskflow import states
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Action(object):
+class Action(object, metaclass=abc.ABCMeta):
     """An action that handles executing, state changes, ... of atoms."""
 
     NO_RESULT = object()

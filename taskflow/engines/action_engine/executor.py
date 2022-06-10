@@ -17,7 +17,6 @@
 import abc
 
 import futurist
-import six
 
 from taskflow import task as ta
 from taskflow.types import failure
@@ -106,8 +105,7 @@ class SerialRetryExecutor(object):
         return fut
 
 
-@six.add_metaclass(abc.ABCMeta)
-class TaskExecutor(object):
+class TaskExecutor(object, metaclass=abc.ABCMeta):
     """Executes and reverts tasks.
 
     This class takes task and its arguments and executes or reverts it.

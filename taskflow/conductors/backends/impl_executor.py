@@ -20,7 +20,6 @@ import threading
 
 from oslo_utils import excutils
 from oslo_utils import timeutils
-import six
 
 from taskflow.conductors import base
 from taskflow import exceptions as excp
@@ -34,8 +33,7 @@ from taskflow.utils import misc
 LOG = logging.getLogger(__name__)
 
 
-@six.add_metaclass(abc.ABCMeta)
-class ExecutorConductor(base.Conductor):
+class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
     """Dispatches jobs from blocking :py:meth:`.run` method to some executor.
 
     This conductor iterates over jobs in the provided jobboard (waiting for

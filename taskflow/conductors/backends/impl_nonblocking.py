@@ -13,7 +13,6 @@
 #    under the License.
 
 import futurist
-import six
 
 from taskflow.conductors.backends import impl_executor
 from taskflow.utils import threading_utils as tu
@@ -63,7 +62,7 @@ class NonBlockingConductor(impl_executor.ExecutorConductor):
         if executor_factory is None:
             self._executor_factory = self._default_executor_factory
         else:
-            if not six.callable(executor_factory):
+            if not callable(executor_factory):
                 raise ValueError("Provided keyword argument 'executor_factory'"
                                  " must be callable")
             self._executor_factory = executor_factory

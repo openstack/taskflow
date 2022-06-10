@@ -22,11 +22,11 @@ import threading
 from automaton import runners
 from concurrent import futures
 import fasteners
+import functools
 import networkx as nx
 from oslo_utils import excutils
 from oslo_utils import strutils
 from oslo_utils import timeutils
-import six
 
 from taskflow.engines.action_engine import builder
 from taskflow.engines.action_engine import compiler
@@ -65,7 +65,7 @@ def _pre_check(check_compiled=True, check_storage_ensured=True,
     def decorator(meth):
         do_what = meth.__name__
 
-        @six.wraps(meth)
+        @functools.wraps(meth)
         def wrapper(self, *args, **kwargs):
             if check_compiled and not self._compiled:
                 raise exc.InvalidState("Can not %s an engine which"
@@ -335,8 +335,8 @@ class ActionEngine(base.Engine):
                             e_failures = self.storage.get_execute_failures()
                             r_failures = self.storage.get_revert_failures()
                             er_failures = itertools.chain(
-                                six.itervalues(e_failures),
-                                six.itervalues(r_failures))
+                                e_failures.values(),
+                                r_failures.values())
                             failure.Failure.reraise_if_any(er_failures)
             finally:
                 if w is not None:
@@ -594,7 +594,7 @@ String (case insensitive)    Executor used
         executor_cls = cls._default_executor_cls
         # Match the desired executor to a class that will work with it...
         desired_executor = options.get('executor')
-        if isinstance(desired_executor, six.string_types):
+        if isinstance(desired_executor, str):
             matched_executor_cls = None
             for m in cls._executor_str_matchers:
                 if m.matches(desired_executor):

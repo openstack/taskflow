@@ -16,13 +16,10 @@
 
 import abc
 
-import six
-
 from taskflow.persistence import models
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Backend(object):
+class Backend(object, metaclass=abc.ABCMeta):
     """Base class for persistence backends."""
 
     def __init__(self, conf):
@@ -42,8 +39,7 @@ class Backend(object):
         """Closes any resources this backend has open."""
 
 
-@six.add_metaclass(abc.ABCMeta)
-class Connection(object):
+class Connection(object, metaclass=abc.ABCMeta):
     """Base class for backend connections."""
 
     @abc.abstractproperty

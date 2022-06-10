@@ -43,11 +43,6 @@ Miscellaneous
 
 .. automodule:: taskflow.utils.misc
 
-Mixins
-~~~~~~
-
-.. automodule:: taskflow.utils.mixins
-
 Persistence
 ~~~~~~~~~~~
 

@@ -14,13 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import io
 import os
 import traceback
 
 from oslo_utils import excutils
 from oslo_utils import reflection
-import six
-from taskflow.utils import mixins
 
 
 def raise_with_cause(exc_cls, message, *args, **kwargs):
@@ -89,7 +88,7 @@ class TaskFlowException(Exception):
         if indent < 0:
             raise ValueError("Provided 'indent' must be greater than"
                              " or equal to zero instead of %s" % indent)
-        buf = six.StringIO()
+        buf = io.StringIO()
         if show_root_class:
             buf.write(reflection.get_class_name(self, fully_qualified=False))
             buf.write(": ")
@@ -244,7 +243,7 @@ class NotImplementedError(NotImplementedError):
     """
 
 
-class WrappedFailure(mixins.StrMixin, Exception):
+class WrappedFailure(Exception):
     """Wraps one or several failure objects.
 
     When exception/s cannot be re-raised (for example, because the value and
@@ -298,17 +297,17 @@ class WrappedFailure(mixins.StrMixin, Exception):
         return None
 
     def __bytes__(self):
-        buf = six.BytesIO()
+        buf = io.BytesIO()
         buf.write(b'WrappedFailure: [')
-        causes_gen = (six.binary_type(cause) for cause in self._causes)
+        causes_gen = (bytes(cause) for cause in self._causes)
         buf.write(b", ".join(causes_gen))
         buf.write(b']')
         return buf.getvalue()
 
-    def __unicode__(self):
-        buf = six.StringIO()
+    def __str__(self):
+        buf = io.StringIO()
         buf.write(u'WrappedFailure: [')
-        causes_gen = (six.text_type(cause) for cause in self._causes)
+        causes_gen = (str(cause) for cause in self._causes)
         buf.write(u", ".join(causes_gen))
         buf.write(u']')
         return buf.getvalue()

@@ -15,7 +15,7 @@
 #    under the License.
 
 import networkx as nx
-from six.moves import cPickle as pickle
+import pickle
 
 from taskflow import test
 from taskflow.types import graph

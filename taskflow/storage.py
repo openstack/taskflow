@@ -20,7 +20,6 @@ import functools
 import fasteners
 from oslo_utils import reflection
 from oslo_utils import uuidutils
-import six
 import tenacity
 
 from taskflow import exceptions
@@ -335,7 +334,7 @@ class Storage(object):
         except exceptions.NotFound:
             pass
         else:
-            names_iter = six.iterkeys(source.results)
+            names_iter = source.results.keys()
             self._set_result_mapping(source.name,
                                      dict((name, name) for name in names_iter))
 
@@ -628,7 +627,7 @@ class Storage(object):
         result_mapping = self._result_mappings.get(atom_name)
         if not result_mapping:
             return
-        for name, index in six.iteritems(result_mapping):
+        for name, index in result_mapping.items():
             try:
                 _item_from(container, index)
             except _EXTRACTION_EXCEPTIONS:
@@ -731,7 +730,7 @@ class Storage(object):
     @fasteners.read_locked
     def _get_failures(self, fail_cache_key):
         failures = {}
-        for atom_name, fail_cache in six.iteritems(self._failures):
+        for atom_name, fail_cache in self._failures.items():
             try:
                 failures[atom_name] = fail_cache[fail_cache_key]
             except KeyError:
@@ -771,7 +770,7 @@ class Storage(object):
     @fasteners.read_locked
     def has_failures(self):
         """Returns true if there are **any** failures in storage."""
-        for fail_cache in six.itervalues(self._failures):
+        for fail_cache in self._failures.values():
             if fail_cache:
                 return True
         return False
@@ -898,11 +897,11 @@ class Storage(object):
                 clone.results.update(pairs)
             result = self._with_connection(self._save_atom_detail,
                                            source, clone)
-            return (self.injector_name, six.iterkeys(result.results))
+            return (self.injector_name, result.results.keys())
 
         def save_transient():
             self._transients.update(pairs)
-            return (_TRANSIENT_PROVIDER, six.iterkeys(self._transients))
+            return (_TRANSIENT_PROVIDER, self._transients.keys())
 
         if transient:
             provider_name, names = save_transient()
@@ -937,7 +936,7 @@ class Storage(object):
         if mapping:
             provider_mapping.update(mapping)
             # Ensure the reverse mapping/index is updated (for faster lookups).
-            for name, index in six.iteritems(provider_mapping):
+            for name, index in provider_mapping.items():
                 entries = self._reverse_mapping.setdefault(name, [])
                 provider = _Provider(provider_name, index)
                 if provider not in entries:
@@ -1002,13 +1001,13 @@ class Storage(object):
             self._injected_args.get(atom_name, {}),
             source.meta.get(META_INJECTED, {}),
         ]
-        missing = set(six.iterkeys(args_mapping))
+        missing = set(args_mapping.keys())
         locator = _ProviderLocator(
             self._transients, self._fetch_providers,
             lambda atom_name:
                 self._get(atom_name, 'last_results', 'failure',
                           _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE))
-        for (bound_name, name) in six.iteritems(args_mapping):
+        for (bound_name, name) in args_mapping.items():
             if LOG.isEnabledFor(logging.TRACE):
                 LOG.trace("Looking for %r <= %r for atom '%s'",
                           bound_name, name, atom_name)
@@ -1041,7 +1040,7 @@ class Storage(object):
         if many_handler is None:
             many_handler = _many_handler
         results = {}
-        for name in six.iterkeys(self._reverse_mapping):
+        for name in self._reverse_mapping.keys():
             try:
                 results[name] = self.fetch(name, many_handler=many_handler)
             except exceptions.NotFound:
@@ -1079,7 +1078,7 @@ class Storage(object):
             self._get(atom_name, 'last_results', 'failure',
                       _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE)
         mapped_args = {}
-        for (bound_name, name) in six.iteritems(args_mapping):
+        for (bound_name, name) in args_mapping.items():
             if LOG.isEnabledFor(logging.TRACE):
                 if atom_name:
                     LOG.trace("Looking for %r <= %r for atom '%s'",

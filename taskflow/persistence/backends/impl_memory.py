@@ -21,7 +21,6 @@ import itertools
 import posixpath as pp
 
 import fasteners
-import six
 
 from taskflow import exceptions as exc
 from taskflow.persistence import path_based
@@ -261,7 +260,7 @@ class FakeFilesystem(object):
         if 'target' in node.metadata:
             return "%s (link to %s)" % (node.item, node.metadata['target'])
         else:
-            return six.text_type(node.item)
+            return str(node.item)
 
     def pformat(self):
         """Pretty format this in-memory filesystem."""

@@ -15,7 +15,6 @@
 #    under the License.
 
 import itertools
-import six
 import time
 
 from oslo_utils import timeutils
@@ -58,7 +57,7 @@ class DurationListener(base.Listener):
         super(DurationListener, self).deregister()
         # There should be none that still exist at deregistering time, so log a
         # warning if there were any that somehow still got left behind...
-        for item_type, timers in six.iteritems(self._timers):
+        for item_type, timers in self._timers.items():
             leftover_timers = len(timers)
             if leftover_timers:
                 LOG.warning("%s %s(s) did not enter %s states",
