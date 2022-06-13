@@ -379,7 +379,7 @@ class Atom(object, metaclass=abc.ABCMeta):
         """
 
     def __str__(self):
-        return "%s==%s" % (self.name, misc.get_version_string(self))
+        return '"%s==%s"' % (self.name, misc.get_version_string(self))
 
     def __repr__(self):
         return '<%s %s>' % (reflection.get_class_name(self), self)

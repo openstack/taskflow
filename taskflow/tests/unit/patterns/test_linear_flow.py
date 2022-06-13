@@ -28,7 +28,7 @@ class LinearFlowTest(test.TestCase):
 
     def test_linear_flow_stringy(self):
         f = lf.Flow('test')
-        expected = 'linear_flow.Flow: test(len=0)'
+        expected = '"linear_flow.Flow: test(len=0)"'
         self.assertEqual(expected, str(f))
 
         task1 = _task(name='task1')
@@ -36,7 +36,7 @@ class LinearFlowTest(test.TestCase):
         task3 = _task(name='task3')
         f = lf.Flow('test')
         f.add(task1, task2, task3)
-        expected = 'linear_flow.Flow: test(len=3)'
+        expected = '"linear_flow.Flow: test(len=3)"'
         self.assertEqual(expected, str(f))
 
     def test_linear_flow_starts_as_empty(self):

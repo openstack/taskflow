@@ -39,7 +39,7 @@ class GraphFlowTest(test.TestCase):
 
     def test_graph_flow_stringy(self):
         f = gf.Flow('test')
-        expected = 'graph_flow.Flow: test(len=0)'
+        expected = '"graph_flow.Flow: test(len=0)"'
         self.assertEqual(expected, str(f))
 
         task1 = _task(name='task1')
@@ -47,7 +47,7 @@ class GraphFlowTest(test.TestCase):
         task3 = _task(name='task3')
         f = gf.Flow('test')
         f.add(task1, task2, task3)
-        expected = 'graph_flow.Flow: test(len=3)'
+        expected = '"graph_flow.Flow: test(len=3)"'
         self.assertEqual(expected, str(f))
 
     def test_graph_flow_starts_as_empty(self):

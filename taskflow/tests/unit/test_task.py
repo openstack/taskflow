@@ -86,11 +86,11 @@ class TaskTest(test.TestCase):
 
     def test_task_str(self):
         my_task = MyTask(name='my')
-        self.assertEqual('my==1.0', str(my_task))
+        self.assertEqual('"my==1.0"', str(my_task))
 
     def test_task_repr(self):
         my_task = MyTask(name='my')
-        self.assertEqual('<%s.MyTask my==1.0>' % __name__, repr(my_task))
+        self.assertEqual('<%s.MyTask "my==1.0">' % __name__, repr(my_task))
 
     def test_no_provides(self):
         my_task = MyTask()

@@ -116,7 +116,7 @@ class Flow(object, metaclass=abc.ABCMeta):
         cls_name = reflection.get_class_name(self)
         if cls_name.startswith(_CHOP_PAT):
             cls_name = cls_name[_CHOP_PAT_LEN:]
-        return "%s: %s(len=%d)" % (cls_name, self.name, len(self))
+        return '"%s: %s(len=%d)"' % (cls_name, self.name, len(self))
 
     @property
     def provides(self):
