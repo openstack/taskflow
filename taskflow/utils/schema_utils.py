@@ -17,12 +17,6 @@
 import jsonschema
 from jsonschema import exceptions as schema_exc
 
-# Special jsonschema validation types/adjustments.
-_SCHEMA_TYPES = {
-    # See: https://github.com/Julian/jsonschema/issues/148
-    'array': (list, tuple),
-}
-
 
 # Expose these types so that people don't have to import the same exceptions.
 ValidationError = schema_exc.ValidationError
@@ -31,4 +25,11 @@ SchemaError = schema_exc.SchemaError
 
 def schema_validate(data, schema):
     """Validates given data using provided json schema."""
-    jsonschema.validate(data, schema, types=_SCHEMA_TYPES)
+    Validator = jsonschema.validators.validator_for(schema)
+    # Special jsonschema validation types/adjustments.
+    # See: https://github.com/Julian/jsonschema/issues/148
+    type_checker = Validator.TYPE_CHECKER.redefine(
+        "array", lambda checker, data: isinstance(data, (list, tuple)))
+    TupleAllowingValidator = jsonschema.validators.extend(
+        Validator, type_checker=type_checker)
+    TupleAllowingValidator(schema).validate(data)
