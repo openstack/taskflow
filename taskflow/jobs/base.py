@@ -142,11 +142,13 @@ class Job(object, metaclass=abc.ABCMeta):
             book_data = {}
         self._book_data = book_data
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def last_modified(self):
         """The datetime the job was last modified."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def created_on(self):
         """The datetime the job was created on."""
 
@@ -155,11 +157,13 @@ class Job(object, metaclass=abc.ABCMeta):
         """The board this job was posted on or was created from."""
         return self._board
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def state(self):
         """Access the current state of this job."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def priority(self):
         """The :py:class:`~.JobPriority` of this job."""
 
@@ -397,7 +401,8 @@ class JobBoard(object, metaclass=abc.ABCMeta):
             appear (if None then waits forever).
         """
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def job_count(self):
         """Returns how many jobs are on this jobboard.
 
@@ -516,7 +521,8 @@ class JobBoard(object, metaclass=abc.ABCMeta):
         :type entity: :py:class:`~taskflow.types.entity.Entity`
         """
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def connected(self):
         """Returns if this jobboard is connected."""
 

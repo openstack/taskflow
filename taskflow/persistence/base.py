@@ -42,7 +42,8 @@ class Backend(object, metaclass=abc.ABCMeta):
 class Connection(object, metaclass=abc.ABCMeta):
     """Base class for backend connections."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def backend(self):
         """Returns the backend this connection is associated with."""
 

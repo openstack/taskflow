@@ -55,11 +55,13 @@ class Engine(object, metaclass=abc.ABCMeta):
         """The options that were passed to this engine on construction."""
         return self._options
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def storage(self):
         """The storage unit for this engine."""
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def statistics(self):
         """A dictionary of runtime statistics this engine has gathered.
 
