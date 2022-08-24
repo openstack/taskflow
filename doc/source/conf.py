@@ -49,8 +49,8 @@ master_doc = 'index'
 exclude_patterns = ['_build']
 
 # General information about the project.
-project = u'TaskFlow'
-copyright = u'%s, OpenStack Foundation' % datetime.date.today().year
+project = 'TaskFlow'
+copyright = '%s, OpenStack Foundation' % datetime.date.today().year
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True

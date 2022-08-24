@@ -63,8 +63,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'taskflow Release Notes'
-copyright = u'2016, taskflow Developers'
+project = 'taskflow Release Notes'
+copyright = '2016, taskflow Developers'
 
 # Release do not need a version number in the title, they
 # cover multiple versions.
@@ -215,8 +215,8 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     ('index', 'taskflowReleaseNotes.tex',
-     u'taskflow Release Notes Documentation',
-     u'taskflow Developers', 'manual'),
+     'taskflow Release Notes Documentation',
+     'taskflow Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -246,8 +246,8 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'taskflowreleasenotes',
-     u'taskflow Release Notes Documentation',
-     [u'taskflow Developers'], 1)
+     'taskflow Release Notes Documentation',
+     ['taskflow Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -261,8 +261,8 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     ('index', 'taskflowReleaseNotes',
-     u'taskflow Release Notes Documentation',
-     u'taskflow Developers', 'taskflowReleaseNotes',
+     'taskflow Release Notes Documentation',
+     'taskflow Developers', 'taskflowReleaseNotes',
      'An OpenStack library for parsing configuration options from the command'
      ' line and configuration files.',
      'Miscellaneous'),
