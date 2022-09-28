@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The minimum redis-py version required is now >= 3.0.0
