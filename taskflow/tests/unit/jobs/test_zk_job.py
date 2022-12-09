@@ -293,3 +293,47 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             self.assertRaises(excp.NotImplementedError,
                               self.board.register_entity,
                               entity_instance_2)
+
+    def test_connect_check_compatible(self):
+        # Valid version
+        client = fake_client.FakeClient()
+        board = impl_zookeeper.ZookeeperJobBoard(
+            'test-board', {'check_compatible': True},
+            client=client)
+        self.addCleanup(board.close)
+        self.addCleanup(self.close_client, client)
+
+        with base.connect_close(board):
+            pass
+
+        # Invalid version, no check
+        client = fake_client.FakeClient(server_version=(3, 2, 0))
+        board = impl_zookeeper.ZookeeperJobBoard(
+            'test-board', {'check_compatible': False},
+            client=client)
+        self.addCleanup(board.close)
+        self.addCleanup(self.close_client, client)
+
+        with base.connect_close(board):
+            pass
+
+        # Invalid version, check_compatible=True
+        client = fake_client.FakeClient(server_version=(3, 2, 0))
+        board = impl_zookeeper.ZookeeperJobBoard(
+            'test-board', {'check_compatible': True},
+            client=client)
+        self.addCleanup(board.close)
+        self.addCleanup(self.close_client, client)
+
+        self.assertRaises(excp.IncompatibleVersion, board.connect)
+
+        # Invalid version, check_compatible='False'
+        client = fake_client.FakeClient(server_version=(3, 2, 0))
+        board = impl_zookeeper.ZookeeperJobBoard(
+            'test-board', {'check_compatible': 'False'},
+            client=client)
+        self.addCleanup(board.close)
+        self.addCleanup(self.close_client, client)
+
+        with base.connect_close(board):
+            pass

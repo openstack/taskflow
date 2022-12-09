@@ -17,12 +17,22 @@
 from kazoo import client
 from kazoo import exceptions as k_exc
 from oslo_utils import reflection
+from oslo_utils import strutils
 
 from taskflow import exceptions as exc
 from taskflow import logging
 
 
 LOG = logging.getLogger(__name__)
+
+CONF_TRANSFERS = (
+    ('read_only', strutils.bool_from_string, False),
+    ('randomize_hosts', strutils.bool_from_string, False),
+    ('keyfile', None, None),
+    ('keyfile_password', None, None),
+    ('certfile', None, None),
+    ('use_ssl', strutils.bool_from_string, False),
+    ('verify_certs', strutils.bool_from_string, True))
 
 
 def _parse_hosts(hosts):
@@ -193,16 +203,19 @@ def make_client(conf):
     """
     # See: https://kazoo.readthedocs.io/en/latest/api/client.html
     client_kwargs = {
-        'read_only': bool(conf.get('read_only')),
-        'randomize_hosts': bool(conf.get('randomize_hosts')),
         'logger': LOG,
-        'keyfile': conf.get('keyfile', None),
-        'keyfile_password': conf.get('keyfile_password', None),
-        'certfile': conf.get('certfile', None),
-        'use_ssl': conf.get('use_ssl', False),
-        'verify_certs': conf.get('verify_certs', True),
-
     }
+
+    for key, value_type_converter, default in CONF_TRANSFERS:
+        if key in conf:
+            if value_type_converter is not None:
+                client_kwargs[key] = value_type_converter(conf[key],
+                                                          default=default)
+            else:
+                client_kwargs[key] = conf[key]
+        else:
+            client_kwargs[key] = default
+
     # See: https://kazoo.readthedocs.io/en/latest/api/retry.html
     if 'command_retry' in conf:
         client_kwargs['command_retry'] = conf['command_retry']

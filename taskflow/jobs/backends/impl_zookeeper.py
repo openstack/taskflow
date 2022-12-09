@@ -28,6 +28,7 @@ from kazoo.protocol import states as k_states
 from kazoo.recipe import watchers
 from oslo_serialization import jsonutils
 from oslo_utils import excutils
+from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
@@ -829,7 +830,8 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             excp.raise_with_cause(excp.JobFailure,
                                   "Failed to connect to zookeeper")
         try:
-            if self._conf.get('check_compatible', True):
+            if strutils.bool_from_string(
+                    self._conf.get('check_compatible'), default=True):
                 kazoo_utils.check_compatible(self._client, self.MIN_ZK_VERSION)
             if self._worker is None and self._emit_notifications:
                 self._worker = futurist.ThreadPoolExecutor(max_workers=1)
