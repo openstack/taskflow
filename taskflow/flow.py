@@ -128,6 +128,7 @@ class Flow(object, metaclass=abc.ABCMeta):
             provides.update(item.provides)
         return frozenset(provides)
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def requires(self):
         """Set of *unsatisfied* symbol names required by the flow."""
