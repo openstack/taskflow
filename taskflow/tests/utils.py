@@ -77,7 +77,7 @@ def zookeeper_available(min_version, timeout=3):
 
 
 def redis_available(min_version):
-    client = redis.StrictRedis()
+    client = redis.Redis()
     try:
         client.ping()
     except Exception:
