@@ -68,8 +68,8 @@ modindex_common_prefix = ['taskflow.']
 # Shortened external links.
 source_tree = 'https://opendev.org/openstack/taskflow/src/branch/master/'
 extlinks = {
-    'example': (source_tree + '/taskflow/examples/%s.py', ''),
-    'pybug': ('http://bugs.python.org/issue%s', ''),
+    'example': (source_tree + '/taskflow/examples/%s.py', '%s'),
+    'pybug': ('http://bugs.python.org/issue%s', '%s'),
 }
 
 
