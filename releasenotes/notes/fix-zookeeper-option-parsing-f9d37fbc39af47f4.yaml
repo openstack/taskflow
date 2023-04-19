@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue when the configuration options of the zookeeper jobboard
+    backend were passed as strings, the string ''"False"'' was wrongly
+    interpreted as ''True''. Now the string ''"False"'' is interpreted as the
+    ''False'' boolean.

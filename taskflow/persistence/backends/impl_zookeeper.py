@@ -20,6 +20,7 @@ import contextlib
 from kazoo import exceptions as k_exc
 from kazoo.protocol import paths
 from oslo_serialization import jsonutils
+from oslo_utils import strutils
 
 from taskflow import exceptions as exc
 from taskflow.persistence import path_based
@@ -161,7 +162,8 @@ class ZkConnection(path_based.PathBasedConnection):
     def validate(self):
         with self._exc_wrapper():
             try:
-                if self._conf.get('check_compatible', True):
+                if strutils.bool_from_string(
+                        self._conf.get('check_compatible'), default=True):
                     k_utils.check_compatible(self._client, MIN_ZK_VERSION)
             except exc.IncompatibleVersion:
                 exc.raise_with_cause(exc.StorageFailure, "Backend storage is"
