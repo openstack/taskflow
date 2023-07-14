@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
@@ -15,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import contextlib
 import copy
 import functools
 import threading
@@ -386,7 +383,7 @@ class Connection(base.Connection):
             # once it does not mean that we will be able to connect in
             # the future, so this is more of a sanity test and is not
             # complete connection insurance.
-            with contextlib.closing(engine.connect()):
+            with engine.connect():
                 pass
 
         _try_connect(self._engine)
@@ -394,7 +391,7 @@ class Connection(base.Connection):
     def upgrade(self):
         try:
             with self._upgrade_lock:
-                with contextlib.closing(self._engine.connect()) as conn:
+                with self._engine.connect() as conn:
                     # NOTE(imelnikov): Alembic does not support SQLite,
                     # and we don't recommend to use SQLite in production
                     # deployments, so migrations are rarely needed
@@ -402,7 +399,8 @@ class Connection(base.Connection):
                     # SQLite limitations, and create the database directly
                     # from the tables when it is in use...
                     if 'sqlite' in self._engine.url.drivername:
-                        self._metadata.create_all(bind=conn)
+                        with conn.begin():
+                            self._metadata.create_all(bind=conn)
                     else:
                         migration.db_sync(conn)
         except sa_exc.SQLAlchemyError:
@@ -538,7 +536,7 @@ class Connection(base.Connection):
     def get_logbook(self, book_uuid, lazy=False):
         try:
             logbooks = self._tables.logbooks
-            with contextlib.closing(self._engine.connect()) as conn:
+            with self._engine.connect() as conn:
                 q = (sql.select(logbooks).
                      where(logbooks.c.uuid == book_uuid))
                 row = conn.execute(q).first()
@@ -557,7 +555,7 @@ class Connection(base.Connection):
     def get_logbooks(self, lazy=False):
         gathered = []
         try:
-            with contextlib.closing(self._engine.connect()) as conn:
+            with self._engine.connect() as conn:
                 q = sql.select(self._tables.logbooks)
                 for row in conn.execute(q):
                     row = row._mapping
@@ -574,7 +572,7 @@ class Connection(base.Connection):
     def get_flows_for_book(self, book_uuid, lazy=False):
         gathered = []
         try:
-            with contextlib.closing(self._engine.connect()) as conn:
+            with self._engine.connect() as conn:
                 for fd in self._converter.flow_query_iter(conn, book_uuid):
                     if not lazy:
                         self._converter.populate_flow_detail(conn, fd)
@@ -626,7 +624,7 @@ class Connection(base.Connection):
     def get_atoms_for_flow(self, fd_uuid):
         gathered = []
         try:
-            with contextlib.closing(self._engine.connect()) as conn:
+            with self._engine.connect() as conn:
                 for ad in self._converter.atom_query_iter(conn, fd_uuid):
                     gathered.append(ad)
         except sa_exc.DBAPIError:
