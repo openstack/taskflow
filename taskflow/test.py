@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -26,6 +24,7 @@ from testtools import matchers
 from testtools import testcase
 
 from taskflow import exceptions
+from taskflow.tests import fixtures as taskflow_fixtures
 from taskflow.tests import utils
 from taskflow.utils import misc
 
@@ -91,6 +90,10 @@ class ItemsEqual(object):
 
 class TestCase(base.BaseTestCase):
     """Test case base class for all taskflow unit tests."""
+
+    def setUp(self):
+        super().setUp()
+        self.useFixture(taskflow_fixtures.WarningsFixture())
 
     def makeTmpDir(self):
         t_dir = self.useFixture(fixtures.TempDir())
