@@ -154,10 +154,10 @@ class UriParseTest(test.TestCase):
         self.assertEqual('', parsed.path)
 
     def test_ipv6_host(self):
-        url = "rsync://[2001:db8:0:1]:873"
+        url = "rsync://[2001:db8:0:1::2]:873"
         parsed = misc.parse_uri(url)
         self.assertEqual('rsync', parsed.scheme)
-        self.assertEqual('2001:db8:0:1', parsed.hostname)
+        self.assertEqual('2001:db8:0:1::2', parsed.hostname)
         self.assertEqual(873, parsed.port)
 
     def test_user_password(self):
