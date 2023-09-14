@@ -4,9 +4,14 @@
 graphviz [!platform:gentoo]
 media-gfx/graphviz [platform:gentoo]
 
-libpq-dev [platform:dpkg]
-mysql-client [platform:dpkg]
-mysql-server [platform:dpkg]
+mariadb [platform:rpm]
+mariadb-server [platform:redhat platform:debian]
+mariadb-devel [platform:redhat]
+libmariadb-dev-compat [platform:debian]
+libmysqlclient-dev [platform:ubuntu]
+libmysqlclient-devel [platform:suse]
+mysql-client [platform:dpkg !platform:debian]
+mysql-server [platform:dpkg !platform:debian]
 postgresql
 postgresql-client [platform:dpkg]
-
+libpq-dev [platform:dpkg]
