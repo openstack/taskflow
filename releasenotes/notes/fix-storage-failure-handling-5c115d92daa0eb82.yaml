@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue with the handling of exceptions when running a flow, some
+    jobs may have been incorrectly consumed (and not rescheduled) during
+    outages.
