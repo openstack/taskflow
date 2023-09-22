@@ -24,11 +24,16 @@ import time
 import enum
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+import tenacity
 
 from taskflow import exceptions as excp
 from taskflow import states
 from taskflow.types import notifier
 from taskflow.utils import iter_utils
+
+
+RETRY_ATTEMPTS = 3
+RETRY_WAIT_TIMEOUT = 5
 
 
 class JobPriority(enum.Enum):
@@ -251,6 +256,11 @@ class Job(object, metaclass=abc.ABCMeta):
         """The non-uniquely identifying name of this job."""
         return self._name
 
+    @tenacity.retry(retry=tenacity.retry_if_exception_type(
+                    exception_types=excp.StorageFailure),
+                    stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
+                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT),
+                    reraise=True)
     def _load_book(self):
         book_uuid = self.book_uuid
         if self._backend is not None and book_uuid is not None:

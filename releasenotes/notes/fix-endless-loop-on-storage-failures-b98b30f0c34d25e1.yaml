@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed potential endless loop of exceptions when the storage is down and
+    Taskflow loads a logbook.
