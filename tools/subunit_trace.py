@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2014 Hewlett-Packard Development Company, L.P.
 # Copyright 2014 Samsung Electronics
