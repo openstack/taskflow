@@ -291,6 +291,18 @@ class Runtime(object):
         """Resets all the provided atoms to the given state and intention."""
         tweaked = []
         for atom in atoms:
+            cur_intention = self.storage.get_atom_intention(atom.name)
+            # Don't trigger a RETRY if the atom needs to be REVERTED.
+            # This is a workaround for a bug when REVERT_ALL is applied to
+            # unordered flows
+            # (https://bugs.launchpad.net/taskflow/+bug/2043808)
+            # A subflow may trigger a REVERT_ALL, all the atoms of all the
+            # related subflows are marked as REVERT but a task of a related
+            # flow may still be running in another thread. If this task
+            # triggers a RETRY, it overrides the previously set REVERT status,
+            # breaking the revert path of the flow.
+            if cur_intention == st.REVERT and intention == st.RETRY:
+                continue
             if state or intention:
                 tweaked.append((atom, state, intention))
             if state:
