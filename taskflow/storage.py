@@ -454,7 +454,8 @@ class Storage(object):
     @tenacity.retry(retry=tenacity.retry_if_exception_type(
                     exception_types=exceptions.StorageFailure),
                     stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
-                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT))
+                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT),
+                    reraise=True)
     def _save_flow_detail(self, conn, original_flow_detail, flow_detail):
         # NOTE(harlowja): we need to update our contained flow detail if
         # the result of the update actually added more (aka another process
@@ -491,7 +492,8 @@ class Storage(object):
     @tenacity.retry(retry=tenacity.retry_if_exception_type(
                     exception_types=exceptions.StorageFailure),
                     stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
-                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT))
+                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT),
+                    reraise=True)
     def _save_atom_detail(self, conn, original_atom_detail, atom_detail):
         # NOTE(harlowja): we need to update our contained atom detail if
         # the result of the update actually added more (aka another process
