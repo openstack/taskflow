@@ -6,7 +6,9 @@
       Run unit tests with main branch of SQLAlchemy, alembic and oslo.db.
       Takes advantage of the base tox job's install-siblings feature.
     # The job only tests the latest and shouldn't be run on the stable branches
-    branches: ^(?!stable)
+    branches:
+      regex: ^stable/.*$
+      negate: true
     required-projects:
       - name: github.com/sqlalchemy/sqlalchemy
         override-checkout: main
