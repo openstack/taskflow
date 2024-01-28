@@ -856,4 +856,4 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                                       "Failed to do post-connection"
                                       " initialization", cause=exc)
             finally:
-                del(exc_type, exc, exc_tb)
+                del (exc_type, exc, exc_tb)
