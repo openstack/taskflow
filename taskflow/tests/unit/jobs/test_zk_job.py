@@ -271,12 +271,12 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         with base.connect_close(self.board):
             self.board.register_entity(entity_instance)
         # Check '.entity' node has been created
-        self.assertTrue(self.board.entity_path in self.client.storage.paths)
+        self.assertIn(self.board.entity_path, self.client.storage.paths)
 
         conductor_entity_path = k_paths.join(self.board.entity_path,
                                              'conductor',
                                              conductor_name)
-        self.assertTrue(conductor_entity_path in self.client.storage.paths)
+        self.assertIn(conductor_entity_path, self.client.storage.paths)
         conductor_data = (
             self.client.storage.paths[conductor_entity_path]['data'])
         self.assertTrue(len(conductor_data) > 0)
