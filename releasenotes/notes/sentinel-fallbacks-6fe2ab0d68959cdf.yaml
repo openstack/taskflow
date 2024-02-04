@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The redis driver now supports ``sentinel_fallbacks`` option. This allows
+    using additional sentinel servers as fallbacks.

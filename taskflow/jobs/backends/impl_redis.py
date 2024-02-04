@@ -17,6 +17,7 @@
 import contextlib
 import datetime
 import functools
+import re
 import string
 import threading
 import time
@@ -559,6 +560,18 @@ return cmsgpack.pack(result)
     """
 
     @classmethod
+    def _parse_sentinel(cls, sentinel):
+        # IPv6 (eg. [::1]:6379 )
+        match = re.search(r'\[(\S+)\]:(\d+)', sentinel)
+        if match:
+            return (match[1], int(match[2]))
+        # IPv4 or hostname (eg. 127.0.0.1:6379 or localhost:6379)
+        match = re.search(r'(\S+):(\d+)', sentinel)
+        if match:
+            return (match[1], int(match[2]))
+        raise ValueError('Malformed sentinel server format')
+
+    @classmethod
     def _make_client(cls, conf):
         client_conf = {}
         for key, value_type_converter in cls.CLIENT_CONF_TRANSFERS:
@@ -569,6 +582,8 @@ return cmsgpack.pack(result)
                     client_conf[key] = conf[key]
         if conf.get('sentinel') is not None:
             sentinels = [(client_conf.pop('host'), client_conf.pop('port'))]
+            for fallback in conf.get('sentinel_fallbacks', []):
+                sentinels.append(cls._parse_sentinel(fallback))
             sentinel_kwargs = conf.get('sentinel_kwargs', {})
             for key in ('username', 'password', 'socket_timeout'):
                 if key in conf:
