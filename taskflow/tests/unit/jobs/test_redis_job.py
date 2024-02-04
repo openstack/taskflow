@@ -106,12 +106,14 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
     def test__make_client(self):
         conf = {'host': '127.0.0.1',
                 'port': 6379,
+                'username': 'default',
                 'password': 'secret',
                 'namespace': 'test'
                 }
         test_conf = {
             'host': '127.0.0.1',
             'port': 6379,
+            'username': 'default',
             'password': 'secret',
         }
         with mock.patch('taskflow.utils.redis_utils.RedisClient') as mock_ru:
@@ -121,6 +123,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
     def test__make_client_sentinel(self):
         conf = {'host': '127.0.0.1',
                 'port': 26379,
+                'username': 'default',
                 'password': 'secret',
                 'namespace': 'test',
                 'sentinel': 'mymaster',
@@ -128,6 +131,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
         with mock.patch('redis.sentinel.Sentinel') as mock_sentinel:
             impl_redis.RedisJobBoard('test-board', conf)
             test_conf = {
+                'username': 'default',
                 'password': 'secret',
             }
             mock_sentinel.assert_called_once_with(

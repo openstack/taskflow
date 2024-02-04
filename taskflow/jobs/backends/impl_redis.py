@@ -263,6 +263,7 @@ class RedisJobBoard(base.JobBoard):
         ('port', int),
 
         # See: http://redis.io/commands/auth
+        ('username', str),
         ('password', str),
 
         # Data encoding/decoding + error handling

@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The redis jobboard driver now supports the username option, which is
+    required in authentication request to Redis with ACL enabled.
