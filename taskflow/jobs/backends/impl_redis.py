@@ -569,8 +569,12 @@ return cmsgpack.pack(result)
                     client_conf[key] = conf[key]
         if conf.get('sentinel') is not None:
             sentinels = [(client_conf.pop('host'), client_conf.pop('port'))]
+            sentinel_kwargs = conf.get('sentinel_kwargs', {})
+            for key in ('username', 'password', 'socket_timeout'):
+                if key in conf:
+                    sentinel_kwargs.setdefault(key, conf[key])
             s = sentinel.Sentinel(sentinels,
-                                  sentinel_kwargs=conf.get('sentinel_kwargs'),
+                                  sentinel_kwargs=sentinel_kwargs,
                                   **client_conf)
             return s.master_for(conf['sentinel'])
         else:

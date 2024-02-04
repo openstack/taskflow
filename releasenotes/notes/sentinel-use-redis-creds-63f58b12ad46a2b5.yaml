@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Now the redis driver uses the credential for redis servers in connections
+    to Redis Sentinel servers.
+
+upgrade:
+  - |
+    Now the redis driver uses the same credentials as redis by default. If
+    a different credentials need to be used, override these via
+    ``sentinel_kwargs``.
