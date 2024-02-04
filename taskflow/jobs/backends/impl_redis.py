@@ -568,15 +568,10 @@ return cmsgpack.pack(result)
                 else:
                     client_conf[key] = conf[key]
         if conf.get('sentinel') is not None:
-            sentinel_conf = {}
-            # sentinel do not have ssl kwargs
-            for key in client_conf:
-                if 'ssl' not in key:
-                    sentinel_conf[key] = client_conf[key]
-            s = sentinel.Sentinel([(sentinel_conf.pop('host'),
-                                    sentinel_conf.pop('port'))],
+            sentinels = [(client_conf.pop('host'), client_conf.pop('port'))]
+            s = sentinel.Sentinel(sentinels,
                                   sentinel_kwargs=conf.get('sentinel_kwargs'),
-                                  **sentinel_conf)
+                                  **client_conf)
             return s.master_for(conf['sentinel'])
         else:
             return ru.RedisClient(**client_conf)

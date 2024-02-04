@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Redis jobboard driver now enables SSL for connections to Redis Sentinel
+    when SSL is enabled for connections to Redis.
