@@ -562,11 +562,11 @@ return cmsgpack.pack(result)
     @classmethod
     def _parse_sentinel(cls, sentinel):
         # IPv6 (eg. [::1]:6379 )
-        match = re.search(r'\[(\S+)\]:(\d+)', sentinel)
+        match = re.search(r'^\[(\S+)\]:(\d+)$', sentinel)
         if match:
             return (match[1], int(match[2]))
         # IPv4 or hostname (eg. 127.0.0.1:6379 or localhost:6379)
-        match = re.search(r'(\S+):(\d+)', sentinel)
+        match = re.search(r'^(\S+):(\d+)$', sentinel)
         if match:
             return (match[1], int(match[2]))
         raise ValueError('Malformed sentinel server format')
