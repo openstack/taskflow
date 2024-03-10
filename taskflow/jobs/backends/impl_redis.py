@@ -584,12 +584,8 @@ return cmsgpack.pack(result)
             sentinels = [(client_conf.pop('host'), client_conf.pop('port'))]
             for fallback in conf.get('sentinel_fallbacks', []):
                 sentinels.append(cls._parse_sentinel(fallback))
-            sentinel_kwargs = conf.get('sentinel_kwargs', {})
-            for key in ('username', 'password', 'socket_timeout'):
-                if key in conf:
-                    sentinel_kwargs.setdefault(key, conf[key])
             s = sentinel.Sentinel(sentinels,
-                                  sentinel_kwargs=sentinel_kwargs,
+                                  sentinel_kwargs=conf.get('sentinel_kwargs'),
                                   **client_conf)
             return s.master_for(conf['sentinel'])
         else:
