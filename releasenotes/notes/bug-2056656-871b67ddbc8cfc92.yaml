@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Redis job board driver no longer uses ``username`` and ``password`` for
+    its connections to Redis Sentinel, to restore the previous behavior which
+    was already used by some deployment tools. Add credential to
+    ``sentinel_kwargs`` to enable authentication for Redis Sentinel.
