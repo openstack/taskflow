@@ -288,6 +288,40 @@ optionally expire after a given amount of time).
     See :py:class:`~taskflow.jobs.backends.impl_redis.RedisJobBoard`
     for implementation details.
 
+Etcd
+----
+
+**Board type**: ``'etcd'``
+
+Uses `etcd`_ to provide the jobboard capabilities by using Etcd key values data
+structures and individual job ownership key (that can optionally expire after a
+given amount of time).
+
+Additional *kwarg* parameters:
+
+* ``persistence``: a class that provides a :doc:`persistence <persistence>`
+  backend interface; it will be used for loading jobs logbooks for usage at
+  runtime or for usage before a job is claimed for introspection.
+
+Additional *configuration* parameters:
+
+* ``path``: the Etcd path to store job information (*defaults* to
+  ``jobboard``)
+* ``host``: the Etcd host to connect to (*defaults* to ``localhost``)
+* ``port``: the port of the Etcd server (*defaults* to ``2379``)
+* ``api_path``: the path of the Etcd API endpoint
+* ``protocol``: the protocol used to communicate with the server (*defaults* to
+  ``http``, choices are ``http`` or ``https``)
+* ``ca_cert``, ``cert_key`` and ``cert_cert``: the certificate information
+  passed to Etcd3gw for ``https`` communications
+* ``timeout``: the timeout used when performing operations with Etcd
+* ``ttl``: the default time-to-live when claiming a job (*defaults* to
+  ``None``)
+
+.. note::
+    See :py:class:`~taskflow.jobs.backends.impl_etcd.EtcdJobBoard`
+    for implementation details.
+
 Considerations
 ==============
 
@@ -356,6 +390,11 @@ Redis
 
 .. automodule:: taskflow.jobs.backends.impl_redis
 
+Etcd
+----
+
+.. automodule:: taskflow.jobs.backends.impl_etcd
+
 Hierarchy
 =========
 
@@ -363,6 +402,7 @@ Hierarchy
     taskflow.jobs.base
     taskflow.jobs.backends.impl_redis
     taskflow.jobs.backends.impl_zookeeper
+    taskflow.jobs.backends.impl_etcd
     :parts: 1
 
 .. _paradigm shift: https://wiki.openstack.org/wiki/TaskFlow/Paradigm_shifts#Workflow_ownership_transfer
@@ -370,3 +410,4 @@ Hierarchy
 .. _kazoo: https://kazoo.readthedocs.io/en/latest/
 .. _stevedore: https://docs.openstack.org/stevedore/latest
 .. _redis: https://redis.io/
+.. _etcd: https://etcd.io/

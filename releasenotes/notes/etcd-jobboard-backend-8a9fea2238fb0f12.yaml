@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added an Etcd-based backend for jobboard. This backend is similar to the
+    Redis backend, it requires that the consumer extends the expiry of the job
+    that is being running.

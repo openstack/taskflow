@@ -19,6 +19,7 @@ import string
 import threading
 import time
 
+import etcd3gw
 from oslo_utils import timeutils
 import redis
 
@@ -86,6 +87,15 @@ def redis_available(min_version):
         ok, redis_version = redis_utils.is_server_new_enough(client,
                                                              min_version)
         return ok
+
+
+def etcd_available():
+    client = etcd3gw.Etcd3Client()
+    try:
+        client.get("/")
+    except Exception:
+        return False
+    return True
 
 
 class NoopRetry(retry.AlwaysRevert):
