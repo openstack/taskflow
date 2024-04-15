@@ -40,6 +40,7 @@ class DummyRuntime(object):
         self.completer = mock.MagicMock()
         self.scheduler = mock.MagicMock()
         self.storage = mock.MagicMock()
+        self.selector = mock.MagicMock()
 
 
 def make_machine(start_state, transitions, event_name_cb):
@@ -129,7 +130,7 @@ def main():
     elif options.engines:
         source_type = "Engines"
         b = builder.MachineBuilder(DummyRuntime(), mock.MagicMock())
-        source, memory = b.build()
+        source, memory = b.build({})
         internal_states.extend(builder.META_STATES)
         ordering = 'out'
     elif options.wbe_requests:

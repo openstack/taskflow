@@ -13,7 +13,7 @@ if [ ! -d "$PWD/.diagram-tools" ]; then
 fi
 
 script_dir=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-img_dir="$script_dir/../doc/source/img"
+img_dir="$script_dir/../doc/source/user/img"
 
 echo "---- Updating task state diagram ----"
 python $script_dir/state_graph.py -t -f /tmp/states.svg
@@ -31,9 +31,10 @@ echo "---- Updating retry state diagram ----"
 python $script_dir/state_graph.py -r -f /tmp/states.svg
 $xsltproc $PWD/.diagram-tools/notugly.xsl /tmp/states.svg > $img_dir/retry_states.svg
 
-echo "---- Updating wbe request state diagram ----"
-python $script_dir/state_graph.py -w -f /tmp/states.svg
-$xsltproc $PWD/.diagram-tools/notugly.xsl /tmp/states.svg > $img_dir/wbe_request_states.svg
+# NOTE(tkajinam): This is broken since 148963805626f6246554961bd3ff39055de3e317
+# echo "---- Updating wbe request state diagram ----"
+# python $script_dir/state_graph.py -w -f /tmp/states.svg
+# $xsltproc $PWD/.diagram-tools/notugly.xsl /tmp/states.svg > $img_dir/wbe_request_states.svg
 
 echo "---- Updating job state diagram ----"
 python $script_dir/state_graph.py -j -f /tmp/states.svg
