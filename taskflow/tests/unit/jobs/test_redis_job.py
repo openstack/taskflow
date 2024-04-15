@@ -161,14 +161,11 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
             test_conf = {
                 'username': 'default',
                 'password': 'secret',
+                'sentinel_kwargs': None,
             }
             mock_sentinel.assert_called_once_with(
                 [('127.0.0.1', 26379), ('::1', 26379),
                  ('127.0.0.2', 26379), ('localhost', 26379)],
-                sentinel_kwargs={
-                    'username': 'default',
-                    'password': 'secret'
-                },
                 **test_conf)
             mock_sentinel().master_for.assert_called_once_with('mymaster')
 
@@ -179,7 +176,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
                 'password': 'secret',
                 'namespace': 'test',
                 'sentinel': 'mymaster',
-                'sentinel_kwargs': {'password': 'senitelsecret'},
+                'sentinel_kwargs': None,
                 'ssl': True,
                 'ssl_ca_certs': '/etc/ssl/certs'}
         with mock.patch('redis.sentinel.Sentinel') as mock_sentinel:
@@ -192,6 +189,6 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
             }
             mock_sentinel.assert_called_once_with(
                 [('127.0.0.1', 26379)],
-                sentinel_kwargs={'password': 'senitelsecret'},
+                sentinel_kwargs=None,
                 **test_conf)
             mock_sentinel().master_for.assert_called_once_with('mymaster')
