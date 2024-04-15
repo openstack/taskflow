@@ -1,0 +1,5 @@
+---
+backend_services_map:
+  redis:
+    - redis-server
+    - redis-sentinel

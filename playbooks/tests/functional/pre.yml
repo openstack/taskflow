@@ -1,0 +1,21 @@
+- hosts: all
+  vars:
+    taskflow_backend_daemon: "{{ tox_environment.PIFPAF_DAEMON }}"
+  roles:
+    - role: bindep
+      bindep_profile: "tests-functional-{{ taskflow_backend_daemon }}"
+  tasks:
+    - name: Include OS-specific variables
+      include_vars: "{{ ansible_os_family }}.yaml"
+    # NOTE(yoctozepto): Debian and Ubuntu have this nasty policy of starting
+    # installed services for us. We don't rely on system-wide service and use
+    # pifpaf. Unfortunately, default port may conflict with system-wide service.
+    # So, for sanity and resource conservation, let's stop it before tests run.
+    - name: "Stop backend services"
+      service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      become: yes
+      loop: "{{ backend_services_map[taskflow_backend_daemon] }}"
+
