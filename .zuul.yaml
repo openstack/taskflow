@@ -16,6 +16,21 @@
         override-checkout: main
       - name: openstack/oslo.db
 
+- job:
+    name: taskflow-functional
+    parent: openstack-tox
+    abstract: true
+    pre-run: playbooks/tests/functional/pre.yml
+    vars:
+      tox_envlist: functional
+
+- job:
+    name: taskflow-functional-redis
+    parent: taskflow-functional
+    vars:
+      tox_environment:
+        PIFPAF_DAEMON: redis
+
 - project:
     templates:
       - check-requirements
@@ -28,6 +43,8 @@
     check:
       jobs:
         - taskflow-tox-py310-with-sqlalchemy-2x
+        - taskflow-functional-redis
     gate:
       jobs:
         - taskflow-tox-py310-with-sqlalchemy-2x
+        - taskflow-functional-redis
