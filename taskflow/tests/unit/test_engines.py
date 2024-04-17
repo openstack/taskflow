@@ -41,6 +41,11 @@ from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import persistence_utils as p_utils
 from taskflow.utils import threading_utils as tu
 
+try:
+    from taskflow.engines.action_engine import process_executor as pe
+except ImportError:
+    pe = None
+
 
 # Expected engine transitions when empty workflows are ran...
 _EMPTY_TRANSITIONS = [
@@ -1494,6 +1499,7 @@ class ParallelEngineWithEventletTest(EngineTaskTest,
                                      store=store, **kwargs)
 
 
+@testtools.skipIf(pe is None, 'process_executor is not available')
 class ParallelEngineWithProcessTest(EngineTaskTest,
                                     EngineMultipleResultsTest,
                                     EngineLinearFlowTest,

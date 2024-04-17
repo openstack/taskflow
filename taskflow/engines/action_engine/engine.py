@@ -31,7 +31,6 @@ from oslo_utils import timeutils
 from taskflow.engines.action_engine import builder
 from taskflow.engines.action_engine import compiler
 from taskflow.engines.action_engine import executor
-from taskflow.engines.action_engine import process_executor
 from taskflow.engines.action_engine import runtime
 from taskflow.engines import base
 from taskflow import exceptions as exc
@@ -40,6 +39,11 @@ from taskflow import states
 from taskflow import storage
 from taskflow.types import failure
 from taskflow.utils import misc
+
+try:
+    from taskflow.engines.action_engine import process_executor
+except ImportError:
+    process_executor = None
 
 LOG = logging.getLogger(__name__)
 
@@ -559,24 +563,32 @@ String (case insensitive)    Executor used
     _executor_cls_matchers = [
         _ExecutorTypeMatch((futures.ThreadPoolExecutor,),
                            executor.ParallelThreadTaskExecutor),
-        _ExecutorTypeMatch((futures.ProcessPoolExecutor,),
-                           process_executor.ParallelProcessTaskExecutor),
+    ]
+    if process_executor is not None:
+        _executor_cls_matchers.append(
+            _ExecutorTypeMatch((futures.ProcessPoolExecutor,),
+                               process_executor.ParallelProcessTaskExecutor)
+        )
+    _executor_cls_matchers.append(
         _ExecutorTypeMatch((futures.Executor,),
                            executor.ParallelThreadTaskExecutor),
-    ]
+    )
 
     # One of these should match when a string/text is provided for the
     # 'executor' option (a mixed case equivalent is allowed since the match
     # will be lower-cased before checking).
     _executor_str_matchers = [
-        _ExecutorTextMatch(frozenset(['processes', 'process']),
-                           process_executor.ParallelProcessTaskExecutor),
         _ExecutorTextMatch(frozenset(['thread', 'threads', 'threaded']),
                            executor.ParallelThreadTaskExecutor),
         _ExecutorTextMatch(frozenset(['greenthread', 'greenthreads',
                                       'greenthreaded']),
                            executor.ParallelGreenThreadTaskExecutor),
     ]
+    if process_executor is not None:
+        _executor_str_matchers.append(
+            _ExecutorTextMatch(frozenset(['processes', 'process']),
+                               process_executor.ParallelProcessTaskExecutor)
+        )
 
     # Used when no executor is provided (either a string or object)...
     _default_executor_cls = executor.ParallelThreadTaskExecutor
