@@ -57,6 +57,7 @@ ChangeLog
 
 # doc
 doc/build/
+.diagram-tools/
 
 .idea
 env
