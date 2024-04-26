@@ -15,3 +15,7 @@ mysql-server [platform:dpkg !platform:debian]
 postgresql
 postgresql-client [platform:dpkg]
 libpq-dev [platform:dpkg]
+
+redis [platform:rpm tests-functional-redis]
+redis-server [platform:dpkg tests-functional-redis]
+redis-sentinel [platform:dpkg tests-functional-redis]
