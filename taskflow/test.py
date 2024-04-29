@@ -19,9 +19,7 @@ from unittest import mock
 import fixtures
 from oslotest import base
 
-from testtools import compat
 from testtools import matchers
-from testtools import testcase
 
 from taskflow import exceptions
 from taskflow.tests import fixtures as taskflow_fixtures
@@ -121,30 +119,6 @@ class TestCase(base.BaseTestCase):
             getattr(obj, attr_name)
 
         self.assertRaises(exc_class, access_func)
-
-    def assertRaisesRegex(self, exc_class, pattern, callable_obj,
-                          *args, **kwargs):
-        # TODO(harlowja): submit a pull/review request to testtools to add
-        # this method to there codebase instead of having it exist in ours
-        # since it really doesn't belong here.
-
-        class ReRaiseOtherTypes(object):
-            def match(self, matchee):
-                if not issubclass(matchee[0], exc_class):
-                    compat.reraise(*matchee)
-
-        class CaptureMatchee(object):
-            def match(self, matchee):
-                self.matchee = matchee[1]
-
-        capture = CaptureMatchee()
-        matcher = matchers.Raises(matchers.MatchesAll(ReRaiseOtherTypes(),
-                                  matchers.MatchesException(exc_class,
-                                                            pattern),
-                                  capture))
-        our_callable = testcase.Nullary(callable_obj, *args, **kwargs)
-        self.assertThat(our_callable, matcher)
-        return capture.matchee
 
     def assertGreater(self, first, second):
         matcher = matchers.GreaterThan(first)
