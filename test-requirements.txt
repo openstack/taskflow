@@ -13,10 +13,10 @@ redis>=4.0.0 # MIT
 kombu>=4.3.0 # BSD
 
 # eventlet
-eventlet!=0.18.3,!=0.20.1,!=0.21.0,>=0.18.2 # MIT
+eventlet>=0.18.2 # MIT
 
 # database
-SQLAlchemy!=1.1.5,!=1.1.6,!=1.1.7,!=1.1.8,>=1.0.10 # MIT
+SQLAlchemy>=1.0.10 # MIT
 alembic>=0.8.10 # MIT
 SQLAlchemy-Utils>=0.30.11 # BSD License
 PyMySQL>=0.7.6 # MIT License
