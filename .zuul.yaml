@@ -1,21 +1,3 @@
-# Temporary job until SQLAlchemy 2.0 is no longer blocked by upper-requirements
-- job:
-    name: taskflow-tox-py310-with-sqlalchemy-2x
-    parent: openstack-tox-py310
-    description: |
-      Run unit tests with main branch of SQLAlchemy, alembic and oslo.db.
-      Takes advantage of the base tox job's install-siblings feature.
-    # The job only tests the latest and shouldn't be run on the stable branches
-    branches:
-      regex: ^stable/.*$
-      negate: true
-    required-projects:
-      - name: github.com/sqlalchemy/sqlalchemy
-        override-checkout: main
-      - name: github.com/sqlalchemy/alembic
-        override-checkout: main
-      - name: openstack/oslo.db
-
 - job:
     name: taskflow-functional
     parent: openstack-tox
@@ -42,9 +24,7 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - taskflow-tox-py310-with-sqlalchemy-2x
         - taskflow-functional-redis
     gate:
       jobs:
-        - taskflow-tox-py310-with-sqlalchemy-2x
         - taskflow-functional-redis
