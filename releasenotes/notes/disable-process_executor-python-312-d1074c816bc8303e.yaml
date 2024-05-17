@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The process_executor module has been deprecated, starting with Python 3.12.
+    It is still available in older versions of Python. There is no replacement
+    for it.

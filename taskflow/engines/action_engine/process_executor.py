@@ -580,6 +580,8 @@ class ParallelProcessTaskExecutor(base.ParallelTaskExecutor):
                  max_workers=None, wait_timeout=None):
         super(ParallelProcessTaskExecutor, self).__init__(
             executor=executor, max_workers=max_workers)
+        LOG.warning('Process task executor is deprecated. It is now disabled '
+                    'in Python 3.12 or later and will be removed.')
         self._auth_key = _create_random_string(32)
         self._dispatcher = Dispatcher({}, self._auth_key,
                                       _create_random_string(32))

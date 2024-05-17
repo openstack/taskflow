@@ -13,19 +13,26 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-import asyncore
 import errno
 import socket
 import threading
 
-from taskflow.engines.action_engine import process_executor as pu
+import testtools
+
 from taskflow import task
 from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils as test_utils
 
+try:
+    import asyncore
+    from taskflow.engines.action_engine import process_executor as pe
+except ImportError:
+    asyncore = None
+    pe = None
 
+
+@testtools.skipIf(asyncore is None, 'process_executor is not available')
 class ProcessExecutorHelpersTest(test.TestCase):
     def test_reader(self):
         capture_buf = []
@@ -33,8 +40,8 @@ class ProcessExecutorHelpersTest(test.TestCase):
         def do_capture(identity, message_capture_func):
             capture_buf.append(message_capture_func())
 
-        r = pu.Reader(b"secret", do_capture)
-        for data in pu._encode_message(b"secret", ['hi'], b'me'):
+        r = pe.Reader(b"secret", do_capture)
+        for data in pe._encode_message(b"secret", ['hi'], b'me'):
             self.assertEqual(len(data), r.bytes_needed)
             r.feed(data)
 
@@ -42,9 +49,9 @@ class ProcessExecutorHelpersTest(test.TestCase):
         self.assertEqual(['hi'], capture_buf[0])
 
     def test_bad_hmac_reader(self):
-        r = pu.Reader(b"secret-2", lambda ident, capture_func: capture_func())
-        in_data = b"".join(pu._encode_message(b"secret", ['hi'], b'me'))
-        self.assertRaises(pu.BadHmacValueError, r.feed, in_data)
+        r = pe.Reader(b"secret-2", lambda ident, capture_func: capture_func())
+        in_data = b"".join(pe._encode_message(b"secret", ['hi'], b'me'))
+        self.assertRaises(pe.BadHmacValueError, r.feed, in_data)
 
     @mock.patch("socket.socket")
     def test_no_connect_channel(self, mock_socket_factory):
@@ -52,7 +59,7 @@ class ProcessExecutorHelpersTest(test.TestCase):
         mock_socket_factory.return_value = mock_sock
         mock_sock.connect.side_effect = socket.error(errno.ECONNREFUSED,
                                                      'broken')
-        c = pu.Channel(2222, b"me", b"secret")
+        c = pe.Channel(2222, b"me", b"secret")
         self.assertRaises(socket.error, c.send, "hi")
         self.assertTrue(c.dead)
         self.assertTrue(mock_sock.close.called)
@@ -65,7 +72,7 @@ class ProcessExecutorHelpersTest(test.TestCase):
             task.EVENT_UPDATE_PROGRESS,
             lambda _event_type, details: details_capture.append(details))
 
-        d = pu.Dispatcher({}, b'secret', b'server-josh')
+        d = pe.Dispatcher({}, b'secret', b'server-josh')
         d.setup()
         d.targets[b'child-josh'] = t
 
@@ -73,7 +80,7 @@ class ProcessExecutorHelpersTest(test.TestCase):
         s.start()
         self.addCleanup(s.join)
 
-        c = pu.Channel(d.port, b'child-josh', b'secret')
+        c = pe.Channel(d.port, b'child-josh', b'secret')
         self.addCleanup(c.close)
 
         send_what = [
@@ -87,7 +94,7 @@ class ProcessExecutorHelpersTest(test.TestCase):
             {'progress': 0.8},
             {'progress': 0.9},
         ]
-        e_s = pu.EventSender(c)
+        e_s = pe.EventSender(c)
         for details in send_what:
             e_s(task.EVENT_UPDATE_PROGRESS, details)
 

@@ -25,6 +25,11 @@ from taskflow import test
 from taskflow.tests import utils
 from taskflow.utils import eventlet_utils as eu
 
+try:
+    from taskflow.engines.action_engine import process_executor as pe
+except ImportError:
+    pe = None
+
 
 class SuspendingListener(utils.CaptureListener):
 
@@ -224,6 +229,7 @@ class ParallelEngineWithEventletTest(SuspendTest, test.TestCase):
                                      executor=executor)
 
 
+@testtools.skipIf(pe is None, 'process_executor is not available')
 class ParallelEngineWithProcessTest(SuspendTest, test.TestCase):
     _EXECUTOR_WORKERS = 2
 
