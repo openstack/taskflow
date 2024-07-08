@@ -13,6 +13,14 @@
       tox_environment:
         PIFPAF_DAEMON: redis
 
+- job:
+    name: taskflow-functional-etcd
+    parent: taskflow-functional
+    vars:
+      tox_environment:
+        PIFPAF_DAEMON: etcd
+        SETUP_ENV_SCRIPT: ./setup-etcd-env.sh
+
 - project:
     templates:
       - check-requirements
@@ -25,6 +33,8 @@
     check:
       jobs:
         - taskflow-functional-redis
+        - taskflow-functional-etcd
     gate:
       jobs:
         - taskflow-functional-redis
+        - taskflow-functional-etcd
