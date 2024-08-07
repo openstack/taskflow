@@ -15,8 +15,10 @@
 #    under the License.
 
 import testtools
+import time
 
 import taskflow.engines
+from taskflow.engines.action_engine import executor
 from taskflow import exceptions as exc
 from taskflow.patterns import graph_flow as gf
 from taskflow.patterns import linear_flow as lf
@@ -501,6 +503,56 @@ class RetryTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
         self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
+
+    def test_restart_reverted_unordered_flows_with_retries(self):
+        now = time.time()
+
+        # First flow of an unordered flow:
+        subflow1 = lf.Flow('subflow1')
+
+        # * a task that completes in 3 sec with a few retries
+        subsubflow1 = lf.Flow('subflow1.subsubflow1',
+                              retry=utils.RetryFiveTimes())
+        subsubflow1.add(utils.SuccessAfter3Sec('subflow1.fail1',
+                                               inject={'start_time': now}))
+        subflow1.add(subsubflow1)
+
+        # * a task that fails and triggers a revert after 5 retries
+        subsubflow2 = lf.Flow('subflow1.subsubflow2',
+                              retry=utils.RetryFiveTimes())
+        subsubflow2.add(utils.FailingTask('subflow1.fail2'))
+        subflow1.add(subsubflow2)
+
+        # Second flow of the unordered flow:
+        subflow2 = lf.Flow('subflow2')
+
+        # * a task that always fails and retries
+        subsubflow1 = lf.Flow('subflow2.subsubflow1',
+                              retry=utils.AlwaysRetry())
+        subsubflow1.add(utils.FailingTask('subflow2.fail1'))
+        subflow2.add(subsubflow1)
+
+        unordered_flow = uf.Flow('unordered_flow')
+        unordered_flow.add(subflow1, subflow2)
+
+        # Main flow, contains a simple task and an unordered flow
+        flow = lf.Flow('test')
+        flow.add(utils.NoopTask('task1'))
+        flow.add(unordered_flow)
+
+        engine = self._make_engine(flow)
+
+        # This test fails when using Green threads, skipping it for now
+        if isinstance(engine._task_executor,
+                      executor.ParallelGreenThreadTaskExecutor):
+            self.skipTest("Skipping this test when using green threads.")
+
+        with utils.CaptureListener(engine) as capturer:
+            self.assertRaisesRegex(exc.WrappedFailure,
+                                   '.*RuntimeError: Woot!',
+                                   engine.run)
+            # task1 should have been reverted
+            self.assertIn('task1.t REVERTED(None)', capturer.values)
 
     def test_run_just_retry(self):
         flow = utils.OneReturnRetry(provides='x')

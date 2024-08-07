@@ -227,6 +227,32 @@ class FailingTask(ProgressingTask):
         raise RuntimeError('Woot!')
 
 
+class SimpleTask(task.Task):
+    def execute(self, time_sleep=0, **kwargs):
+        time.sleep(time_sleep)
+
+
+class SuccessAfter3Sec(task.Task):
+    def execute(self, start_time, **kwargs):
+        now = time.time()
+        if now - start_time >= 3:
+            return None
+        raise RuntimeError('Woot!')
+
+
+class RetryFiveTimes(retry.Times):
+    def on_failure(self, history, *args, **kwargs):
+        if len(history) < 5:
+            time.sleep(1)
+            return retry.RETRY
+        return retry.REVERT_ALL
+
+
+class AlwaysRetry(retry.Times):
+    def on_failure(self, history, *args, **kwargs):
+        return retry.RETRY
+
+
 class OptionalTask(task.Task):
     def execute(self, a, b=5):
         result = a * b

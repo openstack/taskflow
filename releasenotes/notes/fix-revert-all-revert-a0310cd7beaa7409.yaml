@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug when using retries with unordered flows, a REVERT_ALL triggered
+    by one of the subflow was overriden by an other subflow running in parallel,
+    leading to an incomplete revert of the flow.
