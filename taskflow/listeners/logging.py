@@ -108,7 +108,9 @@ class DynamicLoggingListener(base.Listener):
                  retry_listen_for=base.DEFAULT_LISTEN_FOR,
                  log=None, failure_level=logging.WARNING,
                  level=logging.DEBUG, hide_inputs_outputs_of=(),
-                 fail_formatter=None):
+                 fail_formatter=None,
+                 mask_inputs_keys=(),
+                 mask_outputs_keys=()):
         super().__init__(
             engine, task_listen_for=task_listen_for,
             flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
@@ -125,11 +127,15 @@ class DynamicLoggingListener(base.Listener):
             states.REVERTED: self._failure_level,
         }
         self._hide_inputs_outputs_of = frozenset(hide_inputs_outputs_of)
+        self._mask_inputs_keys = frozenset(mask_inputs_keys)
+        self._mask_outputs_keys = frozenset(mask_outputs_keys)
         self._logger = misc.pick_first_not_none(log, self._LOGGER, LOG)
         if fail_formatter is None:
             self._fail_formatter = formatters.FailureFormatter(
                 self._engine,
-                hide_inputs_outputs_of=self._hide_inputs_outputs_of)
+                hide_inputs_outputs_of=self._hide_inputs_outputs_of,
+                mask_inputs_keys=self._mask_inputs_keys,
+                mask_outputs_keys=self._mask_outputs_keys)
         else:
             self._fail_formatter = fail_formatter
 
