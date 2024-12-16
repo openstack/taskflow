@@ -5,6 +5,11 @@
     pre-run: playbooks/tests/functional/pre.yml
     vars:
       tox_envlist: functional
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^doc/.*$
+      - ^releasenotes/.*$
+      - ^\.pre-commit-config\.yaml$
 
 - job:
     name: taskflow-functional-redis
