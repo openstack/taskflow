@@ -21,15 +21,11 @@ import os
 import sys
 import traceback
 
-from oslo_utils import encodeutils
 from oslo_utils import reflection
 
 from taskflow import exceptions as exc
 from taskflow.utils import iter_utils
 from taskflow.utils import schema_utils as su
-
-
-_exception_message = encodeutils.exception_to_unicode
 
 
 def _copy_exc_info(exc_info):
@@ -57,7 +53,7 @@ def _are_equal_exc_info_tuples(ei1, ei2):
     # because we want the types to be exactly the same, not just have
     # one be inherited from the other.
     if not all((type(ei1[1]) == type(ei2[1]),  # noqa: E721
-                _exception_message(ei1[1]) == _exception_message(ei2[1]),
+                str(ei1[1]) == str(ei2[1]),
                 repr(ei1[1]) == repr(ei2[1]))):
         return False
     if ei1[2] == ei2[2]:
@@ -195,7 +191,7 @@ class Failure():
             if not self._exc_type_names:
                 raise TypeError("Invalid exception type '%s' (%s)"
                                 % (exc_info[0], type(exc_info[0])))
-            self._exception_str = _exception_message(self._exc_info[1])
+            self._exception_str = str(self._exc_info[1])
             self._traceback_str = ''.join(
                 traceback.format_tb(self._exc_info[2]))
             self._causes = kwargs.pop('causes', None)
