@@ -1,15 +1,6 @@
-# We from the Oslo project decided to pin repos based on the
-# commit hash instead of the version tag to prevend arbitrary
-# code from running in developer's machines.  To update to a
-# newer version, run `pre-commit autoupdate` and then replace
-# the newer versions with their commit hash.
-
-default_language_version:
-  python: python3
-
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: 9136088a246768144165fcc3ecc3d31bb686920a # v3.3.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       # Replaces or checks mixed line ending
@@ -27,13 +18,9 @@ repos:
       - id: debug-statements
       - id: check-yaml
         files: .*\.(yaml|yml)$
-  - repo: local
+  - repo: https://opendev.org/openstack/hacking
+    rev: 7.0.0
     hooks:
-      - id: flake8
-        name: flake8
-        additional_dependencies:
-          - hacking>=6.1.0,<6.2.0
-        language: python
-        entry: flake8
-        files: '^.*\.py$'
+      - id: hacking
+        additional_dependencies: []
         exclude: '^(doc|releasenotes|tools)/.*$'
