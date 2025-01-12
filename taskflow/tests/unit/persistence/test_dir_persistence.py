@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -45,7 +43,7 @@ class DirPersistenceTest(testscenarios.TestWithScenarios,
         return self.backend.get_connection()
 
     def setUp(self):
-        super(DirPersistenceTest, self).setUp()
+        super().setUp()
         self.path = tempfile.mkdtemp()
         self.backend = impl_dir.DirBackend({
             'path': self.path,
@@ -55,7 +53,7 @@ class DirPersistenceTest(testscenarios.TestWithScenarios,
             conn.upgrade()
 
     def tearDown(self):
-        super(DirPersistenceTest, self).tearDown()
+        super().tearDown()
         if self.path and os.path.isdir(self.path):
             shutil.rmtree(self.path)
         self.path = None

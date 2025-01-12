@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -65,8 +63,8 @@ class LinearFlowTest(test.TestCase):
         self.assertEqual(1, len(f))
         self.assertEqual([task], list(f))
         self.assertEqual([], list(f.iter_links()))
-        self.assertEqual(set(['a', 'b']), f.requires)
-        self.assertEqual(set(['c', 'd']), f.provides)
+        self.assertEqual({'a', 'b'}, f.requires)
+        self.assertEqual({'c', 'd'}, f.provides)
 
     def test_linear_flow_two_independent_tasks(self):
         task1 = _task(name='task1')
@@ -89,7 +87,7 @@ class LinearFlowTest(test.TestCase):
                          list(f.iter_links()))
 
         self.assertEqual(set(), f.requires)
-        self.assertEqual(set(['a']), f.provides)
+        self.assertEqual({'a'}, f.provides)
 
     def test_linear_flow_two_dependent_tasks_two_different_calls(self):
         task1 = _task(name='task1', provides=['a'])
@@ -120,15 +118,15 @@ class LinearFlowTest(test.TestCase):
         self.assertIs(f.retry, ret)
         self.assertEqual('test_retry', ret.name)
 
-        self.assertEqual(set(['a']), f.requires)
-        self.assertEqual(set(['b']), f.provides)
+        self.assertEqual({'a'}, f.requires)
+        self.assertEqual({'b'}, f.provides)
 
     def test_iter_nodes(self):
         task1 = _task(name='task1')
         task2 = _task(name='task2')
         task3 = _task(name='task3')
         f = lf.Flow('test').add(task1, task2, task3)
-        tasks = set([task1, task2, task3])
+        tasks = {task1, task2, task3}
         for (node, data) in f.iter_nodes():
             self.assertIn(node, tasks)
             self.assertDictEqual({}, data)
@@ -138,7 +136,7 @@ class LinearFlowTest(test.TestCase):
         task2 = _task(name='task2')
         task3 = _task(name='task3')
         f = lf.Flow('test').add(task1, task2, task3)
-        tasks = set([task1, task2, task3])
+        tasks = {task1, task2, task3}
         for (u, v, data) in f.iter_links():
             self.assertIn(u, tasks)
             self.assertIn(v, tasks)

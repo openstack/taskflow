@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -38,15 +36,15 @@ class BinaryEncodeTest(test.TestCase):
         self._check(data, data)
 
     def test_simple_text(self):
-        self._check(u'hello', _bytes('hello'))
+        self._check('hello', _bytes('hello'))
 
     def test_unicode_text(self):
-        self._check(u'привет', _bytes('привет'))
+        self._check('привет', _bytes('привет'))
 
     def test_unicode_other_encoding(self):
-        result = misc.binary_encode(u'mañana', 'latin-1')
+        result = misc.binary_encode('mañana', 'latin-1')
         self.assertIsInstance(result, bytes)
-        self.assertEqual(u'mañana'.encode('latin-1'), result)
+        self.assertEqual('mañana'.encode('latin-1'), result)
 
 
 class BinaryDecodeTest(test.TestCase):
@@ -57,24 +55,24 @@ class BinaryDecodeTest(test.TestCase):
         self.assertEqual(expected_result, result)
 
     def test_simple_text(self):
-        data = u'hello'
+        data = 'hello'
         self._check(data, data)
 
     def test_unicode_text(self):
-        data = u'привет'
+        data = 'привет'
         self._check(data, data)
 
     def test_simple_binary(self):
-        self._check(_bytes('hello'), u'hello')
+        self._check(_bytes('hello'), 'hello')
 
     def test_unicode_binary(self):
-        self._check(_bytes('привет'), u'привет')
+        self._check(_bytes('привет'), 'привет')
 
     def test_unicode_other_encoding(self):
-        data = u'mañana'.encode('latin-1')
+        data = 'mañana'.encode('latin-1')
         result = misc.binary_decode(data, 'latin-1')
         self.assertIsInstance(result, str)
-        self.assertEqual(u'mañana', result)
+        self.assertEqual('mañana', result)
 
 
 class DecodeJsonTest(test.TestCase):
@@ -85,11 +83,11 @@ class DecodeJsonTest(test.TestCase):
 
     def test_it_works_with_unicode(self):
         data = _bytes('{"foo": "фуу"}')
-        self.assertEqual({"foo": u'фуу'}, misc.decode_json(data))
+        self.assertEqual({"foo": 'фуу'}, misc.decode_json(data))
 
     def test_handles_invalid_unicode(self):
         self.assertRaises(ValueError, misc.decode_json,
-                          '{"\xf1": 1}'.encode('latin-1'))
+                          b'{"\xf1": 1}')
 
     def test_handles_bad_json(self):
         self.assertRaises(ValueError, misc.decode_json,

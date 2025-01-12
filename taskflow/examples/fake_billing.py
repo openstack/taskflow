@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -47,12 +45,12 @@ from taskflow.utils import misc
 # complete to 100% complete.
 
 
-class DB(object):
+class DB:
     def query(self, sql):
         print("Querying with: %s" % (sql))
 
 
-class UrlCaller(object):
+class UrlCaller:
     def __init__(self):
         self._send_time = 0.5
         self._chunks = 25
@@ -73,7 +71,7 @@ class UrlCaller(object):
 # that require access to a set of resources it is a common pattern to provide
 # a object (in this case this object) on construction of those tasks via the
 # task constructor.
-class ResourceFetcher(object):
+class ResourceFetcher:
     def __init__(self):
         self._db_handle = None
         self._url_handle = None
@@ -93,7 +91,7 @@ class ResourceFetcher(object):
 
 class ExtractInputRequest(task.Task):
     def __init__(self, resources):
-        super(ExtractInputRequest, self).__init__(provides="parsed_request")
+        super().__init__(provides="parsed_request")
         self._resources = resources
 
     def execute(self, request):
@@ -106,7 +104,7 @@ class ExtractInputRequest(task.Task):
 
 class MakeDBEntry(task.Task):
     def __init__(self, resources):
-        super(MakeDBEntry, self).__init__()
+        super().__init__()
         self._resources = resources
 
     def execute(self, parsed_request):
@@ -120,7 +118,7 @@ class MakeDBEntry(task.Task):
 
 class ActivateDriver(task.Task):
     def __init__(self, resources):
-        super(ActivateDriver, self).__init__(provides='sent_to')
+        super().__init__(provides='sent_to')
         self._resources = resources
         self._url = "http://blahblah.com"
 
@@ -138,8 +136,8 @@ class ActivateDriver(task.Task):
 
     def update_progress(self, progress, **kwargs):
         # Override the parent method to also print out the status.
-        super(ActivateDriver, self).update_progress(progress, **kwargs)
-        print("%s is %0.2f%% done" % (self.name, progress * 100))
+        super().update_progress(progress, **kwargs)
+        print("{} is {:0.2f}% done".format(self.name, progress * 100))
 
 
 class DeclareSuccess(task.Task):
@@ -148,7 +146,7 @@ class DeclareSuccess(task.Task):
         print("All data processed and sent to %s" % (sent_to))
 
 
-class DummyUser(object):
+class DummyUser:
     def __init__(self, user, id_):
         self.user = user
         self.id = id_

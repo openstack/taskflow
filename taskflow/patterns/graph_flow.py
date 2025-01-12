@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -66,7 +64,7 @@ class Flow(flow.Flow):
     """
 
     def __init__(self, name, retry=None):
-        super(Flow, self).__init__(name, retry)
+        super().__init__(name, retry)
         self._graph = gr.DiGraph(name=name)
         self._graph.freeze()
 
@@ -332,7 +330,7 @@ class TargetedFlow(Flow):
     """
 
     def __init__(self, *args, **kwargs):
-        super(TargetedFlow, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._subgraph = None
         self._target = None
 

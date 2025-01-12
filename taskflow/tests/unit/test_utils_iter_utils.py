@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -140,7 +138,7 @@ class IterUtilsTest(test.TestCase):
         self.assertRaises(ValueError, iter_utils.while_is_not, 2, 'a')
 
     def test_while_is_not(self):
-        class Dummy(object):
+        class Dummy:
             def __init__(self, char):
                 self.char = char
         dummy_list = [Dummy(a)

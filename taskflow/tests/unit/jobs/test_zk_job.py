@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -137,7 +135,7 @@ class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         return (client, board)
 
     def setUp(self):
-        super(ZookeeperJobboardTest, self).setUp()
+        super().setUp()
         self.client, self.board = self.create_board()
 
 
@@ -152,7 +150,7 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         return (client, board)
 
     def setUp(self):
-        super(ZakeJobboardTest, self).setUp()
+        super().setUp()
         self.client, self.board = self.create_board()
         self.bad_paths = [self.board.path, self.board.trash_path]
         self.bad_paths.extend(zake_utils.partition_path(self.board.path))

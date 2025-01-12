@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -60,7 +58,7 @@ from taskflow.utils import threading_utils
 RUN_TIME = 5
 REVIEW_CREATION_DELAY = 0.5
 SCAN_DELAY = 0.1
-NAME = "%s_%s" % (socket.getfqdn(), os.getpid())
+NAME = "{}_{}".format(socket.getfqdn(), os.getpid())
 
 # This won't really use zookeeper but will use a local version of it using
 # the zake library that mimics an actual zookeeper cluster using threads and
@@ -74,7 +72,7 @@ class RunReview(task.Task):
     # A dummy task that clones the review and runs tox...
 
     def _clone_review(self, review, temp_dir):
-        print("Cloning review '%s' into %s" % (review['id'], temp_dir))
+        print("Cloning review '{}' into {}".format(review['id'], temp_dir))
 
     def _run_tox(self, temp_dir):
         print("Running tox in %s" % temp_dir)
@@ -177,7 +175,7 @@ def generate_reviewer(client, saver, name=NAME):
                         'review': review,
                     },
                 }
-                job_name = "%s_%s" % (real_name, review['id'])
+                job_name = "{}_{}".format(real_name, review['id'])
                 print("Posting review '%s'" % review['id'])
                 jb.post(job_name,
                         book=make_save_book(saver, review['id']),

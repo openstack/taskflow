@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -25,7 +23,7 @@ from taskflow.tests import utils
 class Task(task.Task):
 
     def __init__(self, a, *args, **kwargs):
-        super(Task, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def execute(self, *args, **kwargs):
         pass
@@ -34,7 +32,7 @@ class Task(task.Task):
 class TestEndpoint(test.TestCase):
 
     def setUp(self):
-        super(TestEndpoint, self).setUp()
+        super().setUp()
         self.task_cls = utils.TaskOneReturn
         self.task_uuid = 'task-uuid'
         self.task_args = {'context': 'context'}

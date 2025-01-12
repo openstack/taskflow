@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
@@ -71,7 +69,7 @@ EXECUTE_REVERT_HISTORY = 'history'
 REVERT_FLOW_FAILURES = 'flow_failures'
 
 
-class History(object):
+class History:
     """Helper that simplifies interactions with retry historical contents."""
 
     def __init__(self, contents, failure=None):
@@ -99,8 +97,7 @@ class History(object):
                 self._contents[index],
             ]
         for (provided, outcomes) in contents:
-            for (owner, outcome) in outcomes.items():
-                yield (owner, outcome)
+            yield from outcomes.items()
 
     def __len__(self):
         return len(self._contents)
@@ -154,10 +151,10 @@ class Retry(atom.Atom, metaclass=abc.ABCMeta):
 
     def __init__(self, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None):
-        super(Retry, self).__init__(name=name, provides=provides,
-                                    requires=requires, rebind=rebind,
-                                    auto_extract=auto_extract,
-                                    ignore_list=[EXECUTE_REVERT_HISTORY])
+        super().__init__(name=name, provides=provides,
+                         requires=requires, rebind=rebind,
+                         auto_extract=auto_extract,
+                         ignore_list=[EXECUTE_REVERT_HISTORY])
 
     @property
     def name(self):
@@ -262,8 +259,7 @@ class Times(Retry):
 
     def __init__(self, attempts=1, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None, revert_all=False):
-        super(Times, self).__init__(name, provides, requires,
-                                    auto_extract, rebind)
+        super().__init__(name, provides, requires, auto_extract, rebind)
         self._attempts = attempts
 
         if revert_all:
@@ -285,8 +281,7 @@ class ForEachBase(Retry):
 
     def __init__(self, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None, revert_all=False):
-        super(ForEachBase, self).__init__(name, provides, requires,
-                                          auto_extract, rebind)
+        super().__init__(name, provides, requires, auto_extract, rebind)
 
         if revert_all:
             self._revert_action = REVERT_ALL
@@ -336,8 +331,8 @@ class ForEach(ForEachBase):
 
     def __init__(self, values, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None, revert_all=False):
-        super(ForEach, self).__init__(name, provides, requires,
-                                      auto_extract, rebind, revert_all)
+        super().__init__(name, provides, requires, auto_extract, rebind,
+                         revert_all)
         self._values = values
 
     def on_failure(self, history, *args, **kwargs):
@@ -368,9 +363,8 @@ class ParameterizedForEach(ForEachBase):
 
     def __init__(self, name=None, provides=None, requires=None,
                  auto_extract=True, rebind=None, revert_all=False):
-        super(ParameterizedForEach, self).__init__(name, provides, requires,
-                                                   auto_extract, rebind,
-                                                   revert_all)
+        super().__init__(name, provides, requires, auto_extract, rebind,
+                         revert_all)
 
     def on_failure(self, values, history, *args, **kwargs):
         return self._on_failure(values, history)

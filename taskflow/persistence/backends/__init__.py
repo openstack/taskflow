@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -64,7 +62,7 @@ def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
                                    invoke_kwds=kwargs)
         return mgr.driver
     except RuntimeError as e:
-        raise exc.NotFound("Could not find backend %s: %s" % (backend, e))
+        raise exc.NotFound("Could not find backend {}: {}".format(backend, e))
 
 
 @contextlib.contextmanager

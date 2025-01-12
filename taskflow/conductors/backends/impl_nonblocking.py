@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -54,7 +52,7 @@ class NonBlockingConductor(impl_executor.ExecutorConductor):
                  engine_options=None, wait_timeout=None,
                  log=None, max_simultaneous_jobs=MAX_SIMULTANEOUS_JOBS,
                  executor_factory=None):
-        super(NonBlockingConductor, self).__init__(
+        super().__init__(
             name, jobboard,
             persistence=persistence, engine=engine,
             engine_options=engine_options, wait_timeout=wait_timeout,

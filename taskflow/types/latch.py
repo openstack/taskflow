@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -19,7 +17,7 @@ import threading
 from oslo_utils import timeutils
 
 
-class Latch(object):
+class Latch:
     """A class that ensures N-arrivals occur before unblocking.
 
     TODO(harlowja): replace with http://bugs.python.org/issue8777 when we no

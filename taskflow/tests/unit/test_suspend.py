@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -30,13 +28,13 @@ class SuspendingListener(utils.CaptureListener):
 
     def __init__(self, engine,
                  task_name, task_state, capture_flow=False):
-        super(SuspendingListener, self).__init__(
+        super().__init__(
             engine,
             capture_flow=capture_flow)
         self._revert_match = (task_name, task_state)
 
     def _task_receiver(self, state, details):
-        super(SuspendingListener, self)._task_receiver(state, details)
+        super()._task_receiver(state, details)
         if (details['task_name'], state) == self._revert_match:
             self._engine.suspend()
 

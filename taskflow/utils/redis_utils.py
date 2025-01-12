@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -41,7 +39,7 @@ class RedisClient(redis.Redis):
     """
 
     def __init__(self, *args, **kwargs):
-        super(RedisClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.closed = False
 
     def close(self):
@@ -71,7 +69,7 @@ class UnknownExpire(enum.IntEnum):
 DOES_NOT_EXPIRE = UnknownExpire.DOES_NOT_EXPIRE
 KEY_NOT_FOUND = UnknownExpire.KEY_NOT_FOUND
 
-_UNKNOWN_EXPIRE_MAPPING = dict((e.value, e) for e in list(UnknownExpire))
+_UNKNOWN_EXPIRE_MAPPING = {e.value: e for e in list(UnknownExpire)}
 
 
 def get_expiry(client, key, prior_version=None):

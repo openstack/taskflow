@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -19,7 +17,7 @@ import abc
 from taskflow import states
 
 
-class Action(object, metaclass=abc.ABCMeta):
+class Action(metaclass=abc.ABCMeta):
     """An action that handles executing, state changes, ... of atoms."""
 
     NO_RESULT = object()

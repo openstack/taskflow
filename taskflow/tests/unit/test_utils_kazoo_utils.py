@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) Red Hat
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may

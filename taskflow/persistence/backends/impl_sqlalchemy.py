@@ -179,7 +179,7 @@ def _ping_listener(dbapi_conn, connection_rec, connection_proxy):
             raise
 
 
-class _Alchemist(object):
+class _Alchemist:
     """Internal <-> external row <-> objects + other helper functions.
 
     NOTE(harlowja): for internal usage only.
@@ -235,7 +235,7 @@ class SQLAlchemyBackend(base.Backend):
         }
     """
     def __init__(self, conf, engine=None):
-        super(SQLAlchemyBackend, self).__init__(conf)
+        super().__init__(conf)
         if engine is not None:
             self._engine = engine
             self._owns_engine = False
@@ -581,8 +581,7 @@ class Connection(base.Connection):
             exc.raise_with_cause(exc.StorageFailure,
                                  "Failed getting flow details in"
                                  " logbook '%s'" % book_uuid)
-        for flow_details in gathered:
-            yield flow_details
+        yield from gathered
 
     def get_flow_details(self, fd_uuid, lazy=False):
         try:
@@ -631,8 +630,7 @@ class Connection(base.Connection):
             exc.raise_with_cause(exc.StorageFailure,
                                  "Failed getting atom details in flow"
                                  " detail '%s'" % fd_uuid)
-        for atom_details in gathered:
-            yield atom_details
+        yield from gathered
 
     def close(self):
         pass

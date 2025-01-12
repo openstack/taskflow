@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -37,7 +35,7 @@ def _make_exc_info(msg):
         return sys.exc_info()
 
 
-class GeneralFailureObjTestsMixin(object):
+class GeneralFailureObjTestsMixin:
 
     def test_captures_message(self):
         self.assertEqual('Woot!', self.fail_obj.exception_str)
@@ -72,7 +70,7 @@ class GeneralFailureObjTestsMixin(object):
 class CaptureFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 
     def setUp(self):
-        super(CaptureFailureTestCase, self).setUp()
+        super().setUp()
         self.fail_obj = _captured_failure('Woot!')
 
     def test_captures_value(self):
@@ -91,7 +89,7 @@ class CaptureFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 
     def setUp(self):
-        super(ReCreatedFailureTestCase, self).setUp()
+        super().setUp()
         fail_obj = _captured_failure('Woot!')
         self.fail_obj = failure.Failure(exception_str=fail_obj.exception_str,
                                         traceback_str=fail_obj.traceback_str,
@@ -124,7 +122,7 @@ class ReCreatedFailureTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 class FromExceptionTestCase(test.TestCase, GeneralFailureObjTestsMixin):
 
     def setUp(self):
-        super(FromExceptionTestCase, self).setUp()
+        super().setUp()
         self.fail_obj = failure.Failure.from_exception(RuntimeError('Woot!'))
 
     def test_pformat_no_traceback(self):
@@ -333,24 +331,24 @@ class NonAsciiExceptionsTestCase(test.TestCase):
         excp = ValueError(bad_string)
         fail = failure.Failure.from_exception(excp)
         self.assertEqual(str(excp), fail.exception_str)
-        expected = u'Failure: ValueError: \xc8'
+        expected = 'Failure: ValueError: \xc8'
         self.assertEqual(expected, str(fail))
 
     def test_exception_non_ascii_unicode(self):
-        hi_ru = u'привет'
+        hi_ru = 'привет'
         fail = failure.Failure.from_exception(ValueError(hi_ru))
         self.assertEqual(hi_ru, fail.exception_str)
         self.assertIsInstance(fail.exception_str, str)
-        self.assertEqual(u'Failure: ValueError: %s' % hi_ru,
+        self.assertEqual('Failure: ValueError: %s' % hi_ru,
                          str(fail))
 
     def test_wrapped_failure_non_ascii_unicode(self):
-        hi_cn = u'嗨'
+        hi_cn = '嗨'
         fail = ValueError(hi_cn)
         self.assertEqual(hi_cn, str(fail))
         fail = failure.Failure.from_exception(fail)
         wrapped_fail = exceptions.WrappedFailure([fail])
-        expected_result = (u"WrappedFailure: "
+        expected_result = ("WrappedFailure: "
                            "[Failure: ValueError: %s]" % (hi_cn))
         self.assertEqual(expected_result, str(wrapped_fail))
 
@@ -361,7 +359,7 @@ class NonAsciiExceptionsTestCase(test.TestCase):
         self.assertEqual(fail, copied)
 
     def test_failure_equality_non_ascii_unicode(self):
-        hi_ru = u'привет'
+        hi_ru = 'привет'
         fail = failure.Failure.from_exception(ValueError(hi_ru))
         copied = fail.copy()
         self.assertEqual(fail, copied)

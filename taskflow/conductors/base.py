@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -25,7 +23,7 @@ from taskflow.types import notifier
 from taskflow.utils import misc
 
 
-class Conductor(object, metaclass=abc.ABCMeta):
+class Conductor(metaclass=abc.ABCMeta):
     """Base for all conductor implementations.
 
     Conductors act as entities which extract jobs from a jobboard, assign

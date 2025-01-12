@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -39,7 +37,7 @@ FINISHED_STATES = (states.SUCCESS, states.FAILURE, states.REVERTED)
 
 
 def resume(flowdetail, backend):
-    print('Resuming flow %s %s' % (flowdetail.name, flowdetail.uuid))
+    print('Resuming flow {} {}'.format(flowdetail.name, flowdetail.uuid))
     engine = taskflow.engines.load_from_detail(flow_detail=flowdetail,
                                                backend=backend)
     engine.run()

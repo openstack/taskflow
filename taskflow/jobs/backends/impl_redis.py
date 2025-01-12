@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -69,10 +67,10 @@ class RedisJob(base.Job):
                  created_on=None, backend=None,
                  book=None, book_data=None,
                  priority=base.JobPriority.NORMAL):
-        super(RedisJob, self).__init__(board, name,
-                                       uuid=uuid, details=details,
-                                       backend=backend,
-                                       book=book, book_data=book_data)
+        super().__init__(board, name,
+                         uuid=uuid, details=details,
+                         backend=backend,
+                         book=book, book_data=book_data)
         self._created_on = created_on
         self._client = board._client
         self._redis_version = board._redis_version
@@ -599,7 +597,7 @@ return cmsgpack.pack(result)
 
     def __init__(self, name, conf,
                  client=None, persistence=None):
-        super(RedisJobBoard, self).__init__(name, conf)
+        super().__init__(name, conf)
         self._closed = True
         if client is not None:
             self._client = client

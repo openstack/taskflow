@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -30,7 +28,7 @@ LOG = logging.getLogger(__name__)
 # TODO(harlowja): this needs to be made better, once
 # https://blueprints.launchpad.net/taskflow/+spec/wbe-worker-info is finally
 # implemented we can go about using that instead.
-class TopicWorker(object):
+class TopicWorker:
     """A (read-only) worker and its relevant information + useful methods."""
 
     _NO_IDENTITY = object()
@@ -72,14 +70,15 @@ class TopicWorker(object):
     def __repr__(self):
         r = reflection.get_class_name(self, fully_qualified=False)
         if self.identity is not self._NO_IDENTITY:
-            r += "(identity=%s, tasks=%s, topic=%s)" % (self.identity,
-                                                        self.tasks, self.topic)
+            r += "(identity={}, tasks={}, topic={})".format(
+                self.identity, self.tasks, self.topic)
         else:
-            r += "(identity=*, tasks=%s, topic=%s)" % (self.tasks, self.topic)
+            r += "(identity=*, tasks={}, topic={})".format(
+                self.tasks, self.topic)
         return r
 
 
-class ProxyWorkerFinder(object):
+class ProxyWorkerFinder:
     """Requests and receives responses about workers topic+task details."""
 
     def __init__(self, uuid, proxy, topics,

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -51,4 +49,4 @@ e.compile()
 e.prepare()
 
 for i, st in enumerate(e.run_iter(), 1):
-    print("Transition %s: %s" % (i, st))
+    print("Transition {}: {}".format(i, st))

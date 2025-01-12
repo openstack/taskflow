@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -21,7 +19,7 @@ from taskflow import logging
 LOG = logging.getLogger(__name__)
 
 
-class ScopeWalker(object):
+class ScopeWalker:
     """Walks through the scopes of a atom using a engines compilation.
 
     NOTE(harlowja): for internal usage only.
@@ -79,9 +77,9 @@ class ScopeWalker(object):
         """
         graph = self._execution_graph
         if self._predecessors is None:
-            predecessors = set(
+            predecessors = {
                 node for node in graph.bfs_predecessors_iter(self._atom)
-                if graph.nodes[node]['kind'] in co.ATOMS)
+                if graph.nodes[node]['kind'] in co.ATOMS}
             self._predecessors = predecessors.copy()
         else:
             predecessors = self._predecessors.copy()

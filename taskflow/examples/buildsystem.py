@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -56,7 +54,7 @@ class LinkTask(task.Task):
     default_provides = 'executable'
 
     def __init__(self, executable_path, *args, **kwargs):
-        super(LinkTask, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._executable_path = executable_path
 
     def execute(self, **kwargs):

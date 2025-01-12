@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -65,7 +63,7 @@ class CaptureListener(base.Listener):
                  # Provide your own list (or previous list) to accumulate
                  # into...
                  values=None):
-        super(CaptureListener, self).__init__(
+        super().__init__(
             engine,
             task_listen_for=task_listen_for,
             flow_listen_for=flow_listen_for,

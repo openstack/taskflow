@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright 2015 Hewlett-Packard Development Company, L.P.
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
@@ -81,7 +79,7 @@ class TaskTest(test.TestCase):
 
     def test_generated_name(self):
         my_task = MyTask()
-        self.assertEqual('%s.%s' % (__name__, 'MyTask'),
+        self.assertEqual('{}.{}'.format(__name__, 'MyTask'),
                          my_task.name)
 
     def test_task_str(self):
@@ -121,7 +119,7 @@ class TaskTest(test.TestCase):
         }
         self.assertEqual(expected,
                          my_task.rebind)
-        self.assertEqual(set(['spam', 'eggs', 'context']),
+        self.assertEqual({'spam', 'eggs', 'context'},
                          my_task.requires)
 
     def test_requires_amended(self):
@@ -150,12 +148,12 @@ class TaskTest(test.TestCase):
 
     def test_requires_ignores_optional(self):
         my_task = DefaultArgTask()
-        self.assertEqual(set(['spam']), my_task.requires)
-        self.assertEqual(set(['eggs']), my_task.optional)
+        self.assertEqual({'spam'}, my_task.requires)
+        self.assertEqual({'eggs'}, my_task.optional)
 
     def test_requires_allows_optional(self):
         my_task = DefaultArgTask(requires=('spam', 'eggs'))
-        self.assertEqual(set(['spam', 'eggs']), my_task.requires)
+        self.assertEqual({'spam', 'eggs'}, my_task.requires)
         self.assertEqual(set(), my_task.optional)
 
     def test_rebind_includes_optional(self):
@@ -174,7 +172,7 @@ class TaskTest(test.TestCase):
             'context': 'c'
         }
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual(set(['a', 'b', 'c']),
+        self.assertEqual({'a', 'b', 'c'},
                          my_task.requires)
 
     def test_rebind_partial(self):
@@ -185,7 +183,7 @@ class TaskTest(test.TestCase):
             'context': 'context'
         }
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual(set(['a', 'b', 'context']),
+        self.assertEqual({'a', 'b', 'context'},
                          my_task.requires)
 
     def test_rebind_unknown(self):
@@ -208,7 +206,7 @@ class TaskTest(test.TestCase):
             'eggs': 'c'
         }
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual(set(['a', 'b', 'c']),
+        self.assertEqual({'a', 'b', 'c'},
                          my_task.requires)
 
     def test_rebind_list_partial(self):
@@ -219,7 +217,7 @@ class TaskTest(test.TestCase):
             'eggs': 'eggs'
         }
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual(set(['a', 'b', 'eggs']),
+        self.assertEqual({'a', 'b', 'eggs'},
                          my_task.requires)
 
     def test_rebind_list_more(self):
@@ -234,7 +232,7 @@ class TaskTest(test.TestCase):
             'c': 'c'
         }
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual(set(['a', 'b', 'c']),
+        self.assertEqual({'a', 'b', 'c'},
                          my_task.requires)
 
     def test_rebind_list_bad_value(self):
@@ -243,12 +241,12 @@ class TaskTest(test.TestCase):
 
     def test_default_provides(self):
         my_task = DefaultProvidesTask()
-        self.assertEqual(set(['def']), my_task.provides)
+        self.assertEqual({'def'}, my_task.provides)
         self.assertEqual({'def': None}, my_task.save_as)
 
     def test_default_provides_can_be_overridden(self):
         my_task = DefaultProvidesTask(provides=('spam', 'eggs'))
-        self.assertEqual(set(['spam', 'eggs']), my_task.provides)
+        self.assertEqual({'spam', 'eggs'}, my_task.provides)
         self.assertEqual({'spam': 0, 'eggs': 1}, my_task.save_as)
 
     def test_update_progress_within_bounds(self):
@@ -366,7 +364,7 @@ class TaskTest(test.TestCase):
         my_task = SeparateRevertTask(rebind=('a',), revert_rebind=('b',))
         self.assertEqual({'execute_arg': 'a'}, my_task.rebind)
         self.assertEqual({'revert_arg': 'b'}, my_task.revert_rebind)
-        self.assertEqual(set(['a', 'b']),
+        self.assertEqual({'a', 'b'},
                          my_task.requires)
 
         my_task = SeparateRevertTask(requires='execute_arg',
@@ -374,13 +372,13 @@ class TaskTest(test.TestCase):
 
         self.assertEqual({'execute_arg': 'execute_arg'}, my_task.rebind)
         self.assertEqual({'revert_arg': 'revert_arg'}, my_task.revert_rebind)
-        self.assertEqual(set(['execute_arg', 'revert_arg']),
+        self.assertEqual({'execute_arg', 'revert_arg'},
                          my_task.requires)
 
     def test_separate_revert_optional_args(self):
         my_task = SeparateRevertOptionalTask()
-        self.assertEqual(set(['execute_arg']), my_task.optional)
-        self.assertEqual(set(['revert_arg']), my_task.revert_optional)
+        self.assertEqual({'execute_arg'}, my_task.optional)
+        self.assertEqual({'revert_arg'}, my_task.revert_optional)
 
     def test_revert_kwargs(self):
         my_task = RevertKwargsTask()
@@ -389,7 +387,7 @@ class TaskTest(test.TestCase):
         self.assertEqual(expected_rebind, my_task.rebind)
         expected_rebind = {'execute_arg1': 'execute_arg1'}
         self.assertEqual(expected_rebind, my_task.revert_rebind)
-        self.assertEqual(set(['execute_arg1', 'execute_arg2']),
+        self.assertEqual({'execute_arg1', 'execute_arg2'},
                          my_task.requires)
 
 

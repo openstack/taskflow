@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -29,7 +27,7 @@ class TaskAction(base.Action):
     """An action that handles scheduling, state changes, ... of task atoms."""
 
     def __init__(self, storage, notifier, task_executor):
-        super(TaskAction, self).__init__(storage, notifier)
+        super().__init__(storage, notifier)
         self._task_executor = task_executor
 
     def _is_identity_transition(self, old_state, state, task, progress=None):

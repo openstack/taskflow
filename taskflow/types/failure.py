@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -433,8 +431,8 @@ class Failure():
         if not self._exc_type_names:
             buf.write('Failure: %s' % (self._exception_str))
         else:
-            buf.write('Failure: %s: %s' % (self._exc_type_names[0],
-                                           self._exception_str))
+            buf.write('Failure: {}: {}'.format(self._exc_type_names[0],
+                                               self._exception_str))
         if traceback:
             if self._traceback_str is not None:
                 traceback_str = self._traceback_str.rstrip()
@@ -452,8 +450,7 @@ class Failure():
 
     def __iter__(self):
         """Iterate over exception type names."""
-        for et in self._exc_type_names:
-            yield et
+        yield from self._exc_type_names
 
     def __getstate__(self):
         dct = self.to_dict()

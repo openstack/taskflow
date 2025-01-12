@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -46,7 +44,7 @@ class LoggingListener(base.DumpingListener):
                  retry_listen_for=base.DEFAULT_LISTEN_FOR,
                  log=None,
                  level=logging.DEBUG):
-        super(LoggingListener, self).__init__(
+        super().__init__(
             engine, task_listen_for=task_listen_for,
             flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
         self._logger = misc.pick_first_not_none(log, self._LOGGER, LOG)
@@ -111,7 +109,7 @@ class DynamicLoggingListener(base.Listener):
                  log=None, failure_level=logging.WARNING,
                  level=logging.DEBUG, hide_inputs_outputs_of=(),
                  fail_formatter=None):
-        super(DynamicLoggingListener, self).__init__(
+        super().__init__(
             engine, task_listen_for=task_listen_for,
             flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
         self._failure_level = failure_level

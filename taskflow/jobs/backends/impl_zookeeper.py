@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -51,10 +49,10 @@ class ZookeeperJob(base.Job):
                  uuid=None, details=None, book=None, book_data=None,
                  created_on=None, backend=None,
                  priority=base.JobPriority.NORMAL):
-        super(ZookeeperJob, self).__init__(board, name,
-                                           uuid=uuid, details=details,
-                                           backend=backend,
-                                           book=book, book_data=book_data)
+        super().__init__(board, name,
+                         uuid=uuid, details=details,
+                         backend=backend,
+                         book=book, book_data=book_data)
         self._client = client
         self._path = k_paths.normpath(path)
         self._lock_path = self._path + board.LOCK_POSTFIX
@@ -281,7 +279,7 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
 
     def __init__(self, name, conf,
                  client=None, persistence=None, emit_notifications=True):
-        super(ZookeeperJobBoard, self).__init__(name, conf)
+        super().__init__(name, conf)
         if client is not None:
             self._client = client
             self._owned = False
@@ -552,7 +550,8 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             except Exception:
                 owner = None
             if owner:
-                message = "Job %s already claimed by '%s'" % (job.uuid, owner)
+                message = "Job {} already claimed by '{}'".format(
+                    job.uuid, owner)
             else:
                 message = "Job %s already claimed" % (job.uuid)
             excp.raise_with_cause(excp.UnclaimableJob,

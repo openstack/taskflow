@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
@@ -110,7 +108,7 @@ class JobPriority(enum.Enum):
                 return tuple(values)
 
 
-class Job(object, metaclass=abc.ABCMeta):
+class Job(metaclass=abc.ABCMeta):
     """A abstraction that represents a named and trackable unit of work.
 
     A job connects a logbook, a owner, a priority, last modified and created
@@ -277,12 +275,12 @@ class Job(object, metaclass=abc.ABCMeta):
     def __str__(self):
         """Pretty formats the job into something *more* meaningful."""
         cls_name = type(self).__name__
-        return "%s: %s (priority=%s, uuid=%s, details=%s)" % (
+        return "{}: {} (priority={}, uuid={}, details={})".format(
             cls_name, self.name, self.priority,
             self.uuid, self.details)
 
 
-class JobBoardIterator(object):
+class JobBoardIterator:
     """Iterator over a jobboard that iterates over potential jobs.
 
     It provides the following attributes:
@@ -355,7 +353,7 @@ class JobBoardIterator(object):
             return job
 
 
-class JobBoard(object, metaclass=abc.ABCMeta):
+class JobBoard(metaclass=abc.ABCMeta):
     """A place where jobs can be posted, reposted, claimed and transferred.
 
     There can be multiple implementations of this job board, depending on the
@@ -565,7 +563,7 @@ class NotifyingJobBoard(JobBoard):
     registered are thread safe (and block for as little time as possible).
     """
     def __init__(self, name, conf):
-        super(NotifyingJobBoard, self).__init__(name, conf)
+        super().__init__(name, conf)
         self.notifier = notifier.Notifier()
 
 

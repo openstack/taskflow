@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright 2015 Hewlett-Packard Development Company, L.P.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -29,7 +27,7 @@ square = lambda x: x * x
 class MapFunctorTaskTest(test.TestCase):
 
     def setUp(self):
-        super(MapFunctorTaskTest, self).setUp()
+        super().setUp()
 
         self.flow_store = {
             'a': 1,

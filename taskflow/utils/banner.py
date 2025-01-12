@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2016 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -74,12 +72,13 @@ def make_banner(what, chapters):
             section_names = sorted(chapter_contents.keys())
             for j, section_name in enumerate(section_names):
                 if j + 1 < len(section_names):
-                    buf.write_nl("  %s => %s"
-                                 % (section_name,
-                                    chapter_contents[section_name]))
+                    buf.write_nl("  {} => {}".format(
+                        section_name,
+                        chapter_contents[section_name]))
                 else:
-                    buf.write("  %s => %s" % (section_name,
-                                              chapter_contents[section_name]))
+                    buf.write("  {} => {}".format(
+                        section_name,
+                        chapter_contents[section_name]))
         elif isinstance(chapter_contents, (list, tuple, set)):
             if isinstance(chapter_contents, set):
                 sections = sorted(chapter_contents)
@@ -87,9 +86,9 @@ def make_banner(what, chapters):
                 sections = chapter_contents
             for j, section in enumerate(sections):
                 if j + 1 < len(sections):
-                    buf.write_nl("  %s. %s" % (j + 1, section))
+                    buf.write_nl("  {}. {}".format(j + 1, section))
                 else:
-                    buf.write("  %s. %s" % (j + 1, section))
+                    buf.write("  {}. {}".format(j + 1, section))
         else:
             raise TypeError("Unsupported chapter contents"
                             " type: one of dict, list, tuple, set expected"

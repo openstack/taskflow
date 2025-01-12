@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -27,7 +25,7 @@ from taskflow.types import failure
 class TestServer(test.MockTestCase):
 
     def setUp(self):
-        super(TestServer, self).setUp()
+        super().setUp()
         self.server_topic = 'server-topic'
         self.server_exchange = 'server-exchange'
         self.broker_url = 'test-url'
@@ -140,8 +138,8 @@ class TestServer(test.MockTestCase):
         self.assertEqual(
             (self.task.name, self.task.name, 'revert',
              dict(arguments=self.task_args,
-                  failures=dict((i, utils.FailureMatcher(f))
-                                for i, f in failures.items()))),
+                  failures={i: utils.FailureMatcher(f)
+                            for i, f in failures.items()})),
             (task_cls, task_name, action, task_args))
 
     @mock.patch("taskflow.engines.worker_based.server.LOG.critical")

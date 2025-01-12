@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -53,7 +51,7 @@ class TestThreadBundle(test.TestCase):
     thread_count = 5
 
     def setUp(self):
-        super(TestThreadBundle, self).setUp()
+        super().setUp()
         self.bundle = tu.ThreadBundle()
         self.death = threading.Event()
         self.addCleanup(self.bundle.stop)

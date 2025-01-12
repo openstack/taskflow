@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -31,15 +29,15 @@ def _common_format(g, edge_notation):
     lines.append("Nodes: %s" % g.number_of_nodes())
     for n, n_data in g.nodes(data=True):
         if n_data:
-            lines.append("  - %s (%s)" % (n, n_data))
+            lines.append("  - {} ({})".format(n, n_data))
         else:
             lines.append("  - %s" % n)
     lines.append("Edges: %s" % g.number_of_edges())
     for (u, v, e_data) in g.edges(data=True):
         if e_data:
-            lines.append("  %s %s %s (%s)" % (u, edge_notation, v, e_data))
+            lines.append("  {} {} {} ({})".format(u, edge_notation, v, e_data))
         else:
-            lines.append("  %s %s %s" % (u, edge_notation, v))
+            lines.append("  {} {} {}".format(u, edge_notation, v))
     return lines
 
 
@@ -47,8 +45,7 @@ class Graph(nx.Graph):
     """A graph subclass with useful utility functions."""
 
     def __init__(self, incoming_graph_data=None, name=''):
-        super(Graph, self).__init__(incoming_graph_data=incoming_graph_data,
-                                    name=name)
+        super().__init__(incoming_graph_data=incoming_graph_data, name=name)
         self.frozen = False
 
     def freeze(self):
@@ -68,14 +65,14 @@ class Graph(nx.Graph):
     def add_edge(self, u, v, attr_dict=None, **attr):
         """Add an edge between u and v."""
         if attr_dict is not None:
-            return super(Graph, self).add_edge(u, v, **attr_dict)
-        return super(Graph, self).add_edge(u, v, **attr)
+            return super().add_edge(u, v, **attr_dict)
+        return super().add_edge(u, v, **attr)
 
     def add_node(self, n, attr_dict=None, **attr):
         """Add a single node n and update node attributes."""
         if attr_dict is not None:
-            return super(Graph, self).add_node(n, **attr_dict)
-        return super(Graph, self).add_node(n, **attr)
+            return super().add_node(n, **attr_dict)
+        return super().add_node(n, **attr)
 
     def fresh_copy(self):
         """Return a fresh copy graph with the same data structure.
@@ -91,8 +88,7 @@ class DiGraph(nx.DiGraph):
     """A directed graph subclass with useful utility functions."""
 
     def __init__(self, incoming_graph_data=None, name=''):
-        super(DiGraph, self).__init__(incoming_graph_data=incoming_graph_data,
-                                      name=name)
+        super().__init__(incoming_graph_data=incoming_graph_data, name=name)
         self.frozen = False
 
     def freeze(self):
@@ -165,7 +161,7 @@ class DiGraph(nx.DiGraph):
         NOTE(harlowja): predecessor cycles (if they exist) will not be iterated
         over more than once (this prevents infinite iteration).
         """
-        visited = set([n])
+        visited = {n}
         queue = collections.deque(self.predecessors(n))
         while queue:
             pred = queue.popleft()
@@ -179,14 +175,14 @@ class DiGraph(nx.DiGraph):
     def add_edge(self, u, v, attr_dict=None, **attr):
         """Add an edge between u and v."""
         if attr_dict is not None:
-            return super(DiGraph, self).add_edge(u, v, **attr_dict)
-        return super(DiGraph, self).add_edge(u, v, **attr)
+            return super().add_edge(u, v, **attr_dict)
+        return super().add_edge(u, v, **attr)
 
     def add_node(self, n, attr_dict=None, **attr):
         """Add a single node n and update node attributes."""
         if attr_dict is not None:
-            return super(DiGraph, self).add_node(n, **attr_dict)
-        return super(DiGraph, self).add_node(n, **attr)
+            return super().add_node(n, **attr_dict)
+        return super().add_node(n, **attr)
 
     def fresh_copy(self):
         """Return a fresh copy graph with the same data structure.

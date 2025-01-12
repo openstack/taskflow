@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 AT&T Labs All Rights Reserved.
 #    Copyright (C) 2015 Rackspace Hosting All Rights Reserved.
 #
@@ -56,7 +54,7 @@ class ZkBackend(path_based.PathBasedBackend):
     DEFAULT_PATH = '/taskflow'
 
     def __init__(self, conf, client=None):
-        super(ZkBackend, self).__init__(conf)
+        super().__init__(conf)
         if not paths.isabs(self._path):
             raise ValueError("Zookeeper path must be absolute")
         if client is not None:
@@ -87,7 +85,7 @@ class ZkBackend(path_based.PathBasedBackend):
 
 class ZkConnection(path_based.PathBasedConnection):
     def __init__(self, backend, client, conf):
-        super(ZkConnection, self).__init__(backend)
+        super().__init__(backend)
         self._conf = conf
         self._client = client
         with self._exc_wrapper():

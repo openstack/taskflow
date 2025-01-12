@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -23,7 +21,7 @@ from taskflow.utils import kombu_utils as ku
 LOG = logging.getLogger(__name__)
 
 
-class Handler(object):
+class Handler:
     """Component(s) that will be called on reception of messages."""
 
     __slots__ = ['_process_message', '_validator']
@@ -53,7 +51,7 @@ class Handler(object):
         return self._validator
 
 
-class TypeDispatcher(object):
+class TypeDispatcher:
     """Receives messages and dispatches to type specific handlers."""
 
     def __init__(self, type_handlers=None, requeue_filters=None):

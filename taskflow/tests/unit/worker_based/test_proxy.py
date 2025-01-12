@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -25,7 +23,7 @@ from taskflow.utils import threading_utils
 class TestProxy(test.MockTestCase):
 
     def setUp(self):
-        super(TestProxy, self).setUp()
+        super().setUp()
         self.topic = 'test-topic'
         self.broker_url = 'test-url'
         self.exchange = 'test-exchange'
@@ -72,7 +70,7 @@ class TestProxy(test.MockTestCase):
         self.resetMasterMock()
 
     def _queue_name(self, topic):
-        return "%s_%s" % (self.exchange, topic)
+        return "{}_{}".format(self.exchange, topic)
 
     def proxy_start_calls(self, calls, exc_type=mock.ANY):
         return [

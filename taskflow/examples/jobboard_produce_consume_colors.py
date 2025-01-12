@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -84,9 +82,9 @@ def dispatch_work(job):
 def safe_print(name, message, prefix=""):
     with STDOUT_LOCK:
         if prefix:
-            print("%s %s: %s" % (prefix, name, message))
+            print("{} {}: {}".format(prefix, name, message))
         else:
-            print("%s: %s" % (name, message))
+            print("{}: {}".format(name, message))
 
 
 def worker(ident, client, consumed):
@@ -138,7 +136,7 @@ def producer(ident, client):
     safe_print(name, "started")
     with backends.backend(name, SHARED_CONF.copy(), client=client) as board:
         for i in range(0, PRODUCER_UNITS):
-            job_name = "%s-%s" % (name, i)
+            job_name = "{}-{}".format(name, i)
             details = {
                 'color': random.choice(['red', 'blue']),
             }

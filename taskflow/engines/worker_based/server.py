@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -31,7 +29,7 @@ from taskflow.utils import misc
 LOG = logging.getLogger(__name__)
 
 
-class Server(object):
+class Server:
     """Server implementation that waits for incoming tasks requests."""
 
     def __init__(self, topic, exchange, executor, endpoints,
@@ -53,8 +51,8 @@ class Server(object):
                                   transport_options=transport_options,
                                   retry_options=retry_options)
         self._topic = topic
-        self._endpoints = dict([(endpoint.name, endpoint)
-                                for endpoint in endpoints])
+        self._endpoints = {endpoint.name: endpoint
+                           for endpoint in endpoints}
 
     def _delayed_process(self, func):
         """Runs the function using the instances executor (eventually).

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -57,7 +55,7 @@ class NotifierTest(test.TestCase):
         def call_me(state, details):
             pass
 
-        class A(object):
+        class A:
             def call_me_too(self, state, details):
                 pass
 

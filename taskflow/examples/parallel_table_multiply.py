@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -47,7 +45,7 @@ class RowMultiplier(task.Task):
     """Performs a modification of an input row, creating a output row."""
 
     def __init__(self, name, index, row, multiplier):
-        super(RowMultiplier, self).__init__(name=name)
+        super().__init__(name=name)
         self.index = index
         self.multiplier = multiplier
         self.row = row

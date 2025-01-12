@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -76,8 +74,8 @@ class GraphFlowTest(test.TestCase):
         self.assertEqual(1, len(f))
         self.assertEqual([task], list(f))
         self.assertEqual([], list(f.iter_links()))
-        self.assertEqual(set(['a', 'b']), f.requires)
-        self.assertEqual(set(['c', 'd']), f.provides)
+        self.assertEqual({'a', 'b'}, f.requires)
+        self.assertEqual({'c', 'd'}, f.provides)
 
     def test_graph_flow_two_independent_tasks(self):
         task1 = _task(name='task1')
@@ -95,11 +93,11 @@ class GraphFlowTest(test.TestCase):
 
         self.assertEqual(2, len(f))
         self.assertCountEqual(f, [task1, task2])
-        self.assertEqual([(task1, task2, {'reasons': set(['a'])})],
+        self.assertEqual([(task1, task2, {'reasons': {'a'}})],
                          list(f.iter_links()))
 
         self.assertEqual(set(), f.requires)
-        self.assertEqual(set(['a']), f.provides)
+        self.assertEqual({'a'}, f.provides)
 
     def test_graph_flow_two_dependent_tasks_two_different_calls(self):
         task1 = _task(name='task1', provides=['a'])
@@ -108,7 +106,7 @@ class GraphFlowTest(test.TestCase):
 
         self.assertEqual(2, len(f))
         self.assertCountEqual(f, [task1, task2])
-        self.assertEqual([(task1, task2, {'reasons': set(['a'])})],
+        self.assertEqual([(task1, task2, {'reasons': {'a'}})],
                          list(f.iter_links()))
 
     def test_graph_flow_two_task_same_provide(self):
@@ -116,14 +114,14 @@ class GraphFlowTest(test.TestCase):
         task2 = _task(name='task2', provides=['a', 'c'])
         f = gf.Flow('test')
         f.add(task2, task1)
-        self.assertEqual(set(['a', 'b', 'c']), f.provides)
+        self.assertEqual({'a', 'b', 'c'}, f.provides)
 
     def test_graph_flow_ambiguous_provides(self):
         task1 = _task(name='task1', provides=['a', 'b'])
         task2 = _task(name='task2', provides=['a'])
         f = gf.Flow('test')
         f.add(task1, task2)
-        self.assertEqual(set(['a', 'b']), f.provides)
+        self.assertEqual({'a', 'b'}, f.provides)
         task3 = _task(name='task3', requires=['a'])
         self.assertRaises(exc.AmbiguousDependency, f.add, task3)
 
@@ -132,7 +130,7 @@ class GraphFlowTest(test.TestCase):
         task2 = _task(name='task2', requires=['a', 'b'])
         f = gf.Flow('test')
         f.add(task1, task2, resolve_requires=False)
-        self.assertEqual(set(['a', 'b']), f.requires)
+        self.assertEqual({'a', 'b'}, f.requires)
 
     def test_graph_flow_no_resolve_existing(self):
         task1 = _task(name='task1', requires=['a', 'b'])
@@ -140,7 +138,7 @@ class GraphFlowTest(test.TestCase):
         f = gf.Flow('test')
         f.add(task1)
         f.add(task2, resolve_existing=False)
-        self.assertEqual(set(['a', 'b']), f.requires)
+        self.assertEqual({'a', 'b'}, f.requires)
 
     def test_graph_flow_resolve_existing(self):
         task1 = _task(name='task1', requires=['a', 'b'])
@@ -148,7 +146,7 @@ class GraphFlowTest(test.TestCase):
         f = gf.Flow('test')
         f.add(task1)
         f.add(task2, resolve_existing=True)
-        self.assertEqual(set([]), f.requires)
+        self.assertEqual(set(), f.requires)
 
     def test_graph_flow_with_retry(self):
         ret = retry.AlwaysRevert(requires=['a'], provides=['b'])
@@ -156,11 +154,11 @@ class GraphFlowTest(test.TestCase):
         self.assertIs(f.retry, ret)
         self.assertEqual('test_retry', ret.name)
 
-        self.assertEqual(set(['a']), f.requires)
-        self.assertEqual(set(['b']), f.provides)
+        self.assertEqual({'a'}, f.requires)
+        self.assertEqual({'b'}, f.provides)
 
     def test_graph_flow_ordering(self):
-        task1 = _task('task1', provides=set(['a', 'b']))
+        task1 = _task('task1', provides={'a', 'b'})
         task2 = _task('task2', provides=['c'], requires=['a', 'b'])
         task3 = _task('task3', provides=[], requires=['c'])
         f = gf.Flow('test').add(task1, task2, task3)
@@ -168,8 +166,8 @@ class GraphFlowTest(test.TestCase):
         self.assertEqual(3, len(f))
 
         self.assertCountEqual(list(f.iter_links()), [
-            (task1, task2, {'reasons': set(['a', 'b'])}),
-            (task2, task3, {'reasons': set(['c'])})
+            (task1, task2, {'reasons': {'a', 'b'}}),
+            (task2, task3, {'reasons': {'c'}})
         ])
 
     def test_graph_flow_links(self):
@@ -190,7 +188,7 @@ class GraphFlowTest(test.TestCase):
         self.assertIs(linked, f)
         expected_meta = {
             'manual': True,
-            'reasons': set(['a'])
+            'reasons': {'a'}
         }
         self.assertCountEqual(list(f.iter_links()), [
             (task1, task2, expected_meta)
@@ -236,7 +234,7 @@ class GraphFlowTest(test.TestCase):
         task3 = _task('task3', provides=['c'])
         f1 = gf.Flow('nested')
         f1.add(task3)
-        tasks = set([task1, task2, f1])
+        tasks = {task1, task2, f1}
         f = gf.Flow('test').add(task1, task2, f1)
         for (n, data) in f.iter_nodes():
             self.assertIn(n, tasks)
@@ -248,7 +246,7 @@ class GraphFlowTest(test.TestCase):
         task3 = _task('task3')
         f1 = gf.Flow('nested')
         f1.add(task3)
-        tasks = set([task1, task2, f1])
+        tasks = {task1, task2, f1}
         f = gf.Flow('test').add(task1, task2, f1)
         for (u, v, data) in f.iter_links():
             self.assertIn(u, tasks)

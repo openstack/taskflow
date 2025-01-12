@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -67,6 +65,6 @@ print("---------")
 for path in backend.memory.ls_r(backend.memory.root_path, absolute=True):
     value = backend.memory[path]
     if value:
-        print("%s -> %s" % (path, value))
+        print("{} -> {}".format(path, value))
     else:
         print("%s" % (path))

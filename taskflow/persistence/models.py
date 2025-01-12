@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
@@ -43,7 +41,7 @@ def _format_meta(metadata, indent):
         # in percent format.
         if k == 'progress' and isinstance(v, misc.NUMERIC_TYPES):
             v = "%0.2f%%" % (v * 100.0)
-        lines.append("%s+ %s = %s" % (" " * (indent + 2), k, v))
+        lines.append("{}+ {} = {}".format(" " * (indent + 2), k, v))
     return lines
 
 
@@ -55,8 +53,8 @@ def _format_shared(obj, indent):
     for attr_name in ("uuid", "state"):
         if not hasattr(obj, attr_name):
             continue
-        lines.append("%s- %s = %s" % (" " * indent, attr_name,
-                                      getattr(obj, attr_name)))
+        lines.append("{}- {} = {}".format(" " * indent, attr_name,
+                                          getattr(obj, attr_name)))
     return lines
 
 
@@ -98,7 +96,7 @@ def _fix_meta(data):
     return meta
 
 
-class LogBook(object):
+class LogBook:
     """A collection of flow details and associated metadata.
 
     Typically this class contains a collection of flow detail entries
@@ -143,7 +141,7 @@ class LogBook(object):
          - created_at = ...
         """
         cls_name = self.__class__.__name__
-        lines = ["%s%s: '%s'" % (" " * indent, cls_name, self.name)]
+        lines = ["{}{}: '{}'".format(" " * indent, cls_name, self.name)]
         lines.extend(_format_shared(self, indent=indent + 1))
         lines.extend(_format_meta(self.meta, indent=indent + 1))
         if self.created_at is not None:
@@ -258,8 +256,7 @@ class LogBook(object):
         return self._name
 
     def __iter__(self):
-        for fd in self._flowdetails_by_id.values():
-            yield fd
+        yield from self._flowdetails_by_id.values()
 
     def __len__(self):
         return len(self._flowdetails_by_id)
@@ -288,7 +285,7 @@ class LogBook(object):
         return clone
 
 
-class FlowDetail(object):
+class FlowDetail:
     """A collection of atom details and associated metadata.
 
     Typically this class contains a collection of atom detail entries that
@@ -345,7 +342,7 @@ class FlowDetail(object):
          - state = ...
         """
         cls_name = self.__class__.__name__
-        lines = ["%s%s: '%s'" % (" " * indent, cls_name, self.name)]
+        lines = ["{}{}: '{}'".format(" " * indent, cls_name, self.name)]
         lines.extend(_format_shared(self, indent=indent + 1))
         lines.extend(_format_meta(self.meta, indent=indent + 1))
         for atom_detail in self:
@@ -463,14 +460,13 @@ class FlowDetail(object):
         return self._name
 
     def __iter__(self):
-        for ad in self._atomdetails_by_id.values():
-            yield ad
+        yield from self._atomdetails_by_id.values()
 
     def __len__(self):
         return len(self._atomdetails_by_id)
 
 
-class AtomDetail(object, metaclass=abc.ABCMeta):
+class AtomDetail(metaclass=abc.ABCMeta):
     """A collection of atom specific runtime information and metadata.
 
     This is a base **abstract** class that contains attributes that are used
@@ -688,14 +684,14 @@ class AtomDetail(object, metaclass=abc.ABCMeta):
     def pformat(self, indent=0, linesep=os.linesep):
         """Pretty formats this atom detail into a string."""
         cls_name = self.__class__.__name__
-        lines = ["%s%s: '%s'" % (" " * (indent), cls_name, self.name)]
+        lines = ["{}{}: '{}'".format(" " * (indent), cls_name, self.name)]
         lines.extend(_format_shared(self, indent=indent + 1))
         lines.append("%s- version = %s"
                      % (" " * (indent + 1), misc.get_version_string(self)))
         lines.append("%s- results = %s"
                      % (" " * (indent + 1), self.results))
-        lines.append("%s- failure = %s" % (" " * (indent + 1),
-                                           bool(self.failure)))
+        lines.append("{}- failure = {}".format(" " * (indent + 1),
+                                               bool(self.failure)))
         lines.extend(_format_meta(self.meta, indent=indent + 1))
         return linesep.join(lines)
 
@@ -793,7 +789,7 @@ class TaskDetail(AtomDetail):
                                           " task details")
         if other is self:
             return self
-        super(TaskDetail, self).merge(other, deep_copy=deep_copy)
+        super().merge(other, deep_copy=deep_copy)
         self.results = other.results
         self.revert_results = other.revert_results
         return self
@@ -834,7 +830,7 @@ class RetryDetail(AtomDetail):
     """
 
     def __init__(self, name, uuid):
-        super(RetryDetail, self).__init__(name, uuid)
+        super().__init__(name, uuid)
         self.results = []
 
     def reset(self, state):
@@ -983,7 +979,7 @@ class RetryDetail(AtomDetail):
                 new_results.append((data, new_failures))
             return new_results
 
-        obj = super(RetryDetail, cls).from_dict(data)
+        obj = super().from_dict(data)
         obj.results = decode_results(obj.results)
         return obj
 
@@ -1001,7 +997,7 @@ class RetryDetail(AtomDetail):
                 new_results.append((data, new_failures))
             return new_results
 
-        base = super(RetryDetail, self).to_dict()
+        base = super().to_dict()
         base['results'] = encode_results(base.get('results'))
         return base
 
@@ -1033,7 +1029,7 @@ class RetryDetail(AtomDetail):
                                           " retry details")
         if other is self:
             return self
-        super(RetryDetail, self).merge(other, deep_copy=deep_copy)
+        super().merge(other, deep_copy=deep_copy)
         results = []
         # NOTE(imelnikov): we can't just deep copy Failures, as they
         # contain tracebacks, which are not copyable.
@@ -1053,8 +1049,7 @@ _DETAIL_TO_NAME = {
     RetryDetail: 'RETRY_DETAIL',
     TaskDetail: 'TASK_DETAIL',
 }
-_NAME_TO_DETAIL = dict((name, cls)
-                       for (cls, name) in _DETAIL_TO_NAME.items())
+_NAME_TO_DETAIL = {name: cls for (cls, name) in _DETAIL_TO_NAME.items()}
 ATOM_TYPES = list(_NAME_TO_DETAIL.keys())
 
 

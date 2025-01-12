@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -27,7 +25,7 @@ from taskflow.tests import utils
 class TestWorker(test.MockTestCase):
 
     def setUp(self):
-        super(TestWorker, self).setUp()
+        super().setUp()
         self.task_cls = utils.DummyTask
         self.task_name = reflection.get_class_name(self.task_cls)
         self.broker_url = 'test-url'

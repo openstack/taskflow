@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -41,7 +39,7 @@ def _parse_hosts(hosts):
     if isinstance(hosts, (dict)):
         host_ports = []
         for (k, v) in hosts.items():
-            host_ports.append("%s:%s" % (k, v))
+            host_ports.append("{}:{}".format(k, v))
         hosts = host_ports
     if isinstance(hosts, (list, set, tuple)):
         return ",".join([str(h) for h in hosts])
@@ -65,7 +63,7 @@ def prettify_failures(failures, limit=-1):
             pass
         pretty_op += "(%s)" % (", ".join(selected_attrs))
         pretty_cause = reflection.get_class_name(r, fully_qualified=False)
-        prettier.append("%s@%s" % (pretty_cause, pretty_op))
+        prettier.append("{}@{}".format(pretty_cause, pretty_op))
     if limit <= 0 or len(prettier) <= limit:
         return ", ".join(prettier)
     else:
@@ -78,7 +76,7 @@ class KazooTransactionException(k_exc.KazooException):
     """Exception raised when a checked commit fails."""
 
     def __init__(self, message, failures):
-        super(KazooTransactionException, self).__init__(message)
+        super().__init__(message)
         self._failures = tuple(failures)
 
     @property
@@ -134,8 +132,8 @@ def check_compatible(client, min_version=None, max_version=None):
     """
     server_version = None
     if min_version:
-        server_version = tuple((int(a) for a in client.server_version()))
-        min_version = tuple((int(a) for a in min_version))
+        server_version = tuple(int(a) for a in client.server_version())
+        min_version = tuple(int(a) for a in min_version)
         if server_version < min_version:
             pretty_server_version = ".".join([str(a) for a in server_version])
             min_version = ".".join([str(a) for a in min_version])
@@ -145,8 +143,8 @@ def check_compatible(client, min_version=None, max_version=None):
                                                          min_version))
     if max_version:
         if server_version is None:
-            server_version = tuple((int(a) for a in client.server_version()))
-        max_version = tuple((int(a) for a in max_version))
+            server_version = tuple(int(a) for a in client.server_version())
+        max_version = tuple(int(a) for a in max_version)
         if server_version > max_version:
             pretty_server_version = ".".join([str(a) for a in server_version])
             max_version = ".".join([str(a) for a in max_version])

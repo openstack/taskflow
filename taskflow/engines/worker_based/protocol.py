@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -147,7 +145,7 @@ def failure_to_dict(failure):
         return failure.to_dict(include_args=False)
 
 
-class Message(object, metaclass=abc.ABCMeta):
+class Message(metaclass=abc.ABCMeta):
     """Base class for all message types."""
 
     def __repr__(self):

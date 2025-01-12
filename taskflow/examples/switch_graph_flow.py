@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -64,7 +62,7 @@ while entries:
     path = entries.pop()
     value = backend.memory[path]
     if value:
-        print("%s -> %s" % (path, value))
+        print("{} -> {}".format(path, value))
     else:
         print("%s" % (path))
     entries.extend(os.path.join(path, child)

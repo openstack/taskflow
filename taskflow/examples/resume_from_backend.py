@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -62,7 +60,7 @@ import example_utils as eu  # noqa
 
 def print_task_states(flowdetail, msg):
     eu.print_wrapped(msg)
-    print("Flow '%s' state: %s" % (flowdetail.name, flowdetail.state))
+    print("Flow '{}' state: {}".format(flowdetail.name, flowdetail.state))
     # Sort by these so that our test validation doesn't get confused by the
     # order in which the items in the flow detail can be in.
     items = sorted((td.name, td.version, td.state, td.results)

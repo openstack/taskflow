@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -55,4 +53,4 @@ class TestDeciders(test.TestCase):
     def test_bad_pick_widest(self):
         self.assertRaises(ValueError, deciders.pick_widest, [])
         self.assertRaises(ValueError, deciders.pick_widest, ["a"])
-        self.assertRaises(ValueError, deciders.pick_widest, set(['b']))
+        self.assertRaises(ValueError, deciders.pick_widest, {'b'})

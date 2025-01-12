@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -272,7 +270,7 @@ class MixedPatternScopingTest(test.TestCase):
         # This may be different after/if the following is resolved:
         #
         # https://github.com/networkx/networkx/issues/1181 (and a few others)
-        self.assertEqual(set(['customer', 'customer2']),
+        self.assertEqual({'customer', 'customer2'},
                          set(_get_scopes(c, washer)[0]))
         self.assertEqual([], _get_scopes(c, customer2))
         self.assertEqual([], _get_scopes(c, customer))

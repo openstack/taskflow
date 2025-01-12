@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -27,7 +25,7 @@ class PrintingListener(base.DumpingListener):
                  flow_listen_for=base.DEFAULT_LISTEN_FOR,
                  retry_listen_for=base.DEFAULT_LISTEN_FOR,
                  stderr=False):
-        super(PrintingListener, self).__init__(
+        super().__init__(
             engine, task_listen_for=task_listen_for,
             flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
         if stderr:

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -28,10 +26,10 @@ class FrozenNode(Exception):
     """Exception raised when a frozen node is modified."""
 
     def __init__(self):
-        super(FrozenNode, self).__init__("Frozen node(s) can't be modified")
+        super().__init__("Frozen node(s) can't be modified")
 
 
-class _DFSIter(object):
+class _DFSIter:
     """Depth first iterator (non-recursive) over the child nodes."""
 
     def __init__(self, root, include_self=False, right_to_left=True):
@@ -60,7 +58,7 @@ class _DFSIter(object):
                 stack.extend(iter(node))
 
 
-class _BFSIter(object):
+class _BFSIter:
     """Breadth first iterator (non-recursive) over the child nodes."""
 
     def __init__(self, root, include_self=False, right_to_left=False):
@@ -89,7 +87,7 @@ class _BFSIter(object):
                 q.extend(node.reverse_iter())
 
 
-class Node(object):
+class Node:
     """A n-ary node class that can be used to create tree structures."""
 
     #: Default string prefix used in :py:meth:`.pformat`.
@@ -358,13 +356,11 @@ class Node(object):
 
     def __iter__(self):
         """Iterates over the direct children of this node (right->left)."""
-        for c in self._children:
-            yield c
+        yield from self._children
 
     def reverse_iter(self):
         """Iterates over the direct children of this node (left->right)."""
-        for c in reversed(self._children):
-            yield c
+        yield from reversed(self._children)
 
     def index(self, item):
         """Finds the child index of a given item, searches in added order."""

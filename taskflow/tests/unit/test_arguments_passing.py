@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -50,9 +48,9 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         }, engine.storage.fetch_all())
 
     def test_save_dict(self):
-        flow = utils.TaskMultiDict(provides=set(['badger',
-                                                 'mushroom',
-                                                 'snake']))
+        flow = utils.TaskMultiDict(provides={'badger',
+                                             'mushroom',
+                                             'snake'})
         engine = self._make_engine(flow)
         engine.run()
         self.assertEqual({

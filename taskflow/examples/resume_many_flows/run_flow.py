@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -38,6 +36,6 @@ import my_flows  # noqa
 with example_utils.get_backend() as backend:
     engine = taskflow.engines.load_from_factory(my_flows.flow_factory,
                                                 backend=backend)
-    print('Running flow %s %s' % (engine.storage.flow_name,
-                                  engine.storage.flow_uuid))
+    print('Running flow {} {}'.format(engine.storage.flow_name,
+                                      engine.storage.flow_uuid))
     engine.run()

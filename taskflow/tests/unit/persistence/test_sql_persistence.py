@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -61,7 +59,7 @@ def _get_connect_string(backend, user, passwd, database=None, variant=None):
         raise Exception("Unrecognized backend: '%s'" % backend)
     if not database:
         database = ''
-    return "%s://%s:%s@localhost/%s" % (backend, user, passwd, database)
+    return "{}://{}:{}@localhost/{}".format(backend, user, passwd, database)
 
 
 def _mysql_exists():
@@ -108,7 +106,7 @@ class SqlitePersistenceTest(test.TestCase, base.PersistenceTestMixin):
         return impl_sqlalchemy.SQLAlchemyBackend(conf).get_connection()
 
     def setUp(self):
-        super(SqlitePersistenceTest, self).setUp()
+        super().setUp()
         self.db_location = tempfile.mktemp(suffix='.db')
         self.db_uri = "sqlite:///%s" % (self.db_location)
         # Ensure upgraded to the right schema
@@ -116,7 +114,7 @@ class SqlitePersistenceTest(test.TestCase, base.PersistenceTestMixin):
             conn.upgrade()
 
     def tearDown(self):
-        super(SqlitePersistenceTest, self).tearDown()
+        super().tearDown()
         if self.db_location and os.path.isfile(self.db_location):
             os.unlink(self.db_location)
             self.db_location = None
@@ -146,7 +144,7 @@ class BackendPersistenceTestMixin(base.PersistenceTestMixin,
         """Cleans up by removing the database once the tests are done."""
 
     def setUp(self):
-        super(BackendPersistenceTestMixin, self).setUp()
+        super().setUp()
         self.backend = None
         try:
             self.db_uri = self._init_db()

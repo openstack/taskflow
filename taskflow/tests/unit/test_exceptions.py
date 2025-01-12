@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -44,7 +42,7 @@ class TestExceptions(test.TestCase):
     def test_raise_with(self):
         capture = None
         try:
-            raise IOError('broken')
+            raise OSError('broken')
         except Exception:
             try:
                 exc.raise_with_cause(exc.TaskFlowException, 'broken')
@@ -73,8 +71,8 @@ class TestExceptions(test.TestCase):
         try:
             try:
                 try:
-                    raise IOError("Didn't work")
-                except IOError:
+                    raise OSError("Didn't work")
+                except OSError:
                     exc.raise_with_cause(exc.TaskFlowException,
                                          "It didn't go so well")
             except exc.TaskFlowException:
@@ -109,7 +107,7 @@ class TestExceptions(test.TestCase):
     def test_raise_with_cause(self):
         capture = None
         try:
-            raise IOError('broken')
+            raise OSError('broken')
         except Exception:
             try:
                 exc.raise_with_cause(exc.TaskFlowException, 'broken')

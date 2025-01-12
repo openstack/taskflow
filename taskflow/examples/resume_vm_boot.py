@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -63,7 +61,7 @@ class PrintText(task.Task):
     """Just inserts some text print outs in a workflow."""
     def __init__(self, print_what, no_slow=False):
         content_hash = hashlib.md5(print_what.encode('utf-8')).hexdigest()[0:8]
-        super(PrintText, self).__init__(name="Print: %s" % (content_hash))
+        super().__init__(name="Print: %s" % (content_hash))
         self._text = print_what
         self._no_slow = no_slow
 
@@ -78,7 +76,7 @@ class PrintText(task.Task):
 class DefineVMSpec(task.Task):
     """Defines a vm specification to be."""
     def __init__(self, name):
-        super(DefineVMSpec, self).__init__(provides='vm_spec', name=name)
+        super().__init__(provides='vm_spec', name=name)
 
     def execute(self):
         return {
@@ -93,8 +91,7 @@ class DefineVMSpec(task.Task):
 class LocateImages(task.Task):
     """Locates where the vm images are."""
     def __init__(self, name):
-        super(LocateImages, self).__init__(provides='image_locations',
-                                           name=name)
+        super().__init__(provides='image_locations', name=name)
 
     def execute(self, vm_spec):
         image_locations = {}
@@ -107,13 +104,13 @@ class LocateImages(task.Task):
 class DownloadImages(task.Task):
     """Downloads all the vm images."""
     def __init__(self, name):
-        super(DownloadImages, self).__init__(provides='download_paths',
-                                             name=name)
+        super().__init__(provides='download_paths',
+                         name=name)
 
     def execute(self, image_locations):
         for src, loc in image_locations.items():
             with slow_down(1):
-                print("Downloading from %s => %s" % (src, loc))
+                print("Downloading from {} => {}".format(src, loc))
         return sorted(image_locations.values())
 
 
@@ -125,8 +122,8 @@ IPADDR=%s
 ONBOOT=yes"""
 
     def __init__(self, name):
-        super(CreateNetworkTpl, self).__init__(provides='network_settings',
-                                               name=name)
+        super().__init__(provides='network_settings',
+                         name=name)
 
     def execute(self, ips):
         settings = []
@@ -138,7 +135,7 @@ ONBOOT=yes"""
 class AllocateIP(task.Task):
     """Allocates the ips for the given vm."""
     def __init__(self, name):
-        super(AllocateIP, self).__init__(provides='ips', name=name)
+        super().__init__(provides='ips', name=name)
 
     def execute(self, vm_spec):
         ips = []
@@ -152,7 +149,7 @@ class WriteNetworkSettings(task.Task):
     def execute(self, download_paths, network_settings):
         for j, path in enumerate(download_paths):
             with slow_down(1):
-                print("Mounting %s to /tmp/%s" % (path, j))
+                print("Mounting {} to /tmp/{}".format(path, j))
             for i, setting in enumerate(network_settings):
                 filename = ("/tmp/etc/sysconfig/network-scripts/"
                             "ifcfg-eth%s" % (i))
@@ -263,8 +260,8 @@ with eu.get_backend() as backend:
                                            backend=backend, book=book,
                                            engine='parallel',
                                            executor=executor)
-        print("!! Your tracking id is: '%s+%s'" % (book.uuid,
-                                                   engine.storage.flow_uuid))
+        print("!! Your tracking id is: '{}+{}'".format(
+            book.uuid, engine.storage.flow_uuid))
         print("!! Please submit this on later runs for tracking purposes")
     else:
         # Attempt to load from a previously partially completed flow.

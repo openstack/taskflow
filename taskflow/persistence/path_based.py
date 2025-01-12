@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Rackspace Hosting All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -36,7 +34,7 @@ class PathBasedBackend(base.Backend, metaclass=abc.ABCMeta):
     DEFAULT_PATH = None
 
     def __init__(self, conf):
-        super(PathBasedBackend, self).__init__(conf)
+        super().__init__(conf)
         self._path = self._conf.get('path', None)
         if not self._path:
             self._path = self.DEFAULT_PATH

@@ -36,7 +36,7 @@ def print_header(name):
         print(header_footer)
 
 
-class ProfileIt(object):
+class ProfileIt:
     stats_ordering = ('cumulative', 'calls',)
 
     def __init__(self, name, args):
@@ -65,7 +65,7 @@ class ProfileIt(object):
             print("")
 
 
-class TimeIt(object):
+class TimeIt:
     def __init__(self, name, args):
         self.watch = timeutils.StopWatch()
         self.name = name

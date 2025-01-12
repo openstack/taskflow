@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -58,7 +56,7 @@ def _fetch_predecessor_tree(graph, atom):
     return root
 
 
-class FailureFormatter(object):
+class FailureFormatter:
     """Formats a failure and connects it to associated atoms & engine."""
 
     _BUILDERS = {
@@ -107,7 +105,7 @@ class FailureFormatter(object):
                 if provides_found:
                     atom_attrs['provides'] = provides
             if atom_attrs:
-                return "Atom '%s' %s" % (atom_name, atom_attrs)
+                return "Atom '{}' {}".format(atom_name, atom_attrs)
             else:
                 return "Atom '%s'" % (atom_name)
         else:
@@ -156,7 +154,8 @@ class FailureFormatter(object):
             builder, kind = self._BUILDERS[atom_intention]
             rooted_tree = builder(graph, atom)
             child_count = rooted_tree.child_count(only_direct=False)
-            buff.write_nl('%s %s (most recent first):' % (child_count, kind))
+            buff.write_nl(
+                '{} {} (most recent first):'.format(child_count, kind))
             formatter = functools.partial(self._format_node, storage, cache)
             direct_child_count = rooted_tree.child_count(only_direct=True)
             for i, child in enumerate(rooted_tree, 1):

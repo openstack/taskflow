@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -67,7 +65,7 @@ class TaskFlowException(Exception):
                   this is not yet implemented/supported natively.
     """
     def __init__(self, message, cause=None):
-        super(TaskFlowException, self).__init__(message)
+        super().__init__(message)
         self._cause = cause
 
     @property
@@ -192,7 +190,7 @@ class MissingDependencies(DependencyFailure):
         message = self.MESSAGE_TPL % {'who': who, 'requirements': requirements}
         if method:
             message = (self.METHOD_TPL % {'method': method}) + message
-        super(MissingDependencies, self).__init__(message, cause=cause)
+        super().__init__(message, cause=cause)
         self.missing_requirements = requirements
 
 
@@ -228,7 +226,7 @@ class DisallowedAccess(TaskFlowException):
     """Raised when storage access is not possible due to state limitations."""
 
     def __init__(self, message, cause=None, state=None):
-        super(DisallowedAccess, self).__init__(message, cause=cause)
+        super().__init__(message, cause=cause)
         self.state = state
 
 
@@ -261,7 +259,7 @@ class WrappedFailure(Exception):
     """
 
     def __init__(self, causes):
-        super(WrappedFailure, self).__init__()
+        super().__init__()
         self._causes = []
         for cause in causes:
             if cause.check(type(self)) and cause.exception:
@@ -306,8 +304,8 @@ class WrappedFailure(Exception):
 
     def __str__(self):
         buf = io.StringIO()
-        buf.write(u'WrappedFailure: [')
+        buf.write('WrappedFailure: [')
         causes_gen = (str(cause) for cause in self._causes)
-        buf.write(u", ".join(causes_gen))
-        buf.write(u']')
+        buf.write(", ".join(causes_gen))
+        buf.write(']')
         return buf.getvalue()

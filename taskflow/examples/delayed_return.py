@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -44,7 +42,7 @@ from taskflow.types import notifier
 
 class PokeFutureListener(base.Listener):
     def __init__(self, engine, future, task_name):
-        super(PokeFutureListener, self).__init__(
+        super().__init__(
             engine,
             task_listen_for=(notifier.Notifier.ANY,),
             flow_listen_for=[])

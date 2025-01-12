@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -110,7 +108,7 @@ class PatternCompileTest(test.TestCase):
             ('c', 'test[$]'),
             ('d', 'test[$]'),
         ])
-        self.assertEqual(set(['test']), set(g.no_predecessors_iter()))
+        self.assertEqual({'test'}, set(g.no_predecessors_iter()))
 
     def test_linear_nested(self):
         a, b, c, d = test_utils.make_many(4)
@@ -283,7 +281,7 @@ class PatternCompileTest(test.TestCase):
         self.assertEqual(4, len(g))
         self.assertCountEqual(g.edges(data=True), [
             ('test', 'a', {'invariant': True}),
-            ('a', 'b', {'reasons': set(['x'])}),
+            ('a', 'b', {'reasons': {'x'}}),
             ('b', 'test[$]', {'invariant': True}),
         ])
         self.assertCountEqual(['test'], g.no_predecessors_iter())
@@ -302,7 +300,7 @@ class PatternCompileTest(test.TestCase):
         self.assertCountEqual(g.edges(data=True), [
             ('test', 'a', {'invariant': True}),
             ('test2', 'b', {'invariant': True}),
-            ('a', 'test2', {'reasons': set(['x'])}),
+            ('a', 'test2', {'reasons': {'x'}}),
             ('b', 'c', {'invariant': True}),
             ('c', 'test2[$]', {'invariant': True}),
             ('test2[$]', 'test[$]', {'invariant': True}),
@@ -325,7 +323,7 @@ class PatternCompileTest(test.TestCase):
             ('a', 'test[$]', {'invariant': True}),
 
             # The 'x' requirement is produced out of test2...
-            ('test2[$]', 'a', {'reasons': set(['x'])}),
+            ('test2[$]', 'a', {'reasons': {'x'}}),
 
             ('test2', 'b', {'invariant': True}),
             ('b', 'c', {'invariant': True}),

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -111,7 +109,7 @@ def flow_watch(state, details):
 
 
 def task_watch(state, details):
-    print('Task %s => %s' % (details.get('task_name'), state))
+    print('Task {} => {}'.format(details.get('task_name'), state))
 
 
 flow = lf.Flow("make-auto").add(

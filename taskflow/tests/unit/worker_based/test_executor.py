@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -29,7 +27,7 @@ from taskflow.types import failure
 class TestWorkerTaskExecutor(test.MockTestCase):
 
     def setUp(self):
-        super(TestWorkerTaskExecutor, self).setUp()
+        super().setUp()
         self.task = test_utils.DummyTask()
         self.task_uuid = 'task-uuid'
         self.task_args = {'a': 'a'}

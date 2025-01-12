@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -52,7 +50,7 @@ _LOG_LEVELS = frozenset([
 
 class SleepyTask(task.Task):
     def __init__(self, name, sleep_for=0.0):
-        super(SleepyTask, self).__init__(name=name)
+        super().__init__(name=name)
         self._sleep_for = float(sleep_for)
 
     def execute(self):
@@ -62,7 +60,7 @@ class SleepyTask(task.Task):
             time.sleep(self._sleep_for)
 
 
-class EngineMakerMixin(object):
+class EngineMakerMixin:
     def _make_engine(self, flow, flow_detail=None, backend=None):
         e = taskflow.engines.load(flow,
                                   flow_detail=flow_detail,
@@ -80,7 +78,7 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
         return f
 
     def setUp(self):
-        super(TestClaimListener, self).setUp()
+        super().setUp()
         self.client = fake_client.FakeClient()
         self.addCleanup(self.client.stop)
         self.board = jobs.fetch('test', 'zookeeper', client=self.client)
@@ -315,7 +313,7 @@ class TestLoggingListeners(test.TestCase, EngineMakerMixin):
         with logging_listeners.LoggingListener(e, log=log):
             e.run()
         self.assertGreater(0, handler.counts[logging.DEBUG])
-        for levelno in _LOG_LEVELS - set([logging.DEBUG]):
+        for levelno in _LOG_LEVELS - {logging.DEBUG}:
             self.assertEqual(0, handler.counts[levelno])
         self.assertEqual([], handler.exc_infos)
 
@@ -329,7 +327,7 @@ class TestLoggingListeners(test.TestCase, EngineMakerMixin):
         with listener:
             e.run()
         self.assertGreater(0, handler.counts[logging.INFO])
-        for levelno in _LOG_LEVELS - set([logging.INFO]):
+        for levelno in _LOG_LEVELS - {logging.INFO}:
             self.assertEqual(0, handler.counts[levelno])
         self.assertEqual([], handler.exc_infos)
 
@@ -341,7 +339,7 @@ class TestLoggingListeners(test.TestCase, EngineMakerMixin):
         with logging_listeners.LoggingListener(e, log=log):
             self.assertRaises(RuntimeError, e.run)
         self.assertGreater(0, handler.counts[logging.DEBUG])
-        for levelno in _LOG_LEVELS - set([logging.DEBUG]):
+        for levelno in _LOG_LEVELS - {logging.DEBUG}:
             self.assertEqual(0, handler.counts[levelno])
         self.assertEqual(1, len(handler.exc_infos))
 
@@ -353,7 +351,7 @@ class TestLoggingListeners(test.TestCase, EngineMakerMixin):
         with logging_listeners.DynamicLoggingListener(e, log=log):
             e.run()
         self.assertGreater(0, handler.counts[logging.DEBUG])
-        for levelno in _LOG_LEVELS - set([logging.DEBUG]):
+        for levelno in _LOG_LEVELS - {logging.DEBUG}:
             self.assertEqual(0, handler.counts[levelno])
         self.assertEqual([], handler.exc_infos)
 
@@ -367,7 +365,7 @@ class TestLoggingListeners(test.TestCase, EngineMakerMixin):
         self.assertGreater(0, handler.counts[logging.WARNING])
         self.assertGreater(0, handler.counts[logging.DEBUG])
         self.assertEqual(1, len(handler.exc_infos))
-        for levelno in _LOG_LEVELS - set([logging.DEBUG, logging.WARNING]):
+        for levelno in _LOG_LEVELS - {logging.DEBUG, logging.WARNING}:
             self.assertEqual(0, handler.counts[levelno])
 
     def test_dynamic_failure_customized_level(self):
@@ -382,5 +380,5 @@ class TestLoggingListeners(test.TestCase, EngineMakerMixin):
         self.assertGreater(0, handler.counts[logging.ERROR])
         self.assertGreater(0, handler.counts[logging.DEBUG])
         self.assertEqual(1, len(handler.exc_infos))
-        for levelno in _LOG_LEVELS - set([logging.DEBUG, logging.ERROR]):
+        for levelno in _LOG_LEVELS - {logging.DEBUG, logging.ERROR}:
             self.assertEqual(0, handler.counts[levelno])

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -33,7 +31,7 @@ from taskflow.utils import threading_utils as tu
 LOG = logging.getLogger(__name__)
 
 
-class Worker(object):
+class Worker:
     """Worker that can be started on a remote host for handling tasks requests.
 
     :param url: broker url
@@ -88,13 +86,13 @@ class Worker(object):
         connection_details = self._server.connection_details
         transport = connection_details.transport
         if transport.driver_version:
-            transport_driver = "%s v%s" % (transport.driver_name,
-                                           transport.driver_version)
+            transport_driver = "{} v{}".format(transport.driver_name,
+                                               transport.driver_version)
         else:
             transport_driver = transport.driver_name
         try:
             hostname = socket.getfqdn()
-        except socket.error:
+        except OSError:
             hostname = "???"
         try:
             pid = os.getpid()

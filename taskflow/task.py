@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright 2015 Hewlett-Packard Development Company, L.P.
 #    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
@@ -61,10 +59,10 @@ class Task(atom.Atom, metaclass=abc.ABCMeta):
                  ignore_list=None, revert_rebind=None, revert_requires=None):
         if name is None:
             name = reflection.get_class_name(self)
-        super(Task, self).__init__(name, provides=provides, requires=requires,
-                                   auto_extract=auto_extract, rebind=rebind,
-                                   inject=inject, revert_rebind=revert_rebind,
-                                   revert_requires=revert_requires)
+        super().__init__(name, provides=provides, requires=requires,
+                         auto_extract=auto_extract, rebind=rebind,
+                         inject=inject, revert_rebind=revert_rebind,
+                         revert_requires=revert_requires)
         self._notifier = notifier.RestrictedNotifier(self.TASK_EVENTS)
 
     @property
@@ -131,8 +129,7 @@ class FunctorTask(Task):
                                  " be callable")
         if name is None:
             name = reflection.get_callable_name(execute)
-        super(FunctorTask, self).__init__(name, provides=provides,
-                                          inject=inject)
+        super().__init__(name, provides=provides, inject=inject)
         self._execute = execute
         self._revert = revert
         if version is not None:
@@ -190,12 +187,12 @@ class ReduceFunctorTask(Task):
 
         if name is None:
             name = reflection.get_callable_name(functor)
-        super(ReduceFunctorTask, self).__init__(name=name,
-                                                provides=provides,
-                                                inject=inject,
-                                                requires=requires,
-                                                rebind=rebind,
-                                                auto_extract=auto_extract)
+        super().__init__(name=name,
+                         provides=provides,
+                         inject=inject,
+                         requires=requires,
+                         rebind=rebind,
+                         auto_extract=auto_extract)
 
         self._functor = functor
 
@@ -235,10 +232,10 @@ class MapFunctorTask(Task):
 
         if name is None:
             name = reflection.get_callable_name(functor)
-        super(MapFunctorTask, self).__init__(name=name, provides=provides,
-                                             inject=inject, requires=requires,
-                                             rebind=rebind,
-                                             auto_extract=auto_extract)
+        super().__init__(name=name, provides=provides,
+                         inject=inject, requires=requires,
+                         rebind=rebind,
+                         auto_extract=auto_extract)
 
         self._functor = functor
 

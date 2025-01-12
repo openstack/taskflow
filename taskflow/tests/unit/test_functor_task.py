@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -24,7 +22,7 @@ def add(a, b):
     return a + b
 
 
-class BunchOfFunctions(object):
+class BunchOfFunctions:
 
     def __init__(self, values):
         self.values = values

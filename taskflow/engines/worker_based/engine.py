@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -53,8 +51,7 @@ class WorkerBasedActionEngine(engine.ActionEngine):
     """
 
     def __init__(self, flow, flow_detail, backend, options):
-        super(WorkerBasedActionEngine, self).__init__(flow, flow_detail,
-                                                      backend, options)
+        super().__init__(flow, flow_detail, backend, options)
         # This ensures that any provided executor will be validated before
         # we get to far in the compilation/execution pipeline...
         self._task_executor = self._fetch_task_executor(self._options,

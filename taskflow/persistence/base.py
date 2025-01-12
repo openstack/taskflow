@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -19,7 +17,7 @@ import abc
 from taskflow.persistence import models
 
 
-class Backend(object, metaclass=abc.ABCMeta):
+class Backend(metaclass=abc.ABCMeta):
     """Base class for persistence backends."""
 
     def __init__(self, conf):
@@ -39,7 +37,7 @@ class Backend(object, metaclass=abc.ABCMeta):
         """Closes any resources this backend has open."""
 
 
-class Connection(object, metaclass=abc.ABCMeta):
+class Connection(metaclass=abc.ABCMeta):
     """Base class for backend connections."""
 
     @property

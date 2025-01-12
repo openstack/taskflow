@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
@@ -31,10 +29,10 @@ class FakeInode(tree.Node):
     """A in-memory filesystem inode-like object."""
 
     def __init__(self, item, path, value=None):
-        super(FakeInode, self).__init__(item, path=path, value=value)
+        super().__init__(item, path=path, value=value)
 
 
-class FakeFilesystem(object):
+class FakeFilesystem:
     """An in-memory filesystem-like structure.
 
     This filesystem uses posix style paths **only** so users must be careful
@@ -249,8 +247,7 @@ class FakeFilesystem(object):
             parts = path.split(pp.sep)[1:]
         if include_root:
             parts.insert(0, self._root.item)
-        for piece in parts:
-            yield piece
+        yield from parts
 
     def __delitem__(self, path):
         self.delete(path, recursive=True)
@@ -258,7 +255,7 @@ class FakeFilesystem(object):
     @staticmethod
     def _stringify_node(node):
         if 'target' in node.metadata:
-            return "%s (link to %s)" % (node.item, node.metadata['target'])
+            return "{} (link to {})".format(node.item, node.metadata['target'])
         else:
             return str(node.item)
 
@@ -309,7 +306,7 @@ class MemoryBackend(path_based.PathBasedBackend):
     DEFAULT_PATH = pp.sep
 
     def __init__(self, conf=None):
-        super(MemoryBackend, self).__init__(conf)
+        super().__init__(conf)
         self.memory = FakeFilesystem(deep_copy=self._conf.get('deep_copy',
                                                               True))
         self.lock = fasteners.ReaderWriterLock()
@@ -323,7 +320,7 @@ class MemoryBackend(path_based.PathBasedBackend):
 
 class Connection(path_based.PathBasedConnection):
     def __init__(self, backend):
-        super(Connection, self).__init__(backend)
+        super().__init__(backend)
         self.upgrade()
 
     @contextlib.contextmanager

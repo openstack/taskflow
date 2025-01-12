@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -57,8 +55,7 @@ class OrderedSet(abc.Set, abc.Hashable):
         return len(self._data)
 
     def __iter__(self):
-        for value in self._data.keys():
-            yield value
+        yield from self._data.keys()
 
     def __setstate__(self, items):
         self.__init__(iterable=iter(items))
@@ -67,7 +64,7 @@ class OrderedSet(abc.Set, abc.Hashable):
         return tuple(self)
 
     def __repr__(self):
-        return "%s(%s)" % (type(self).__name__, list(self))
+        return "{}({})".format(type(self).__name__, list(self))
 
     def copy(self):
         """Return a shallow copy of a set."""

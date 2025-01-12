@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -46,12 +44,12 @@ ATOMS = (TASK, RETRY)
 FLOWS = (FLOW, FLOW_END)
 
 
-class Terminator(object):
+class Terminator:
     """Flow terminator class."""
 
     def __init__(self, flow):
         self._flow = flow
-        self._name = "%s[$]" % (self._flow.name,)
+        self._name = "{}[$]".format(self._flow.name)
 
     @property
     def flow(self):
@@ -68,7 +66,7 @@ class Terminator(object):
         return '"%s[$]"' % flow_name
 
 
-class Compilation(object):
+class Compilation:
     """The result of a compilers ``compile()`` is this *immutable* object."""
 
     #: Task nodes will have a ``kind`` metadata key with this value.
@@ -135,7 +133,7 @@ def _add_update_edges(graph, nodes_from, nodes_to, attr_dict=None):
                     graph.add_edge(u, v, attr_dict=attr_dict.copy())
 
 
-class TaskCompiler(object):
+class TaskCompiler:
     """Non-recursive compiler of tasks."""
 
     def compile(self, task, parent=None):
@@ -147,7 +145,7 @@ class TaskCompiler(object):
         return graph, node
 
 
-class FlowCompiler(object):
+class FlowCompiler:
     """Recursive compiler of flows."""
 
     def __init__(self, deep_compiler_func):
@@ -162,9 +160,9 @@ class FlowCompiler(object):
             parent.add(tree_node)
         if flow.retry is not None:
             tree_node.add(tr.Node(flow.retry, kind=RETRY))
-        decomposed = dict(
-            (child, self._deep_compiler_func(child, parent=tree_node)[0])
-            for child in flow)
+        decomposed = {
+            child: self._deep_compiler_func(child, parent=tree_node)[0]
+            for child in flow}
         decomposed_graphs = list(decomposed.values())
         graph = gr.merge_graphs(graph, *decomposed_graphs,
                                 overlap_detector=_overlap_occurrence_detector)
@@ -223,7 +221,7 @@ class FlowCompiler(object):
         return graph, tree_node
 
 
-class PatternCompiler(object):
+class PatternCompiler:
     """Compiles a flow pattern (or task) into a compilation unit.
 
     Let's dive into the basic idea for how this works:

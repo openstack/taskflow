@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -26,7 +24,7 @@ from taskflow import states
 LOG = logging.getLogger(__name__)
 
 
-class Decider(object, metaclass=abc.ABCMeta):
+class Decider(metaclass=abc.ABCMeta):
     """Base class for deciders.
 
     Provides interface to be implemented by sub-classes.

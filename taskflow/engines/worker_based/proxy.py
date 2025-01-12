@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -40,7 +38,7 @@ _TransportDetails = collections.namedtuple('_TransportDetails',
                                             'driver_name', 'driver_version'])
 
 
-class Proxy(object):
+class Proxy:
     """A proxy processes messages from/to the named exchange.
 
     For **internal** usage only (not for public consumption).
@@ -145,7 +143,7 @@ class Proxy(object):
 
     def _make_queue(self, routing_key, exchange, channel=None):
         """Make a named queue for the given exchange."""
-        queue_name = "%s_%s" % (self._exchange_name, routing_key)
+        queue_name = "{}_{}".format(self._exchange_name, routing_key)
         return kombu.Queue(name=queue_name,
                            routing_key=routing_key, durable=False,
                            exchange=exchange, auto_delete=True,

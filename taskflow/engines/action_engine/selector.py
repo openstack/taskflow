@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -27,7 +25,7 @@ from taskflow.utils import iter_utils
 LOG = logging.getLogger(__name__)
 
 
-class Selector(object):
+class Selector:
     """Selector that uses a compilation and aids in execution processes.
 
     Its primary purpose is to get the next atoms for execution or reversion

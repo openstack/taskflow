@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -735,7 +733,7 @@ class RetryTest(utils.EngineTestBase):
         self.assertEqual(expected, capturer.values)
 
     def test_for_each_with_set(self):
-        collection = set([3, 2, 5])
+        collection = {3, 2, 5}
         retry1 = retry.ForEach(collection, 'r1', provides='x')
         flow = lf.Flow('flow-1', retry1).add(utils.FailingTaskWithOneArg('t1'))
         engine = self._make_engine(flow)

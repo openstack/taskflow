@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -37,7 +35,7 @@ def connect_close(*args):
             a.close()
 
 
-class BoardTestMixin(object):
+class BoardTestMixin:
 
     @contextlib.contextmanager
     def flush(self, client):

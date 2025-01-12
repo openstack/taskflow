@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -25,7 +23,7 @@ from taskflow.tests import utils
 from taskflow.types import failure
 
 
-class Unserializable(object):
+class Unserializable:
     pass
 
 
@@ -98,7 +96,7 @@ class TestProtocolValidation(test.TestCase):
 class TestProtocol(test.TestCase):
 
     def setUp(self):
-        super(TestProtocol, self).setUp()
+        super().setUp()
         self.task = utils.DummyTask()
         self.task_uuid = 'task-uuid'
         self.task_action = 'execute'

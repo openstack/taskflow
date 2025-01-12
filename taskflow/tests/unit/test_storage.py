@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -30,9 +28,9 @@ from taskflow.types import failure
 from taskflow.utils import persistence_utils as p_utils
 
 
-class StorageTestMixin(object):
+class StorageTestMixin:
     def setUp(self):
-        super(StorageTestMixin, self).setUp()
+        super().setUp()
         self.backend = None
         self.thread_count = 50
 
@@ -40,7 +38,7 @@ class StorageTestMixin(object):
         with contextlib.closing(self.backend) as be:
             with contextlib.closing(be.get_connection()) as conn:
                 conn.clear_all()
-        super(StorageTestMixin, self).tearDown()
+        super().tearDown()
 
     @staticmethod
     def _run_many_threads(threads):
@@ -357,14 +355,14 @@ class StorageTestMixin(object):
         s.inject({'foo': 'bar', 'spam': 'eggs'})
         self.assertEqual({'viking': 'eggs'},
                          s.fetch_mapped_args({'viking': 'spam'},
-                                             optional_args=set(['viking'])))
+                                             optional_args={'viking'}))
 
     def test_fetch_optional_args_not_found(self):
         s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
         self.assertEqual({},
                          s.fetch_mapped_args({'viking': 'helmet'},
-                                             optional_args=set(['viking'])))
+                                             optional_args={'viking'}))
 
     def test_set_and_get_task_state(self):
         s = self._get_storage()
@@ -437,7 +435,7 @@ class StorageTestMixin(object):
 
     def test_result_is_checked(self):
         s = self._get_storage()
-        s.ensure_atom(test_utils.NoopTask('my task', provides=set(['result'])))
+        s.ensure_atom(test_utils.NoopTask('my task', provides={'result'}))
         s.save('my task', {})
         self.assertRaisesRegex(exceptions.NotFound,
                                '^Unable to find result', s.fetch, 'result')
@@ -539,7 +537,7 @@ class StorageTestMixin(object):
         s = self._get_storage()
         s.ensure_atom(t)
         missing = s.fetch_unsatisfied_args(t.name, t.rebind)
-        self.assertEqual(set(['x']), missing)
+        self.assertEqual({'x'}, missing)
         s.inject_atom_args(t.name, {'x': 2}, transient=False)
         missing = s.fetch_unsatisfied_args(t.name, t.rebind)
         self.assertEqual(set(), missing)
@@ -551,7 +549,7 @@ class StorageTestMixin(object):
         s = self._get_storage()
         s.ensure_atom(t)
         missing = s.fetch_unsatisfied_args(t.name, t.rebind)
-        self.assertEqual(set(['x']), missing)
+        self.assertEqual({'x'}, missing)
         s.inject_atom_args(t.name, {'x': 2}, transient=False)
         s.inject_atom_args(t.name, {'x': 3}, transient=True)
         missing = s.fetch_unsatisfied_args(t.name, t.rebind)
@@ -589,13 +587,13 @@ class StorageTestMixin(object):
 
 class StorageMemoryTest(StorageTestMixin, test.TestCase):
     def setUp(self):
-        super(StorageMemoryTest, self).setUp()
+        super().setUp()
         self.backend = backends.fetch({'connection': 'memory://'})
 
 
 class StorageSQLTest(StorageTestMixin, test.TestCase):
     def setUp(self):
-        super(StorageSQLTest, self).setUp()
+        super().setUp()
         self.backend = backends.fetch({'connection': 'sqlite://'})
         with contextlib.closing(self.backend.get_connection()) as conn:
             conn.upgrade()

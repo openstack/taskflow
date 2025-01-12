@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -298,7 +296,7 @@ class BuildersTest(test.TestCase):
             flow, initial_state=st.RUNNING)
         transitions = list(machine_runner.run_iter(builder.START))
 
-        occurrences = dict((t, transitions.count(t)) for t in transitions)
+        occurrences = {t: transitions.count(t) for t in transitions}
         self.assertEqual(10, occurrences.get((st.SCHEDULING, st.WAITING)))
         self.assertEqual(10, occurrences.get((st.WAITING, st.ANALYZING)))
         self.assertEqual(9, occurrences.get((st.ANALYZING, st.SCHEDULING)))

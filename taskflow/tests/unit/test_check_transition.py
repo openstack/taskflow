@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -50,7 +48,7 @@ class TransitionTest(test.TestCase):
 class CheckFlowTransitionTest(TransitionTest):
 
     def setUp(self):
-        super(CheckFlowTransitionTest, self).setUp()
+        super().setUp()
         self.check_transition = states.check_flow_transition
         self.transition_exc_regexp = '^Flow transition.*not allowed'
 
@@ -73,7 +71,7 @@ class CheckFlowTransitionTest(TransitionTest):
 class CheckTaskTransitionTest(TransitionTest):
 
     def setUp(self):
-        super(CheckTaskTransitionTest, self).setUp()
+        super().setUp()
         self.check_transition = states.check_task_transition
         self.transition_exc_regexp = '^Task transition.*not allowed'
 
@@ -122,7 +120,7 @@ class CheckTaskTransitionTest(TransitionTest):
 class CheckRetryTransitionTest(CheckTaskTransitionTest):
 
     def setUp(self):
-        super(CheckRetryTransitionTest, self).setUp()
+        super().setUp()
         self.check_transition = states.check_retry_transition
         self.transition_exc_regexp = '^Retry transition.*not allowed'
 

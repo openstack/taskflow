@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -104,7 +102,7 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
                  persistence=None, engine=None,
                  engine_options=None, wait_timeout=None,
                  log=None, max_simultaneous_jobs=MAX_SIMULTANEOUS_JOBS):
-        super(ExecutorConductor, self).__init__(
+        super().__init__(
             name, jobboard, persistence=persistence,
             engine=engine, engine_options=engine_options)
         self._wait_timeout = tt.convert_to_timeout(
@@ -139,8 +137,7 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
         return not self._dead.is_set()
 
     def _listeners_from_job(self, job, engine):
-        listeners = super(ExecutorConductor, self)._listeners_from_job(
-            job, engine)
+        listeners = super()._listeners_from_job(job, engine)
         listeners.append(logging_listener.LoggingListener(engine,
                                                           log=self._log))
         return listeners
@@ -178,7 +175,7 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
                     stage_func()
                     self._notifier.notify("%s_end" % event_name, details)
             except excp.WrappedFailure as e:
-                if all((f.check(*self.NO_CONSUME_EXCEPTIONS) for f in e)):
+                if all(f.check(*self.NO_CONSUME_EXCEPTIONS) for f in e):
                     consume = False
                 if self._log.isEnabledFor(logging.WARNING):
                     if consume:

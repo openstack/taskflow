@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Rackspace Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,7 +13,7 @@
 #    under the License.
 
 
-class Entity(object):
+class Entity:
     """Entity object that identifies some resource/item/other.
 
     :ivar kind: **immutable** type/kind that identifies this

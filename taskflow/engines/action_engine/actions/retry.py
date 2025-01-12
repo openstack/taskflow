@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -24,7 +22,7 @@ class RetryAction(base.Action):
     """An action that handles executing, state changes, ... of retry atoms."""
 
     def __init__(self, storage, notifier, retry_executor):
-        super(RetryAction, self).__init__(storage, notifier)
+        super().__init__(storage, notifier)
         self._retry_executor = retry_executor
 
     def _get_retry_args(self, retry, revert=False, addons=None):

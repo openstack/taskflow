@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -38,12 +36,12 @@ from taskflow import task
 
 class PrinterTask(task.Task):
     def __init__(self, name, show_name=True, inject=None):
-        super(PrinterTask, self).__init__(name, inject=inject)
+        super().__init__(name, inject=inject)
         self._show_name = show_name
 
     def execute(self, output):
         if self._show_name:
-            print("%s: %s" % (self.name, output))
+            print("{}: {}".format(self.name, output))
         else:
             print(output)
 

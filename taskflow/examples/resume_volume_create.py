@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -72,7 +70,7 @@ def find_flow_detail(backend, book_id, flow_id):
 class PrintText(task.Task):
     def __init__(self, print_what, no_slow=False):
         content_hash = hashlib.md5(print_what.encode('utf-8')).hexdigest()[0:8]
-        super(PrintText, self).__init__(name="Print: %s" % (content_hash))
+        super().__init__(name="Print: %s" % (content_hash))
         self._text = print_what
         self._no_slow = no_slow
 
@@ -141,8 +139,8 @@ with example_utils.get_backend() as backend:
         book.add(flow_detail)
         with contextlib.closing(backend.get_connection()) as conn:
             conn.save_logbook(book)
-        print("!! Your tracking id is: '%s+%s'" % (book.uuid,
-                                                   flow_detail.uuid))
+        print("!! Your tracking id is: '{}+{}'".format(book.uuid,
+                                                       flow_detail.uuid))
         print("!! Please submit this on later runs for tracking purposes")
     else:
         flow_detail = find_flow_detail(backend, book_id, flow_id)

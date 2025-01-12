@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -21,7 +19,7 @@ from taskflow import states as st
 from taskflow.types import failure
 
 
-class RetryScheduler(object):
+class RetryScheduler:
     """Schedules retry atoms."""
 
     def __init__(self, runtime):
@@ -52,7 +50,7 @@ class RetryScheduler(object):
                                         " intention: %s" % intention)
 
 
-class TaskScheduler(object):
+class TaskScheduler:
     """Schedules task atoms."""
 
     def __init__(self, runtime):
@@ -75,7 +73,7 @@ class TaskScheduler(object):
                                         " intention: %s" % intention)
 
 
-class Scheduler(object):
+class Scheduler:
     """Safely schedules atoms using a runtime ``fetch_scheduler`` routine."""
 
     def __init__(self, runtime):

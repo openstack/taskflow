@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -54,7 +52,7 @@ from taskflow import task
 class Provider(task.Task):
 
     def __init__(self, name, *args, **kwargs):
-        super(Provider, self).__init__(name=name, **kwargs)
+        super().__init__(name=name, **kwargs)
         self._provide = args
 
     def execute(self):
@@ -79,8 +77,8 @@ class Adder(task.Task):
 # this function needs to undo if some later operation fails.
 class Multiplier(task.Task):
     def __init__(self, name, multiplier, provides=None, rebind=None):
-        super(Multiplier, self).__init__(name=name, provides=provides,
-                                         rebind=rebind)
+        super().__init__(name=name, provides=provides,
+                         rebind=rebind)
         self._multiplier = multiplier
 
     def execute(self, z):

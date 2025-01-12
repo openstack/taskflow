@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -65,8 +63,8 @@ class UnorderedFlowTest(test.TestCase):
         self.assertEqual(1, len(f))
         self.assertEqual([task], list(f))
         self.assertEqual([], list(f.iter_links()))
-        self.assertEqual(set(['a', 'b']), f.requires)
-        self.assertEqual(set(['c', 'd']), f.provides)
+        self.assertEqual({'a', 'b'}, f.requires)
+        self.assertEqual({'c', 'd'}, f.provides)
 
     def test_unordered_flow_two_tasks(self):
         task1 = _task(name='task1')
@@ -74,7 +72,7 @@ class UnorderedFlowTest(test.TestCase):
         f = uf.Flow('test').add(task1, task2)
 
         self.assertEqual(2, len(f))
-        self.assertEqual(set([task1, task2]), set(f))
+        self.assertEqual({task1, task2}, set(f))
         self.assertEqual([], list(f.iter_links()))
 
     def test_unordered_flow_two_tasks_two_different_calls(self):
@@ -83,16 +81,16 @@ class UnorderedFlowTest(test.TestCase):
         f = uf.Flow('test').add(task1)
         f.add(task2)
         self.assertEqual(2, len(f))
-        self.assertEqual(set(['a']), f.requires)
-        self.assertEqual(set(['a']), f.provides)
+        self.assertEqual({'a'}, f.requires)
+        self.assertEqual({'a'}, f.provides)
 
     def test_unordered_flow_two_tasks_reverse_order(self):
         task1 = _task(name='task1', provides=['a'])
         task2 = _task(name='task2', requires=['a'])
         f = uf.Flow('test').add(task2).add(task1)
         self.assertEqual(2, len(f))
-        self.assertEqual(set(['a']), f.requires)
-        self.assertEqual(set(['a']), f.provides)
+        self.assertEqual({'a'}, f.requires)
+        self.assertEqual({'a'}, f.provides)
 
     def test_unordered_flow_two_task_same_provide(self):
         task1 = _task(name='task1', provides=['a', 'b'])
@@ -107,8 +105,8 @@ class UnorderedFlowTest(test.TestCase):
         self.assertIs(f.retry, ret)
         self.assertEqual('test_retry', ret.name)
 
-        self.assertEqual(set(['a']), f.requires)
-        self.assertEqual(set(['b']), f.provides)
+        self.assertEqual({'a'}, f.requires)
+        self.assertEqual({'b'}, f.provides)
 
     def test_unordered_flow_with_retry_fully_satisfies(self):
         ret = retry.AlwaysRevert(provides=['b', 'a'])
@@ -116,13 +114,13 @@ class UnorderedFlowTest(test.TestCase):
         f.add(_task(name='task1', requires=['a']))
         self.assertIs(f.retry, ret)
         self.assertEqual('test_retry', ret.name)
-        self.assertEqual(set([]), f.requires)
-        self.assertEqual(set(['b', 'a']), f.provides)
+        self.assertEqual(set(), f.requires)
+        self.assertEqual({'b', 'a'}, f.provides)
 
     def test_iter_nodes(self):
         task1 = _task(name='task1', provides=['a', 'b'])
         task2 = _task(name='task2', provides=['a', 'c'])
-        tasks = set([task1, task2])
+        tasks = {task1, task2}
         f = uf.Flow('test')
         f.add(task2, task1)
         for (node, data) in f.iter_nodes():

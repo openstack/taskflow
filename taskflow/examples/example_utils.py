@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -52,7 +50,7 @@ def rm_path(persist_path):
         raise ValueError("Unknown how to `rm` path: %s" % (persist_path))
     try:
         rm_func(persist_path)
-    except (IOError, OSError):
+    except OSError:
         pass
 
 

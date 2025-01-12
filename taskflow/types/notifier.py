@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -24,7 +22,7 @@ from oslo_utils import reflection
 LOG = logging.getLogger(__name__)
 
 
-class Listener(object):
+class Listener:
     """Immutable helper that represents a notification listener/target."""
 
     def __init__(self, callback, args=None, kwargs=None, details_filter=None):
@@ -89,7 +87,7 @@ class Listener(object):
         self._callback(event_type, *self._args, **kwargs)
 
     def __repr__(self):
-        repr_msg = "%s object at 0x%x calling into '%r'" % (
+        repr_msg = "{} object at 0x{:x} calling into '{!r}'".format(
             reflection.get_class_name(self, fully_qualified=False),
             id(self), self._callback)
         if self._details_filter is not None:
@@ -126,7 +124,7 @@ class Listener(object):
         return not self.__eq__(other)
 
 
-class Notifier(object):
+class Notifier:
     """A notification (`pub/sub`_ *like*) helper class.
 
     It is intended to be used to subscribe to notifications of events
@@ -151,7 +149,7 @@ class Notifier(object):
     ANY = '*'
 
     #: Events which can *not* be used to trigger notifications
-    _DISALLOWED_NOTIFICATION_EVENTS = set([ANY])
+    _DISALLOWED_NOTIFICATION_EVENTS = {ANY}
 
     def __init__(self):
         self._topics = collections.defaultdict(list)
@@ -321,7 +319,7 @@ class RestrictedNotifier(Notifier):
     """
 
     def __init__(self, watchable_events, allow_any=True):
-        super(RestrictedNotifier, self).__init__()
+        super().__init__()
         self._watchable_events = frozenset(watchable_events)
         self._allow_any = allow_any
 
@@ -332,8 +330,7 @@ class RestrictedNotifier(Notifier):
         meta-type is not a specific event but is a capture-all that does not
         imply the same meaning as specific event types.
         """
-        for event_type in self._watchable_events:
-            yield event_type
+        yield from self._watchable_events
 
     def can_be_registered(self, event_type):
         """Checks if the event can be registered/subscribed to.

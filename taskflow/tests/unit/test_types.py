@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -66,9 +64,9 @@ class GraphTest(test.TestCase):
         g.add_node("b")
         g.add_node("c")
         g.add_edge("b", "c")
-        self.assertEqual(set(['a', 'b']),
+        self.assertEqual({'a', 'b'},
                          set(g.no_predecessors_iter()))
-        self.assertEqual(set(['a', 'c']),
+        self.assertEqual({'a', 'c'},
                          set(g.no_successors_iter()))
 
     def test_directed(self):
@@ -534,8 +532,8 @@ CEO
     def test_dfs_itr(self):
         root = self._make_species()
         things = list([n.item for n in root.dfs_iter(include_self=True)])
-        self.assertEqual(set(['animal', 'reptile', 'mammal', 'horse',
-                              'primate', 'monkey', 'human']), set(things))
+        self.assertEqual({'animal', 'reptile', 'mammal', 'horse',
+                          'primate', 'monkey', 'human'}, set(things))
 
     def test_dfs_itr_left_to_right(self):
         root = self._make_species()

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -43,11 +41,11 @@ from taskflow.utils import threading_utils as tu
 
 class DelayedTask(task.Task):
     def __init__(self, name):
-        super(DelayedTask, self).__init__(name=name)
+        super().__init__(name=name)
         self._wait_for = random.random()
 
     def execute(self):
-        print("Running '%s' in thread '%s'" % (self.name, tu.get_ident()))
+        print("Running '{}' in thread '{}'".format(self.name, tu.get_ident()))
         time.sleep(self._wait_for)
 
 

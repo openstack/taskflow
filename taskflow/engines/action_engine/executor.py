@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -78,7 +76,7 @@ def _revert_task(task, arguments, result, failures, progress_callback=None):
     return (REVERTED, result)
 
 
-class SerialRetryExecutor(object):
+class SerialRetryExecutor:
     """Executes and reverts retries."""
 
     def __init__(self):
@@ -105,7 +103,7 @@ class SerialRetryExecutor(object):
         return fut
 
 
-class TaskExecutor(object, metaclass=abc.ABCMeta):
+class TaskExecutor(metaclass=abc.ABCMeta):
     """Executes and reverts tasks.
 
     This class takes task and its arguments and executes or reverts it.

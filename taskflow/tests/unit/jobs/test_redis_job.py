@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -101,7 +99,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
             self.assertEqual(0, len(possible_jobs))
 
     def setUp(self):
-        super(RedisJobboardTest, self).setUp()
+        super().setUp()
         self.client, self.board = self.create_board()
 
     def test__make_client(self):

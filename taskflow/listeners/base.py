@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -77,7 +75,7 @@ def _bulk_register(watch_states, notifier, cb, details_filter=None):
         return registered
 
 
-class Listener(object):
+class Listener:
     """Base class for listeners.
 
     A listener can be attached to an engine to do various actions on flow and

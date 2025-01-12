@@ -36,7 +36,7 @@ RESULTS = {}
 class Starts(testtools.StreamResult):
 
     def __init__(self, output):
-        super(Starts, self).__init__()
+        super().__init__()
         self._output = output
 
     def startTestRun(self):
@@ -46,7 +46,7 @@ class Starts(testtools.StreamResult):
     def status(self, test_id=None, test_status=None, test_tags=None,
                runnable=True, file_name=None, file_bytes=None, eof=False,
                mime_type=None, route_code=None, timestamp=None):
-        super(Starts, self).status(
+        super().status(
             test_id, test_status,
             test_tags=test_tags, runnable=runnable, file_name=file_name,
             file_bytes=file_bytes, eof=eof, mime_type=mime_type,
@@ -146,7 +146,7 @@ def print_attachments(stream, test, all_channels=False):
             detail.content_type.type = 'text'
         if (all_channels or name in channels) and detail.as_text():
             title = "Captured %s:" % name
-            stream.write("\n%s\n%s\n" % (title, ('~' * len(title))))
+            stream.write("\n{}\n{}\n".format(title, ('~' * len(title))))
             # indent attachment lines 4 spaces to make them visually
             # offset
             for line in detail.as_text().split('\n'):
@@ -174,20 +174,20 @@ def show_outcome(stream, test, print_failures=False, failonly=False):
 
     if status == 'fail':
         FAILS.append(test)
-        stream.write('{%s} %s [%s] ... FAILED\n' % (
+        stream.write('{{{}}} {} [{}] ... FAILED\n'.format(
             worker, name, duration))
         if not print_failures:
             print_attachments(stream, test, all_channels=True)
     elif not failonly:
         if status == 'success':
-            stream.write('{%s} %s [%s] ... ok\n' % (
+            stream.write('{{{}}} {} [{}] ... ok\n'.format(
                 worker, name, duration))
             print_attachments(stream, test)
         elif status == 'skip':
-            stream.write('{%s} %s ... SKIPPED: %s\n' % (
+            stream.write('{{{}}} {} ... SKIPPED: {}\n'.format(
                 worker, name, test['details']['reason'].as_text()))
         else:
-            stream.write('{%s} %s [%s] ... %s\n' % (
+            stream.write('{{{}}} {} [{}] ... {}\n'.format(
                 worker, name, duration, test['status']))
             if not print_failures:
                 print_attachments(stream, test, all_channels=True)
@@ -240,8 +240,8 @@ def worker_stats(worker):
 
 def print_summary(stream):
     stream.write("\n======\nTotals\n======\n")
-    stream.write("Run: %s in %s sec.\n" % (count_tests('status', '.*'),
-                                           run_time()))
+    stream.write("Run: {} in {} sec.\n".format(count_tests('status', '.*'),
+                                               run_time()))
     stream.write(" - Passed: %s\n" % count_tests('status', 'success'))
     stream.write(" - Skipped: %s\n" % count_tests('status', 'skip'))
     stream.write(" - Failed: %s\n" % count_tests('status', 'fail'))

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2015 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -22,7 +20,7 @@ _MSG_PROPERTIES = tuple([
 ])
 
 
-class DelayedPretty(object):
+class DelayedPretty:
     """Wraps a message and delays prettifying it until requested.
 
     TODO(harlowja): remove this when https://github.com/celery/kombu/pull/454/
@@ -70,7 +68,7 @@ def _prettify_message(message):
                 properties[segments[-1]] = value
     if message.body is not None:
         properties['body_length'] = len(message.body)
-    return "%(delivery_tag)s: %(properties)s" % {
-        'delivery_tag': message.delivery_tag,
-        'properties': properties,
-    }
+    return "{delivery_tag}: {properties}".format(
+        delivery_tag=message.delivery_tag,
+        properties=properties,
+    )

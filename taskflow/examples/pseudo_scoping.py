@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Ivan Melnikov <iv at altlinux dot org>
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -67,7 +65,7 @@ class CallTask(task.Task):
     """Task that calls person by number."""
 
     def execute(self, person, number):
-        print('Calling %s %s.' % (person, number))
+        print('Calling {} {}.'.format(person, number))
 
 # This is how it works for one person:
 
@@ -84,7 +82,7 @@ taskflow.engines.run(simple_flow, store={'person': 'Josh'})
 # we use `rebind` argument of task constructor.
 def subflow_factory(prefix):
     def pr(what):
-        return '%s-%s' % (prefix, what)
+        return '{}-{}'.format(prefix, what)
 
     return lf.Flow(pr('flow')).add(
         FetchNumberTask(pr('fetch'),

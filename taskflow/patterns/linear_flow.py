@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -36,7 +34,7 @@ class Flow(flow.Flow):
     """
 
     def __init__(self, name, retry=None):
-        super(Flow, self).__init__(name, retry)
+        super().__init__(name, retry)
         self._graph = gr.OrderedDiGraph(name=name)
         self._last_item = self._no_last_item
 
@@ -55,8 +53,7 @@ class Flow(flow.Flow):
         return len(self._graph)
 
     def __iter__(self):
-        for item in self._graph.nodes:
-            yield item
+        yield from self._graph.nodes
 
     @property
     def requires(self):
@@ -71,9 +68,7 @@ class Flow(flow.Flow):
         return frozenset(requires)
 
     def iter_nodes(self):
-        for (n, n_data) in self._graph.nodes(data=True):
-            yield (n, n_data)
+        yield from self._graph.nodes(data=True)
 
     def iter_links(self):
-        for (u, v, e_data) in self._graph.edges(data=True):
-            yield (u, v, e_data)
+        yield from self._graph.edges(data=True)

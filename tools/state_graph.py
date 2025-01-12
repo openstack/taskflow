@@ -34,7 +34,7 @@ from taskflow import states
 
 # This is just needed to get at the machine object (we will not
 # actually be running it...).
-class DummyRuntime(object):
+class DummyRuntime:
     def __init__(self):
         self.analyzer = mock.MagicMock()
         self.completer = mock.MagicMock()
@@ -185,7 +185,7 @@ def main():
     print(g.to_string().strip())
 
     g.write(options.filename, format=options.format)
-    print("Created %s at '%s'" % (options.format, options.filename))
+    print("Created {} at '{}'".format(options.format, options.filename))
 
     # To make the svg more pretty use the following:
     # $ xsltproc ../diagram-tools/notugly.xsl ./states.svg > pretty-states.svg

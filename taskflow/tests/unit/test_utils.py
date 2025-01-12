@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -30,7 +28,7 @@ from taskflow.utils import threading_utils
 class CachedPropertyTest(test.TestCase):
     def test_attribute_caching(self):
 
-        class A(object):
+        class A:
             def __init__(self):
                 self.call_counter = 0
 
@@ -46,7 +44,7 @@ class CachedPropertyTest(test.TestCase):
 
     def test_custom_property(self):
 
-        class A(object):
+        class A:
             @misc.cachedproperty('_c')
             def b(self):
                 return 'b'
@@ -60,7 +58,7 @@ class CachedPropertyTest(test.TestCase):
         def try_del(a):
             del a.b
 
-        class A(object):
+        class A:
             @misc.cachedproperty
             def b(self):
                 return 'b'
@@ -75,7 +73,7 @@ class CachedPropertyTest(test.TestCase):
         def try_set(a):
             a.b = 'c'
 
-        class A(object):
+        class A:
             @misc.cachedproperty
             def b(self):
                 return 'b'
@@ -87,7 +85,7 @@ class CachedPropertyTest(test.TestCase):
 
     def test_documented_property(self):
 
-        class A(object):
+        class A:
             @misc.cachedproperty
             def b(self):
                 """I like bees."""
@@ -97,7 +95,7 @@ class CachedPropertyTest(test.TestCase):
 
     def test_undocumented_property(self):
 
-        class A(object):
+        class A:
             @misc.cachedproperty
             def b(self):
                 return 'b'
@@ -107,7 +105,7 @@ class CachedPropertyTest(test.TestCase):
     def test_threaded_access_property(self):
         called = collections.deque()
 
-        class A(object):
+        class A:
             @misc.cachedproperty
             def b(self):
                 called.append(1)
@@ -311,7 +309,7 @@ class TestClamping(test.TestCase):
 class TestIterable(test.TestCase):
     def test_string_types(self):
         self.assertFalse(misc.is_iterable('string'))
-        self.assertFalse(misc.is_iterable(u'string'))
+        self.assertFalse(misc.is_iterable('string'))
 
     def test_list(self):
         self.assertTrue(misc.is_iterable(list()))
@@ -347,7 +345,7 @@ class TestSafeCopyDictRaises(testscenarios.TestWithScenarios):
     scenarios = [
         ('list', {'original': [1, 2], 'exception': TypeError}),
         ('tuple', {'original': (1, 2), 'exception': TypeError}),
-        ('set', {'original': set([1, 2]), 'exception': TypeError}),
+        ('set', {'original': {1, 2}, 'exception': TypeError}),
     ]
 
     def test_exceptions(self):

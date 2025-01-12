@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -58,7 +56,7 @@ TIMED_STATES = (st.ANALYZING, st.RESUMING, st.SCHEDULING, st.WAITING)
 LOG = logging.getLogger(__name__)
 
 
-class MachineMemory(object):
+class MachineMemory:
     """State machine memory."""
 
     def __init__(self):
@@ -73,7 +71,7 @@ class MachineMemory(object):
             fut.cancel()
 
 
-class MachineBuilder(object):
+class MachineBuilder:
     """State machine *builder* that powers the engine components.
 
     NOTE(harlowja): the machine (states and events that will trigger

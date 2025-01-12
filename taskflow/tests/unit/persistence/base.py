@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -24,7 +22,7 @@ from taskflow import states
 from taskflow.types import failure
 
 
-class PersistenceTestMixin(object):
+class PersistenceTestMixin:
     def _get_connection(self):
         raise NotImplementedError('_get_connection() implementation required')
 
@@ -73,7 +71,7 @@ class PersistenceTestMixin(object):
         lb_ids = {}
         for i in range(0, 10):
             lb_id = uuidutils.generate_uuid()
-            lb_name = 'lb-%s-%s' % (i, lb_id)
+            lb_name = 'lb-{}-{}'.format(i, lb_id)
             lb = models.LogBook(name=lb_name, uuid=lb_id)
             lb_ids[lb_id] = True
 

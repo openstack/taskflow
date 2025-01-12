@@ -27,7 +27,7 @@ from taskflow.tests import utils
 from taskflow.utils import misc
 
 
-class GreaterThanEqual(object):
+class GreaterThanEqual:
     """Matches if the item is geq than the matchers reference object."""
 
     def __init__(self, source):
@@ -36,10 +36,10 @@ class GreaterThanEqual(object):
     def match(self, other):
         if other >= self.source:
             return None
-        return matchers.Mismatch("%s was not >= %s" % (other, self.source))
+        return matchers.Mismatch("{} was not >= {}".format(other, self.source))
 
 
-class FailureRegexpMatcher(object):
+class FailureRegexpMatcher:
     """Matches if the failure was caused by the given exception and message.
 
     This will match if a given failure contains and exception of the given
@@ -60,7 +60,7 @@ class FailureRegexpMatcher(object):
                                  (failure, self.exc_class))
 
 
-class ItemsEqual(object):
+class ItemsEqual:
     """Matches the items in two sequences.
 
     This matcher will validate that the provided sequence has the same elements
@@ -166,7 +166,7 @@ class TestCase(base.BaseTestCase):
 class MockTestCase(TestCase):
 
     def setUp(self):
-        super(MockTestCase, self).setUp()
+        super().setUp()
         self.master_mock = mock.Mock(name='master_mock')
 
     def patch(self, target, autospec=True, **kwargs):

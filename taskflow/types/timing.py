@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -17,7 +15,7 @@
 import threading
 
 
-class Timeout(object):
+class Timeout:
     """An object which represents a timeout.
 
     This object has the ability to be interrupted before the actual timeout

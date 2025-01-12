@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -21,7 +19,7 @@ from taskflow.types import notifier
 from taskflow.utils import misc
 
 
-class Engine(object, metaclass=abc.ABCMeta):
+class Engine(metaclass=abc.ABCMeta):
     """Base for all engines implementations.
 
     :ivar Engine.notifier: A notification object that will dispatch

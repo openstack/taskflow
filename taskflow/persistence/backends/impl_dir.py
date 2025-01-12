@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
@@ -17,7 +15,6 @@
 
 import contextlib
 import errno
-import io
 import os
 import shutil
 
@@ -69,7 +66,7 @@ class DirBackend(path_based.PathBasedBackend):
     """
 
     def __init__(self, conf):
-        super(DirBackend, self).__init__(conf)
+        super().__init__(conf)
         max_cache_size = self._conf.get('max_cache_size')
         if max_cache_size is not None:
             max_cache_size = int(max_cache_size)
@@ -100,7 +97,7 @@ class Connection(path_based.PathBasedConnection):
         mtime = os.path.getmtime(filename)
         cache_info = self.backend.file_cache.setdefault(filename, {})
         if not cache_info or mtime > cache_info.get('mtime', 0):
-            with io.open(filename, 'r', encoding=self.backend.encoding) as fp:
+            with open(filename, encoding=self.backend.encoding) as fp:
                 cache_info['data'] = fp.read()
                 cache_info['mtime'] = mtime
         return cache_info['data']
@@ -108,7 +105,7 @@ class Connection(path_based.PathBasedConnection):
     def _write_to(self, filename, contents):
         contents = misc.binary_encode(contents,
                                       encoding=self.backend.encoding)
-        with io.open(filename, 'wb') as fp:
+        with open(filename, 'wb') as fp:
             fp.write(contents)
         self.backend.file_cache.pop(filename, None)
 

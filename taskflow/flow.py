@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -42,7 +40,7 @@ _CHOP_PAT_LEN = len(_CHOP_PAT)
 LINK_DECIDER_DEPTH = 'decider_depth'
 
 
-class Flow(object, metaclass=abc.ABCMeta):
+class Flow(metaclass=abc.ABCMeta):
     """The base abstract class of all flow implementations.
 
     A flow is a structure that defines relationships between tasks. You can

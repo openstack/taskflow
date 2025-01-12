@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -26,7 +24,7 @@ from taskflow.utils import persistence_utils as p_utils
 
 class ProgressTask(task.Task):
     def __init__(self, name, segments):
-        super(ProgressTask, self).__init__(name=name)
+        super().__init__(name=name)
         self._segments = segments
 
     def execute(self):
@@ -57,7 +55,7 @@ class TestProgress(test.TestCase):
         return e
 
     def tearDown(self):
-        super(TestProgress, self).tearDown()
+        super().tearDown()
         with contextlib.closing(impl_memory.MemoryBackend({})) as be:
             with contextlib.closing(be.get_connection()) as conn:
                 conn.clear_all()

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -59,7 +57,7 @@ class CallJoe(task.Task):
 
 class CallSuzzie(task.Task):
     def execute(self, suzzie_number, *args, **kwargs):
-        raise IOError("Suzzie not home right now.")
+        raise OSError("Suzzie not home right now.")
 
 
 # Create your flow and associated tasks (the work to be done).

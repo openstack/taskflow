@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Rackspace Hosting Inc. All Rights Reserved.
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
@@ -159,7 +157,7 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
     return required, optional
 
 
-class Atom(object, metaclass=abc.ABCMeta):
+class Atom(metaclass=abc.ABCMeta):
     """An unit of work that causes a flow to progress (in some manner).
 
     An atom is a named object that operates with input data to perform
@@ -379,7 +377,7 @@ class Atom(object, metaclass=abc.ABCMeta):
         """
 
     def __str__(self):
-        return '"%s==%s"' % (self.name, misc.get_version_string(self))
+        return '"{}=={}"'.format(self.name, misc.get_version_string(self))
 
     def __repr__(self):
-        return '<%s %s>' % (reflection.get_class_name(self), self)
+        return '<{} {}>'.format(reflection.get_class_name(self), self)

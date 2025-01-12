@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -26,7 +24,7 @@ from taskflow import logging
 from taskflow import states
 
 STARTING_STATES = frozenset((states.RUNNING, states.REVERTING))
-FINISHED_STATES = frozenset((base.FINISH_STATES + (states.REVERTED,)))
+FINISHED_STATES = frozenset(base.FINISH_STATES + (states.REVERTED,))
 WATCH_STATES = frozenset(itertools.chain(FINISHED_STATES, STARTING_STATES,
                                          [states.PENDING]))
 
@@ -48,13 +46,13 @@ class DurationListener(base.Listener):
     to task metadata with key ``'duration'``.
     """
     def __init__(self, engine):
-        super(DurationListener, self).__init__(engine,
-                                               task_listen_for=WATCH_STATES,
-                                               flow_listen_for=WATCH_STATES)
+        super().__init__(engine,
+                         task_listen_for=WATCH_STATES,
+                         flow_listen_for=WATCH_STATES)
         self._timers = {co.TASK: {}, co.FLOW: {}}
 
     def deregister(self):
-        super(DurationListener, self).deregister()
+        super().deregister()
         # There should be none that still exist at deregistering time, so log a
         # warning if there were any that somehow still got left behind...
         for item_type, timers in self._timers.items():
@@ -105,23 +103,22 @@ class PrintingDurationListener(DurationListener):
     """Listener that prints the duration as well as recording it."""
 
     def __init__(self, engine, printer=None):
-        super(PrintingDurationListener, self).__init__(engine)
+        super().__init__(engine)
         if printer is None:
             self._printer = _printer
         else:
             self._printer = printer
 
     def _record_ending(self, timer, item_type, item_name, state):
-        super(PrintingDurationListener, self)._record_ending(
+        super()._record_ending(
             timer, item_type, item_name, state)
         self._printer("It took %s '%s' %0.2f seconds to"
                       " finish." % (item_type, item_name, timer.elapsed()))
 
     def _receiver(self, item_type, item_name, state):
-        super(PrintingDurationListener, self)._receiver(item_type,
-                                                        item_name, state)
+        super()._receiver(item_type, item_name, state)
         if state in STARTING_STATES:
-            self._printer("'%s' %s started." % (item_name, item_type))
+            self._printer("'{}' {} started.".format(item_name, item_type))
 
 
 class EventTimeListener(base.Listener):
@@ -139,7 +136,7 @@ class EventTimeListener(base.Listener):
                  task_listen_for=base.DEFAULT_LISTEN_FOR,
                  flow_listen_for=base.DEFAULT_LISTEN_FOR,
                  retry_listen_for=base.DEFAULT_LISTEN_FOR):
-        super(EventTimeListener, self).__init__(
+        super().__init__(
             engine, task_listen_for=task_listen_for,
             flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
 

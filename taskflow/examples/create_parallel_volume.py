@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -45,7 +43,7 @@ def show_time(name):
     start = time.time()
     yield
     end = time.time()
-    print(" -- %s took %0.3f seconds" % (name, end - start))
+    print(" -- {} took {:0.3f} seconds".format(name, end - start))
 
 
 # This affects how many volumes to create and how much time to *simulate*
@@ -85,8 +83,7 @@ class VolumeCreator(task.Task):
         # volume create can be resumed/revert, and is much easier to use for
         # audit and tracking purposes.
         base_name = reflection.get_callable_name(self)
-        super(VolumeCreator, self).__init__(name="%s-%s" % (base_name,
-                                                            volume_id))
+        super().__init__(name="{}-{}".format(base_name, volume_id))
         self._volume_id = volume_id
 
     def execute(self):

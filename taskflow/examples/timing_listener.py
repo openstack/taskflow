@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -45,7 +43,7 @@ from taskflow import task
 
 class VariableTask(task.Task):
     def __init__(self, name):
-        super(VariableTask, self).__init__(name)
+        super().__init__(name)
         self._sleepy_time = random.random()
 
     def execute(self):

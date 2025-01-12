@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -49,7 +47,7 @@ class CheckingClaimListener(base.Listener):
     """
 
     def __init__(self, engine, job, board, owner, on_job_loss=None):
-        super(CheckingClaimListener, self).__init__(engine)
+        super().__init__(engine)
         self._job = job
         self._board = board
         self._owner = owner

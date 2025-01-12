@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -99,7 +97,7 @@ print("Single threaded engine result %s" % result)
 for (name, value) in expected:
     actual = result.get(name)
     if actual != value:
-        sys.stderr.write("%s != %s\n" % (actual, value))
+        sys.stderr.write("{} != {}\n".format(actual, value))
         unexpected += 1
 
 result = taskflow.engines.run(
@@ -109,7 +107,7 @@ print("Multi threaded engine result %s" % result)
 for (name, value) in expected:
     actual = result.get(name)
     if actual != value:
-        sys.stderr.write("%s != %s\n" % (actual, value))
+        sys.stderr.write("{} != {}\n".format(actual, value))
         unexpected += 1
 
 if unexpected:

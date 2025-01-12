@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -151,7 +149,7 @@ class GiveBackRevert(task.Task):
             return result + 1
 
 
-class FakeTask(object):
+class FakeTask:
 
     def execute(self, **kwargs):
         pass
@@ -169,16 +167,14 @@ RUNTIME_ERROR_CLASSES = ['RuntimeError', 'Exception', 'BaseException',
 
 class ProvidesRequiresTask(task.Task):
     def __init__(self, name, provides, requires, return_tuple=True):
-        super(ProvidesRequiresTask, self).__init__(name=name,
-                                                   provides=provides,
-                                                   requires=requires)
+        super().__init__(name=name, provides=provides, requires=requires)
         self.return_tuple = isinstance(provides, (tuple, list))
 
     def execute(self, *args, **kwargs):
         if self.return_tuple:
             return tuple(range(len(self.provides)))
         else:
-            return dict((k, k) for k in self.provides)
+            return {k: k for k in self.provides}
 
 
 # Used to format the captured values into strings (which are easier to
@@ -197,7 +193,7 @@ class CaptureListener(capturing.CaptureListener):
         name_postfix, name_key = LOOKUP_NAME_POSTFIX[kind]
         name = details[name_key] + name_postfix
         if 'result' in details:
-            name += ' %s(%s)' % (state, details['result'])
+            name += ' {}({})'.format(state, details['result'])
         else:
             name += " %s" % state
         return name
@@ -387,9 +383,9 @@ class SleepTask(task.Task):
         time.sleep(duration)
 
 
-class EngineTestBase(object):
+class EngineTestBase:
     def setUp(self):
-        super(EngineTestBase, self).setUp()
+        super().setUp()
         self.backend = impl_memory.MemoryBackend(conf={})
 
     def tearDown(self):
@@ -397,7 +393,7 @@ class EngineTestBase(object):
         with contextlib.closing(self.backend) as be:
             with contextlib.closing(be.get_connection()) as conn:
                 conn.clear_all()
-        super(EngineTestBase, self).tearDown()
+        super().tearDown()
 
     def _make_engine(self, flow, **kwargs):
         raise exceptions.NotImplementedError("_make_engine() must be"
@@ -405,7 +401,7 @@ class EngineTestBase(object):
                                              " desired")
 
 
-class FailureMatcher(object):
+class FailureMatcher:
     """Needed for failure objects comparison."""
 
     def __init__(self, failure):
@@ -433,7 +429,7 @@ class OneReturnRetry(retry.AlwaysRevert):
 class ConditionalTask(ProgressingTask):
 
     def execute(self, x, y):
-        super(ConditionalTask, self).execute()
+        super().execute()
         if x != y:
             raise RuntimeError('Woot!')
 
@@ -441,7 +437,7 @@ class ConditionalTask(ProgressingTask):
 class WaitForOneFromTask(ProgressingTask):
 
     def __init__(self, name, wait_for, wait_states, **kwargs):
-        super(WaitForOneFromTask, self).__init__(name, **kwargs)
+        super().__init__(name, **kwargs)
         if isinstance(wait_for, str):
             self.wait_for = [wait_for]
         else:
@@ -458,7 +454,7 @@ class WaitForOneFromTask(ProgressingTask):
                                'for %s to change state to %s'
                                % (WAIT_TIMEOUT, self.wait_for,
                                   self.wait_states))
-        return super(WaitForOneFromTask, self).execute()
+        return super().execute()
 
     def callback(self, state, details):
         name = details.get('task_name', None)

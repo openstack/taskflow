@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2014 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -29,7 +27,7 @@ from taskflow import states as st
 LOG = logging.getLogger(__name__)
 
 
-class Strategy(object, metaclass=abc.ABCMeta):
+class Strategy(metaclass=abc.ABCMeta):
     """Failure resolution strategy base class."""
 
     strategy = None
@@ -56,7 +54,7 @@ class RevertAndRetry(Strategy):
     strategy = retry_atom.RETRY
 
     def __init__(self, runtime, retry):
-        super(RevertAndRetry, self).__init__(runtime)
+        super().__init__(runtime)
         self._retry = retry
 
     def apply(self):
@@ -73,7 +71,7 @@ class RevertAll(Strategy):
     strategy = retry_atom.REVERT_ALL
 
     def __init__(self, runtime):
-        super(RevertAll, self).__init__(runtime)
+        super().__init__(runtime)
 
     def apply(self):
         return self._runtime.reset_atoms(
@@ -87,7 +85,7 @@ class Revert(Strategy):
     strategy = retry_atom.REVERT
 
     def __init__(self, runtime, atom):
-        super(Revert, self).__init__(runtime)
+        super().__init__(runtime)
         self._atom = atom
 
     def apply(self):
@@ -98,7 +96,7 @@ class Revert(Strategy):
         return tweaked
 
 
-class Completer(object):
+class Completer:
     """Completes atoms using actions to complete them."""
 
     def __init__(self, runtime):

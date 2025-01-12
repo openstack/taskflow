@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -25,7 +23,7 @@ from taskflow.tests.unit.persistence import base
 
 class MemoryPersistenceTest(test.TestCase, base.PersistenceTestMixin):
     def setUp(self):
-        super(MemoryPersistenceTest, self).setUp()
+        super().setUp()
         self._backend = impl_memory.MemoryBackend({})
 
     def _get_connection(self):
@@ -35,7 +33,7 @@ class MemoryPersistenceTest(test.TestCase, base.PersistenceTestMixin):
         conn = self._get_connection()
         conn.clear_all()
         self._backend = None
-        super(MemoryPersistenceTest, self).tearDown()
+        super().tearDown()
 
     def test_memory_backend_entry_point(self):
         conf = {'connection': 'memory:'}

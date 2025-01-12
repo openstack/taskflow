@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -73,7 +71,7 @@ def no_op(*args, **kwargs):
     """Function that does nothing."""
 
 
-class ThreadBundle(object):
+class ThreadBundle:
     """A group/bundle of threads that start/stop together."""
 
     def __init__(self):

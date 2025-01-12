@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012-2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -58,7 +56,7 @@ class HiTask(task.Task):
 
 class ByeTask(task.Task):
     def __init__(self, blowup):
-        super(ByeTask, self).__init__()
+        super().__init__()
         self._blowup = blowup
 
     def execute(self):

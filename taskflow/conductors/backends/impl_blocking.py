@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -33,7 +31,7 @@ class BlockingConductor(impl_executor.ExecutorConductor):
                  persistence=None, engine=None,
                  engine_options=None, wait_timeout=None,
                  log=None, max_simultaneous_jobs=MAX_SIMULTANEOUS_JOBS):
-        super(BlockingConductor, self).__init__(
+        super().__init__(
             name, jobboard,
             persistence=persistence, engine=engine,
             engine_options=engine_options,

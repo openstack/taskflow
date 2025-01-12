@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2013 Yahoo! Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -87,7 +85,7 @@ META_PROGRESS = 'progress'
 META_PROGRESS_DETAILS = 'progress_details'
 
 
-class _ProviderLocator(object):
+class _ProviderLocator:
     """Helper to start to better decouple the finding logic from storage.
 
     WIP: part of the larger effort to cleanup/refactor the finding of named
@@ -149,7 +147,7 @@ class _ProviderLocator(object):
                 return (searched_providers, providers_and_results)
         if not atom_providers:
             return (searched_providers, providers_and_results)
-        atom_providers_by_name = dict((p.name, p) for p in atom_providers)
+        atom_providers_by_name = {p.name: p for p in atom_providers}
         for accessible_atom_names in iter(scope_walker):
             # *Always* retain the scope ordering (if any matches
             # happen); instead of retaining the possible provider match
@@ -199,7 +197,7 @@ class _ProviderLocator(object):
         _searched_providers, providers_and_results = self._find(
             looking_for, scope_walker=scope_walker,
             short_circuit=False, find_potentials=True)
-        return set(p for (p, _provider_results) in providers_and_results)
+        return {p for (p, _provider_results) in providers_and_results}
 
     def find(self, looking_for, scope_walker=None, short_circuit=True):
         """Returns the accessible providers."""
@@ -208,7 +206,7 @@ class _ProviderLocator(object):
                           find_potentials=False)
 
 
-class _Provider(object):
+class _Provider:
     """A named symbol provider that produces a output at the given index."""
 
     def __init__(self, name, index):
@@ -270,7 +268,7 @@ def _item_from_first_of(providers, looking_for):
         " extraction" % (looking_for, providers))
 
 
-class Storage(object):
+class Storage:
     """Interface between engines and logbook and its backend (if any).
 
     This class provides a simple interface to save atoms of a given flow and
@@ -326,8 +324,8 @@ class Storage(object):
                 fail_cache[states.REVERT] = ad.revert_failure
             self._failures[ad.name] = fail_cache
 
-        self._atom_name_to_uuid = dict((ad.name, ad.uuid)
-                                       for ad in self._flowdetail)
+        self._atom_name_to_uuid = {ad.name: ad.uuid
+                                   for ad in self._flowdetail}
         try:
             source, _clone = self._atomdetail_by_name(
                 self.injector_name, expected_type=models.TaskDetail)
@@ -336,7 +334,7 @@ class Storage(object):
         else:
             names_iter = source.results.keys()
             self._set_result_mapping(source.name,
-                                     dict((name, name) for name in names_iter))
+                                     {name: name for name in names_iter})
 
     def _with_connection(self, functor, *args, **kwargs):
         # Run the given functor with a backend connection as its first
@@ -911,7 +909,7 @@ class Storage(object):
             provider_name, names = save_persistent()
 
         self._set_result_mapping(provider_name,
-                                 dict((name, name) for name in names))
+                                 {name: name for name in names})
 
     def _fetch_providers(self, looking_for, providers=None):
         """Return pair of (default providers, atom providers)."""

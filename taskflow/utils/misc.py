@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 #    Copyright (C) 2012 Yahoo! Inc. All Rights Reserved.
 #    Copyright (C) 2013 Rackspace Hosting All Rights Reserved.
 #
@@ -55,7 +53,7 @@ class StrEnum(str, enum.Enum):
             if not isinstance(a, str):
                 raise TypeError("Enumeration '%s' (%s) is not"
                                 " a string" % (a, type(a).__name__))
-        return super(StrEnum, cls).__new__(cls, *args, **kwargs)
+        return super().__new__(cls, *args, **kwargs)
 
 
 class StringIO(io.StringIO):
@@ -82,7 +80,7 @@ def get_hostname(unknown_hostname=UNKNOWN_HOSTNAME):
             return unknown_hostname
         else:
             return hostname
-    except socket.error:
+    except OSError:
         return unknown_hostname
 
 
@@ -189,7 +187,7 @@ def find_subclasses(locations, base_cls, exclude_hidden=True):
             except ValueError:
                 module = importutils.import_module(item)
             else:
-                obj = importutils.import_class('%s.%s' % (pkg, cls))
+                obj = importutils.import_class('{}.{}'.format(pkg, cls))
                 if not reflection.is_subclass(obj, base_cls):
                     raise TypeError("Object '%s' (%s) is not a '%s' subclass"
                                     % (item, type(item), base_cls))
@@ -343,7 +341,7 @@ def decode_json(raw_data, root_types=(dict,)):
         return _check_decoded_type(data, root_types=root_types)
 
 
-class cachedproperty(object):
+class cachedproperty:
     """A *thread-safe* descriptor property that is only evaluated once.
 
     This caching descriptor can be placed on instance methods to translate
