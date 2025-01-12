@@ -32,9 +32,6 @@ from taskflow.types import failure
 from taskflow.utils import kazoo_utils
 from taskflow.utils import redis_utils
 
-ARGS_KEY = '__args__'
-KWARGS_KEY = '__kwargs__'
-ORDER_KEY = '__order__'
 ZK_TEST_CONFIG = {
     'timeout': 1.0,
     'hosts': ["localhost:2181"],
