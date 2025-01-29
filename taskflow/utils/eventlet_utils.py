@@ -29,6 +29,6 @@ def check_for_eventlet(exc=None):
     """
     if not EVENTLET_AVAILABLE:
         if exc is None:
-            raise RuntimeError('Eventlet is not current available')
+            raise RuntimeError('Eventlet is not currently available')
         else:
             raise exc
