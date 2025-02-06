@@ -7,6 +7,9 @@ pbr>=2.0.0 # Apache-2.0
 
 # Packages needed for using this library.
 
+# For deprecation warning
+debtcollector>=1.2.0 # Apache-2.0
+
 # For async and/or periodic work
 futurist>=1.2.0 # Apache-2.0
 

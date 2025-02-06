@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import debtcollector.removals
 from oslo_utils import importutils
 
 _eventlet = importutils.try_import('eventlet')
@@ -21,6 +22,7 @@ _eventlet = importutils.try_import('eventlet')
 EVENTLET_AVAILABLE = bool(_eventlet)
 
 
+@debtcollector.removals.remove(message='Eventlet support is deprecated.')
 def check_for_eventlet(exc=None):
     """Check if eventlet is available and if not raise a runtime error.
 
