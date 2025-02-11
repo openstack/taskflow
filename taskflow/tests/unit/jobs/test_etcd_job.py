@@ -26,12 +26,14 @@ from taskflow.tests.unit.jobs import base
 from taskflow.tests import utils as test_utils
 
 ETCD_AVAILABLE = test_utils.etcd_available()
+ETCD_PORT = test_utils.ETCD_PORT
 
 
 class EtcdJobBoardMixin:
     def create_board(self, conf=None, persistence=None):
         self.path = f"test-{uuidutils.generate_uuid()}"
         board_conf = {
+            "port": ETCD_PORT,
             "path": self.path,
         }
         if conf:

@@ -15,6 +15,7 @@
 #    under the License.
 
 import contextlib
+import os
 import string
 import threading
 import time
@@ -32,9 +33,12 @@ from taskflow.types import failure
 from taskflow.utils import kazoo_utils
 from taskflow.utils import redis_utils
 
+ETCD_PORT = int(os.getenv("TASKFLOW_TEST_ETCD_PORT", 2379))
+REDIS_PORT = int(os.getenv("TASKFLOW_TEST_REDIS_SENTINEL_PORT", 6379))
+ZK_PORT = int(os.getenv("TASKFLOW_TEST_ZOOKEEPER_PORT", 2181))
 ZK_TEST_CONFIG = {
     'timeout': 1.0,
-    'hosts': ["localhost:2181"],
+    'hosts': ["localhost:%d" % ZK_PORT],
 }
 # If latches/events take longer than this to become empty/set, something is
 # usually wrong and should be debugged instead of deadlocking...
@@ -75,7 +79,7 @@ def zookeeper_available(min_version, timeout=3):
 
 
 def redis_available(min_version):
-    client = redis.Redis()
+    client = redis.Redis(port=REDIS_PORT)
     try:
         client.ping()
     except Exception:
@@ -87,7 +91,7 @@ def redis_available(min_version):
 
 
 def etcd_available():
-    client = etcd3gw.Etcd3Client()
+    client = etcd3gw.Etcd3Client(port=ETCD_PORT)
     try:
         client.get("/")
     except Exception:

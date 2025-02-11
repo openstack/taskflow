@@ -32,6 +32,7 @@ from taskflow.utils import redis_utils as ru
 
 REDIS_AVAILABLE = test_utils.redis_available(
     impl_redis.RedisJobBoard.MIN_REDIS_VERSION)
+REDIS_PORT = test_utils.REDIS_PORT
 
 
 @testtools.skipIf(not REDIS_AVAILABLE, 'redis is not available')
@@ -41,7 +42,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
 
     def create_board(self, persistence=None):
         namespace = uuidutils.generate_uuid()
-        client = ru.RedisClient()
+        client = ru.RedisClient(port=REDIS_PORT)
         config = {
             'namespace': ("taskflow-%s" % namespace).encode('latin-1'),
         }
