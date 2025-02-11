@@ -17,8 +17,6 @@
 import pickle
 import sys
 
-from oslo_utils import encodeutils
-
 from taskflow import exceptions
 from taskflow import test
 from taskflow.tests import utils as test_utils
@@ -334,8 +332,7 @@ class NonAsciiExceptionsTestCase(test.TestCase):
         bad_string = chr(200)
         excp = ValueError(bad_string)
         fail = failure.Failure.from_exception(excp)
-        self.assertEqual(encodeutils.exception_to_unicode(excp),
-                         fail.exception_str)
+        self.assertEqual(str(excp), fail.exception_str)
         expected = u'Failure: ValueError: \xc8'
         self.assertEqual(expected, str(fail))
 
@@ -350,7 +347,7 @@ class NonAsciiExceptionsTestCase(test.TestCase):
     def test_wrapped_failure_non_ascii_unicode(self):
         hi_cn = u'嗨'
         fail = ValueError(hi_cn)
-        self.assertEqual(hi_cn, encodeutils.exception_to_unicode(fail))
+        self.assertEqual(hi_cn, str(fail))
         fail = failure.Failure.from_exception(fail)
         wrapped_fail = exceptions.WrappedFailure([fail])
         expected_result = (u"WrappedFailure: "
