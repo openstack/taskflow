@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    Eventlet usages are deprecated and the removal of Eventlet from
+    OpenStack `is planned <https://governance.openstack.org/tc//goals/proposed/remove-eventlet.html>`_,
+    for this reason the eventlet_utils module is now deprecated.
+    The support of Eventlet will be soon removed from taskflow.
+
+    Please start considering removing your internal Eventlet usages and
+    start migrating your stack.
