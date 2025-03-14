@@ -17,7 +17,6 @@
 import contextlib
 import datetime
 import functools
-import re
 import string
 import threading
 import time
@@ -26,6 +25,7 @@ import fasteners
 import msgpack
 from oslo_serialization import msgpackutils
 from oslo_utils import excutils
+from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -561,15 +561,10 @@ return cmsgpack.pack(result)
 
     @classmethod
     def _parse_sentinel(cls, sentinel):
-        # IPv6 (eg. [::1]:6379 )
-        match = re.search(r'^\[(\S+)\]:(\d+)$', sentinel)
-        if match:
-            return (match[1], int(match[2]))
-        # IPv4 or hostname (eg. 127.0.0.1:6379 or localhost:6379)
-        match = re.search(r'^(\S+):(\d+)$', sentinel)
-        if match:
-            return (match[1], int(match[2]))
-        raise ValueError('Malformed sentinel server format')
+        host, port = netutils.parse_host_port(sentinel)
+        if host is None or port is None:
+            raise ValueError('Malformed sentinel server format')
+        return (host, port)
 
     @classmethod
     def _make_client(cls, conf):
