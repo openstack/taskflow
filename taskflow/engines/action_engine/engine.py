@@ -40,11 +40,6 @@ from taskflow import storage
 from taskflow.types import failure
 from taskflow.utils import misc
 
-try:
-    from taskflow.engines.action_engine import process_executor
-except ImportError:
-    process_executor = None
-
 LOG = logging.getLogger(__name__)
 
 
@@ -548,7 +543,6 @@ String (case insensitive)    Executor used
       polling while a higher number will involve less polling but a slower time
       for an engine to notice a task has completed.
 
-    .. |pe|  replace:: process_executor
     .. |cfp| replace:: concurrent.futures.process
     .. |cft| replace:: concurrent.futures.thread
     .. |cf| replace:: concurrent.futures
@@ -563,16 +557,9 @@ String (case insensitive)    Executor used
     _executor_cls_matchers = [
         _ExecutorTypeMatch((futures.ThreadPoolExecutor,),
                            executor.ParallelThreadTaskExecutor),
-    ]
-    if process_executor is not None:
-        _executor_cls_matchers.append(
-            _ExecutorTypeMatch((futures.ProcessPoolExecutor,),
-                               process_executor.ParallelProcessTaskExecutor)
-        )
-    _executor_cls_matchers.append(
         _ExecutorTypeMatch((futures.Executor,),
                            executor.ParallelThreadTaskExecutor),
-    )
+    ]
 
     # One of these should match when a string/text is provided for the
     # 'executor' option (a mixed case equivalent is allowed since the match
@@ -584,11 +571,6 @@ String (case insensitive)    Executor used
                                       'greenthreaded']),
                            executor.ParallelGreenThreadTaskExecutor),
     ]
-    if process_executor is not None:
-        _executor_str_matchers.append(
-            _ExecutorTextMatch(frozenset(['processes', 'process']),
-                               process_executor.ParallelProcessTaskExecutor)
-        )
 
     # Used when no executor is provided (either a string or object)...
     _default_executor_cls = executor.ParallelThreadTaskExecutor

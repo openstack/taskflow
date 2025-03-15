@@ -38,13 +38,9 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - openstack-tox-docs:
-            nodeset: ubuntu-jammy
         - taskflow-functional-redis
         - taskflow-functional-etcd
     gate:
       jobs:
-        - openstack-tox-docs:
-            nodeset: ubuntu-jammy
         - taskflow-functional-redis
         - taskflow-functional-etcd

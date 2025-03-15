@@ -26,11 +26,6 @@ from taskflow.tests import utils
 from taskflow.utils import eventlet_utils as eu
 from taskflow.utils import persistence_utils as pu
 
-try:
-    from taskflow.engines.action_engine import process_executor as pe
-except ImportError:
-    pe = None
-
 
 class ParallelCreationTest(test.TestCase):
     @staticmethod
@@ -48,25 +43,11 @@ class ParallelCreationTest(test.TestCase):
             self.assertIsInstance(eng._task_executor,
                                   executor.ParallelThreadTaskExecutor)
 
-    @testtools.skipIf(pe is None, 'process_executor is not available')
-    def test_process_string_creation(self):
-        for s in ['process', 'processes']:
-            eng = self._create_engine(executor=s)
-            self.assertIsInstance(eng._task_executor,
-                                  pe.ParallelProcessTaskExecutor)
-
     def test_thread_executor_creation(self):
         with futurist.ThreadPoolExecutor(1) as e:
             eng = self._create_engine(executor=e)
             self.assertIsInstance(eng._task_executor,
                                   executor.ParallelThreadTaskExecutor)
-
-    @testtools.skipIf(pe is None, 'process_executor is not available')
-    def test_process_executor_creation(self):
-        with futurist.ProcessPoolExecutor(1) as e:
-            eng = self._create_engine(executor=e)
-            self.assertIsInstance(eng._task_executor,
-                                  pe.ParallelProcessTaskExecutor)
 
     @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
     def test_green_executor_creation(self):
