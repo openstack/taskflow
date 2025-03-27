@@ -572,6 +572,13 @@ return cmsgpack.pack(result)
         raise ValueError('Malformed sentinel server format')
 
     @classmethod
+    def _filter_ssl_options(cls, opts):
+        if not opts.get('ssl', False):
+            return {k: v for (k, v) in opts.items()
+                    if not k.startswith('ssl_')}
+        return opts
+
+    @classmethod
     def _make_client(cls, conf):
         client_conf = {}
         for key, value_type_converter in cls.CLIENT_CONF_TRANSFERS:
@@ -584,8 +591,12 @@ return cmsgpack.pack(result)
             sentinels = [(client_conf.pop('host'), client_conf.pop('port'))]
             for fallback in conf.get('sentinel_fallbacks', []):
                 sentinels.append(cls._parse_sentinel(fallback))
+            client_conf = cls._filter_ssl_options(client_conf)
+            sentinel_kwargs = conf.get('sentinel_kwargs')
+            if sentinel_kwargs is not None:
+                sentinel_kwargs = cls._filter_ssl_options(sentinel_kwargs)
             s = sentinel.Sentinel(sentinels,
-                                  sentinel_kwargs=conf.get('sentinel_kwargs'),
+                                  sentinel_kwargs=sentinel_kwargs,
                                   **client_conf)
             return s.master_for(conf['sentinel'])
         else:
