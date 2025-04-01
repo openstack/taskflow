@@ -30,11 +30,6 @@ from taskflow.tests import utils
 from taskflow.types import failure
 from taskflow.utils import eventlet_utils as eu
 
-try:
-    from taskflow.engines.action_engine import process_executor as pe
-except ImportError:
-    pe = None
-
 
 class FailingRetry(retry.Retry):
 
@@ -1367,21 +1362,4 @@ class ParallelEngineWithEventletTest(RetryTest, test.TestCase):
                                      backend=self.backend,
                                      engine='parallel',
                                      executor=executor,
-                                     defer_reverts=defer_reverts)
-
-
-@testtools.skipIf(pe is None, 'process_executor is not available')
-class ParallelEngineWithProcessTest(RetryTest, test.TestCase):
-    _EXECUTOR_WORKERS = 2
-
-    def _make_engine(self, flow, defer_reverts=None, flow_detail=None,
-                     executor=None):
-        if executor is None:
-            executor = 'processes'
-        return taskflow.engines.load(flow,
-                                     flow_detail=flow_detail,
-                                     engine='parallel',
-                                     backend=self.backend,
-                                     executor=executor,
-                                     max_workers=self._EXECUTOR_WORKERS,
                                      defer_reverts=defer_reverts)
