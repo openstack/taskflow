@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added ``mask_inputs_keys`` and ``mask_outputs_keys`` parameters to the
+    constructors for ``FailureFormatter`` and ``DynamicLoggingListener``
+    that can be used to mask sensitive information from the ``requires``
+    and ``provides`` fields respectively when logging a atom.
