@@ -175,7 +175,7 @@ class MysqlPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
             db_uri = _get_connect_string('mysql', USER, PASSWD)
             engine = sa.create_engine(db_uri)
             with contextlib.closing(engine.connect()) as conn:
-                conn.execute("CREATE DATABASE %s" % DATABASE)
+                conn.execute(sa.text("CREATE DATABASE %s" % DATABASE))
         except Exception as e:
             raise Exception('Failed to initialize MySQL db: %s' % (e))
         finally:
@@ -192,7 +192,7 @@ class MysqlPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
         try:
             engine = sa.create_engine(self.db_uri)
             with contextlib.closing(engine.connect()) as conn:
-                conn.execute("DROP DATABASE IF EXISTS %s" % DATABASE)
+                conn.execute(sa.text("DROP DATABASE IF EXISTS %s" % DATABASE))
         except Exception as e:
             raise Exception('Failed to remove temporary database: %s' % (e))
         finally:
@@ -217,7 +217,7 @@ class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
             engine = sa.create_engine(db_uri)
             with contextlib.closing(engine.connect()) as conn:
                 conn.connection.set_isolation_level(0)
-                conn.execute("CREATE DATABASE %s" % DATABASE)
+                conn.execute(sa.text("CREATE DATABASE %s" % DATABASE))
                 conn.connection.set_isolation_level(1)
         except Exception as e:
             raise Exception('Failed to initialize PostgreSQL db: %s' % (e))
@@ -241,7 +241,7 @@ class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
             engine = sa.create_engine(db_uri)
             with contextlib.closing(engine.connect()) as conn:
                 conn.connection.set_isolation_level(0)
-                conn.execute("DROP DATABASE IF EXISTS %s" % DATABASE)
+                conn.execute(sa.text("DROP DATABASE IF EXISTS %s" % DATABASE))
                 conn.connection.set_isolation_level(1)
         except Exception as e:
             raise Exception('Failed to remove temporary database: %s' % (e))
