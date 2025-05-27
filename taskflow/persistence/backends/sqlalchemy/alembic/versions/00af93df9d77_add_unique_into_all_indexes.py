@@ -33,7 +33,6 @@ def upgrade():
             batch_op.drop_index("logbook_uuid_idx")
             batch_op.create_index(
                 index_name="logbook_uuid_idx",
-                table_name="logbooks",
                 columns=['uuid'],
                 unique=True)
 
@@ -41,7 +40,6 @@ def upgrade():
             batch_op.drop_index("flowdetails_uuid_idx")
             batch_op.create_index(
                 index_name="flowdetails_uuid_idx",
-                table_name="flowdetails",
                 columns=['uuid'],
                 unique=True)
 
@@ -49,7 +47,6 @@ def upgrade():
             batch_op.drop_index("taskdetails_uuid_idx")
             batch_op.create_index(
                 index_name="taskdetails_uuid_idx",
-                table_name="atomdetails",
                 columns=['uuid'],
                 unique=True)
 
@@ -62,19 +59,16 @@ def downgrade():
             batch_op.drop_index("logbook_uuid_idx")
             batch_op.create_index(
                 index_name="logbook_uuid_idx",
-                table_name="logbooks",
                 columns=['uuid'])
 
         with op.batch_alter_table("flowdetails") as batch_op:
             batch_op.drop_index("flowdetails_uuid_idx")
             batch_op.create_index(
                 index_name="flowdetails_uuid_idx",
-                table_name="flowdetails",
                 columns=['uuid'])
 
         with op.batch_alter_table("atomdetails") as batch_op:
             batch_op.drop_index("taskdetails_uuid_idx")
             batch_op.create_index(
                 index_name="taskdetails_uuid_idx",
-                table_name="atomdetails",
                 columns=['uuid'])
