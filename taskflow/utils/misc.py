@@ -317,8 +317,6 @@ def decode_msgpack(raw_data, root_types=(dict,)):
     try:
         data = msgpackutils.loads(raw_data)
     except Exception as e:
-        # TODO(harlowja): fix this when msgpackutils exposes the msgpack
-        # exceptions so that we can avoid catching just exception...
         raise ValueError("Expected msgpack decodable data: %s" % e)
     else:
         return _check_decoded_type(data, root_types=root_types)

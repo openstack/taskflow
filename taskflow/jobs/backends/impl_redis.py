@@ -20,7 +20,6 @@ import threading
 import time
 
 import fasteners
-import msgpack
 from oslo_serialization import msgpackutils
 from oslo_utils import excutils
 from oslo_utils import netutils
@@ -729,10 +728,7 @@ return cmsgpack.pack(result)
     def _dumps(obj):
         try:
             return msgpackutils.dumps(obj)
-        except (msgpack.PackException, ValueError):
-            # TODO(harlowja): remove direct msgpack exception access when
-            # oslo.utils provides easy access to the underlying msgpack
-            # pack/unpack exceptions..
+        except Exception:
             exc.raise_with_cause(exc.JobFailure,
                                  "Failed to serialize object to"
                                  " msgpack blob")
@@ -741,10 +737,7 @@ return cmsgpack.pack(result)
     def _loads(blob, root_types=(dict,)):
         try:
             return misc.decode_msgpack(blob, root_types=root_types)
-        except (msgpack.UnpackException, ValueError):
-            # TODO(harlowja): remove direct msgpack exception access when
-            # oslo.utils provides easy access to the underlying msgpack
-            # pack/unpack exceptions..
+        except ValueError:
             exc.raise_with_cause(exc.JobFailure,
                                  "Failed to deserialize object from"
                                  " msgpack blob (of length %s)" % len(blob))
