@@ -121,15 +121,11 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
                                        " it has not been")
 
     def stop(self):
-        """Requests the conductor to stop dispatching.
-
-        This method can be used to request that a conductor stop its
-        consumption & dispatching loop.
-
-        The method returns immediately regardless of whether the conductor has
-        been stopped.
-        """
         self._wait_timeout.interrupt()
+
+    # Inherit the docs, so we can reference them in our class docstring,
+    # if we don't do this sphinx gets confused...
+    stop.__doc__ = base.Conductor.stop.__doc__
 
     @property
     def dispatching(self):
@@ -342,14 +338,8 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
     run.__doc__ = base.Conductor.run.__doc__
 
     def wait(self, timeout=None):
-        """Waits for the conductor to gracefully exit.
-
-        This method waits for the conductor to gracefully exit. An optional
-        timeout can be provided, which will cause the method to return
-        within the specified timeout. If the timeout is reached, the returned
-        value will be ``False``, otherwise it will be ``True``.
-
-        :param timeout: Maximum number of seconds that the :meth:`wait` method
-                        should block for.
-        """
         return self._dead.wait(timeout)
+
+    # Inherit the docs, so we can reference them in our class docstring,
+    # if we don't do this sphinx gets confused...
+    wait.__doc__ = base.Conductor.wait.__doc__

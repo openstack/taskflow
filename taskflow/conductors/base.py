@@ -162,6 +162,30 @@ class Conductor(metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
+    def stop(self):
+        """Requests the conductor to stop dispatching.
+
+        This method can be used to request that a conductor stop its
+        consumption & dispatching loop.
+
+        The method returns immediately regardless of whether the conductor has
+        been stopped.
+        """
+
+    @abc.abstractmethod
+    def wait(self, timeout=None):
+        """Waits for the conductor to gracefully exit.
+
+        This method waits for the conductor to gracefully exit. An optional
+        timeout can be provided, which will cause the method to return
+        within the specified timeout. If the timeout is reached, the returned
+        value will be ``False``, otherwise it will be ``True``.
+
+        :param timeout: Maximum number of seconds that the :meth:`wait` method
+                        should block for.
+        """
+
+    @abc.abstractmethod
     def _dispatch_job(self, job):
         """Dispatches a claimed job for work completion.
 
