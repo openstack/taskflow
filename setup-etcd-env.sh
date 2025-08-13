@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eux
 if [ -z "$(which etcd)" ]; then
-    ETCD_VERSION=${ETCD_VERSION:-3.4.27}
+    ETCD_VERSION=${ETCD_VERSION:-3.5.21}
     case `uname -s` in
         Darwin)
             OS=darwin
