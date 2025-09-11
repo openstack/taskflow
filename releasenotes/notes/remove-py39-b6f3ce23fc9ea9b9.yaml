@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Support for Python 3.9 has been removed. Now the minimum python version
+    supported is 3.10.
