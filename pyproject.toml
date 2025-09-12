@@ -1,3 +1,89 @@
 [build-system]
 requires = ["pbr>=6.1.1"]
 build-backend = "pbr.build"
+
+[project]
+name = "taskflow"
+description = "Taskflow structured state management library."
+authors = [
+    {name = "OpenStack", email = "openstack-discuss@lists.openstack.org"},
+]
+readme = {file = "README.rst", content-type = "text/x-rst"}
+license = {text = "Apache-2.0"}
+dynamic = ["version", "dependencies"]
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: System :: Distributed Computing",
+]
+
+[project.urls]
+Homepage = "https://docs.openstack.org/taskflow"
+Repository = "https://opendev.org/openstack/taskflow"
+
+[project.optional-dependencies]
+# NOTE(dhellmann): The entries in this section of the file need to be
+# kept consistent with the entries in test-requirements.txt.
+zookeeper = [
+  "kazoo>=2.6.0", # Apache-2.0
+]
+redis = [
+  "redis>=4.0.0", # MIT
+]
+etcd = [
+  "etcd3gw>=2.0.0", # Apache-2.0
+]
+workers = [
+  "kombu>=4.3.0", # BSD
+]
+eventlet = [
+  "eventlet>=0.18.2", # MIT
+]
+database = [
+  "SQLAlchemy>=1.0.10", # MIT
+  "alembic>=0.8.10", # MIT
+  "SQLAlchemy-Utils>=0.30.11", # BSD License
+  "PyMySQL>=0.7.6", # MIT License
+  "psycopg2>=2.8.0", # LGPL/ZPL
+]
+
+[project.entry-points."taskflow.jobboards"]
+zookeeper = "taskflow.jobs.backends.impl_zookeeper:ZookeeperJobBoard"
+redis = "taskflow.jobs.backends.impl_redis:RedisJobBoard"
+etcd = "taskflow.jobs.backends.impl_etcd:EtcdJobBoard"
+
+[project.entry-points."taskflow.conductors"]
+blocking = "taskflow.conductors.backends.impl_blocking:BlockingConductor"
+nonblocking = "taskflow.conductors.backends.impl_nonblocking:NonBlockingConductor"
+
+[project.entry-points."taskflow.persistence"]
+dir = "taskflow.persistence.backends.impl_dir:DirBackend"
+file = "taskflow.persistence.backends.impl_dir:DirBackend"
+memory = "taskflow.persistence.backends.impl_memory:MemoryBackend"
+mysql = "taskflow.persistence.backends.impl_sqlalchemy:SQLAlchemyBackend"
+postgresql = "taskflow.persistence.backends.impl_sqlalchemy:SQLAlchemyBackend"
+sqlite = "taskflow.persistence.backends.impl_sqlalchemy:SQLAlchemyBackend"
+zookeeper = "taskflow.persistence.backends.impl_zookeeper:ZkBackend"
+
+[project.entry-points."taskflow.engines"]
+default = "taskflow.engines.action_engine.engine:SerialActionEngine"
+serial = "taskflow.engines.action_engine.engine:SerialActionEngine"
+parallel = "taskflow.engines.action_engine.engine:ParallelActionEngine"
+worker-based = "taskflow.engines.worker_based.engine:WorkerBasedActionEngine"
+workers = "taskflow.engines.worker_based.engine:WorkerBasedActionEngine"
+
+[tool.setuptools]
+packages = [
+    "taskflow"
+]
