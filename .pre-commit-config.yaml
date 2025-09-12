@@ -1,20 +1,14 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
-      # Replaces or checks mixed line ending
       - id: mixed-line-ending
         args: ['--fix', 'lf']
         exclude: '.*\.(svg)$'
-      # Forbid files which have a UTF-8 byte-order marker
-      - id: check-byte-order-marker
-      # Checks that non-binary executables have a proper shebang
+      - id: fix-byte-order-marker
       - id: check-executables-have-shebangs
-      # Check for files that contain merge conflict strings.
       - id: check-merge-conflict
-      # Check for debugger imports and py37+ breakpoint()
-      # calls in python source
       - id: debug-statements
       - id: check-yaml
         files: .*\.(yaml|yml)$
@@ -25,7 +19,7 @@ repos:
         additional_dependencies: []
         exclude: '^(doc|releasenotes|tools)/.*$'
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.18.0
+    rev: v3.20.0
     hooks:
       - id: pyupgrade
         args: [--py3-only]
