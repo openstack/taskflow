@@ -59,7 +59,7 @@ def _get_connect_string(backend, user, passwd, database=None, variant=None):
         raise Exception("Unrecognized backend: '%s'" % backend)
     if not database:
         database = ''
-    return "{}://{}:{}@localhost/{}".format(backend, user, passwd, database)
+    return f"{backend}://{user}:{passwd}@localhost/{database}"
 
 
 def _mysql_exists():

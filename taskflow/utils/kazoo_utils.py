@@ -39,7 +39,7 @@ def _parse_hosts(hosts):
     if isinstance(hosts, (dict)):
         host_ports = []
         for (k, v) in hosts.items():
-            host_ports.append("{}:{}".format(k, v))
+            host_ports.append(f"{k}:{v}")
         hosts = host_ports
     if isinstance(hosts, (list, set, tuple)):
         return ",".join([str(h) for h in hosts])
@@ -63,7 +63,7 @@ def prettify_failures(failures, limit=-1):
             pass
         pretty_op += "(%s)" % (", ".join(selected_attrs))
         pretty_cause = reflection.get_class_name(r, fully_qualified=False)
-        prettier.append("{}@{}".format(pretty_cause, pretty_op))
+        prettier.append(f"{pretty_cause}@{pretty_op}")
     if limit <= 0 or len(prettier) <= limit:
         return ", ".join(prettier)
     else:

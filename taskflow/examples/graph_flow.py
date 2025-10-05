@@ -97,7 +97,7 @@ print("Single threaded engine result %s" % result)
 for (name, value) in expected:
     actual = result.get(name)
     if actual != value:
-        sys.stderr.write("{} != {}\n".format(actual, value))
+        sys.stderr.write(f"{actual} != {value}\n")
         unexpected += 1
 
 result = taskflow.engines.run(
@@ -107,7 +107,7 @@ print("Multi threaded engine result %s" % result)
 for (name, value) in expected:
     actual = result.get(name)
     if actual != value:
-        sys.stderr.write("{} != {}\n".format(actual, value))
+        sys.stderr.write(f"{actual} != {value}\n")
         unexpected += 1
 
 if unexpected:

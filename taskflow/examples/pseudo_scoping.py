@@ -65,7 +65,7 @@ class CallTask(task.Task):
     """Task that calls person by number."""
 
     def execute(self, person, number):
-        print('Calling {} {}.'.format(person, number))
+        print(f'Calling {person} {number}.')
 
 # This is how it works for one person:
 
@@ -82,7 +82,7 @@ taskflow.engines.run(simple_flow, store={'person': 'Josh'})
 # we use `rebind` argument of task constructor.
 def subflow_factory(prefix):
     def pr(what):
-        return '{}-{}'.format(prefix, what)
+        return f'{prefix}-{what}'
 
     return lf.Flow(pr('flow')).add(
         FetchNumberTask(pr('fetch'),

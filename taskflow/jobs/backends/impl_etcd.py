@@ -377,14 +377,14 @@ class EtcdJobBoard(base.JobBoard):
         """Returns how many jobs are on this jobboard."""
         return len(self._job_cache)
 
-    def get_owner_data(self, job: EtcdJob) -> typing.Optional[dict]:
+    def get_owner_data(self, job: EtcdJob) -> dict | None:
         owner_key = job.key + self.LOCK_POSTFIX
         owner_data = self.get_one(owner_key)
         if not owner_data:
             return None
         return jsonutils.loads(owner_data)
 
-    def find_owner(self, job: EtcdJob) -> typing.Optional[dict]:
+    def find_owner(self, job: EtcdJob) -> dict | None:
         """Gets the owner of the job if one exists."""
         data = self.get_owner_data(job)
         if data:
@@ -396,7 +396,7 @@ class EtcdJobBoard(base.JobBoard):
         return self.get_one(key)
 
     def get_owner_and_data(self, job: EtcdJob) -> tuple[
-            typing.Optional[str], typing.Optional[bytes]]:
+            str | None, bytes | None]:
         if self._client is None:
             raise exc.JobFailure("Cannot retrieve information, "
                                  "not connected")

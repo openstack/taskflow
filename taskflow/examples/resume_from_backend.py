@@ -60,7 +60,7 @@ import example_utils as eu  # noqa
 
 def print_task_states(flowdetail, msg):
     eu.print_wrapped(msg)
-    print("Flow '{}' state: {}".format(flowdetail.name, flowdetail.state))
+    print(f"Flow '{flowdetail.name}' state: {flowdetail.state}")
     # Sort by these so that our test validation doesn't get confused by the
     # order in which the items in the flow detail can be in.
     items = sorted((td.name, td.version, td.state, td.results)

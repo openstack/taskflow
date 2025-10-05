@@ -143,7 +143,7 @@ class Proxy:
 
     def _make_queue(self, routing_key, exchange, channel=None):
         """Make a named queue for the given exchange."""
-        queue_name = "{}_{}".format(self._exchange_name, routing_key)
+        queue_name = f"{self._exchange_name}_{routing_key}"
         return kombu.Queue(name=queue_name,
                            routing_key=routing_key, durable=False,
                            exchange=exchange, auto_delete=True,

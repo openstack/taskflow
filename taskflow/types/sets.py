@@ -64,7 +64,7 @@ class OrderedSet(abc.Set, abc.Hashable):
         return tuple(self)
 
     def __repr__(self):
-        return "{}({})".format(type(self).__name__, list(self))
+        return f"{type(self).__name__}({list(self)})"
 
     def copy(self):
         """Return a shallow copy of a set."""

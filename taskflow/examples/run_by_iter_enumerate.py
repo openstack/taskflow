@@ -49,4 +49,4 @@ e.compile()
 e.prepare()
 
 for i, st in enumerate(e.run_iter(), 1):
-    print("Transition {}: {}".format(i, st))
+    print(f"Transition {i}: {st}")

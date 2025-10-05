@@ -29,15 +29,15 @@ def _common_format(g, edge_notation):
     lines.append("Nodes: %s" % g.number_of_nodes())
     for n, n_data in g.nodes(data=True):
         if n_data:
-            lines.append("  - {} ({})".format(n, n_data))
+            lines.append(f"  - {n} ({n_data})")
         else:
             lines.append("  - %s" % n)
     lines.append("Edges: %s" % g.number_of_edges())
     for (u, v, e_data) in g.edges(data=True):
         if e_data:
-            lines.append("  {} {} {} ({})".format(u, edge_notation, v, e_data))
+            lines.append(f"  {u} {edge_notation} {v} ({e_data})")
         else:
-            lines.append("  {} {} {}".format(u, edge_notation, v))
+            lines.append(f"  {u} {edge_notation} {v}")
     return lines
 
 

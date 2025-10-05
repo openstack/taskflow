@@ -43,7 +43,7 @@ def show_time(name):
     start = time.time()
     yield
     end = time.time()
-    print(" -- {} took {:0.3f} seconds".format(name, end - start))
+    print(f" -- {name} took {end - start:0.3f} seconds")
 
 
 # This affects how many volumes to create and how much time to *simulate*
@@ -83,7 +83,7 @@ class VolumeCreator(task.Task):
         # volume create can be resumed/revert, and is much easier to use for
         # audit and tracking purposes.
         base_name = reflection.get_callable_name(self)
-        super().__init__(name="{}-{}".format(base_name, volume_id))
+        super().__init__(name=f"{base_name}-{volume_id}")
         self._volume_id = volume_id
 
     def execute(self):

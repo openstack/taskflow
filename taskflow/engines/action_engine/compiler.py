@@ -49,7 +49,7 @@ class Terminator:
 
     def __init__(self, flow):
         self._flow = flow
-        self._name = "{}[$]".format(self._flow.name)
+        self._name = f"{self._flow.name}[$]"
 
     @property
     def flow(self):

@@ -58,7 +58,7 @@ from taskflow.utils import threading_utils
 RUN_TIME = 5
 REVIEW_CREATION_DELAY = 0.5
 SCAN_DELAY = 0.1
-NAME = "{}_{}".format(socket.getfqdn(), os.getpid())
+NAME = f"{socket.getfqdn()}_{os.getpid()}"
 
 # This won't really use zookeeper but will use a local version of it using
 # the zake library that mimics an actual zookeeper cluster using threads and

@@ -36,7 +36,7 @@ class GreaterThanEqual:
     def match(self, other):
         if other >= self.source:
             return None
-        return matchers.Mismatch("{} was not >= {}".format(other, self.source))
+        return matchers.Mismatch(f"{other} was not >= {self.source}")
 
 
 class FailureRegexpMatcher:

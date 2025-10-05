@@ -45,7 +45,7 @@ class DelayedTask(task.Task):
         self._wait_for = random.random()
 
     def execute(self):
-        print("Running '{}' in thread '{}'".format(self.name, tu.get_ident()))
+        print(f"Running '{self.name}' in thread '{tu.get_ident()}'")
         time.sleep(self._wait_for)
 
 

@@ -65,6 +65,6 @@ print("---------")
 for path in backend.memory.ls_r(backend.memory.root_path, absolute=True):
     value = backend.memory[path]
     if value:
-        print("{} -> {}".format(path, value))
+        print(f"{path} -> {value}")
     else:
         print("%s" % (path))

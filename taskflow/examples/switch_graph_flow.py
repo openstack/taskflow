@@ -62,7 +62,7 @@ while entries:
     path = entries.pop()
     value = backend.memory[path]
     if value:
-        print("{} -> {}".format(path, value))
+        print(f"{path} -> {value}")
     else:
         print("%s" % (path))
     entries.extend(os.path.join(path, child)

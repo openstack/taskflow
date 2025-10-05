@@ -185,7 +185,7 @@ def main():
     print(g.to_string().strip())
 
     g.write(options.filename, format=options.format)
-    print("Created {} at '{}'".format(options.format, options.filename))
+    print(f"Created {options.format} at '{options.filename}'")
 
     # To make the svg more pretty use the following:
     # $ xsltproc ../diagram-tools/notugly.xsl ./states.svg > pretty-states.svg

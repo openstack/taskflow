@@ -82,9 +82,9 @@ def dispatch_work(job):
 def safe_print(name, message, prefix=""):
     with STDOUT_LOCK:
         if prefix:
-            print("{} {}: {}".format(prefix, name, message))
+            print(f"{prefix} {name}: {message}")
         else:
-            print("{}: {}".format(name, message))
+            print(f"{name}: {message}")
 
 
 def worker(ident, client, consumed):
@@ -136,7 +136,7 @@ def producer(ident, client):
     safe_print(name, "started")
     with backends.backend(name, SHARED_CONF.copy(), client=client) as board:
         for i in range(0, PRODUCER_UNITS):
-            job_name = "{}-{}".format(name, i)
+            job_name = f"{name}-{i}"
             details = {
                 'color': random.choice(['red', 'blue']),
             }

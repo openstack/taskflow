@@ -110,7 +110,7 @@ class DownloadImages(task.Task):
     def execute(self, image_locations):
         for src, loc in image_locations.items():
             with slow_down(1):
-                print("Downloading from {} => {}".format(src, loc))
+                print(f"Downloading from {src} => {loc}")
         return sorted(image_locations.values())
 
 
@@ -149,7 +149,7 @@ class WriteNetworkSettings(task.Task):
     def execute(self, download_paths, network_settings):
         for j, path in enumerate(download_paths):
             with slow_down(1):
-                print("Mounting {} to /tmp/{}".format(path, j))
+                print(f"Mounting {path} to /tmp/{j}")
             for i, setting in enumerate(network_settings):
                 filename = ("/tmp/etc/sysconfig/network-scripts/"
                             "ifcfg-eth%s" % (i))

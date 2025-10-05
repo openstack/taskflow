@@ -187,7 +187,7 @@ def find_subclasses(locations, base_cls, exclude_hidden=True):
             except ValueError:
                 module = importutils.import_module(item)
             else:
-                obj = importutils.import_class('{}.{}'.format(pkg, cls))
+                obj = importutils.import_class(f'{pkg}.{cls}')
                 if not reflection.is_subclass(obj, base_cls):
                     raise TypeError("Object '%s' (%s) is not a '%s' subclass"
                                     % (item, type(item), base_cls))

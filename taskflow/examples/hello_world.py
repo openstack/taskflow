@@ -41,7 +41,7 @@ class PrinterTask(task.Task):
 
     def execute(self, output):
         if self._show_name:
-            print("{}: {}".format(self.name, output))
+            print(f"{self.name}: {output}")
         else:
             print(output)
 

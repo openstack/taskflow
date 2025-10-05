@@ -120,7 +120,7 @@ class FailureFormatter:
                     atom_attrs['provides'] = self._mask_keys(
                         provides, self._mask_outputs_keys)
             if atom_attrs:
-                return "Atom '{}' {}".format(atom_name, atom_attrs)
+                return f"Atom '{atom_name}' {atom_attrs}"
             else:
                 return "Atom '%s'" % (atom_name)
         else:
@@ -170,7 +170,7 @@ class FailureFormatter:
             rooted_tree = builder(graph, atom)
             child_count = rooted_tree.child_count(only_direct=False)
             buff.write_nl(
-                '{} {} (most recent first):'.format(child_count, kind))
+                f'{child_count} {kind} (most recent first):')
             formatter = functools.partial(self._format_node, storage, cache)
             direct_child_count = rooted_tree.child_count(only_direct=True)
             for i, child in enumerate(rooted_tree, 1):

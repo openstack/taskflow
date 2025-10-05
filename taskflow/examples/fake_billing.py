@@ -137,7 +137,7 @@ class ActivateDriver(task.Task):
     def update_progress(self, progress, **kwargs):
         # Override the parent method to also print out the status.
         super().update_progress(progress, **kwargs)
-        print("{} is {:0.2f}% done".format(self.name, progress * 100))
+        print(f"{self.name} is {progress * 100:0.2f}% done")
 
 
 class DeclareSuccess(task.Task):

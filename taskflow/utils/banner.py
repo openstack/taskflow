@@ -86,9 +86,9 @@ def make_banner(what, chapters):
                 sections = chapter_contents
             for j, section in enumerate(sections):
                 if j + 1 < len(sections):
-                    buf.write_nl("  {}. {}".format(j + 1, section))
+                    buf.write_nl(f"  {j + 1}. {section}")
                 else:
-                    buf.write("  {}. {}".format(j + 1, section))
+                    buf.write(f"  {j + 1}. {section}")
         else:
             raise TypeError("Unsupported chapter contents"
                             " type: one of dict, list, tuple, set expected"

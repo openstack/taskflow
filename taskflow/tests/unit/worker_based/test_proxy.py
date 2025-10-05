@@ -70,7 +70,7 @@ class TestProxy(test.MockTestCase):
         self.resetMasterMock()
 
     def _queue_name(self, topic):
-        return "{}_{}".format(self.exchange, topic)
+        return f"{self.exchange}_{topic}"
 
     def proxy_start_calls(self, calls, exc_type=mock.ANY):
         return [

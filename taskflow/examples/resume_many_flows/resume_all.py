@@ -37,7 +37,7 @@ FINISHED_STATES = (states.SUCCESS, states.FAILURE, states.REVERTED)
 
 
 def resume(flowdetail, backend):
-    print('Resuming flow {} {}'.format(flowdetail.name, flowdetail.uuid))
+    print(f'Resuming flow {flowdetail.name} {flowdetail.uuid}')
     engine = taskflow.engines.load_from_detail(flow_detail=flowdetail,
                                                backend=backend)
     engine.run()

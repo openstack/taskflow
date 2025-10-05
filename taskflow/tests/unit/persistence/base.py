@@ -71,7 +71,7 @@ class PersistenceTestMixin:
         lb_ids = {}
         for i in range(0, 10):
             lb_id = uuidutils.generate_uuid()
-            lb_name = 'lb-{}-{}'.format(i, lb_id)
+            lb_name = f'lb-{i}-{lb_id}'
             lb = models.LogBook(name=lb_name, uuid=lb_id)
             lb_ids[lb_id] = True
 

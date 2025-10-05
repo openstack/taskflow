@@ -26,4 +26,4 @@ def version_string_with_package():
     if TASK_PACKAGE is None:
         return version_string()
     else:
-        return "{}-{}".format(version_string(), TASK_PACKAGE)
+        return f"{version_string()}-{TASK_PACKAGE}"

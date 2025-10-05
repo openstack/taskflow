@@ -62,7 +62,7 @@ def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
                                    invoke_kwds=kwargs)
         return mgr.driver
     except RuntimeError as e:
-        raise exc.NotFound("Could not find backend {}: {}".format(backend, e))
+        raise exc.NotFound(f"Could not find backend {backend}: {e}")
 
 
 @contextlib.contextmanager

@@ -118,7 +118,7 @@ class PrintingDurationListener(DurationListener):
     def _receiver(self, item_type, item_name, state):
         super()._receiver(item_type, item_name, state)
         if state in STARTING_STATES:
-            self._printer("'{}' {} started.".format(item_name, item_type))
+            self._printer(f"'{item_name}' {item_type} started.")
 
 
 class EventTimeListener(base.Listener):
