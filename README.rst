@@ -1,18 +1,17 @@
-========================
-Team and repository tags
-========================
-
-.. image:: https://governance.openstack.org/tc/badges/taskflow.svg
-    :target: https://governance.openstack.org/tc/reference/tags/index.html
-
-.. Change things from this point on
-
 TaskFlow
 ========
+
+.. image:: https://governance.openstack.org/tc/badges/taskflow.svg
+
+.. Change things from this point on
 
 .. image:: https://img.shields.io/pypi/v/taskflow.svg
     :target: https://pypi.org/project/taskflow/
     :alt: Latest Version
+
+.. image:: https://img.shields.io/pypi/dm/taskflow.svg
+    :target: https://pypi.org/project/taskflow/
+    :alt: Downloads
 
 A library to do [jobs, tasks, flows] in a highly available, easy to understand
 and declarative manner (and more!) to be used with OpenStack and other
