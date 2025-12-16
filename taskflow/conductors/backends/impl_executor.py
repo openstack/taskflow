@@ -175,23 +175,23 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
                     consume = False
                 if self._log.isEnabledFor(logging.WARNING):
                     if consume:
-                        self._log.warn(
+                        self._log.warning(
                             "Job execution failed (consumption being"
                             " skipped): %s [%s failures]", job, len(e))
                     else:
-                        self._log.warn(
+                        self._log.warning(
                             "Job execution failed (consumption"
                             " proceeding): %s [%s failures]", job, len(e))
                     # Show the failure/s + traceback (if possible)...
                     for i, f in enumerate(e):
-                        self._log.warn("%s. %s", i + 1,
-                                       f.pformat(traceback=True))
+                        self._log.warning("%s. %s", i + 1,
+                                          f.pformat(traceback=True))
             except self.NO_CONSUME_EXCEPTIONS:
-                self._log.warn("Job execution failed (consumption being"
-                               " skipped): %s", job, exc_info=True)
+                self._log.warning("Job execution failed (consumption being"
+                                  " skipped): %s", job, exc_info=True)
                 consume = False
             except Exception:
-                self._log.warn(
+                self._log.warning(
                     "Job execution failed (consumption proceeding): %s",
                     job, exc_info=True)
             else:
