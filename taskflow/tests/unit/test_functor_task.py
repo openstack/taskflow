@@ -89,4 +89,4 @@ class FunctorTaskTest(test.TestCase):
             'product': 6
         })
 
-        self.assertDictEqual(expected, result)
+        self.assertEqual(expected, result)

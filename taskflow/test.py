@@ -24,19 +24,6 @@ from testtools import matchers
 from taskflow import exceptions
 from taskflow.tests import fixtures as taskflow_fixtures
 from taskflow.tests import utils
-from taskflow.utils import misc
-
-
-class GreaterThanEqual:
-    """Matches if the item is geq than the matchers reference object."""
-
-    def __init__(self, source):
-        self.source = source
-
-    def match(self, other):
-        if other >= self.source:
-            return None
-        return matchers.Mismatch(f"{other} was not >= {self.source}")
 
 
 class FailureRegexpMatcher:
@@ -60,32 +47,6 @@ class FailureRegexpMatcher:
                                  (failure, self.exc_class))
 
 
-class ItemsEqual:
-    """Matches the items in two sequences.
-
-    This matcher will validate that the provided sequence has the same elements
-    as a reference sequence, regardless of the order.
-    """
-
-    def __init__(self, seq):
-        self._seq = seq
-        self._list = list(seq)
-
-    def match(self, other):
-        other_list = list(other)
-        extra = misc.sequence_minus(other_list, self._list)
-        missing = misc.sequence_minus(self._list, other_list)
-        if extra or missing:
-            msg = ("Sequences %s and %s do not have same items."
-                   % (self._seq, other))
-            if missing:
-                msg += " Extra items in first sequence: %s." % missing
-            if extra:
-                msg += " Extra items in second sequence: %s." % extra
-            return matchers.Mismatch(msg)
-        return None
-
-
 class TestCase(base.BaseTestCase):
     """Test case base class for all taskflow unit tests."""
 
@@ -97,40 +58,12 @@ class TestCase(base.BaseTestCase):
         t_dir = self.useFixture(fixtures.TempDir())
         return t_dir.path
 
-    def assertDictEqual(self, expected, check):
-        self.assertIsInstance(expected, dict,
-                              'First argument is not a dictionary')
-        self.assertIsInstance(check, dict,
-                              'Second argument is not a dictionary')
-
-        # Testtools seems to want equals objects instead of just keys?
-        compare_dict = {}
-        for k in list(expected.keys()):
-            if not isinstance(expected[k], matchers.Equals):
-                compare_dict[k] = matchers.Equals(expected[k])
-            else:
-                compare_dict[k] = expected[k]
-        self.assertThat(matchee=check,
-                        matcher=matchers.MatchesDict(compare_dict))
-
     def assertRaisesAttrAccess(self, exc_class, obj, attr_name):
 
         def access_func():
             getattr(obj, attr_name)
 
         self.assertRaises(exc_class, access_func)
-
-    def assertGreater(self, first, second):
-        matcher = matchers.GreaterThan(first)
-        self.assertThat(second, matcher)
-
-    def assertGreaterEqual(self, first, second):
-        matcher = GreaterThanEqual(first)
-        self.assertThat(second, matcher)
-
-    def assertRegexpMatches(self, text, pattern):
-        matcher = matchers.MatchesRegex(pattern)
-        self.assertThat(text, matcher)
 
     def assertIsSuperAndSubsequence(self, super_seq, sub_seq, msg=None):
         super_seq = list(super_seq)
@@ -157,10 +90,6 @@ class TestCase(base.BaseTestCase):
                 callable_obj(*args, **kwargs)
         except exceptions.WrappedFailure as e:
             self.assertThat(e, FailureRegexpMatcher(exc_class, pattern))
-
-    def assertCountEqual(self, seq1, seq2, msg=None):
-        matcher = ItemsEqual(seq1)
-        self.assertThat(seq2, matcher)
 
 
 class MockTestCase(TestCase):

@@ -250,7 +250,7 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         self.assertEqual(1, len(paths))
         path_key = list(paths.keys())[0]
         self.assertTrue(len(paths[path_key]['data']) > 0)
-        self.assertDictEqual({
+        self.assertEqual({
             'uuid': posted_job.uuid,
             'name': posted_job.name,
             'book': {
@@ -278,7 +278,7 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         conductor_data = (
             self.client.storage.paths[conductor_entity_path]['data'])
         self.assertTrue(len(conductor_data) > 0)
-        self.assertDictEqual({
+        self.assertEqual({
             'name': conductor_name,
             'kind': 'conductor',
             'metadata': {},
