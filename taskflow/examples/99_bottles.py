@@ -194,7 +194,6 @@ def main_local():
     # the examples are made sure to still function correctly...
     global TAKE_DOWN_DELAY
     global PASS_AROUND_DELAY
-    global JB_CONF
     # Make everything go much faster (so that this finishes quickly).
     PASS_AROUND_DELAY = 0.01
     TAKE_DOWN_DELAY = 0.01
