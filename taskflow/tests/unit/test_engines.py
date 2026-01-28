@@ -632,6 +632,20 @@ class EngineParallelFlowTest(utils.EngineTestBase):
         self.assertEqual({'x1': 17, 'x2': 5},
                          engine.storage.fetch_all())
 
+    # Reproducer for #2139228 and #2086453
+    def test_many_unordered_flows_in_linear_flow(self):
+        flow = lf.Flow("root")
+        for i in range(10):
+            sf = uf.Flow(f'subflow {i}')
+            for j in range(10):
+                sf.add(utils.ProgressingTask(name=f"task {i}:{j}"))
+            flow.add(sf)
+
+        engine = self._make_engine(flow)
+        with utils.CaptureListener(engine, capture_flow=False) as capturer:
+            engine.run()
+            self.assertIn("task 9:9.t SUCCESS(5)", capturer.values)
+
 
 class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
 
