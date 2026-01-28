@@ -60,8 +60,13 @@ def breadth_first_iterate(execution_graph, starting_node, direction,
         through_flows=through_flows, through_retries=through_retries,
         through_tasks=through_tasks)
     q = collections.deque(initial_nodes_iter)
+    visited_nodes = set()
     while q:
         node = q.popleft()
+        if node in visited_nodes:
+            continue
+        visited_nodes.add(node)
+
         node_attrs = execution_graph.nodes[node]
         if not node_attrs.get('noop'):
             yield node
@@ -88,8 +93,13 @@ def depth_first_iterate(execution_graph, starting_node, direction,
         through_flows=through_flows, through_retries=through_retries,
         through_tasks=through_tasks)
     stack = list(initial_nodes_iter)
+    visited_nodes = set()
     while stack:
         node = stack.pop()
+        if node in visited_nodes:
+            continue
+        visited_nodes.add(node)
+
         node_attrs = execution_graph.nodes[node]
         if not node_attrs.get('noop'):
             yield node
