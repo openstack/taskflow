@@ -238,7 +238,7 @@ class GraphFlowTest(test.TestCase):
         f = gf.Flow('test').add(task1, task2, f1)
         for (n, data) in f.iter_nodes():
             self.assertIn(n, tasks)
-            self.assertDictEqual({}, data)
+            self.assertEqual({}, data)
 
     def test_iter_links(self):
         task1 = _task('task1')
@@ -251,7 +251,7 @@ class GraphFlowTest(test.TestCase):
         for (u, v, data) in f.iter_links():
             self.assertIn(u, tasks)
             self.assertIn(v, tasks)
-            self.assertDictEqual({}, data)
+            self.assertEqual({}, data)
 
 
 class TargetedGraphFlowTest(test.TestCase):

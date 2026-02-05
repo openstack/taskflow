@@ -125,7 +125,7 @@ class UnorderedFlowTest(test.TestCase):
         f.add(task2, task1)
         for (node, data) in f.iter_nodes():
             self.assertIn(node, tasks)
-            self.assertDictEqual({}, data)
+            self.assertEqual({}, data)
 
     def test_iter_links(self):
         task1 = _task(name='task1', provides=['a', 'b'])

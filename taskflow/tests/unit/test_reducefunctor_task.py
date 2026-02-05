@@ -51,7 +51,7 @@ class ReduceFunctorTaskTest(test.TestCase):
                                         provides=provides))
 
         result = engines.run(flow, store=self.flow_store)
-        self.assertDictEqual(expected, result)
+        self.assertEqual(expected, result)
 
     def test_multiply_array(self):
         expected = self.flow_store.copy()
@@ -67,4 +67,4 @@ class ReduceFunctorTaskTest(test.TestCase):
                                         provides=provides))
 
         result = engines.run(flow, store=self.flow_store)
-        self.assertDictEqual(expected, result)
+        self.assertEqual(expected, result)

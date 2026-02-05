@@ -129,7 +129,7 @@ class LinearFlowTest(test.TestCase):
         tasks = {task1, task2, task3}
         for (node, data) in f.iter_nodes():
             self.assertIn(node, tasks)
-            self.assertDictEqual({}, data)
+            self.assertEqual({}, data)
 
     def test_iter_links(self):
         task1 = _task(name='task1')
@@ -140,4 +140,4 @@ class LinearFlowTest(test.TestCase):
         for (u, v, data) in f.iter_links():
             self.assertIn(u, tasks)
             self.assertIn(v, tasks)
-            self.assertDictEqual({'invariant': True}, data)
+            self.assertEqual({'invariant': True}, data)

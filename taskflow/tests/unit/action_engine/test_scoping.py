@@ -242,7 +242,7 @@ class MixedPatternScopingTest(test.TestCase):
             if n.startswith('subroot.'):
                 first_subroot = i
                 break
-        self.assertGreater(first_subroot, first_root)
+        self.assertGreater(first_root, first_subroot)
         self.assertEqual(['root.2', 'root.1'], scope[0][-2:])
 
     def test_shadow_graph(self):

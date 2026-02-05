@@ -37,7 +37,7 @@ class TestExceptions(test.TestCase):
         except Exception as e:
             capture = e
         self.assertIsNotNone(capture)
-        self.assertGreater(0, len(capture.pformat()))
+        self.assertGreater(len(capture.pformat()), 0)
 
     def test_raise_with(self):
         capture = None

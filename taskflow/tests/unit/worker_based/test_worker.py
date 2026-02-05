@@ -69,7 +69,7 @@ class TestWorker(test.MockTestCase):
         w.run(banner_writer=buf.write)
         w.wait()
         w.stop()
-        self.assertGreater(0, len(buf.getvalue()))
+        self.assertGreater(len(buf.getvalue()), 0)
 
     def test_creation_with_custom_threads_count(self):
         self.worker(threads_count=10)
