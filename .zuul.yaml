@@ -6,6 +6,7 @@
     vars:
       tox_envlist: functional
     irrelevant-files:
+      - ^\.gitignore$
       - ^\.gitreview$
       - ^.*\.rst$
       - ^doc/.*$
