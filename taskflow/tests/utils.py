@@ -32,7 +32,7 @@ from taskflow.utils import kazoo_utils
 from taskflow.utils import redis_utils
 
 ETCD_PORT = int(os.getenv("TASKFLOW_TEST_ETCD_PORT", 2379))
-REDIS_PORT = int(os.getenv("TASKFLOW_TEST_REDIS_SENTINEL_PORT", 6379))
+REDIS_PORT = int(os.getenv("TASKFLOW_TEST_REDIS_PORT", 6379))
 ZK_PORT = int(os.getenv("TASKFLOW_TEST_ZOOKEEPER_PORT", 2181))
 ZK_TEST_CONFIG = {
     'timeout': 1.0,
