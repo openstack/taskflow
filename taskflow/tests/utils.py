@@ -58,6 +58,10 @@ def wrap_all_failures():
 
 
 def zookeeper_available(min_version, timeout=30):
+    url = os.getenv("TAKSFLOW_TEST_URL")
+    if url is not None:
+        return url.startswith("zookeeper://")
+
     client = kazoo_utils.make_client(ZK_TEST_CONFIG.copy())
     try:
         # NOTE(imelnikov): 30 seconds we should be enough for localhost
@@ -77,6 +81,10 @@ def zookeeper_available(min_version, timeout=30):
 
 
 def redis_available(min_version):
+    url = os.getenv("TAKSFLOW_TEST_URL")
+    if url is not None:
+        return url.startswith("redis://")
+
     client = redis.Redis(port=REDIS_PORT)
     try:
         client.ping()
@@ -89,6 +97,10 @@ def redis_available(min_version):
 
 
 def etcd_available():
+    url = os.getenv("TAKSFLOW_TEST_URL")
+    if url is not None:
+        return url.startswith("etcd://")
+
     client = etcd3gw.Etcd3Client(port=ETCD_PORT)
     try:
         client.get("/")
