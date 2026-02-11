@@ -4,3 +4,5 @@ backend_services_map:
     - redis-server
     - redis-sentinel
   etcd: []
+  zookeeper:
+    - zookeeper

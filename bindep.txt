@@ -19,3 +19,5 @@ libpq-dev [platform:dpkg]
 redis [platform:rpm tests-functional-redis]
 redis-server [platform:dpkg tests-functional-redis]
 redis-sentinel [platform:dpkg tests-functional-redis]
+zookeeperd [platform:dpkg tests-functional-zookeeper]
+# NOTE(tkajinam): zookeeper package is not available in CentOS/Fedora

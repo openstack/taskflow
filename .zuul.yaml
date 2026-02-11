@@ -14,6 +14,13 @@
       - ^\.pre-commit-config\.yaml$
 
 - job:
+    name: taskflow-functional-zookeeper
+    parent: taskflow-functional
+    vars:
+      tox_environment:
+        PIFPAF_DAEMON: zookeeper
+
+- job:
     name: taskflow-functional-redis
     parent: taskflow-functional
     vars:
@@ -39,9 +46,11 @@
       - release-notes-jobs-python3
     check:
       jobs:
+        - taskflow-functional-zookeeper
         - taskflow-functional-redis
         - taskflow-functional-etcd
     gate:
       jobs:
+        - taskflow-functional-zookeeper
         - taskflow-functional-redis
         - taskflow-functional-etcd

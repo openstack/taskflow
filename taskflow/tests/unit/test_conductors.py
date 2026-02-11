@@ -17,8 +17,9 @@ import contextlib
 import threading
 
 import futurist
+from oslo_utils import uuidutils
 import testscenarios
-from zake import fake_client
+import testtools
 
 from taskflow.conductors import backends
 from taskflow import engines
@@ -29,17 +30,14 @@ from taskflow.persistence.backends import impl_memory
 from taskflow import states as st
 from taskflow import test
 from taskflow.tests import utils as test_utils
+from taskflow.utils import kazoo_utils
 from taskflow.utils import persistence_utils as pu
 from taskflow.utils import threading_utils
 
 
-@contextlib.contextmanager
-def close_many(*closeables):
-    try:
-        yield
-    finally:
-        for c in closeables:
-            c.close()
+TEST_PATH_TPL = '/taskflow/conductor-test/%s'
+ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
+    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
 
 
 def test_factory(blowup):
@@ -69,10 +67,10 @@ def single_factory():
 
 
 ComponentBundle = collections.namedtuple('ComponentBundle',
-                                         ['board', 'client',
-                                          'persistence', 'conductor'])
+                                         ['board', 'persistence', 'conductor'])
 
 
+@testtools.skipIf(not ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
 class ManyConductorTest(testscenarios.TestWithScenarios,
                         test_utils.EngineTestBase, test.TestCase):
     scenarios = [
@@ -88,30 +86,40 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
     ]
 
     def make_components(self):
-        client = fake_client.FakeClient()
+        def cleanup_path(client, path):
+            if not client.connected:
+                return
+            client.delete(path, recursive=True)
+
+        client = kazoo_utils.make_client(test_utils.ZK_TEST_CONFIG.copy())
+        path = TEST_PATH_TPL % uuidutils.generate_uuid()
         persistence = impl_memory.MemoryBackend()
-        board = impl_zookeeper.ZookeeperJobBoard('testing', {},
-                                                 client=client,
-                                                 persistence=persistence)
+        board = impl_zookeeper.ZookeeperJobBoard(
+            'testing',
+            {'path': path},
+            client=client,
+            persistence=persistence)
+
+        self.addCleanup(cleanup_path, client, path)
+        self.addCleanup(kazoo_utils.finalize_client, client)
+
         conductor_kwargs = self.conductor_kwargs.copy()
         conductor_kwargs['persistence'] = persistence
         conductor = backends.fetch(self.kind, 'testing', board,
                                    **conductor_kwargs)
-        return ComponentBundle(board, client, persistence, conductor)
+        return ComponentBundle(board, persistence, conductor)
 
     def test_connection(self):
         components = self.make_components()
         components.conductor.connect()
-        with close_many(components.conductor, components.client):
+        with contextlib.closing(components.conductor):
             self.assertTrue(components.board.connected)
-            self.assertTrue(components.client.connected)
         self.assertFalse(components.board.connected)
-        self.assertFalse(components.client.connected)
 
     def test_run_empty(self):
         components = self.make_components()
         components.conductor.connect()
-        with close_many(components.conductor, components.client):
+        with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             components.conductor.stop()
@@ -143,7 +151,7 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
                                                on_job_consumed)
         components.conductor.notifier.register("job_abandoned",
                                                on_job_abandoned)
-        with close_many(components.conductor, components.client):
+        with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
@@ -175,7 +183,7 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
             consumed_event.set()
 
         components.board.notifier.register(base.REMOVAL, on_consume)
-        with close_many(components.client, components.conductor):
+        with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(
                 lambda: components.conductor.run(max_dispatches=5))
             t.start()
@@ -217,7 +225,7 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
                                                on_job_consumed)
         components.conductor.notifier.register("job_abandoned",
                                                on_job_abandoned)
-        with close_many(components.conductor, components.client):
+        with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
@@ -249,7 +257,7 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
             consumed_event.set()
 
         components.board.notifier.register(base.REMOVAL, on_consume)
-        with close_many(components.conductor, components.client):
+        with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
@@ -281,7 +289,7 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
         store = {'x': True, 'y': False, 'z': None}
 
         components.board.notifier.register(base.REMOVAL, on_consume)
-        with close_many(components.conductor, components.client):
+        with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
@@ -314,7 +322,7 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
         store = {'x': True, 'y': False, 'z': None}
 
         components.board.notifier.register(base.REMOVAL, on_consume)
-        with close_many(components.conductor, components.client):
+        with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence,
@@ -348,7 +356,7 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
         job_store = {'z': None}
 
         components.board.notifier.register(base.REMOVAL, on_consume)
-        with close_many(components.conductor, components.client):
+        with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence,
@@ -400,7 +408,7 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
                                                on_job_abandoned)
         components.conductor.notifier.register("running_start",
                                                on_running_start)
-        with close_many(components.conductor, components.client):
+        with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
@@ -418,13 +426,14 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
             self.assertFalse(consumed_event.is_set())
 
 
+@testtools.skipIf(not ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
 class NonBlockingExecutorTest(test.TestCase):
     def test_bad_wait_timeout(self):
         persistence = impl_memory.MemoryBackend()
-        client = fake_client.FakeClient()
-        board = impl_zookeeper.ZookeeperJobBoard('testing', {},
-                                                 client=client,
-                                                 persistence=persistence)
+        board = impl_zookeeper.ZookeeperJobBoard(
+            'testing',
+            test_utils.ZK_TEST_CONFIG.copy(),
+            persistence=persistence)
         self.assertRaises(ValueError,
                           backends.fetch,
                           'nonblocking', 'testing', board,
@@ -433,10 +442,10 @@ class NonBlockingExecutorTest(test.TestCase):
 
     def test_bad_factory(self):
         persistence = impl_memory.MemoryBackend()
-        client = fake_client.FakeClient()
-        board = impl_zookeeper.ZookeeperJobBoard('testing', {},
-                                                 client=client,
-                                                 persistence=persistence)
+        board = impl_zookeeper.ZookeeperJobBoard(
+            'testing',
+            test_utils.ZK_TEST_CONFIG.copy(),
+            persistence=persistence)
         self.assertRaises(ValueError,
                           backends.fetch,
                           'nonblocking', 'testing', board,

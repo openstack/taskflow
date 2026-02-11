@@ -32,7 +32,6 @@ sys.path.insert(0, top_dir)
 
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-from zake import fake_client
 
 from taskflow.conductors import backends as conductors
 from taskflow import engines
@@ -41,6 +40,7 @@ from taskflow.patterns import linear_flow
 from taskflow.persistence import backends as persistence
 from taskflow.persistence import models
 from taskflow import task
+from taskflow.utils import kazoo_utils
 from taskflow.utils import threading_utils
 
 # INTRO: This examples shows how a worker/producer can post desired work (jobs)
@@ -215,10 +215,8 @@ def main():
         # This ensures that the needed backend setup/data directories/schema
         # upgrades and so on... exist before they are attempted to be used...
         conn.upgrade()
-    fc1 = fake_client.FakeClient()
-    # Done like this to share the same client storage location so the correct
-    # zookeeper features work across clients...
-    fc2 = fake_client.FakeClient(storage=fc1.storage)
+    fc1 = kazoo_utils.make_client({})
+    fc2 = kazoo_utils.make_client({})
     entities = [
         generate_reviewer(fc1, saver),
         generate_conductor(fc2, saver),

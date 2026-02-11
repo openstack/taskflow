@@ -19,11 +19,12 @@ import time
 
 from oslo_serialization import jsonutils
 from oslo_utils import reflection
-from zake import fake_client
+import testtools
 
 import taskflow.engines
 from taskflow import exceptions as exc
 from taskflow.jobs import backends as jobs
+from taskflow.jobs.backends import impl_zookeeper
 from taskflow.listeners import claims
 from taskflow.listeners import logging as logging_listeners
 from taskflow.listeners import timing
@@ -34,8 +35,13 @@ from taskflow import task
 from taskflow import test
 from taskflow.test import mock
 from taskflow.tests import utils as test_utils
+from taskflow.utils import kazoo_utils
 from taskflow.utils import misc
 from taskflow.utils import persistence_utils
+
+
+ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
+    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
 
 
 _LOG_LEVELS = frozenset([
@@ -70,6 +76,7 @@ class EngineMakerMixin:
         return e
 
 
+@testtools.skipIf(not ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
 class TestClaimListener(test.TestCase, EngineMakerMixin):
     def _make_dummy_flow(self, count):
         f = lf.Flow('root')
@@ -79,7 +86,7 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
 
     def setUp(self):
         super().setUp()
-        self.client = fake_client.FakeClient()
+        self.client = kazoo_utils.make_client(test_utils.ZK_TEST_CONFIG.copy())
         self.addCleanup(self.client.stop)
         self.board = jobs.fetch('test', 'zookeeper', client=self.client)
         self.addCleanup(self.board.close)
@@ -92,7 +99,7 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
             if children:
                 arrived.set()
 
-        self.client.ChildrenWatch("/taskflow", set_on_children)
+        self.client.ChildrenWatch("/taskflow/jobs", set_on_children)
         job = self.board.post('test-1')
 
         # Make sure it arrived and claimed before doing further work...
@@ -105,22 +112,20 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
         return job
 
     def _destroy_locks(self):
-        children = self.client.storage.get_children("/taskflow",
-                                                    only_direct=False)
+        children = self.client.get_children("/taskflow/jobs")
         removed = 0
-        for p, data in children.items():
+        for p in children:
             if p.endswith(".lock"):
-                self.client.storage.pop(p)
+                self.client.delete("/taskflow/jobs/" + p)
                 removed += 1
         return removed
 
     def _change_owner(self, new_owner):
-        children = self.client.storage.get_children("/taskflow",
-                                                    only_direct=False)
+        children = self.client.get_children("/taskflow/jobs")
         altered = 0
-        for p, data in children.items():
+        for p in children:
             if p.endswith(".lock"):
-                self.client.set(p, misc.binary_encode(
+                self.client.set("/taskflow/jobs/" + p, misc.binary_encode(
                     jsonutils.dumps({'owner': new_owner})))
                 altered += 1
         return altered

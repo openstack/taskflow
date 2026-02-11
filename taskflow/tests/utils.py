@@ -57,10 +57,10 @@ def wrap_all_failures():
         raise exceptions.WrappedFailure([failure.Failure()])
 
 
-def zookeeper_available(min_version, timeout=3):
+def zookeeper_available(min_version, timeout=30):
     client = kazoo_utils.make_client(ZK_TEST_CONFIG.copy())
     try:
-        # NOTE(imelnikov): 3 seconds we should be enough for localhost
+        # NOTE(imelnikov): 30 seconds we should be enough for localhost
         client.start(timeout=float(timeout))
         if min_version:
             zk_ver = client.server_version()

@@ -20,8 +20,6 @@ from kazoo.recipe import watchers
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 import testtools
-from zake import fake_client
-from zake import utils as zake_utils
 
 from taskflow import exceptions as excp
 from taskflow.jobs.backends import impl_zookeeper
@@ -39,7 +37,6 @@ FLUSH_PATH_TPL = '/taskflow/flush-test/%s'
 TEST_PATH_TPL = '/taskflow/board-test/%s'
 ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
     impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
-TRASH_FOLDER = impl_zookeeper.ZookeeperJobBoard.TRASH_FOLDER
 LOCK_POSTFIX = impl_zookeeper.ZookeeperJobBoard.LOCK_POSTFIX
 
 
@@ -118,42 +115,25 @@ class ZookeeperBoardTestMixin(base.BoardTestMixin):
 @testtools.skipIf(not ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
 class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
     def create_board(self, persistence=None):
-
         def cleanup_path(client, path):
             if not client.connected:
                 return
             client.delete(path, recursive=True)
 
         client = kazoo_utils.make_client(test_utils.ZK_TEST_CONFIG.copy())
-        path = TEST_PATH_TPL % (uuidutils.generate_uuid())
-        board = impl_zookeeper.ZookeeperJobBoard('test-board', {'path': path},
-                                                 client=client,
-                                                 persistence=persistence)
-        self.addCleanup(self.close_client, client)
-        self.addCleanup(cleanup_path, client, path)
+        self.path = TEST_PATH_TPL % uuidutils.generate_uuid()
+        board = impl_zookeeper.ZookeeperJobBoard(
+            'test-board', {'path': self.path},
+            client=client,
+            persistence=persistence)
+        self.addCleanup(cleanup_path, client, self.path)
         self.addCleanup(board.close)
+        self.addCleanup(kazoo_utils.finalize_client, client)
         return (client, board)
 
     def setUp(self):
         super().setUp()
         self.client, self.board = self.create_board()
-
-
-class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
-    def create_board(self, persistence=None):
-        client = fake_client.FakeClient()
-        board = impl_zookeeper.ZookeeperJobBoard('test-board', {},
-                                                 client=client,
-                                                 persistence=persistence)
-        self.addCleanup(board.close)
-        self.addCleanup(self.close_client, client)
-        return (client, board)
-
-    def setUp(self):
-        super().setUp()
-        self.client, self.board = self.create_board()
-        self.bad_paths = [self.board.path, self.board.trash_path]
-        self.bad_paths.extend(zake_utils.partition_path(self.board.path))
 
     def test_posting_owner_lost(self):
 
@@ -168,12 +148,11 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             # Forcefully delete the owner from the backend storage to make
             # sure the job becomes unclaimed (this may happen if some admin
             # manually deletes the lock).
-            paths = list(self.client.storage.paths.items())
-            for (path, value) in paths:
-                if path in self.bad_paths:
-                    continue
-                if path.endswith('lock'):
-                    value['data'] = misc.binary_encode(jsonutils.dumps({}))
+            children = self.client.get_children(self.path)
+            for p in children:
+                if p.endswith(LOCK_POSTFIX):
+                    self.client.set(k_paths.join(self.path, p),
+                                    misc.binary_encode(jsonutils.dumps({})))
             self.assertEqual(states.UNCLAIMED, j.state)
 
     def test_posting_state_lock_lost(self):
@@ -189,12 +168,10 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             # Forcefully delete the lock from the backend storage to make
             # sure the job becomes unclaimed (this may happen if some admin
             # manually deletes the lock).
-            paths = list(self.client.storage.paths.items())
-            for (path, value) in paths:
-                if path in self.bad_paths:
-                    continue
-                if path.endswith("lock"):
-                    self.client.storage.pop(path)
+            children = self.client.get_children(self.path)
+            for p in children:
+                if p.endswith(LOCK_POSTFIX):
+                    self.client.delete(k_paths.join(self.path, p))
             self.assertEqual(states.UNCLAIMED, j.state)
 
     def test_trashing_claimed_job(self):
@@ -210,17 +187,8 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             with self.flush(self.client):
                 self.board.trash(j, self.board.name)
 
-            trashed = []
-            jobs = []
-            paths = list(self.client.storage.paths.items())
-            for (path, value) in paths:
-                if path in self.bad_paths:
-                    continue
-                if path.find(TRASH_FOLDER) > -1:
-                    trashed.append(path)
-                elif (path.find(self.board._job_base) > -1
-                        and not path.endswith(LOCK_POSTFIX)):
-                    jobs.append(path)
+            trashed = self.client.get_children(self.board.trash_path)
+            jobs = self.client.get_children(self.path)
 
             self.assertEqual(1, len(trashed))
             self.assertEqual(0, len(jobs))
@@ -240,16 +208,11 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
 
         # Remove paths that got created due to the running process that we are
         # not interested in...
-        paths = {}
-        for (path, data) in self.client.storage.paths.items():
-            if path in self.bad_paths:
-                continue
-            paths[path] = data
-
+        children = self.client.get_children(self.path)
         # Check the actual data that was posted.
-        self.assertEqual(1, len(paths))
-        path_key = list(paths.keys())[0]
-        self.assertTrue(len(paths[path_key]['data']) > 0)
+        self.assertEqual(1, len(children))
+        child = self.client.get(k_paths.join(self.path, children[0]))
+        self.assertTrue(len(child[0]) > 0)
         self.assertEqual({
             'uuid': posted_job.uuid,
             'name': posted_job.name,
@@ -259,7 +222,7 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             },
             'priority': 'NORMAL',
             'details': {},
-        }, jsonutils.loads(misc.binary_decode(paths[path_key]['data'])))
+        }, jsonutils.loads(misc.binary_decode(child[0])))
 
     def test_register_entity(self):
         conductor_name = "conductor-abc@localhost:4123"
@@ -269,14 +232,12 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         with base.connect_close(self.board):
             self.board.register_entity(entity_instance)
         # Check '.entity' node has been created
-        self.assertIn(self.board.entity_path, self.client.storage.paths)
+        self.client.get_children(self.board.entity_path)
 
         conductor_entity_path = k_paths.join(self.board.entity_path,
                                              'conductor',
                                              conductor_name)
-        self.assertIn(conductor_entity_path, self.client.storage.paths)
-        conductor_data = (
-            self.client.storage.paths[conductor_entity_path]['data'])
+        conductor_data = self.client.get(conductor_entity_path)[0]
         self.assertTrue(len(conductor_data) > 0)
         self.assertEqual({
             'name': conductor_name,
@@ -291,47 +252,3 @@ class ZakeJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             self.assertRaises(excp.NotImplementedError,
                               self.board.register_entity,
                               entity_instance_2)
-
-    def test_connect_check_compatible(self):
-        # Valid version
-        client = fake_client.FakeClient()
-        board = impl_zookeeper.ZookeeperJobBoard(
-            'test-board', {'check_compatible': True},
-            client=client)
-        self.addCleanup(board.close)
-        self.addCleanup(self.close_client, client)
-
-        with base.connect_close(board):
-            pass
-
-        # Invalid version, no check
-        client = fake_client.FakeClient(server_version=(3, 2, 0))
-        board = impl_zookeeper.ZookeeperJobBoard(
-            'test-board', {'check_compatible': False},
-            client=client)
-        self.addCleanup(board.close)
-        self.addCleanup(self.close_client, client)
-
-        with base.connect_close(board):
-            pass
-
-        # Invalid version, check_compatible=True
-        client = fake_client.FakeClient(server_version=(3, 2, 0))
-        board = impl_zookeeper.ZookeeperJobBoard(
-            'test-board', {'check_compatible': True},
-            client=client)
-        self.addCleanup(board.close)
-        self.addCleanup(self.close_client, client)
-
-        self.assertRaises(excp.IncompatibleVersion, board.connect)
-
-        # Invalid version, check_compatible='False'
-        client = fake_client.FakeClient(server_version=(3, 2, 0))
-        board = impl_zookeeper.ZookeeperJobBoard(
-            'test-board', {'check_compatible': 'False'},
-            client=client)
-        self.addCleanup(board.close)
-        self.addCleanup(self.close_client, client)
-
-        with base.connect_close(board):
-            pass

@@ -18,4 +18,10 @@
         enabled: no
       become: yes
       loop: "{{ backend_services_map[taskflow_backend_daemon] }}"
-
+    - name: Remove ZOO_LOG_DIR
+      lineinfile:
+        path: /etc/zookeeper/conf/environment
+        regexp: '^ZOO_LOG_DIR=.*'
+        state: absent
+      become: yes
+      when: taskflow_backend_daemon == 'zookeeper'

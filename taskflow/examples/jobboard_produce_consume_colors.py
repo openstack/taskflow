@@ -28,10 +28,9 @@ top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                        os.pardir))
 sys.path.insert(0, top_dir)
 
-from zake import fake_client
-
 from taskflow import exceptions as excp
 from taskflow.jobs import backends
+from taskflow.utils import kazoo_utils
 from taskflow.utils import threading_utils
 
 # In this example we show how a jobboard can be used to post work for other
@@ -155,7 +154,8 @@ def main():
     except ImportError:
         pass
 
-    with contextlib.closing(fake_client.FakeClient()) as c:
+    client = kazoo_utils.make_client({})
+    with contextlib.closing(client) as c:
         created = []
         for i in range(0, PRODUCERS):
             p = threading_utils.daemon_thread(producer, i + 1, c)

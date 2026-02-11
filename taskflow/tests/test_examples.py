@@ -32,7 +32,11 @@ import re
 import subprocess
 import sys
 
+import testtools
+
+from taskflow.jobs.backends import impl_zookeeper
 from taskflow import test
+from taskflow.tests import utils as test_utils
 
 ROOT_DIR = os.path.abspath(
     os.path.dirname(
@@ -44,6 +48,9 @@ ROOT_DIR = os.path.abspath(
 # we expect to be able to check).
 UUID_RE = re.compile('XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
                      .replace('X', '[0-9a-f]'))
+
+ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
+    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
 
 
 def safe_filename(filename):
@@ -114,6 +121,7 @@ class ExampleAdderMeta(type):
         return type.__new__(cls, name, parents, dct)
 
 
+@testtools.skipIf(not ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
 class ExamplesTestCase(test.TestCase, metaclass=ExampleAdderMeta):
     """Runs the examples, and checks the outputs against expected outputs."""
 
