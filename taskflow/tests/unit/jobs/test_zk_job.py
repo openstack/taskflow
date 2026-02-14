@@ -128,7 +128,7 @@ class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             persistence=persistence)
         self.addCleanup(cleanup_path, client, self.path)
         self.addCleanup(board.close)
-        self.addCleanup(kazoo_utils.finalize_client, client)
+        self.addCleanup(self.close_client, client)
         return (client, board)
 
     def setUp(self):
