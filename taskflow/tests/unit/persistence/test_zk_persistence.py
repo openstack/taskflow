@@ -58,16 +58,11 @@ class ZkPersistenceTest(test.TestCase, base.PersistenceTestMixin):
         # Create a unique path just for this test (so that we don't overwrite
         # what other tests are doing).
         conf['path'] = TEST_PATH_TPL % (uuidutils.generate_uuid())
-        try:
-            self.backend = impl_zookeeper.ZkBackend(conf)
-        except Exception as e:
-            self.skipTest("Failed creating backend created from configuration"
-                          " %s due to %s" % (conf, e))
-        else:
-            self.addCleanup(self.backend.close)
-            self.addCleanup(clean_backend, self.backend, conf)
-            with contextlib.closing(self.backend.get_connection()) as conn:
-                conn.upgrade()
+        self.backend = impl_zookeeper.ZkBackend(conf)
+        self.addCleanup(self.backend.close)
+        self.addCleanup(clean_backend, self.backend, conf)
+        with contextlib.closing(self.backend.get_connection()) as conn:
+            conn.upgrade()
 
     def test_zk_persistence_entry_point(self):
         conf = {'connection': 'zookeeper:'}
