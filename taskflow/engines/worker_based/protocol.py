@@ -383,8 +383,8 @@ class Request(Message):
         try:
             moved = self.transition(new_state)
         except excp.InvalidState:
-            logger.warn("Failed to transition '%s' to %s state.", self,
-                        new_state, exc_info=True)
+            logger.warnng("Failed to transition '%s' to %s state.", self,
+                          new_state, exc_info=True)
         return moved
 
     @fasteners.locked

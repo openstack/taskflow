@@ -328,8 +328,8 @@ class JobBoardIterator:
                 if maybe_job.state in allowed_states:
                     job = maybe_job
             except excp.JobFailure:
-                self._logger.warn("Failed determining the state of"
-                                  " job '%s'", maybe_job, exc_info=True)
+                self._logger.warning("Failed determining the state of"
+                                     " job '%s'", maybe_job, exc_info=True)
             except excp.NotFound:
                 # Attempt to clean this off the board now that we found
                 # it wasn't really there (this **must** gracefully handle
