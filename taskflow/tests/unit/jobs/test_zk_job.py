@@ -212,7 +212,7 @@ class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         # Check the actual data that was posted.
         self.assertEqual(1, len(children))
         child = self.client.get(k_paths.join(self.path, children[0]))
-        self.assertTrue(len(child[0]) > 0)
+        self.assertGreater(len(child[0]), 0)
         self.assertEqual({
             'uuid': posted_job.uuid,
             'name': posted_job.name,
@@ -238,7 +238,7 @@ class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
                                              'conductor',
                                              conductor_name)
         conductor_data = self.client.get(conductor_entity_path)[0]
-        self.assertTrue(len(conductor_data) > 0)
+        self.assertGreater(len(conductor_data), 0)
         self.assertEqual({
             'name': conductor_name,
             'kind': 'conductor',

@@ -395,7 +395,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             gathered_states = list(engine.run_iter())
-        self.assertTrue(len(gathered_states) > 0)
+        self.assertGreater(len(gathered_states), 0)
         expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
                     'task2.t RUNNING', 'task2.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
@@ -422,7 +422,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
                         suspend_it = True
                 except StopIteration:
                     break
-        self.assertTrue(len(gathered_states) > 0)
+        self.assertGreater(len(gathered_states), 0)
         expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
         self.assertEqual(states.SUSPENDED, engine.storage.get_flow_state())
@@ -430,7 +430,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         # Attempt to resume it and see what runs now...
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             gathered_states = list(engine.run_iter())
-        self.assertTrue(len(gathered_states) > 0)
+        self.assertGreater(len(gathered_states), 0)
         expected = ['task2.t RUNNING', 'task2.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
         self.assertEqual(states.SUCCESS, engine.storage.get_flow_state())

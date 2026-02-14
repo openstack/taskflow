@@ -145,9 +145,9 @@ class FormattersTest(test.TestCase):
             m['listeners'][0]['default_tls_container_data']['certificate'],
             '***'
         )
-        self.assertEqual(f._mask_keys(
-            "some string", FILTER_KEYS), "some string")
-        self.assertEqual(f._mask_keys(12345, FILTER_KEYS), 12345)
-        self.assertIs(f._mask_keys(None, FILTER_KEYS), None)
-        self.assertIs(f._mask_keys(False, FILTER_KEYS), False)
-        self.assertEqual(f._mask_keys(0, FILTER_KEYS), 0)
+        self.assertEqual("some string",
+                         f._mask_keys("some string", FILTER_KEYS))
+        self.assertEqual(12345, f._mask_keys(12345, FILTER_KEYS))
+        self.assertIsNone(f._mask_keys(None, FILTER_KEYS))
+        self.assertIs(False, f._mask_keys(False, FILTER_KEYS))
+        self.assertEqual(0, f._mask_keys(0, FILTER_KEYS))

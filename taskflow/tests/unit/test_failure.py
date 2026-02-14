@@ -231,7 +231,6 @@ class FailureObjectTestCase(test.TestCase):
         copied = fail_obj.copy()
         self.assertIsNot(fail_obj, copied)
         self.assertEqual(fail_obj, copied)
-        self.assertFalse(fail_obj != copied)
         self.assertTrue(fail_obj.matches(copied))
 
     def test_recaptured_not_eq(self):
@@ -240,8 +239,7 @@ class FailureObjectTestCase(test.TestCase):
                                    traceback_str=captured.traceback_str,
                                    exc_type_names=list(captured),
                                    exc_args=list(captured.exception_args))
-        self.assertFalse(fail_obj == captured)
-        self.assertTrue(fail_obj != captured)
+        self.assertNotEqual(fail_obj, captured)
         self.assertTrue(fail_obj.matches(captured))
 
     def test_two_captured_eq(self):
