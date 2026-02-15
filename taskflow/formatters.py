@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import copy
 import functools
 
 from taskflow.engines.action_engine import compiler
@@ -72,13 +71,18 @@ class FailureFormatter:
         self._engine = engine
 
     def _mask_keys(self, data, mask_keys):
-        if not data or not isinstance(data, dict):
+        if isinstance(data, dict):
+            result = {}
+            for k, v in data.items():
+                if k in mask_keys:
+                    result[k] = '***'
+                else:
+                    result[k] = self._mask_keys(v, mask_keys)
+            return result
+        elif isinstance(data, list):
+            return [self._mask_keys(item, mask_keys) for item in data]
+        else:
             return data
-        result = copy.deepcopy(data)
-        for k in mask_keys:
-            if k in result:
-                result[k] = '***'
-        return result
 
     def _format_node(self, storage, cache, node):
         """Formats a single tree node into a string version."""

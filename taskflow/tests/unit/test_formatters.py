@@ -98,3 +98,56 @@ class FormattersTest(test.TestCase):
         with logging_listener.DynamicLoggingListener(e):
             self.assertRaises(RuntimeError, e.run)
         self.assertTrue(mock_format_node.called)
+
+    def test_mask_keys_edge_cases(self):
+        flo = self._make_test_flow()
+        e = engines.load(flo)
+        self.assertRaises(RuntimeError, e.run)
+
+        f = formatters.FailureFormatter(e)
+        FILTER_KEYS = ('certificate',)
+
+        self.assertEqual(f._mask_keys({}, FILTER_KEYS), {})
+        self.assertEqual(f._mask_keys([], FILTER_KEYS), [])
+        self.assertEqual(
+            f._mask_keys({'a': 1, 'b': 'hello'}, FILTER_KEYS),
+            {'a': 1, 'b': 'hello'}
+        )
+        self.assertEqual(
+            f._mask_keys({'certificate': 'secret'}, FILTER_KEYS),
+            {'certificate': '***'}
+        )
+        self.assertEqual(
+            f._mask_keys([{'certificate': 'secret'}, {'a': 'b'}], FILTER_KEYS),
+            [{'certificate': '***'}, {'a': 'b'}]
+        )
+        self.assertEqual(
+            f._mask_keys({'certificate': None}, FILTER_KEYS),
+            {'certificate': '***'}
+        )
+        data = {
+            'listeners': [
+                {
+                    'admin_state_up': True,
+                    'connection_limit': -1,
+                    'default_pool': None,
+                    'default_pool_id': None,
+                    'default_tls_container_data': {
+                        'id': '4d2b07587d62ae182ac38f5471f5a3c447bd76f0',
+                        'primary_cn': 'localhost',
+                        'certificate': 'secret_data',
+                    },
+                }
+            ],
+        }
+        m = f._mask_keys(data, FILTER_KEYS)
+        self.assertEqual(
+            m['listeners'][0]['default_tls_container_data']['certificate'],
+            '***'
+        )
+        self.assertEqual(f._mask_keys(
+            "some string", FILTER_KEYS), "some string")
+        self.assertEqual(f._mask_keys(12345, FILTER_KEYS), 12345)
+        self.assertIs(f._mask_keys(None, FILTER_KEYS), None)
+        self.assertIs(f._mask_keys(False, FILTER_KEYS), False)
+        self.assertEqual(f._mask_keys(0, FILTER_KEYS), 0)
