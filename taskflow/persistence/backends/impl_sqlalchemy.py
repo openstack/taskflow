@@ -47,6 +47,8 @@ LOG = logging.getLogger(__name__)
 
 # See: http://dev.mysql.com/doc/refman/5.0/en/error-messages-client.html
 MY_SQL_CONN_ERRORS = (
+    # WSREP has not yet prepared node for application use
+    '1047',
     # Lost connection to MySQL server at '%s', system error: %d
     '2006',
     # Can't connect to MySQL server on '%s' (%d)
@@ -55,6 +57,8 @@ MY_SQL_CONN_ERRORS = (
     '2002',
 )
 MY_SQL_GONE_WAY_AWAY_ERRORS = (
+    # Connection was killed
+    '1927',
     # Lost connection to MySQL server at '%s', system error: %d
     '2006',
     # Lost connection to MySQL server during query
