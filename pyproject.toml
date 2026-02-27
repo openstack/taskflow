@@ -57,6 +57,18 @@ database = [
   "PyMySQL>=0.7.6", # MIT License
   "psycopg2>=2.8.0", # LGPL/ZPL
 ]
+mysql = [
+  "SQLAlchemy>=1.0.10", # MIT
+  "alembic>=0.8.10", # MIT
+  "SQLAlchemy-Utils>=0.30.11", # BSD License
+  "PyMySQL>=0.7.6", # MIT License
+]
+postgresql = [
+  "SQLAlchemy>=1.0.10", # MIT
+  "alembic>=0.8.10", # MIT
+  "SQLAlchemy-Utils>=0.30.11", # BSD License
+  "psycopg2>=2.8.0", # LGPL/ZPL
+]
 
 [project.entry-points."taskflow.jobboards"]
 zookeeper = "taskflow.jobs.backends.impl_zookeeper:ZookeeperJobBoard"
