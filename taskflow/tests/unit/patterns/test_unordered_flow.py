@@ -23,7 +23,6 @@ def _task(name, provides=None, requires=None):
 
 
 class UnorderedFlowTest(test.TestCase):
-
     def test_unordered_flow_stringy(self):
         f = uf.Flow('test')
         expected = '"unordered_flow.Flow: test(len=0)"'
@@ -123,7 +122,7 @@ class UnorderedFlowTest(test.TestCase):
         tasks = {task1, task2}
         f = uf.Flow('test')
         f.add(task2, task1)
-        for (node, data) in f.iter_nodes():
+        for node, data in f.iter_nodes():
             self.assertIn(node, tasks)
             self.assertEqual({}, data)
 
@@ -132,5 +131,5 @@ class UnorderedFlowTest(test.TestCase):
         task2 = _task(name='task2', provides=['a', 'c'])
         f = uf.Flow('test')
         f.add(task2, task1)
-        for (u, v, data) in f.iter_links():
+        for u, v, data in f.iter_links():
             raise AssertionError('links iterator should be empty')

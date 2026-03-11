@@ -59,18 +59,24 @@ class JobPriority(enum.Enum):
         try:
             return cls(value.upper())
         except (ValueError, AttributeError):
-            valids = [cls.VERY_HIGH, cls.HIGH, cls.NORMAL,
-                      cls.LOW, cls.VERY_LOW]
+            valids = [
+                cls.VERY_HIGH,
+                cls.HIGH,
+                cls.NORMAL,
+                cls.LOW,
+                cls.VERY_LOW,
+            ]
             valids = [p.value for p in valids]
-            raise ValueError("'%s' is not a valid priority, valid"
-                             " priorities are %s" % (value, valids))
+            raise ValueError(
+                "'%s' is not a valid priority, valid"
+                " priorities are %s" % (value, valids)
+            )
 
     @classmethod
     def reorder(cls, *values):
         """Reorders (priority, value) tuples -> priority ordered values."""
         if len(values) == 0:
-            raise ValueError("At least one (priority, value) pair is"
-                             " required")
+            raise ValueError("At least one (priority, value) pair is required")
         elif len(values) == 1:
             v1 = values[0]
             # Even though this isn't used, we do the conversion because
@@ -81,8 +87,13 @@ class JobPriority(enum.Enum):
             return v1[1]
         else:
             # Order very very much matters in this tuple...
-            priority_ordering = (cls.VERY_HIGH, cls.HIGH,
-                                 cls.NORMAL, cls.LOW, cls.VERY_LOW)
+            priority_ordering = (
+                cls.VERY_HIGH,
+                cls.HIGH,
+                cls.NORMAL,
+                cls.LOW,
+                cls.VERY_LOW,
+            )
             if len(values) == 2:
                 # It's common to use this in a 2 tuple situation, so
                 # make it avoid all the needed complexity that is done
@@ -99,7 +110,7 @@ class JobPriority(enum.Enum):
                     return v2[1], v1[1]
             else:
                 buckets = collections.defaultdict(list)
-                for (p, v) in values:
+                for p, v in values:
                     p = cls.convert(p)
                     buckets[p].append(v)
                 values = []
@@ -127,9 +138,16 @@ class Job(metaclass=abc.ABCMeta):
     reverting...
     """
 
-    def __init__(self, board, name,
-                 uuid=None, details=None, backend=None,
-                 book=None, book_data=None):
+    def __init__(
+        self,
+        board,
+        name,
+        uuid=None,
+        details=None,
+        backend=None,
+        book=None,
+        book_data=None,
+    ):
         if uuid:
             self._uuid = uuid
         else:
@@ -170,9 +188,14 @@ class Job(metaclass=abc.ABCMeta):
     def priority(self):
         """The :py:class:`~.JobPriority` of this job."""
 
-    def wait(self, timeout=None,
-             delay=0.01, delay_multiplier=2.0, max_delay=60.0,
-             sleep_func=time.sleep):
+    def wait(
+        self,
+        timeout=None,
+        delay=0.01,
+        delay_multiplier=2.0,
+        max_delay=60.0,
+        sleep_func=time.sleep,
+    ):
         """Wait for job to enter completion state.
 
         If the job has not completed in the given timeout, then return false,
@@ -194,8 +217,9 @@ class Job(metaclass=abc.ABCMeta):
             w.start()
         else:
             w = None
-        delay_gen = iter_utils.generate_delays(delay, max_delay,
-                                               multiplier=delay_multiplier)
+        delay_gen = iter_utils.generate_delays(
+            delay, max_delay, multiplier=delay_multiplier
+        )
         while True:
             if w is not None and w.expired():
                 return False
@@ -254,11 +278,14 @@ class Job(metaclass=abc.ABCMeta):
         """The non-uniquely identifying name of this job."""
         return self._name
 
-    @tenacity.retry(retry=tenacity.retry_if_exception_type(
-                    exception_types=excp.StorageFailure),
-                    stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
-                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT),
-                    reraise=True)
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            exception_types=excp.StorageFailure
+        ),
+        stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
+        wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT),
+        reraise=True,
+    )
     def _load_book(self):
         book_uuid = self.book_uuid
         if self._backend is not None and book_uuid is not None:
@@ -276,8 +303,8 @@ class Job(metaclass=abc.ABCMeta):
         """Pretty formats the job into something *more* meaningful."""
         cls_name = type(self).__name__
         return "{}: {} (priority={}, uuid={}, details={})".format(
-            cls_name, self.name, self.priority,
-            self.uuid, self.details)
+            cls_name, self.name, self.priority, self.uuid, self.details
+        )
 
 
 class JobBoardIterator:
@@ -296,9 +323,15 @@ class JobBoardIterator:
     _UNCLAIMED_JOB_STATES = (states.UNCLAIMED,)
     _JOB_STATES = (states.UNCLAIMED, states.COMPLETE, states.CLAIMED)
 
-    def __init__(self, board, logger,
-                 board_fetch_func=None, board_removal_func=None,
-                 only_unclaimed=False, ensure_fresh=False):
+    def __init__(
+        self,
+        board,
+        logger,
+        board_fetch_func=None,
+        board_removal_func=None,
+        only_unclaimed=False,
+        ensure_fresh=False,
+    ):
         self._board = board
         self._logger = logger
         self._board_removal_func = board_removal_func
@@ -328,8 +361,11 @@ class JobBoardIterator:
                 if maybe_job.state in allowed_states:
                     job = maybe_job
             except excp.JobFailure:
-                self._logger.warning("Failed determining the state of"
-                                     " job '%s'", maybe_job, exc_info=True)
+                self._logger.warning(
+                    "Failed determining the state of job '%s'",
+                    maybe_job,
+                    exc_info=True,
+                )
             except excp.NotFound:
                 # Attempt to clean this off the board now that we found
                 # it wasn't really there (this **must** gracefully handle
@@ -343,8 +379,8 @@ class JobBoardIterator:
             if not self._fetched:
                 if self._board_fetch_func is not None:
                     self._jobs.extend(
-                        self._board_fetch_func(
-                            ensure_fresh=self.ensure_fresh))
+                        self._board_fetch_func(ensure_fresh=self.ensure_fresh)
+                    )
                 self._fetched = True
         job = self._next_job()
         if job is None:
@@ -562,12 +598,14 @@ class NotifyingJobBoard(JobBoard):
     separate dedicated thread when they occur, so ensure that all callbacks
     registered are thread safe (and block for as little time as possible).
     """
+
     def __init__(self, name, conf):
         super().__init__(name, conf)
         self.notifier = notifier.Notifier()
 
 
 # Internal helpers for usage by board implementations...
+
 
 def check_who(meth):
 
@@ -582,8 +620,15 @@ def check_who(meth):
     return wrapper
 
 
-def format_posting(uuid, name, created_on=None, last_modified=None,
-                   details=None, book=None, priority=JobPriority.NORMAL):
+def format_posting(
+    uuid,
+    name,
+    created_on=None,
+    last_modified=None,
+    details=None,
+    book=None,
+    priority=JobPriority.NORMAL,
+):
     posting = {
         'uuid': uuid,
         'name': name,

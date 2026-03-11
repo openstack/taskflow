@@ -32,8 +32,9 @@ class ScopeWalker:
     def __init__(self, compilation, atom, names_only=False):
         self._node = compilation.hierarchy.find(atom)
         if self._node is None:
-            raise ValueError("Unable to find atom '%s' in compilation"
-                             " hierarchy" % atom)
+            raise ValueError(
+                "Unable to find atom '%s' in compilation hierarchy" % atom
+            )
         self._level_cache = {}
         self._atom = atom
         self._execution_graph = compilation.execution_graph
@@ -78,8 +79,10 @@ class ScopeWalker:
         graph = self._execution_graph
         if self._predecessors is None:
             predecessors = {
-                node for node in graph.bfs_predecessors_iter(self._atom)
-                if graph.nodes[node]['kind'] in co.ATOMS}
+                node
+                for node in graph.bfs_predecessors_iter(self._atom)
+                if graph.nodes[node]['kind'] in co.ATOMS
+            }
             self._predecessors = predecessors.copy()
         else:
             predecessors = self._predecessors.copy()
@@ -95,7 +98,8 @@ class ScopeWalker:
                 visible = []
                 removals = set()
                 atom_it = tr.depth_first_reverse_iterate(
-                    parent, start_from_idx=last_idx)
+                    parent, start_from_idx=last_idx
+                )
                 for atom in atom_it:
                     if atom in predecessors:
                         predecessors.remove(atom)
@@ -106,9 +110,14 @@ class ScopeWalker:
                 self._level_cache[lvl] = (visible, removals)
                 if LOG.isEnabledFor(logging.TRACE):
                     visible_names = [a.name for a in visible]
-                    LOG.trace("Scope visible to '%s' (limited by parent '%s'"
-                              " index < %s) is: %s", self._atom,
-                              parent.item.name, last_idx, visible_names)
+                    LOG.trace(
+                        "Scope visible to '%s' (limited by parent '%s'"
+                        " index < %s) is: %s",
+                        self._atom,
+                        parent.item.name,
+                        last_idx,
+                        visible_names,
+                    )
             if self._names_only:
                 yield [a.name for a in visible]
             else:

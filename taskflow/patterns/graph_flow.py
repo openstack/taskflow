@@ -108,13 +108,23 @@ class Flow(flow.Flow):
         if decider is not None:
             if not callable(decider):
                 raise ValueError("Decider boolean callback must be callable")
-        self._swap(self._link(u, v, manual=True,
-                              decider=decider, decider_depth=decider_depth))
+        self._swap(
+            self._link(
+                u, v, manual=True, decider=decider, decider_depth=decider_depth
+            )
+        )
         return self
 
-    def _link(self, u, v, graph=None,
-              reason=None, manual=False, decider=None,
-              decider_depth=None):
+    def _link(
+        self,
+        u,
+        v,
+        graph=None,
+        reason=None,
+        manual=False,
+        decider=None,
+        decider_depth=None,
+    ):
         mutable_graph = True
         if graph is None:
             graph = self._graph
@@ -133,8 +143,10 @@ class Flow(flow.Flow):
                 pass
         if decider_depth is not None:
             if decider is None:
-                raise ValueError("Decider depth requires a decider to be"
-                                 " provided along with it")
+                raise ValueError(
+                    "Decider depth requires a decider to be"
+                    " provided along with it"
+                )
             else:
                 decider_depth = de.Depth.translate(decider_depth)
                 attrs[flow.LINK_DECIDER_DEPTH] = decider_depth
@@ -158,10 +170,12 @@ class Flow(flow.Flow):
         direct access to the underlying graph).
         """
         if not graph.is_directed_acyclic():
-            raise exc.DependencyFailure("No path through the node(s) in the"
-                                        " graph produces an ordering that"
-                                        " will allow for logical"
-                                        " edge traversal")
+            raise exc.DependencyFailure(
+                "No path through the node(s) in the"
+                " graph produces an ordering that"
+                " will allow for logical"
+                " edge traversal"
+            )
         self._graph = graph.freeze()
 
     def add(self, *nodes, **kwargs):
@@ -222,8 +236,9 @@ class Flow(flow.Flow):
                 provided[value].append(self._retry)
 
         for node in self._graph.nodes:
-            for value in self._unsatisfied_requires(node, self._graph,
-                                                    retry_provides):
+            for value in self._unsatisfied_requires(
+                node, self._graph, retry_provides
+            ):
                 required[value].append(node)
             for value in node.provides:
                 provided[value].append(node)
@@ -237,8 +252,9 @@ class Flow(flow.Flow):
 
             # Try to find a valid provider.
             if resolve_requires:
-                for value in self._unsatisfied_requires(node, tmp_graph,
-                                                        retry_provides):
+                for value in self._unsatisfied_requires(
+                    node, tmp_graph, retry_provides
+                ):
                     if value in provided:
                         providers = provided[value]
                         if len(providers) > 1:
@@ -248,12 +264,19 @@ class Flow(flow.Flow):
                                 " adding '%(node)s', multiple"
                                 " providers %(providers)s found for"
                                 " required symbol '%(value)s'"
-                                % dict(node=node.name,
-                                       providers=sorted(provider_names),
-                                       value=value))
+                                % dict(
+                                    node=node.name,
+                                    providers=sorted(provider_names),
+                                    value=value,
+                                )
+                            )
                         else:
-                            self._link(providers[0], node,
-                                       graph=tmp_graph, reason=value)
+                            self._link(
+                                providers[0],
+                                node,
+                                graph=tmp_graph,
+                                reason=value,
+                            )
                     else:
                         required[value].append(node)
 
@@ -266,8 +289,12 @@ class Flow(flow.Flow):
                     if value in required:
                         for requiree in list(required[value]):
                             if requiree is not node:
-                                self._link(node, requiree,
-                                           graph=tmp_graph, reason=value)
+                                self._link(
+                                    node,
+                                    requiree,
+                                    graph=tmp_graph,
+                                    reason=value,
+                                )
                                 required[value].remove(requiree)
 
         self._swap(tmp_graph)
@@ -305,8 +332,9 @@ class Flow(flow.Flow):
             retry_provides.update(self._retry.provides)
         g = self._get_subgraph()
         for node in g.nodes:
-            requires.update(self._unsatisfied_requires(node, g,
-                                                       retry_provides))
+            requires.update(
+                self._unsatisfied_requires(node, g, retry_provides)
+            )
         return frozenset(requires)
 
 
@@ -365,6 +393,7 @@ class TargetedFlow(Flow):
         nodes = [self._target]
         nodes.extend(self._graph.bfs_predecessors_iter(self._target))
         self._subgraph = gr.DiGraph(
-            incoming_graph_data=self._graph.subgraph(nodes))
+            incoming_graph_data=self._graph.subgraph(nodes)
+        )
         self._subgraph.freeze()
         return self._subgraph

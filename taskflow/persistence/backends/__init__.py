@@ -56,10 +56,13 @@ def fetch(conf, namespace=BACKEND_NAMESPACE, **kwargs):
         backend = backend.split("+", 1)[0]
     LOG.debug('Looking for %r backend driver in %r', backend, namespace)
     try:
-        mgr = driver.DriverManager(namespace, backend,
-                                   invoke_on_load=True,
-                                   invoke_args=(conf,),
-                                   invoke_kwds=kwargs)
+        mgr = driver.DriverManager(
+            namespace,
+            backend,
+            invoke_on_load=True,
+            invoke_args=(conf,),
+            invoke_kwds=kwargs,
+        )
         return mgr.driver
     except RuntimeError as e:
         raise exc.NotFound(f"Could not find backend {backend}: {e}")

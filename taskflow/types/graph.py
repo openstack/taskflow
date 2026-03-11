@@ -33,7 +33,7 @@ def _common_format(g, edge_notation):
         else:
             lines.append("  - %s" % n)
     lines.append("Edges: %s" % g.number_of_edges())
-    for (u, v, e_data) in g.edges(data=True):
+    for u, v, e_data in g.edges(data=True):
         if e_data:
             lines.append(f"  {u} {edge_notation} {v} ({e_data})")
         else:
@@ -201,6 +201,7 @@ class OrderedDiGraph(DiGraph):
     ordering (so that the iteration order matches the insertion
     order).
     """
+
     node_dict_factory = collections.OrderedDict
     adjlist_outer_dict_factory = collections.OrderedDict
     adjlist_inner_dict_factory = collections.OrderedDict
@@ -223,6 +224,7 @@ class OrderedGraph(Graph):
     ordering (so that the iteration order matches the insertion
     order).
     """
+
     node_dict_factory = collections.OrderedDict
     adjlist_outer_dict_factory = collections.OrderedDict
     adjlist_inner_dict_factory = collections.OrderedDict
@@ -250,8 +252,9 @@ def merge_graphs(graph, *graphs, **kwargs):
     if overlap_detector is not None and not callable(overlap_detector):
         raise ValueError("Overlap detection callback expected to be callable")
     elif overlap_detector is None:
-        overlap_detector = (lambda to_graph, from_graph:
-                            len(to_graph.subgraph(from_graph.nodes)))
+        overlap_detector = lambda to_graph, from_graph: len(
+            to_graph.subgraph(from_graph.nodes)
+        )
     for g in graphs:
         # This should ensure that the nodes to be merged do not already exist
         # in the graph that is to be merged into. This could be problematic if
@@ -261,10 +264,11 @@ def merge_graphs(graph, *graphs, **kwargs):
             # and see if any graph results.
             overlaps = overlap_detector(graph, g)
             if overlaps:
-                raise ValueError("Can not merge graph %s into %s since there "
-                                 "are %s overlapping nodes (and we do not "
-                                 "support merging nodes)" % (g, graph,
-                                                             overlaps))
+                raise ValueError(
+                    "Can not merge graph %s into %s since there "
+                    "are %s overlapping nodes (and we do not "
+                    "support merging nodes)" % (g, graph, overlaps)
+                )
         graph = nx.algorithms.compose(graph, g)
     # Keep the first graphs name.
     if graphs:

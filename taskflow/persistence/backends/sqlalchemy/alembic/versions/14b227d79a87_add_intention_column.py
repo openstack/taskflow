@@ -25,8 +25,9 @@ from taskflow import states
 def upgrade():
     bind = op.get_bind()
     intention_type = sa.Enum(*states.INTENTIONS, name='intention_type')
-    column = sa.Column('intention', intention_type,
-                       server_default=states.EXECUTE)
+    column = sa.Column(
+        'intention', intention_type, server_default=states.EXECUTE
+    )
     impl = intention_type.dialect_impl(bind.dialect)
     impl.create(bind, checkfirst=True)
     op.add_column('taskdetails', column)

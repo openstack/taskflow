@@ -88,9 +88,13 @@ html_static_path = ['_static']
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'taskflowReleaseNotes.tex',
-     'taskflow Release Notes Documentation',
-     'taskflow Developers', 'manual'),
+    (
+        'index',
+        'taskflowReleaseNotes.tex',
+        'taskflow Release Notes Documentation',
+        'taskflow Developers',
+        'manual',
+    ),
 ]
 
 

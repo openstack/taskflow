@@ -54,15 +54,30 @@ class Task(atom.Atom, metaclass=abc.ABCMeta):
     # or existing internal events...
     TASK_EVENTS = (EVENT_UPDATE_PROGRESS,)
 
-    def __init__(self, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None, inject=None,
-                 ignore_list=None, revert_rebind=None, revert_requires=None):
+    def __init__(
+        self,
+        name=None,
+        provides=None,
+        requires=None,
+        auto_extract=True,
+        rebind=None,
+        inject=None,
+        ignore_list=None,
+        revert_rebind=None,
+        revert_requires=None,
+    ):
         if name is None:
             name = reflection.get_class_name(self)
-        super().__init__(name, provides=provides, requires=requires,
-                         auto_extract=auto_extract, rebind=rebind,
-                         inject=inject, revert_rebind=revert_rebind,
-                         revert_requires=revert_requires)
+        super().__init__(
+            name,
+            provides=provides,
+            requires=requires,
+            auto_extract=auto_extract,
+            rebind=rebind,
+            inject=inject,
+            revert_rebind=revert_rebind,
+            revert_requires=revert_requires,
+        )
         self._notifier = notifier.RestrictedNotifier(self.TASK_EVENTS)
 
     @property
@@ -97,14 +112,20 @@ class Task(atom.Atom, metaclass=abc.ABCMeta):
 
         :param progress: task progress float value between 0.0 and 1.0
         """
+
         def on_clamped():
-            LOG.warning("Progress value must be greater or equal to 0.0 or"
-                        " less than or equal to 1.0 instead of being '%s'",
-                        progress)
-        cleaned_progress = misc.clamp(progress, 0.0, 1.0,
-                                      on_clamped=on_clamped)
-        self._notifier.notify(EVENT_UPDATE_PROGRESS,
-                              {'progress': cleaned_progress})
+            LOG.warning(
+                "Progress value must be greater or equal to 0.0 or"
+                " less than or equal to 1.0 instead of being '%s'",
+                progress,
+            )
+
+        cleaned_progress = misc.clamp(
+            progress, 0.0, 1.0, on_clamped=on_clamped
+        )
+        self._notifier.notify(
+            EVENT_UPDATE_PROGRESS, {'progress': cleaned_progress}
+        )
 
 
 class FunctorTask(Task):
@@ -117,16 +138,25 @@ class FunctorTask(Task):
     the ``revert`` callable is not used).
     """
 
-    def __init__(self, execute, name=None, provides=None,
-                 requires=None, auto_extract=True, rebind=None, revert=None,
-                 version=None, inject=None):
+    def __init__(
+        self,
+        execute,
+        name=None,
+        provides=None,
+        requires=None,
+        auto_extract=True,
+        rebind=None,
+        revert=None,
+        version=None,
+        inject=None,
+    ):
         if not callable(execute):
-            raise ValueError("Function to use for executing must be"
-                             " callable")
+            raise ValueError("Function to use for executing must be callable")
         if revert is not None:
             if not callable(revert):
-                raise ValueError("Function to use for reverting must"
-                                 " be callable")
+                raise ValueError(
+                    "Function to use for reverting must be callable"
+                )
         if name is None:
             name = reflection.get_callable_name(execute)
         super().__init__(name, provides=provides, inject=inject)
@@ -134,17 +164,20 @@ class FunctorTask(Task):
         self._revert = revert
         if version is not None:
             self.version = version
-        mapping = self._build_arg_mapping(execute, requires, rebind,
-                                          auto_extract)
+        mapping = self._build_arg_mapping(
+            execute, requires, rebind, auto_extract
+        )
         self.rebind, exec_requires, self.optional = mapping
 
         if revert:
-            revert_mapping = self._build_arg_mapping(revert, requires, rebind,
-                                                     auto_extract)
+            revert_mapping = self._build_arg_mapping(
+                revert, requires, rebind, auto_extract
+            )
         else:
             revert_mapping = (self.rebind, exec_requires, self.optional)
-        (self.revert_rebind, revert_requires,
-         self.revert_optional) = revert_mapping
+        (self.revert_rebind, revert_requires, self.revert_optional) = (
+            revert_mapping
+        )
         self.requires = exec_requires.union(revert_requires)
 
     def execute(self, *args, **kwargs):
@@ -166,33 +199,50 @@ class ReduceFunctorTask(Task):
     task calls ``reduce`` with the functor and list as arguments. The resulting
     value from the call to ``reduce`` is then returned after execution.
     """
-    def __init__(self, functor, requires, name=None, provides=None,
-                 auto_extract=True, rebind=None, inject=None):
+
+    def __init__(
+        self,
+        functor,
+        requires,
+        name=None,
+        provides=None,
+        auto_extract=True,
+        rebind=None,
+        inject=None,
+    ):
 
         if not callable(functor):
             raise ValueError("Function to use for reduce must be callable")
 
         f_args = reflection.get_callable_args(functor)
         if len(f_args) != 2:
-            raise ValueError("%s arguments were provided. Reduce functor "
-                             "must take exactly 2 arguments." % len(f_args))
+            raise ValueError(
+                "%s arguments were provided. Reduce functor "
+                "must take exactly 2 arguments." % len(f_args)
+            )
 
         if not misc.is_iterable(requires):
-            raise TypeError("%s type was provided for requires. Requires "
-                            "must be an iterable." % type(requires))
+            raise TypeError(
+                "%s type was provided for requires. Requires "
+                "must be an iterable." % type(requires)
+            )
 
         if len(requires) < 2:
-            raise ValueError("%s elements were provided. Requires must have "
-                             "at least 2 elements." % len(requires))
+            raise ValueError(
+                "%s elements were provided. Requires must have "
+                "at least 2 elements." % len(requires)
+            )
 
         if name is None:
             name = reflection.get_callable_name(functor)
-        super().__init__(name=name,
-                         provides=provides,
-                         inject=inject,
-                         requires=requires,
-                         rebind=rebind,
-                         auto_extract=auto_extract)
+        super().__init__(
+            name=name,
+            provides=provides,
+            inject=inject,
+            requires=requires,
+            rebind=rebind,
+            auto_extract=auto_extract,
+        )
 
         self._functor = functor
 
@@ -215,27 +265,43 @@ class MapFunctorTask(Task):
     preserved in the returned list.
     """
 
-    def __init__(self, functor, requires, name=None, provides=None,
-                 auto_extract=True, rebind=None, inject=None):
+    def __init__(
+        self,
+        functor,
+        requires,
+        name=None,
+        provides=None,
+        auto_extract=True,
+        rebind=None,
+        inject=None,
+    ):
 
         if not callable(functor):
             raise ValueError("Function to use for map must be callable")
 
         f_args = reflection.get_callable_args(functor)
         if len(f_args) != 1:
-            raise ValueError("%s arguments were provided. Map functor must "
-                             "take exactly 1 argument." % len(f_args))
+            raise ValueError(
+                "%s arguments were provided. Map functor must "
+                "take exactly 1 argument." % len(f_args)
+            )
 
         if not misc.is_iterable(requires):
-            raise TypeError("%s type was provided for requires. Requires "
-                            "must be an iterable." % type(requires))
+            raise TypeError(
+                "%s type was provided for requires. Requires "
+                "must be an iterable." % type(requires)
+            )
 
         if name is None:
             name = reflection.get_callable_name(functor)
-        super().__init__(name=name, provides=provides,
-                         inject=inject, requires=requires,
-                         rebind=rebind,
-                         auto_extract=auto_extract)
+        super().__init__(
+            name=name,
+            provides=provides,
+            inject=inject,
+            requires=requires,
+            rebind=rebind,
+            auto_extract=auto_extract,
+        )
 
         self._functor = functor
 

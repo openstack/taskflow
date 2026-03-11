@@ -42,9 +42,9 @@ def _revert_retry(retry, arguments):
 
 
 def _execute_task(task, arguments, progress_callback=None):
-    with notifier.register_deregister(task.notifier,
-                                      ta.EVENT_UPDATE_PROGRESS,
-                                      callback=progress_callback):
+    with notifier.register_deregister(
+        task.notifier, ta.EVENT_UPDATE_PROGRESS, callback=progress_callback
+    ):
         try:
             task.pre_execute()
             result = task.execute(**arguments)
@@ -61,9 +61,9 @@ def _revert_task(task, arguments, result, failures, progress_callback=None):
     arguments = arguments.copy()
     arguments[ta.REVERT_RESULT] = result
     arguments[ta.REVERT_FLOW_FAILURES] = failures
-    with notifier.register_deregister(task.notifier,
-                                      ta.EVENT_UPDATE_PROGRESS,
-                                      callback=progress_callback):
+    with notifier.register_deregister(
+        task.notifier, ta.EVENT_UPDATE_PROGRESS, callback=progress_callback
+    ):
         try:
             task.pre_revert()
             result = task.revert(**arguments)
@@ -112,13 +112,19 @@ class TaskExecutor(metaclass=abc.ABCMeta):
     """
 
     @abc.abstractmethod
-    def execute_task(self, task, task_uuid, arguments,
-                     progress_callback=None):
+    def execute_task(self, task, task_uuid, arguments, progress_callback=None):
         """Schedules task execution."""
 
     @abc.abstractmethod
-    def revert_task(self, task, task_uuid, arguments, result, failures,
-                    progress_callback=None):
+    def revert_task(
+        self,
+        task,
+        task_uuid,
+        arguments,
+        result,
+        failures,
+        progress_callback=None,
+    ):
         """Schedules task reversion."""
 
     def start(self):
@@ -141,17 +147,29 @@ class SerialTaskExecutor(TaskExecutor):
         self._executor.shutdown()
 
     def execute_task(self, task, task_uuid, arguments, progress_callback=None):
-        fut = self._executor.submit(_execute_task,
-                                    task, arguments,
-                                    progress_callback=progress_callback)
+        fut = self._executor.submit(
+            _execute_task, task, arguments, progress_callback=progress_callback
+        )
         fut.atom = task
         return fut
 
-    def revert_task(self, task, task_uuid, arguments, result, failures,
-                    progress_callback=None):
-        fut = self._executor.submit(_revert_task,
-                                    task, arguments, result, failures,
-                                    progress_callback=progress_callback)
+    def revert_task(
+        self,
+        task,
+        task_uuid,
+        arguments,
+        result,
+        failures,
+        progress_callback=None,
+    ):
+        fut = self._executor.submit(
+            _revert_task,
+            task,
+            arguments,
+            result,
+            failures,
+            progress_callback=progress_callback,
+        )
         fut.atom = task
         return fut
 
@@ -188,18 +206,33 @@ class ParallelTaskExecutor(TaskExecutor):
         return fut
 
     def execute_task(self, task, task_uuid, arguments, progress_callback=None):
-        return self._submit_task(_execute_task, task, arguments,
-                                 progress_callback=progress_callback)
+        return self._submit_task(
+            _execute_task, task, arguments, progress_callback=progress_callback
+        )
 
-    def revert_task(self, task, task_uuid, arguments, result, failures,
-                    progress_callback=None):
-        return self._submit_task(_revert_task, task, arguments, result,
-                                 failures, progress_callback=progress_callback)
+    def revert_task(
+        self,
+        task,
+        task_uuid,
+        arguments,
+        result,
+        failures,
+        progress_callback=None,
+    ):
+        return self._submit_task(
+            _revert_task,
+            task,
+            arguments,
+            result,
+            failures,
+            progress_callback=progress_callback,
+        )
 
     def start(self):
         if self._own_executor:
             self._executor = self._create_executor(
-                max_workers=self._max_workers)
+                max_workers=self._max_workers
+            )
 
     def stop(self):
         if self._own_executor:

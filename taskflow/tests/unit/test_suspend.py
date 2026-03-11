@@ -25,12 +25,8 @@ from taskflow.utils import eventlet_utils as eu
 
 
 class SuspendingListener(utils.CaptureListener):
-
-    def __init__(self, engine,
-                 task_name, task_state, capture_flow=False):
-        super().__init__(
-            engine,
-            capture_flow=capture_flow)
+    def __init__(self, engine, task_name, task_state, capture_flow=False):
+        super().__init__(engine, capture_flow=capture_flow)
         self._revert_match = (task_name, task_state)
 
     def _task_receiver(self, state, details):
@@ -40,18 +36,19 @@ class SuspendingListener(utils.CaptureListener):
 
 
 class SuspendTest(utils.EngineTestBase):
-
     def test_suspend_one_task(self):
         flow = utils.ProgressingTask('a')
         engine = self._make_engine(flow)
-        with SuspendingListener(engine, task_name='b',
-                                task_state=states.SUCCESS) as capturer:
+        with SuspendingListener(
+            engine, task_name='b', task_state=states.SUCCESS
+        ) as capturer:
             engine.run()
         self.assertEqual(states.SUCCESS, engine.storage.get_flow_state())
         expected = ['a.t RUNNING', 'a.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
-        with SuspendingListener(engine, task_name='b',
-                                task_state=states.SUCCESS) as capturer:
+        with SuspendingListener(
+            engine, task_name='b', task_state=states.SUCCESS
+        ) as capturer:
             engine.run()
         self.assertEqual(states.SUCCESS, engine.storage.get_flow_state())
         expected = []
@@ -61,15 +58,20 @@ class SuspendTest(utils.EngineTestBase):
         flow = lf.Flow('linear').add(
             utils.ProgressingTask('a'),
             utils.ProgressingTask('b'),
-            utils.ProgressingTask('c')
+            utils.ProgressingTask('c'),
         )
         engine = self._make_engine(flow)
-        with SuspendingListener(engine, task_name='b',
-                                task_state=states.SUCCESS) as capturer:
+        with SuspendingListener(
+            engine, task_name='b', task_state=states.SUCCESS
+        ) as capturer:
             engine.run()
         self.assertEqual(states.SUSPENDED, engine.storage.get_flow_state())
-        expected = ['a.t RUNNING', 'a.t SUCCESS(5)',
-                    'b.t RUNNING', 'b.t SUCCESS(5)']
+        expected = [
+            'a.t RUNNING',
+            'a.t SUCCESS(5)',
+            'b.t RUNNING',
+            'b.t SUCCESS(5)',
+        ]
         self.assertEqual(expected, capturer.values)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
@@ -81,23 +83,26 @@ class SuspendTest(utils.EngineTestBase):
         flow = lf.Flow('linear').add(
             utils.ProgressingTask('a'),
             utils.ProgressingTask('b'),
-            utils.FailingTask('c')
+            utils.FailingTask('c'),
         )
         engine = self._make_engine(flow)
-        with SuspendingListener(engine, task_name='b',
-                                task_state=states.REVERTED) as capturer:
+        with SuspendingListener(
+            engine, task_name='b', task_state=states.REVERTED
+        ) as capturer:
             engine.run()
         self.assertEqual(states.SUSPENDED, engine.storage.get_flow_state())
-        expected = ['a.t RUNNING',
-                    'a.t SUCCESS(5)',
-                    'b.t RUNNING',
-                    'b.t SUCCESS(5)',
-                    'c.t RUNNING',
-                    'c.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'c.t REVERTING',
-                    'c.t REVERTED(None)',
-                    'b.t REVERTING',
-                    'b.t REVERTED(None)']
+        expected = [
+            'a.t RUNNING',
+            'a.t SUCCESS(5)',
+            'b.t RUNNING',
+            'b.t SUCCESS(5)',
+            'c.t RUNNING',
+            'c.t FAILURE(Failure: RuntimeError: Woot!)',
+            'c.t REVERTING',
+            'c.t REVERTED(None)',
+            'b.t REVERTING',
+            'b.t REVERTED(None)',
+        ]
         self.assertEqual(expected, capturer.values)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
@@ -109,22 +114,25 @@ class SuspendTest(utils.EngineTestBase):
         flow = lf.Flow('linear').add(
             utils.ProgressingTask('a'),
             utils.ProgressingTask('b'),
-            utils.FailingTask('c')
+            utils.FailingTask('c'),
         )
         engine = self._make_engine(flow)
-        with SuspendingListener(engine, task_name='b',
-                                task_state=states.REVERTED) as capturer:
+        with SuspendingListener(
+            engine, task_name='b', task_state=states.REVERTED
+        ) as capturer:
             engine.run()
-        expected = ['a.t RUNNING',
-                    'a.t SUCCESS(5)',
-                    'b.t RUNNING',
-                    'b.t SUCCESS(5)',
-                    'c.t RUNNING',
-                    'c.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'c.t REVERTING',
-                    'c.t REVERTED(None)',
-                    'b.t REVERTING',
-                    'b.t REVERTED(None)']
+        expected = [
+            'a.t RUNNING',
+            'a.t SUCCESS(5)',
+            'b.t RUNNING',
+            'b.t SUCCESS(5)',
+            'c.t RUNNING',
+            'c.t FAILURE(Failure: RuntimeError: Woot!)',
+            'c.t REVERTING',
+            'c.t REVERTED(None)',
+            'b.t REVERTING',
+            'b.t REVERTED(None)',
+        ]
         self.assertEqual(expected, capturer.values)
 
         # pretend we are resuming
@@ -132,32 +140,34 @@ class SuspendTest(utils.EngineTestBase):
         with utils.CaptureListener(engine2, capture_flow=False) as capturer2:
             self.assertRaisesRegex(RuntimeError, '^Woot', engine2.run)
         self.assertEqual(states.REVERTED, engine2.storage.get_flow_state())
-        expected = ['a.t REVERTING',
-                    'a.t REVERTED(None)']
+        expected = ['a.t REVERTING', 'a.t REVERTED(None)']
         self.assertEqual(expected, capturer2.values)
 
     def test_suspend_and_revert_even_if_task_is_gone(self):
         flow = lf.Flow('linear').add(
             utils.ProgressingTask('a'),
             utils.ProgressingTask('b'),
-            utils.FailingTask('c')
+            utils.FailingTask('c'),
         )
         engine = self._make_engine(flow)
 
-        with SuspendingListener(engine, task_name='b',
-                                task_state=states.REVERTED) as capturer:
+        with SuspendingListener(
+            engine, task_name='b', task_state=states.REVERTED
+        ) as capturer:
             engine.run()
 
-        expected = ['a.t RUNNING',
-                    'a.t SUCCESS(5)',
-                    'b.t RUNNING',
-                    'b.t SUCCESS(5)',
-                    'c.t RUNNING',
-                    'c.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'c.t REVERTING',
-                    'c.t REVERTED(None)',
-                    'b.t REVERTING',
-                    'b.t REVERTED(None)']
+        expected = [
+            'a.t RUNNING',
+            'a.t SUCCESS(5)',
+            'b.t RUNNING',
+            'b.t SUCCESS(5)',
+            'c.t RUNNING',
+            'c.t FAILURE(Failure: RuntimeError: Woot!)',
+            'c.t REVERTING',
+            'c.t REVERTED(None)',
+            'b.t REVERTING',
+            'b.t REVERTED(None)',
+        ]
         self.assertEqual(expected, capturer.values)
 
         # pretend we are resuming, but task 'c' gone when flow got updated
@@ -175,26 +185,28 @@ class SuspendTest(utils.EngineTestBase):
     def test_storage_is_rechecked(self):
         flow = lf.Flow('linear').add(
             utils.ProgressingTask('b', requires=['foo']),
-            utils.ProgressingTask('c')
+            utils.ProgressingTask('c'),
         )
         engine = self._make_engine(flow)
         engine.storage.inject({'foo': 'bar'})
-        with SuspendingListener(engine, task_name='b',
-                                task_state=states.SUCCESS):
+        with SuspendingListener(
+            engine, task_name='b', task_state=states.SUCCESS
+        ):
             engine.run()
         self.assertEqual(states.SUSPENDED, engine.storage.get_flow_state())
         # uninject everything:
-        engine.storage.save(engine.storage.injector_name,
-                            {}, states.SUCCESS)
+        engine.storage.save(engine.storage.injector_name, {}, states.SUCCESS)
         self.assertRaises(exc.MissingDependencies, engine.run)
 
 
 class SerialEngineTest(SuspendTest, test.TestCase):
     def _make_engine(self, flow, flow_detail=None):
-        return taskflow.engines.load(flow,
-                                     flow_detail=flow_detail,
-                                     engine='serial',
-                                     backend=self.backend)
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            engine='serial',
+            backend=self.backend,
+        )
 
 
 class ParallelEngineWithThreadsTest(SuspendTest, test.TestCase):
@@ -203,20 +215,26 @@ class ParallelEngineWithThreadsTest(SuspendTest, test.TestCase):
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if executor is None:
             executor = 'threads'
-        return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     engine='parallel',
-                                     backend=self.backend,
-                                     executor=executor,
-                                     max_workers=self._EXECUTOR_WORKERS)
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            engine='parallel',
+            backend=self.backend,
+            executor=executor,
+            max_workers=self._EXECUTOR_WORKERS,
+        )
 
 
 @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
 class ParallelEngineWithEventletTest(SuspendTest, test.TestCase):
-
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if executor is None:
             executor = futurist.GreenThreadPoolExecutor()
             self.addCleanup(executor.shutdown)
-        return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     backend=self.backend, engine='parallel',
-                                     executor=executor)
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            backend=self.backend,
+            engine='parallel',
+            executor=executor,
+        )

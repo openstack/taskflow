@@ -36,8 +36,7 @@ class IterUtilsTest(test.TestCase):
             None,
             object(),
         ]
-        self.assertRaises(ValueError,
-                          iter_utils.unique_seen, iters)
+        self.assertRaises(ValueError, iter_utils.unique_seen, iters)
 
     def test_generate_delays(self):
         it = iter_utils.generate_delays(1, 60)
@@ -62,8 +61,9 @@ class IterUtilsTest(test.TestCase):
         self.assertRaises(ValueError, iter_utils.generate_delays, -1, -1)
         self.assertRaises(ValueError, iter_utils.generate_delays, -1, 2)
         self.assertRaises(ValueError, iter_utils.generate_delays, 2, -1)
-        self.assertRaises(ValueError, iter_utils.generate_delays, 1, 1,
-                          multiplier=0.5)
+        self.assertRaises(
+            ValueError, iter_utils.generate_delays, 1, 1, multiplier=0.5
+        )
 
     def test_unique_seen(self):
         iters = [
@@ -72,8 +72,10 @@ class IterUtilsTest(test.TestCase):
             ['a', 'e', 'f'],
             ['f', 'm', 'n'],
         ]
-        self.assertEqual(['a', 'b', 'c', 'd', 'e', 'f', 'm', 'n'],
-                         list(iter_utils.unique_seen(iters)))
+        self.assertEqual(
+            ['a', 'b', 'c', 'd', 'e', 'f', 'm', 'n'],
+            list(iter_utils.unique_seen(iters)),
+        )
 
     def test_unique_seen_empty(self):
         iters = []
@@ -86,8 +88,9 @@ class IterUtilsTest(test.TestCase):
             [(3, 'c')],
             [(1, 'a'), (3, 'c')],
         ]
-        it = iter_utils.unique_seen(iters,
-                                    seen_selector=lambda value: value[0])
+        it = iter_utils.unique_seen(
+            iters, seen_selector=lambda value: value[0]
+        )
         self.assertEqual([(1, 'a'), (2, 'b'), (3, 'c')], list(it))
 
     def test_bad_fill(self):
@@ -99,8 +102,9 @@ class IterUtilsTest(test.TestCase):
         self.assertEqual(50, sum(1 for x in result if x is not None))
 
     def test_fill_custom_filler(self):
-        self.assertEqual("abcd",
-                         "".join(iter_utils.fill("abc", 4, filler='d')))
+        self.assertEqual(
+            "abcd", "".join(iter_utils.fill("abc", 4, filler='d'))
+        )
 
     def test_fill_less_needed(self):
         self.assertEqual("ab", "".join(iter_utils.fill("abc", 2)))
@@ -110,18 +114,19 @@ class IterUtilsTest(test.TestCase):
         self.assertEqual((None, None), tuple(iter_utils.fill([], 2)))
 
     def test_bad_find_first_match(self):
-        self.assertRaises(ValueError,
-                          iter_utils.find_first_match, 2, lambda v: False)
+        self.assertRaises(
+            ValueError, iter_utils.find_first_match, 2, lambda v: False
+        )
 
     def test_find_first_match(self):
         it = forever_it()
-        self.assertEqual(100, iter_utils.find_first_match(it,
-                                                          lambda v: v == 100))
+        self.assertEqual(
+            100, iter_utils.find_first_match(it, lambda v: v == 100)
+        )
 
     def test_find_first_match_not_found(self):
         it = iter(string.ascii_lowercase)
-        self.assertIsNone(iter_utils.find_first_match(it,
-                                                      lambda v: v == ''))
+        self.assertIsNone(iter_utils.find_first_match(it, lambda v: v == ''))
 
     def test_bad_count(self):
         self.assertRaises(ValueError, iter_utils.count, 2)
@@ -141,18 +146,22 @@ class IterUtilsTest(test.TestCase):
         class Dummy:
             def __init__(self, char):
                 self.char = char
-        dummy_list = [Dummy(a)
-                      for a in string.ascii_lowercase]
+
+        dummy_list = [Dummy(a) for a in string.ascii_lowercase]
 
         it = iter(dummy_list)
-        self.assertEqual([dummy_list[0]],
-                         list(iter_utils.while_is_not(it, dummy_list[0])))
+        self.assertEqual(
+            [dummy_list[0]], list(iter_utils.while_is_not(it, dummy_list[0]))
+        )
         it = iter(dummy_list)
-        self.assertEqual(dummy_list[0:2],
-                         list(iter_utils.while_is_not(it, dummy_list[1])))
-        self.assertEqual(dummy_list[2:],
-                         list(iter_utils.while_is_not(it, Dummy('zzz'))))
+        self.assertEqual(
+            dummy_list[0:2], list(iter_utils.while_is_not(it, dummy_list[1]))
+        )
+        self.assertEqual(
+            dummy_list[2:], list(iter_utils.while_is_not(it, Dummy('zzz')))
+        )
 
         it = iter(dummy_list)
-        self.assertEqual(dummy_list,
-                         list(iter_utils.while_is_not(it, Dummy(''))))
+        self.assertEqual(
+            dummy_list, list(iter_utils.while_is_not(it, Dummy('')))
+        )

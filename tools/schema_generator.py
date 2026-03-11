@@ -69,12 +69,16 @@ def main():
                     # see the basic schema...
                     row_type = re.sub(r"\(.*?\)", "", r['type']).strip()
                     if not row_type:
-                        raise ValueError("Row %s of table '%s' was empty after"
-                                         " cleaning" % (r['cid'], table_name))
+                        raise ValueError(
+                            "Row %s of table '%s' was empty after"
+                            " cleaning" % (r['cid'], table_name)
+                        )
                     rows.append([r['name'], row_type, to_bool_string(r['pk'])])
                 contents = tabulate.tabulate(
-                    rows, headers=['Name', 'Type', 'Primary Key'],
-                    tablefmt="rst")
+                    rows,
+                    headers=['Name', 'Type', 'Primary Key'],
+                    tablefmt="rst",
+                )
                 print("\n%s" % contents.strip())
                 if i + 1 != len(table_names):
                     print("")

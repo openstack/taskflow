@@ -17,9 +17,9 @@ import math
 import os
 import sys
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 from taskflow import engines
@@ -60,24 +60,39 @@ if __name__ == '__main__':
     any_distance = linear_flow.Flow("origin").add(DistanceTask())
     results = engines.run(any_distance)
     print(results)
-    print("{} is near-enough to {}: {}".format(
-        results['distance'], 0.0, is_near(results['distance'], 0.0)))
+    print(
+        "{} is near-enough to {}: {}".format(
+            results['distance'], 0.0, is_near(results['distance'], 0.0)
+        )
+    )
 
     results = engines.run(any_distance, store={'a': Point(1, 1)})
     print(results)
-    print("{} is near-enough to {}: {}".format(
-        results['distance'], 1.4142, is_near(results['distance'], 1.4142)))
+    print(
+        "{} is near-enough to {}: {}".format(
+            results['distance'], 1.4142, is_near(results['distance'], 1.4142)
+        )
+    )
 
     results = engines.run(any_distance, store={'a': Point(10, 10)})
     print(results)
-    print("{} is near-enough to {}: {}".format(
-        results['distance'], 14.14199, is_near(results['distance'], 14.14199)))
+    print(
+        "{} is near-enough to {}: {}".format(
+            results['distance'],
+            14.14199,
+            is_near(results['distance'], 14.14199),
+        )
+    )
 
-    results = engines.run(any_distance,
-                          store={'a': Point(5, 5), 'b': Point(10, 10)})
+    results = engines.run(
+        any_distance, store={'a': Point(5, 5), 'b': Point(10, 10)}
+    )
     print(results)
-    print("{} is near-enough to {}: {}".format(
-        results['distance'], 7.07106, is_near(results['distance'], 7.07106)))
+    print(
+        "{} is near-enough to {}: {}".format(
+            results['distance'], 7.07106, is_near(results['distance'], 7.07106)
+        )
+    )
 
     # For this we use the ability to override at task creation time the
     # optional arguments so that we don't need to continue to send them
@@ -88,10 +103,18 @@ if __name__ == '__main__':
     ten_distance.add(DistanceTask(inject={'a': Point(10, 10)}))
     results = engines.run(ten_distance, store={'b': Point(10, 10)})
     print(results)
-    print("{} is near-enough to {}: {}".format(
-        results['distance'], 0.0, is_near(results['distance'], 0.0)))
+    print(
+        "{} is near-enough to {}: {}".format(
+            results['distance'], 0.0, is_near(results['distance'], 0.0)
+        )
+    )
 
     results = engines.run(ten_distance)
     print(results)
-    print("{} is near-enough to {}: {}".format(
-        results['distance'], 14.14199, is_near(results['distance'], 14.14199)))
+    print(
+        "{} is near-enough to {}: {}".format(
+            results['distance'],
+            14.14199,
+            is_near(results['distance'], 14.14199),
+        )
+    )

@@ -36,8 +36,7 @@ class TestProtocolValidation(test.TestCase):
         msg = {
             'all your base': 'are belong to us',
         }
-        self.assertRaises(excp.InvalidFormat,
-                          pr.Notify.validate, msg, False)
+        self.assertRaises(excp.InvalidFormat, pr.Notify.validate, msg, False)
 
     def test_reply_notify(self):
         msg = pr.Notify(topic="bob", tasks=['a', 'b', 'c'])
@@ -48,13 +47,16 @@ class TestProtocolValidation(test.TestCase):
             'topic': {},
             'tasks': 'not yours',
         }
-        self.assertRaises(excp.InvalidFormat,
-                          pr.Notify.validate, msg, True)
+        self.assertRaises(excp.InvalidFormat, pr.Notify.validate, msg, True)
 
     def test_request(self):
-        request = pr.Request(utils.DummyTask("hi"),
-                             uuidutils.generate_uuid(),
-                             pr.EXECUTE, {}, 1.0)
+        request = pr.Request(
+            utils.DummyTask("hi"),
+            uuidutils.generate_uuid(),
+            pr.EXECUTE,
+            {},
+            1.0,
+        )
         pr.Request.validate(request.to_dict())
 
     def test_request_invalid(self):
@@ -66,16 +68,21 @@ class TestProtocolValidation(test.TestCase):
         self.assertRaises(excp.InvalidFormat, pr.Request.validate, msg)
 
     def test_request_invalid_action(self):
-        request = pr.Request(utils.DummyTask("hi"),
-                             uuidutils.generate_uuid(),
-                             pr.EXECUTE, {}, 1.0)
+        request = pr.Request(
+            utils.DummyTask("hi"),
+            uuidutils.generate_uuid(),
+            pr.EXECUTE,
+            {},
+            1.0,
+        )
         request = request.to_dict()
         request['action'] = 'NOTHING'
         self.assertRaises(excp.InvalidFormat, pr.Request.validate, request)
 
     def test_response_progress(self):
-        msg = pr.Response(pr.EVENT, details={'progress': 0.5},
-                          event_type='blah')
+        msg = pr.Response(
+            pr.EVENT, details={'progress': 0.5}, event_type='blah'
+        )
         pr.Response.validate(msg.to_dict())
 
     def test_response_completion(self):
@@ -83,9 +90,9 @@ class TestProtocolValidation(test.TestCase):
         pr.Response.validate(msg.to_dict())
 
     def test_response_mixed_invalid(self):
-        msg = pr.Response(pr.EVENT,
-                          details={'progress': 0.5},
-                          event_type='blah', result=1)
+        msg = pr.Response(
+            pr.EVENT, details={'progress': 0.5}, event_type='blah', result=1
+        )
         self.assertRaises(excp.InvalidFormat, pr.Response.validate, msg)
 
     def test_response_bad_state(self):
@@ -94,7 +101,6 @@ class TestProtocolValidation(test.TestCase):
 
 
 class TestProtocol(test.TestCase):
-
     def setUp(self):
         super().setUp()
         self.task = utils.DummyTask()
@@ -104,20 +110,24 @@ class TestProtocol(test.TestCase):
         self.timeout = 60
 
     def request(self, **kwargs):
-        request_kwargs = dict(task=self.task,
-                              uuid=self.task_uuid,
-                              action=self.task_action,
-                              arguments=self.task_args,
-                              timeout=self.timeout)
+        request_kwargs = dict(
+            task=self.task,
+            uuid=self.task_uuid,
+            action=self.task_action,
+            arguments=self.task_args,
+            timeout=self.timeout,
+        )
         request_kwargs.update(kwargs)
         return pr.Request(**request_kwargs)
 
     def request_to_dict(self, **kwargs):
-        to_dict = dict(task_cls=self.task.name,
-                       task_name=self.task.name,
-                       task_version=self.task.version,
-                       action=self.task_action,
-                       arguments=self.task_args)
+        to_dict = dict(
+            task_cls=self.task.name,
+            task_name=self.task.name,
+            task_version=self.task.version,
+            action=self.task_action,
+            arguments=self.task_args,
+        )
         to_dict.update(kwargs)
         return to_dict
 
@@ -145,18 +155,21 @@ class TestProtocol(test.TestCase):
 
     def test_to_dict_with_result(self):
         request = self.request(result=333)
-        self.assertEqual(self.request_to_dict(result=('success', 333)),
-                         request.to_dict())
+        self.assertEqual(
+            self.request_to_dict(result=('success', 333)), request.to_dict()
+        )
 
     def test_to_dict_with_result_none(self):
         request = self.request(result=None)
-        self.assertEqual(self.request_to_dict(result=('success', None)),
-                         request.to_dict())
+        self.assertEqual(
+            self.request_to_dict(result=('success', None)), request.to_dict()
+        )
 
     def test_to_dict_with_result_failure(self):
         a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
-        expected = self.request_to_dict(result=('failure',
-                                                a_failure.to_dict()))
+        expected = self.request_to_dict(
+            result=('failure', a_failure.to_dict())
+        )
         request = self.request(result=a_failure)
         self.assertEqual(expected, request.to_dict())
 
@@ -164,7 +177,8 @@ class TestProtocol(test.TestCase):
         a_failure = failure.Failure.from_exception(RuntimeError('Woot!'))
         request = self.request(failures={self.task.name: a_failure})
         expected = self.request_to_dict(
-            failures={self.task.name: a_failure.to_dict()})
+            failures={self.task.name: a_failure.to_dict()}
+        )
         self.assertEqual(expected, request.to_dict())
 
     def test_to_dict_with_invalid_json_failures(self):
@@ -172,7 +186,8 @@ class TestProtocol(test.TestCase):
         a_failure = failure.Failure.from_exception(exc)
         request = self.request(failures={self.task.name: a_failure})
         expected = self.request_to_dict(
-            failures={self.task.name: a_failure.to_dict(include_args=False)})
+            failures={self.task.name: a_failure.to_dict(include_args=False)}
+        )
         self.assertEqual(expected, request.to_dict())
 
     @mock.patch('oslo_utils.timeutils.now')

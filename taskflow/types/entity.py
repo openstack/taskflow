@@ -28,6 +28,7 @@ class Entity:
                     entity)
     :type metadata: dict
     """
+
     def __init__(self, kind, name, metadata):
         self.kind = kind
         self.name = name
@@ -37,5 +38,5 @@ class Entity:
         return {
             'kind': self.kind,
             'name': self.name,
-            'metadata': self.metadata
+            'metadata': self.metadata,
         }

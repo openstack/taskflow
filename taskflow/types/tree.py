@@ -192,9 +192,11 @@ class Node:
 
         :returns: the node that matched provided item (or ``None``)
         """
-        return self.find_first_match(lambda n: n.item == item,
-                                     only_direct=only_direct,
-                                     include_self=include_self)
+        return self.find_first_match(
+            lambda n: n.item == item,
+            only_direct=only_direct,
+            include_self=include_self,
+        )
 
     @misc.disallow_when_frozen(FrozenNode)
     def disassociate(self):
@@ -230,8 +232,9 @@ class Node:
                             search using depth first).
         :param include_self: include the current node during searching.
         """
-        node = self.find(item, only_direct=only_direct,
-                         include_self=include_self)
+        node = self.find(
+            item, only_direct=only_direct, include_self=include_self
+        )
         if node is None:
             raise ValueError("Item '%s' not found to remove" % item)
         else:
@@ -251,10 +254,15 @@ class Node:
         # NOTE(harlowja): 0 is the right most index, len - 1 is the left most
         return self._children[index]
 
-    def pformat(self, stringify_node=None,
-                linesep=LINE_SEP, vertical_conn=VERTICAL_CONN,
-                horizontal_conn=HORIZONTAL_CONN, empty_space=EMPTY_SPACE_SEP,
-                starting_prefix=STARTING_PREFIX):
+    def pformat(
+        self,
+        stringify_node=None,
+        linesep=LINE_SEP,
+        vertical_conn=VERTICAL_CONN,
+        horizontal_conn=HORIZONTAL_CONN,
+        empty_space=EMPTY_SPACE_SEP,
+        starting_prefix=STARTING_PREFIX,
+    ):
         """Formats this node + children into a nice string representation.
 
         **Example**::
@@ -290,7 +298,8 @@ class Node:
             # hit the root node (self) and use that as our nodes prefix
             # string...
             parent_node_it = iter_utils.while_is_not(
-                node.path_iter(include_self=True), stop_at_parent)
+                node.path_iter(include_self=True), stop_at_parent
+            )
             for j, parent_node in enumerate(parent_node_it):
                 if parent_node is stop_at_parent:
                     if j > 0:
@@ -303,9 +312,11 @@ class Node:
                             # the right final starting prefix on (which may be
                             # a empty space or another vertical connector)...
                             last_node = self._children[-1]
-                            m = last_node.find_first_match(lambda n: n is node,
-                                                           include_self=False,
-                                                           only_direct=False)
+                            m = last_node.find_first_match(
+                                lambda n: n is node,
+                                include_self=False,
+                                only_direct=False,
+                            )
                             if m is not None:
                                 prefix.append(empty_space)
                             else:
@@ -365,7 +376,7 @@ class Node:
     def index(self, item):
         """Finds the child index of a given item, searches in added order."""
         index_at = None
-        for (i, child) in enumerate(self._children):
+        for i, child in enumerate(self._children):
             if child.item == item:
                 index_at = i
                 break
@@ -375,15 +386,15 @@ class Node:
 
     def dfs_iter(self, include_self=False, right_to_left=True):
         """Depth first iteration (non-recursive) over the child nodes."""
-        return _DFSIter(self,
-                        include_self=include_self,
-                        right_to_left=right_to_left)
+        return _DFSIter(
+            self, include_self=include_self, right_to_left=right_to_left
+        )
 
     def bfs_iter(self, include_self=False, right_to_left=False):
         """Breadth first iteration (non-recursive) over the child nodes."""
-        return _BFSIter(self,
-                        include_self=include_self,
-                        right_to_left=right_to_left)
+        return _BFSIter(
+            self, include_self=include_self, right_to_left=right_to_left
+        )
 
     def to_digraph(self):
         """Converts this node + its children into a ordered directed graph.

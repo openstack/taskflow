@@ -13,11 +13,13 @@
 #    under the License.
 
 # Keys extracted from the message properties when formatting...
-_MSG_PROPERTIES = tuple([
-    'correlation_id',
-    'delivery_info/routing_key',
-    'type',
-])
+_MSG_PROPERTIES = tuple(
+    [
+        'correlation_id',
+        'delivery_info/routing_key',
+        'type',
+    ]
+)
 
 
 class DelayedPretty:

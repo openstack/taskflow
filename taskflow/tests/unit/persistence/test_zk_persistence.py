@@ -28,7 +28,8 @@ from taskflow.utils import kazoo_utils
 
 TEST_PATH_TPL = '/taskflow/persistence-test/%s'
 _ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
-    impl_zookeeper.MIN_ZK_VERSION)
+    impl_zookeeper.MIN_ZK_VERSION
+)
 
 
 def clean_backend(backend, conf):

@@ -47,7 +47,6 @@ class MemoryPersistenceTest(test.TestCase, base.PersistenceTestMixin):
 
 
 class MemoryFilesystemTest(test.TestCase):
-
     @staticmethod
     def _get_item_path(fs, path):
         # TODO(harlowja): is there a better way to do this??
@@ -76,18 +75,21 @@ class MemoryFilesystemTest(test.TestCase):
         fs.ensure_path("/b/c/d")
         fs.ensure_path("/a/b/c/d")
         contents = fs.ls_r("/", absolute=False)
-        self.assertEqual([
-            'a',
-            'b',
-            'c',
-            'd',
-            'a/b',
-            'b/c',
-            'c/d',
-            'a/b/c',
-            'b/c/d',
-            'a/b/c/d',
-        ], contents)
+        self.assertEqual(
+            [
+                'a',
+                'b',
+                'c',
+                'd',
+                'a/b',
+                'b/c',
+                'c/d',
+                'a/b/c',
+                'b/c/d',
+                'a/b/c/d',
+            ],
+            contents,
+        )
 
     def test_ls_recursive_absolute(self):
         fs = impl_memory.FakeFilesystem()
@@ -96,18 +98,21 @@ class MemoryFilesystemTest(test.TestCase):
         fs.ensure_path("/b/c/d")
         fs.ensure_path("/a/b/c/d")
         contents = fs.ls_r("/", absolute=True)
-        self.assertEqual([
-            '/a',
-            '/b',
-            '/c',
-            '/d',
-            '/a/b',
-            '/b/c',
-            '/c/d',
-            '/a/b/c',
-            '/b/c/d',
-            '/a/b/c/d',
-        ], contents)
+        self.assertEqual(
+            [
+                '/a',
+                '/b',
+                '/c',
+                '/d',
+                '/a/b',
+                '/b/c',
+                '/c/d',
+                '/a/b/c',
+                '/b/c/d',
+                '/a/b/c/d',
+            ],
+            contents,
+        )
 
     def test_ls_recursive_targeted(self):
         fs = impl_memory.FakeFilesystem()

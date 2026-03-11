@@ -38,15 +38,21 @@ class LoggingListener(base.DumpingListener):
     #: Default logger to use if one is not provided on construction.
     _LOGGER = None
 
-    def __init__(self, engine,
-                 task_listen_for=base.DEFAULT_LISTEN_FOR,
-                 flow_listen_for=base.DEFAULT_LISTEN_FOR,
-                 retry_listen_for=base.DEFAULT_LISTEN_FOR,
-                 log=None,
-                 level=logging.DEBUG):
+    def __init__(
+        self,
+        engine,
+        task_listen_for=base.DEFAULT_LISTEN_FOR,
+        flow_listen_for=base.DEFAULT_LISTEN_FOR,
+        retry_listen_for=base.DEFAULT_LISTEN_FOR,
+        log=None,
+        level=logging.DEBUG,
+    ):
         super().__init__(
-            engine, task_listen_for=task_listen_for,
-            flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
+            engine,
+            task_listen_for=task_listen_for,
+            flow_listen_for=flow_listen_for,
+            retry_listen_for=retry_listen_for,
+        )
         self._logger = misc.pick_first_not_none(log, self._LOGGER, LOG)
         self._level = level
 
@@ -102,18 +108,26 @@ class DynamicLoggingListener(base.Listener):
     #: States which are triggered under some type of failure.
     _FAILURE_STATES = (states.FAILURE, states.REVERT_FAILURE)
 
-    def __init__(self, engine,
-                 task_listen_for=base.DEFAULT_LISTEN_FOR,
-                 flow_listen_for=base.DEFAULT_LISTEN_FOR,
-                 retry_listen_for=base.DEFAULT_LISTEN_FOR,
-                 log=None, failure_level=logging.WARNING,
-                 level=logging.DEBUG, hide_inputs_outputs_of=(),
-                 fail_formatter=None,
-                 mask_inputs_keys=(),
-                 mask_outputs_keys=()):
+    def __init__(
+        self,
+        engine,
+        task_listen_for=base.DEFAULT_LISTEN_FOR,
+        flow_listen_for=base.DEFAULT_LISTEN_FOR,
+        retry_listen_for=base.DEFAULT_LISTEN_FOR,
+        log=None,
+        failure_level=logging.WARNING,
+        level=logging.DEBUG,
+        hide_inputs_outputs_of=(),
+        fail_formatter=None,
+        mask_inputs_keys=(),
+        mask_outputs_keys=(),
+    ):
         super().__init__(
-            engine, task_listen_for=task_listen_for,
-            flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
+            engine,
+            task_listen_for=task_listen_for,
+            flow_listen_for=flow_listen_for,
+            retry_listen_for=retry_listen_for,
+        )
         self._failure_level = failure_level
         self._level = level
         self._task_log_levels = {
@@ -135,16 +149,22 @@ class DynamicLoggingListener(base.Listener):
                 self._engine,
                 hide_inputs_outputs_of=self._hide_inputs_outputs_of,
                 mask_inputs_keys=self._mask_inputs_keys,
-                mask_outputs_keys=self._mask_outputs_keys)
+                mask_outputs_keys=self._mask_outputs_keys,
+            )
         else:
             self._fail_formatter = fail_formatter
 
     def _flow_receiver(self, state, details):
         """Gets called on flow state changes."""
         level = self._flow_log_levels.get(state, self._level)
-        self._logger.log(level, "Flow '%s' (%s) transitioned into state '%s'"
-                         " from state '%s'", details['flow_name'],
-                         details['flow_uuid'], state, details.get('old_state'))
+        self._logger.log(
+            level,
+            "Flow '%s' (%s) transitioned into state '%s' from state '%s'",
+            details['flow_name'],
+            details['flow_uuid'],
+            state,
+            details.get('old_state'),
+        )
 
     def _task_receiver(self, state, details):
         """Gets called on task state changes."""
@@ -156,41 +176,74 @@ class DynamicLoggingListener(base.Listener):
             result = details.get('result')
             if isinstance(result, failure.Failure):
                 exc_info, fail_details = self._fail_formatter.format(
-                    result, _make_matcher(task_name))
+                    result, _make_matcher(task_name)
+                )
                 if fail_details:
-                    self._logger.log(self._failure_level,
-                                     "Task '%s' (%s) transitioned into state"
-                                     " '%s' from state '%s'%s%s",
-                                     task_name, task_uuid, state,
-                                     details['old_state'], os.linesep,
-                                     fail_details, exc_info=exc_info)
+                    self._logger.log(
+                        self._failure_level,
+                        "Task '%s' (%s) transitioned into state"
+                        " '%s' from state '%s'%s%s",
+                        task_name,
+                        task_uuid,
+                        state,
+                        details['old_state'],
+                        os.linesep,
+                        fail_details,
+                        exc_info=exc_info,
+                    )
                 else:
-                    self._logger.log(self._failure_level,
-                                     "Task '%s' (%s) transitioned into state"
-                                     " '%s' from state '%s'", task_name,
-                                     task_uuid, state, details['old_state'],
-                                     exc_info=exc_info)
+                    self._logger.log(
+                        self._failure_level,
+                        "Task '%s' (%s) transitioned into state"
+                        " '%s' from state '%s'",
+                        task_name,
+                        task_uuid,
+                        state,
+                        details['old_state'],
+                        exc_info=exc_info,
+                    )
             else:
                 # Otherwise, depending on the enabled logging level/state we
                 # will show or hide results that the task may have produced
                 # during execution.
                 level = self._task_log_levels.get(state, self._level)
-                show_result = (self._logger.isEnabledFor(self._level)
-                               or state == states.FAILURE)
-                if show_result and \
-                   task_name not in self._hide_inputs_outputs_of:
-                    self._logger.log(level, "Task '%s' (%s) transitioned into"
-                                     " state '%s' from state '%s' with"
-                                     " result '%s'", task_name, task_uuid,
-                                     state, details['old_state'], result)
+                show_result = (
+                    self._logger.isEnabledFor(self._level)
+                    or state == states.FAILURE
+                )
+                if (
+                    show_result
+                    and task_name not in self._hide_inputs_outputs_of
+                ):
+                    self._logger.log(
+                        level,
+                        "Task '%s' (%s) transitioned into"
+                        " state '%s' from state '%s' with"
+                        " result '%s'",
+                        task_name,
+                        task_uuid,
+                        state,
+                        details['old_state'],
+                        result,
+                    )
                 else:
-                    self._logger.log(level, "Task '%s' (%s) transitioned into"
-                                     " state '%s' from state '%s'",
-                                     task_name, task_uuid, state,
-                                     details['old_state'])
+                    self._logger.log(
+                        level,
+                        "Task '%s' (%s) transitioned into"
+                        " state '%s' from state '%s'",
+                        task_name,
+                        task_uuid,
+                        state,
+                        details['old_state'],
+                    )
         else:
             # Just a intermediary state, carry on!
             level = self._task_log_levels.get(state, self._level)
-            self._logger.log(level, "Task '%s' (%s) transitioned into state"
-                             " '%s' from state '%s'", task_name, task_uuid,
-                             state, details['old_state'])
+            self._logger.log(
+                level,
+                "Task '%s' (%s) transitioned into state '%s' from state '%s'",
+                task_name,
+                task_uuid,
+                state,
+                details['old_state'],
+            )

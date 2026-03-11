@@ -25,8 +25,7 @@ from taskflow.types import tree
 class TimingTest(test.TestCase):
     def test_convert_fail(self):
         for baddie in ["abc123", "-1", "", object()]:
-            self.assertRaises(ValueError,
-                              timing.convert_to_timeout, baddie)
+            self.assertRaises(ValueError, timing.convert_to_timeout, baddie)
 
     def test_convert_noop(self):
         t = timing.convert_to_timeout(1.0)
@@ -47,14 +46,12 @@ class TimingTest(test.TestCase):
         self.assertFalse(t.is_stopped())
 
     def test_values(self):
-        for v, e_v in [("1.0", 1.0), (1, 1.0),
-                       ("2.0", 2.0)]:
+        for v, e_v in [("1.0", 1.0), (1, 1.0), ("2.0", 2.0)]:
             t = timing.convert_to_timeout(v)
             self.assertEqual(e_v, t.value)
 
     def test_fail(self):
-        self.assertRaises(ValueError,
-                          timing.Timeout, -1)
+        self.assertRaises(ValueError, timing.Timeout, -1)
 
 
 class GraphTest(test.TestCase):
@@ -64,10 +61,8 @@ class GraphTest(test.TestCase):
         g.add_node("b")
         g.add_node("c")
         g.add_edge("b", "c")
-        self.assertEqual({'a', 'b'},
-                         set(g.no_predecessors_iter()))
-        self.assertEqual({'a', 'c'},
-                         set(g.no_successors_iter()))
+        self.assertEqual({'a', 'b'}, set(g.no_predecessors_iter()))
+        self.assertEqual({'a', 'c'}, set(g.no_successors_iter()))
 
     def test_directed(self):
         g = graph.DiGraph()
@@ -100,8 +95,10 @@ class GraphTest(test.TestCase):
         # NOTE(harlowja): ensure we use the ordered types here, otherwise
         # the expected output will vary based on randomized hashing and then
         # the test will fail randomly...
-        for graph_cls, kind, edge in [(graph.OrderedDiGraph, 'digraph', '->'),
-                                      (graph.OrderedGraph, 'graph', '--')]:
+        for graph_cls, kind, edge in [
+            (graph.OrderedDiGraph, 'digraph', '->'),
+            (graph.OrderedGraph, 'graph', '--'),
+        ]:
             g = graph_cls(name='test')
             g.add_node("a")
             g.add_node("b")
@@ -146,15 +143,18 @@ b %(edge)s c;
         g2.add_node('d')
         g2.add_edge('a', 'd')
 
-        self.assertRaises(ValueError,
-                          graph.merge_graphs, g, g2)
+        self.assertRaises(ValueError, graph.merge_graphs, g, g2)
 
         def occurrence_detector(to_graph, from_graph):
             return sum(1 for node in from_graph.nodes if node in to_graph)
 
-        self.assertRaises(ValueError,
-                          graph.merge_graphs, g, g2,
-                          overlap_detector=occurrence_detector)
+        self.assertRaises(
+            ValueError,
+            graph.merge_graphs,
+            g,
+            g2,
+            overlap_detector=occurrence_detector,
+        )
 
         g3 = graph.merge_graphs(g, g2, allow_overlaps=True)
         self.assertEqual(3, len(g3))
@@ -168,9 +168,9 @@ b %(edge)s c;
         g2 = graph.DiGraph()
         g2.add_node('c')
 
-        self.assertRaises(ValueError,
-                          graph.merge_graphs, g, g2,
-                          overlap_detector='b')
+        self.assertRaises(
+            ValueError, graph.merge_graphs, g, g2, overlap_detector='b'
+        )
 
 
 class TreeTest(test.TestCase):
@@ -451,12 +451,11 @@ CEO
         root.add(tree.Node("josh.1"))
         root.freeze()
         self.assertTrue(
-            all(n.frozen for n in root.dfs_iter(include_self=True)))
-        self.assertRaises(tree.FrozenNode,
-                          root.remove, "josh.1")
+            all(n.frozen for n in root.dfs_iter(include_self=True))
+        )
+        self.assertRaises(tree.FrozenNode, root.remove, "josh.1")
         self.assertRaises(tree.FrozenNode, root.disassociate)
-        self.assertRaises(tree.FrozenNode, root.add,
-                          tree.Node("josh.2"))
+        self.assertRaises(tree.FrozenNode, root.add, tree.Node("josh.2"))
 
     def test_removal(self):
         root = self._make_species()
@@ -466,8 +465,7 @@ CEO
 
     def test_removal_direct(self):
         root = self._make_species()
-        self.assertRaises(ValueError, root.remove, 'human',
-                          only_direct=True)
+        self.assertRaises(ValueError, root.remove, 'human', only_direct=True)
 
     def test_removal_self(self):
         root = self._make_species()
@@ -526,46 +524,75 @@ CEO
         self.assertIsNotNone(root.find('animal', only_direct=True))
         self.assertIsNotNone(root.find('reptile', only_direct=True))
         self.assertIsNone(root.find('animal', include_self=False))
-        self.assertIsNone(root.find('animal',
-                                    include_self=False, only_direct=True))
+        self.assertIsNone(
+            root.find('animal', include_self=False, only_direct=True)
+        )
 
     def test_dfs_itr(self):
         root = self._make_species()
         things = list([n.item for n in root.dfs_iter(include_self=True)])
-        self.assertEqual({'animal', 'reptile', 'mammal', 'horse',
-                          'primate', 'monkey', 'human'}, set(things))
+        self.assertEqual(
+            {
+                'animal',
+                'reptile',
+                'mammal',
+                'horse',
+                'primate',
+                'monkey',
+                'human',
+            },
+            set(things),
+        )
 
     def test_dfs_itr_left_to_right(self):
         root = self._make_species()
         it = root.dfs_iter(include_self=False, right_to_left=False)
         things = list([n.item for n in it])
-        self.assertEqual(['reptile', 'mammal', 'primate',
-                          'human', 'monkey', 'horse'], things)
+        self.assertEqual(
+            ['reptile', 'mammal', 'primate', 'human', 'monkey', 'horse'],
+            things,
+        )
 
     def test_dfs_itr_no_self(self):
         root = self._make_species()
         things = list([n.item for n in root.dfs_iter(include_self=False)])
-        self.assertEqual(['mammal', 'horse', 'primate',
-                          'monkey', 'human', 'reptile'], things)
+        self.assertEqual(
+            ['mammal', 'horse', 'primate', 'monkey', 'human', 'reptile'],
+            things,
+        )
 
     def test_bfs_itr(self):
         root = self._make_species()
         things = list([n.item for n in root.bfs_iter(include_self=True)])
-        self.assertEqual(['animal', 'reptile', 'mammal', 'primate',
-                          'horse', 'human', 'monkey'], things)
+        self.assertEqual(
+            [
+                'animal',
+                'reptile',
+                'mammal',
+                'primate',
+                'horse',
+                'human',
+                'monkey',
+            ],
+            things,
+        )
 
     def test_bfs_itr_no_self(self):
         root = self._make_species()
         things = list([n.item for n in root.bfs_iter(include_self=False)])
-        self.assertEqual(['reptile', 'mammal', 'primate',
-                          'horse', 'human', 'monkey'], things)
+        self.assertEqual(
+            ['reptile', 'mammal', 'primate', 'horse', 'human', 'monkey'],
+            things,
+        )
 
     def test_bfs_itr_right_to_left(self):
         root = self._make_species()
         it = root.bfs_iter(include_self=False, right_to_left=True)
         things = list([n.item for n in it])
-        self.assertEqual(['mammal', 'reptile', 'horse',
-                          'primate', 'monkey', 'human'], things)
+        self.assertEqual(
+            ['mammal', 'reptile', 'horse', 'primate', 'monkey', 'human'],
+            things,
+        )
 
     def test_to_diagraph(self):
         root = self._make_species()
@@ -590,7 +617,6 @@ CEO
 
 
 class OrderedSetTest(test.TestCase):
-
     def test_pickleable(self):
         items = [10, 9, 8, 7]
         s = sets.OrderedSet(items)

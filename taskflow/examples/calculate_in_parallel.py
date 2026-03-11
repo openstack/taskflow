@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
@@ -65,8 +65,7 @@ flow = lf.Flow('root').add(
     # Provide the initial values for other tasks to depend on.
     #
     # x1 = 2, y1 = 3, x2 = 5, x3 = 8
-    Provider("provide-adder", 2, 3, 5, 8,
-             provides=('x1', 'y1', 'x2', 'y2')),
+    Provider("provide-adder", 2, 3, 5, 8, provides=('x1', 'y1', 'x2', 'y2')),
     # Note here that we define the flow that contains the 2 adders to be an
     # unordered flow since the order in which these execute does not matter,
     # another way to solve this would be to use a graph_flow pattern, which
@@ -85,7 +84,8 @@ flow = lf.Flow('root').add(
         Adder(name="add-2", provides='z2', rebind=['x2', 'y2']),
     ),
     # r = z1+z2 = 18
-    Adder(name="sum-1", provides='r', rebind=['z1', 'z2']))
+    Adder(name="sum-1", provides='r', rebind=['z1', 'z2']),
+)
 
 
 # The result here will be all results (from all tasks) which is stored in an

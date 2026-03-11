@@ -67,23 +67,34 @@ class Decider(metaclass=abc.ABCMeta):
 def _affect_all_successors(atom, runtime):
     execution_graph = runtime.compilation.execution_graph
     successors_iter = traversal.depth_first_iterate(
-        execution_graph, atom, traversal.Direction.FORWARD)
-    runtime.reset_atoms(itertools.chain([atom], successors_iter),
-                        state=states.IGNORE, intention=states.IGNORE)
+        execution_graph, atom, traversal.Direction.FORWARD
+    )
+    runtime.reset_atoms(
+        itertools.chain([atom], successors_iter),
+        state=states.IGNORE,
+        intention=states.IGNORE,
+    )
 
 
 def _affect_successor_tasks_in_same_flow(atom, runtime):
     execution_graph = runtime.compilation.execution_graph
     successors_iter = traversal.depth_first_iterate(
-        execution_graph, atom, traversal.Direction.FORWARD,
+        execution_graph,
+        atom,
+        traversal.Direction.FORWARD,
         # Do not go through nested flows but do follow *all* tasks that
         # are directly connected in this same flow (thus the reason this is
         # called the same flow decider); retries are direct successors
         # of flows, so they should also be not traversed through, but
         # setting this explicitly ensures that.
-        through_flows=False, through_retries=False)
-    runtime.reset_atoms(itertools.chain([atom], successors_iter),
-                        state=states.IGNORE, intention=states.IGNORE)
+        through_flows=False,
+        through_retries=False,
+    )
+    runtime.reset_atoms(
+        itertools.chain([atom], successors_iter),
+        state=states.IGNORE,
+        intention=states.IGNORE,
+    )
 
 
 def _affect_atom(atom, runtime):
@@ -97,9 +108,13 @@ def _affect_direct_task_neighbors(atom, runtime):
             node_data = execution_graph.nodes[node]
             if node_data['kind'] == compiler.TASK:
                 yield node
+
     successors_iter = _walk_neighbors()
-    runtime.reset_atoms(itertools.chain([atom], successors_iter),
-                        state=states.IGNORE, intention=states.IGNORE)
+    runtime.reset_atoms(
+        itertools.chain([atom], successors_iter),
+        state=states.IGNORE,
+        intention=states.IGNORE,
+    )
 
 
 class IgnoreDecider(Decider):
@@ -128,18 +143,23 @@ class IgnoreDecider(Decider):
             # that those results can be used by the decider(s) that are
             # making a decision as to pass or not pass...
             states_intentions = runtime.storage.get_atoms_states(
-                ed.from_node.name for ed in self._edge_deciders
-                if ed.kind in compiler.ATOMS)
+                ed.from_node.name
+                for ed in self._edge_deciders
+                if ed.kind in compiler.ATOMS
+            )
             for atom_name in states_intentions.keys():
                 atom_state, _atom_intention = states_intentions[atom_name]
                 if atom_state != states.IGNORE:
                     history[atom_name] = runtime.storage.get(atom_name)
             for ed in self._edge_deciders:
-                if (ed.kind in compiler.ATOMS and
-                        # It was an ignored atom (not included in history and
-                        # the only way that is possible is via above loop
-                        # skipping it...)
-                        ed.from_node.name not in history):
+                if (
+                    ed.kind in compiler.ATOMS
+                    and
+                    # It was an ignored atom (not included in history and
+                    # the only way that is possible is via above loop
+                    # skipping it...)
+                    ed.from_node.name not in history
+                ):
                     voters['ignored'].append(ed)
                     continue
                 if not ed.decider(history=history):
@@ -147,15 +167,17 @@ class IgnoreDecider(Decider):
                 else:
                     voters['run_it'].append(ed)
         if LOG.isEnabledFor(logging.TRACE):
-            LOG.trace("Out of %s deciders there were %s 'do no run it'"
-                      " voters, %s 'do run it' voters and %s 'ignored'"
-                      " voters for transition to atom '%s' given history %s",
-                      sum(len(eds) for eds in voters.values()),
-                      list(ed.from_node.name
-                           for ed in voters['do_not_run_it']),
-                      list(ed.from_node.name for ed in voters['run_it']),
-                      list(ed.from_node.name for ed in voters['ignored']),
-                      self._atom.name, history)
+            LOG.trace(
+                "Out of %s deciders there were %s 'do no run it'"
+                " voters, %s 'do run it' voters and %s 'ignored'"
+                " voters for transition to atom '%s' given history %s",
+                sum(len(eds) for eds in voters.values()),
+                list(ed.from_node.name for ed in voters['do_not_run_it']),
+                list(ed.from_node.name for ed in voters['run_it']),
+                list(ed.from_node.name for ed in voters['ignored']),
+                self._atom.name,
+                history,
+            )
         return voters['do_not_run_it']
 
     def affect(self, runtime, nay_voters):

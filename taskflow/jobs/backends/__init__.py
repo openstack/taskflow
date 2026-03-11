@@ -51,10 +51,13 @@ def fetch(name, conf, namespace=BACKEND_NAMESPACE, **kwargs):
     board, conf = misc.extract_driver_and_conf(conf, 'board')
     LOG.debug('Looking for %r jobboard driver in %r', board, namespace)
     try:
-        mgr = driver.DriverManager(namespace, board,
-                                   invoke_on_load=True,
-                                   invoke_args=(name, conf),
-                                   invoke_kwds=kwargs)
+        mgr = driver.DriverManager(
+            namespace,
+            board,
+            invoke_on_load=True,
+            invoke_args=(name, conf),
+            invoke_kwds=kwargs,
+        )
         return mgr.driver
     except RuntimeError as e:
         raise exc.NotFound("Could not find jobboard %s" % (board), e)

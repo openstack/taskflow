@@ -28,6 +28,7 @@ LOG = logging.getLogger(__name__)
 
 try:
     import sqlalchemy as _sa  # noqa
+
     SQLALCHEMY_AVAILABLE = True
 except ImportError:
     SQLALCHEMY_AVAILABLE = False
@@ -93,8 +94,11 @@ def get_backend(backend_uri=None):
         if not tmp_dir:
             tmp_dir = tempfile.mkdtemp()
             backend_uri = "file:///%s" % tmp_dir
-            LOG.exception("Falling back to file backend using temporary"
-                          " directory located at: %s", tmp_dir)
+            LOG.exception(
+                "Falling back to file backend using temporary"
+                " directory located at: %s",
+                tmp_dir,
+            )
             backend = backends.fetch(_make_conf(backend_uri))
         else:
             raise e

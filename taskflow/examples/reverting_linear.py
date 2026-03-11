@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
@@ -61,17 +61,13 @@ class CallSuzzie(task.Task):
 
 
 # Create your flow and associated tasks (the work to be done).
-flow = lf.Flow('simple-linear').add(
-    CallJim(),
-    CallJoe(),
-    CallSuzzie()
-)
+flow = lf.Flow('simple-linear').add(CallJim(), CallJoe(), CallSuzzie())
 
 try:
     # Now run that flow using the provided initial data (store below).
-    taskflow.engines.run(flow, store=dict(joe_number=444,
-                                          jim_number=555,
-                                          suzzie_number=666))
+    taskflow.engines.run(
+        flow, store=dict(joe_number=444, jim_number=555, suzzie_number=666)
+    )
 except Exception as e:
     # NOTE(harlowja): This exception will be the exception that came out of the
     # 'CallSuzzie' task instead of a different exception, this is useful since

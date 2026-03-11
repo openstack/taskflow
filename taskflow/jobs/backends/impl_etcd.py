@@ -26,6 +26,7 @@ from taskflow.jobs import base
 from taskflow import logging
 from taskflow import states
 from taskflow.utils import misc
+
 if typing.TYPE_CHECKING:
     from taskflow.types import entity
 
@@ -37,13 +38,30 @@ class EtcdJob(base.Job):
 
     board: 'EtcdJobBoard'
 
-    def __init__(self, board: 'EtcdJobBoard', name, client, key,
-                 uuid=None, details=None, backend=None,
-                 book=None, book_data=None,
-                 priority=base.JobPriority.NORMAL,
-                 sequence=None, created_on=None):
-        super().__init__(board, name, uuid=uuid, details=details,
-                         backend=backend, book=book, book_data=book_data)
+    def __init__(
+        self,
+        board: 'EtcdJobBoard',
+        name,
+        client,
+        key,
+        uuid=None,
+        details=None,
+        backend=None,
+        book=None,
+        book_data=None,
+        priority=base.JobPriority.NORMAL,
+        sequence=None,
+        created_on=None,
+    ):
+        super().__init__(
+            board,
+            name,
+            uuid=uuid,
+            details=details,
+            backend=backend,
+            book=book,
+            book_data=book_data,
+        )
 
         self._client = client
         self._key = key
@@ -79,8 +97,11 @@ class EtcdJob(base.Job):
         owner, data = self.board.get_owner_and_data(self)
         if not data:
             if owner is not None:
-                LOG.info(f"Owner key was found for job {self.uuid}, "
-                         f"but the key {self.key} is missing")
+                LOG.info(
+                    "Owner key was found for job %s but the key %s is missing",
+                    self.uuid,
+                    self.key,
+                )
             return states.COMPLETE
         if not owner:
             return states.UNCLAIMED
@@ -101,8 +122,7 @@ class EtcdJob(base.Job):
             if 'lease_id' not in owner_data:
                 return None
             lease_id = owner_data['lease_id']
-            self._lease = etcd3gw.Lease(id=lease_id,
-                                        client=self._client)
+            self._lease = etcd3gw.Lease(id=lease_id, client=self._client)
         return self._lease
 
     def expires_in(self):
@@ -120,7 +140,7 @@ class EtcdJob(base.Job):
         if self.lease is None:
             return False
         ret = self.lease.refresh()
-        return (ret > 0)
+        return ret > 0
 
     @property
     def root(self):
@@ -134,7 +154,8 @@ class EtcdJob(base.Job):
                 return self.sequence < other.sequence
             else:
                 ordered = base.JobPriority.reorder(
-                    (self.priority, self), (other.priority, other))
+                    (self.priority, self), (other.priority, other)
+                )
                 if ordered[0] is self:
                     return False
                 return True
@@ -145,8 +166,11 @@ class EtcdJob(base.Job):
     def __eq__(self, other):
         if not isinstance(other, EtcdJob):
             return NotImplemented
-        return ((self.root, self.sequence, self.priority) ==
-                (other.root, other.sequence, other.priority))
+        return (self.root, self.sequence, self.priority) == (
+            other.root,
+            other.sequence,
+            other.priority,
+        )
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -184,6 +208,7 @@ class EtcdJobBoard(base.JobBoard):
 
     .. _etcd: https://etcd.io/
     """
+
     ROOT_PATH = "/taskflow/jobs"
 
     TRASH_PATH = "/taskflow/.trash"
@@ -224,8 +249,10 @@ class EtcdJobBoard(base.JobBoard):
         self._persistence = persistence
         self._state = self.INIT_STATE
 
-        path_elems = [self.ROOT_PATH,
-                      self._conf.get("path", self.DEFAULT_PATH)]
+        path_elems = [
+            self.ROOT_PATH,
+            self._conf.get("path", self.DEFAULT_PATH),
+        ]
         self._root_path = self._create_path(*path_elems)
 
         self._job_cache = {}
@@ -301,8 +328,7 @@ class EtcdJobBoard(base.JobBoard):
         try:
             job_data = jsonutils.loads(data)
         except jsonutils.json.JSONDecodeError:
-            msg = ("Incorrectly formatted job data found at "
-                   f"key: {key}")
+            msg = f"Incorrectly formatted job data found at key: {key}"
             LOG.warning(msg, exc_info=True)
             LOG.info("Deleting invalid job data at key: %s", key)
             self._client.delete(key)
@@ -311,16 +337,18 @@ class EtcdJobBoard(base.JobBoard):
         with self._job_cond:
             if key not in self._job_cache:
                 job_priority = base.JobPriority.convert(job_data["priority"])
-                new_job = EtcdJob(self,
-                                  job_data["name"],
-                                  self._client,
-                                  key,
-                                  uuid=job_data["uuid"],
-                                  details=job_data.get("details", {}),
-                                  backend=self._persistence,
-                                  book_data=job_data.get("book"),
-                                  priority=job_priority,
-                                  sequence=job_data["sequence"])
+                new_job = EtcdJob(
+                    self,
+                    job_data["name"],
+                    self._client,
+                    key,
+                    uuid=job_data["uuid"],
+                    details=job_data.get("details", {}),
+                    backend=self._persistence,
+                    book_data=job_data.get("book"),
+                    priority=job_priority,
+                    sequence=job_data["sequence"],
+                )
                 self._job_cache[key] = new_job
                 self._job_cond.notify_all()
 
@@ -335,15 +363,18 @@ class EtcdJobBoard(base.JobBoard):
             self._remove_job_from_cache(job.key)
             self._client.delete_prefix(job.key)
         except Exception:
-            LOG.exception(f"Failed to delete prefix {job.key}")
+            LOG.exception("Failed to delete prefix %s", job.key)
 
     def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
         """Returns an iterator of jobs that are currently on this board."""
         return base.JobBoardIterator(
-            self, LOG, only_unclaimed=only_unclaimed,
+            self,
+            LOG,
+            only_unclaimed=only_unclaimed,
             ensure_fresh=ensure_fresh,
             board_fetch_func=self._fetch_jobs,
-            board_removal_func=self._board_removal_func)
+            board_removal_func=self._board_removal_func,
+        )
 
     def wait(self, timeout=None):
         """Waits a given amount of time for **any** jobs to be posted."""
@@ -354,9 +385,10 @@ class EtcdJobBoard(base.JobBoard):
             while True:
                 if not self._job_cache:
                     if watch.expired():
-                        raise exc.NotFound("Expired waiting for jobs to"
-                                           " arrive; waited %s seconds"
-                                           % watch.elapsed())
+                        raise exc.NotFound(
+                            "Expired waiting for jobs to"
+                            " arrive; waited %s seconds" % watch.elapsed()
+                        )
                     # This is done since the given timeout can not be provided
                     # to the condition variable, since we can not ensure that
                     # when we acquire the condition that there will actually
@@ -367,10 +399,14 @@ class EtcdJobBoard(base.JobBoard):
                     curr_jobs = self._fetch_jobs()
                     fetch_func = lambda ensure_fresh: curr_jobs
                     removal_func = lambda a_job: self._remove_job_from_cache(
-                        a_job.key)
+                        a_job.key
+                    )
                     return base.JobBoardIterator(
-                        self, LOG, board_fetch_func=fetch_func,
-                        board_removal_func=removal_func)
+                        self,
+                        LOG,
+                        board_fetch_func=fetch_func,
+                        board_removal_func=removal_func,
+                    )
 
     @property
     def job_count(self):
@@ -395,11 +431,11 @@ class EtcdJobBoard(base.JobBoard):
         key = job.key + self.DATA_POSTFIX
         return self.get_one(key)
 
-    def get_owner_and_data(self, job: EtcdJob) -> tuple[
-            str | None, bytes | None]:
+    def get_owner_and_data(
+        self, job: EtcdJob
+    ) -> tuple[str | None, bytes | None]:
         if self._client is None:
-            raise exc.JobFailure("Cannot retrieve information, "
-                                 "not connected")
+            raise exc.JobFailure("Cannot retrieve information, not connected")
 
         job_data = None
         job_owner = None
@@ -426,15 +462,20 @@ class EtcdJobBoard(base.JobBoard):
 
         return self.get_one(key)
 
-    def post(self, name, book=None, details=None,
-             priority=base.JobPriority.NORMAL) -> EtcdJob:
+    def post(
+        self, name, book=None, details=None, priority=base.JobPriority.NORMAL
+    ) -> EtcdJob:
         """Atomically creates and posts a job to the jobboard."""
         job_priority = base.JobPriority.convert(priority)
         job_uuid = uuidutils.generate_uuid()
-        job_posting = base.format_posting(job_uuid, name,
-                                          created_on=timeutils.utcnow(),
-                                          book=book, details=details,
-                                          priority=job_priority)
+        job_posting = base.format_posting(
+            job_uuid,
+            name,
+            created_on=timeutils.utcnow(),
+            book=book,
+            details=details,
+            priority=job_priority,
+        )
         seq = self.incr(self._create_path(self._root_path, self.SEQUENCE_KEY))
         key = self._create_path(self._root_path, f"{self.JOB_PREFIX}{seq}")
 
@@ -444,14 +485,19 @@ class EtcdJobBoard(base.JobBoard):
         data_key = key + self.DATA_POSTFIX
 
         self._client.create(data_key, raw_job_posting)
-        job = EtcdJob(self, name, self._client, key,
-                      uuid=job_uuid,
-                      details=details,
-                      backend=self._persistence,
-                      book=book,
-                      book_data=job_posting.get('book'),
-                      priority=job_priority,
-                      sequence=seq)
+        job = EtcdJob(
+            self,
+            name,
+            self._client,
+            key,
+            uuid=job_uuid,
+            details=details,
+            backend=self._persistence,
+            book=book,
+            book_data=job_posting.get('book'),
+            priority=job_priority,
+            sequence=seq,
+        )
         with self._job_cond:
             self._job_cache[key] = job
             self._job_cond.notify_all()
@@ -511,8 +557,9 @@ class EtcdJobBoard(base.JobBoard):
         if data is None or owner is None:
             raise exc.NotFound(f"Cannot find job {job.uuid}")
         if owner != who:
-            raise exc.JobFailure(f"Cannot consume a job {job.uuid}"
-                                 f" which is not owned by {who}")
+            raise exc.JobFailure(
+                f"Cannot consume a job {job.uuid} which is not owned by {who}"
+            )
 
         self._client.delete_prefix(job.key + ".")
         self._remove_job_from_cache(job.key)
@@ -524,8 +571,9 @@ class EtcdJobBoard(base.JobBoard):
         if data is None or owner is None:
             raise exc.NotFound(f"Cannot find job {job.uuid}")
         if owner != who:
-            raise exc.JobFailure(f"Cannot abandon a job {job.uuid}"
-                                 f" which is not owned by {who}")
+            raise exc.JobFailure(
+                f"Cannot abandon a job {job.uuid} which is not owned by {who}"
+            )
 
         owner_key = job.key + self.LOCK_POSTFIX
         self._client.delete(owner_key)
@@ -537,8 +585,9 @@ class EtcdJobBoard(base.JobBoard):
         if data is None or owner is None:
             raise exc.NotFound(f"Cannot find job {job.uuid}")
         if owner != who:
-            raise exc.JobFailure(f"Cannot trash a job {job.uuid} "
-                                 f"which is not owned by {who}")
+            raise exc.JobFailure(
+                f"Cannot trash a job {job.uuid} which is not owned by {who}"
+            )
 
         trash_key = job.key.replace(self.ROOT_PATH, self.TRASH_PATH)
         self._client.create(trash_key, data)
@@ -570,11 +619,13 @@ class EtcdJobBoard(base.JobBoard):
             watch_url = self._create_path(self._root_path, self.JOB_PREFIX)
             self._thread_cancel = threading.Event()
             try:
-                (self._watcher,
-                 self._watcher_cancel) = self._client.watch_prefix(watch_url)
+                (self._watcher, self._watcher_cancel) = (
+                    self._client.watch_prefix(watch_url)
+                )
             except etcd3gw.exceptions.ConnectionFailedError:
-                exc.raise_with_cause(exc.JobFailure,
-                                     "Failed to connect to Etcd")
+                exc.raise_with_cause(
+                    exc.JobFailure, "Failed to connect to Etcd"
+                )
             self._watcher_thd = threading.Thread(target=self._watcher_thread)
             self._watcher_thd.start()
 

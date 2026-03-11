@@ -65,8 +65,10 @@ class LinearScopingTest(test.TestCase):
 
     def test_nested_prior_linear(self):
         r = lf.Flow("root")
-        r.add(test_utils.TaskOneReturn("root.1"),
-              test_utils.TaskOneReturn("root.2"))
+        r.add(
+            test_utils.TaskOneReturn("root.1"),
+            test_utils.TaskOneReturn("root.2"),
+        )
         sub_r = lf.Flow("subroot")
         sub_r_1 = test_utils.TaskOneReturn("subroot.1")
         sub_r.add(sub_r_1)
@@ -82,8 +84,10 @@ class LinearScopingTest(test.TestCase):
         middle_r = test_utils.TaskOneReturn("root.3")
         r.add(middle_r)
         sub_r = lf.Flow("subroot")
-        sub_r.add(test_utils.TaskOneReturn("subroot.1"),
-                  test_utils.TaskOneReturn("subroot.2"))
+        sub_r.add(
+            test_utils.TaskOneReturn("subroot.1"),
+            test_utils.TaskOneReturn("subroot.2"),
+        )
         r.add(sub_r)
         end_r = test_utils.TaskOneReturn("root.4")
         r.add(end_r)
@@ -92,28 +96,31 @@ class LinearScopingTest(test.TestCase):
 
         self.assertEqual([], _get_scopes(c, begin_r))
         self.assertEqual([['root.2', 'root.1']], _get_scopes(c, middle_r))
-        self.assertEqual([['subroot.2', 'subroot.1', 'root.3', 'root.2',
-                           'root.1']], _get_scopes(c, end_r))
+        self.assertEqual(
+            [['subroot.2', 'subroot.1', 'root.3', 'root.2', 'root.1']],
+            _get_scopes(c, end_r),
+        )
 
 
 class GraphScopingTest(test.TestCase):
     def test_dependent(self):
         r = gf.Flow("root")
 
-        customer = test_utils.ProvidesRequiresTask("customer",
-                                                   provides=['dog'],
-                                                   requires=[])
-        washer = test_utils.ProvidesRequiresTask("washer",
-                                                 requires=['dog'],
-                                                 provides=['wash'])
-        dryer = test_utils.ProvidesRequiresTask("dryer",
-                                                requires=['dog', 'wash'],
-                                                provides=['dry_dog'])
-        shaved = test_utils.ProvidesRequiresTask("shaver",
-                                                 requires=['dry_dog'],
-                                                 provides=['shaved_dog'])
+        customer = test_utils.ProvidesRequiresTask(
+            "customer", provides=['dog'], requires=[]
+        )
+        washer = test_utils.ProvidesRequiresTask(
+            "washer", requires=['dog'], provides=['wash']
+        )
+        dryer = test_utils.ProvidesRequiresTask(
+            "dryer", requires=['dog', 'wash'], provides=['dry_dog']
+        )
+        shaved = test_utils.ProvidesRequiresTask(
+            "shaver", requires=['dry_dog'], provides=['shaved_dog']
+        )
         happy_customer = test_utils.ProvidesRequiresTask(
-            "happy_customer", requires=['shaved_dog'], provides=['happiness'])
+            "happy_customer", requires=['shaved_dog'], provides=['happiness']
+        )
 
         r.add(customer, washer, dryer, shaved, happy_customer)
 
@@ -121,8 +128,10 @@ class GraphScopingTest(test.TestCase):
 
         self.assertEqual([], _get_scopes(c, customer))
         self.assertEqual([['washer', 'customer']], _get_scopes(c, dryer))
-        self.assertEqual([['shaver', 'dryer', 'washer', 'customer']],
-                         _get_scopes(c, happy_customer))
+        self.assertEqual(
+            [['shaver', 'dryer', 'washer', 'customer']],
+            _get_scopes(c, happy_customer),
+        )
 
     def test_no_visible(self):
         r = gf.Flow("root")
@@ -202,10 +211,10 @@ class MixedPatternScopingTest(test.TestCase):
         self.assertEqual([['root.1']], _get_scopes(c, r_2))
         self.assertEqual([], _get_scopes(c, s_1))
         self.assertEqual([['subroot.1']], _get_scopes(c, s_2))
-        self.assertEqual([[], ['subroot.2', 'subroot.1']],
-                         _get_scopes(c, t_1))
-        self.assertEqual([["subroot2.1"], ['subroot.2', 'subroot.1']],
-                         _get_scopes(c, t_2))
+        self.assertEqual([[], ['subroot.2', 'subroot.1']], _get_scopes(c, t_1))
+        self.assertEqual(
+            [["subroot2.1"], ['subroot.2', 'subroot.1']], _get_scopes(c, t_2)
+        )
 
     def test_linear_unordered_scope(self):
         r = lf.Flow("root")
@@ -247,15 +256,15 @@ class MixedPatternScopingTest(test.TestCase):
 
     def test_shadow_graph(self):
         r = gf.Flow("root")
-        customer = test_utils.ProvidesRequiresTask("customer",
-                                                   provides=['dog'],
-                                                   requires=[])
-        customer2 = test_utils.ProvidesRequiresTask("customer2",
-                                                    provides=['dog'],
-                                                    requires=[])
-        washer = test_utils.ProvidesRequiresTask("washer",
-                                                 requires=['dog'],
-                                                 provides=['wash'])
+        customer = test_utils.ProvidesRequiresTask(
+            "customer", provides=['dog'], requires=[]
+        )
+        customer2 = test_utils.ProvidesRequiresTask(
+            "customer2", provides=['dog'], requires=[]
+        )
+        washer = test_utils.ProvidesRequiresTask(
+            "washer", requires=['dog'], provides=['wash']
+        )
         r.add(customer, washer)
         r.add(customer2, resolve_requires=False)
         r.link(customer2, washer)
@@ -270,23 +279,24 @@ class MixedPatternScopingTest(test.TestCase):
         # This may be different after/if the following is resolved:
         #
         # https://github.com/networkx/networkx/issues/1181 (and a few others)
-        self.assertEqual({'customer', 'customer2'},
-                         set(_get_scopes(c, washer)[0]))
+        self.assertEqual(
+            {'customer', 'customer2'}, set(_get_scopes(c, washer)[0])
+        )
         self.assertEqual([], _get_scopes(c, customer2))
         self.assertEqual([], _get_scopes(c, customer))
 
     def test_shadow_linear(self):
         r = lf.Flow("root")
 
-        customer = test_utils.ProvidesRequiresTask("customer",
-                                                   provides=['dog'],
-                                                   requires=[])
-        customer2 = test_utils.ProvidesRequiresTask("customer2",
-                                                    provides=['dog'],
-                                                    requires=[])
-        washer = test_utils.ProvidesRequiresTask("washer",
-                                                 requires=['dog'],
-                                                 provides=['wash'])
+        customer = test_utils.ProvidesRequiresTask(
+            "customer", provides=['dog'], requires=[]
+        )
+        customer2 = test_utils.ProvidesRequiresTask(
+            "customer2", provides=['dog'], requires=[]
+        )
+        washer = test_utils.ProvidesRequiresTask(
+            "washer", requires=['dog'], provides=['wash']
+        )
         r.add(customer, customer2, washer)
 
         c = compiler.PatternCompiler(r).compile()

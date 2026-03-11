@@ -21,11 +21,11 @@ from taskflow import test
 def sum(x, y):
     return x + y
 
+
 multiply = lambda x, y: x * y
 
 
 class ReduceFunctorTaskTest(test.TestCase):
-
     def setUp(self):
         super().setUp()
 
@@ -39,32 +39,32 @@ class ReduceFunctorTaskTest(test.TestCase):
 
     def test_sum_array(self):
         expected = self.flow_store.copy()
-        expected.update({
-            'sum': 15
-        })
+        expected.update({'sum': 15})
 
         requires = self.flow_store.keys()
         provides = 'sum'
 
         flow = linear_flow.Flow("sum array flow")
-        flow.add(base.ReduceFunctorTask(sum, requires=requires,
-                                        provides=provides))
+        flow.add(
+            base.ReduceFunctorTask(sum, requires=requires, provides=provides)
+        )
 
         result = engines.run(flow, store=self.flow_store)
         self.assertEqual(expected, result)
 
     def test_multiply_array(self):
         expected = self.flow_store.copy()
-        expected.update({
-            'product': 120
-        })
+        expected.update({'product': 120})
 
         requires = self.flow_store.keys()
         provides = 'product'
 
         flow = linear_flow.Flow("square array flow")
-        flow.add(base.ReduceFunctorTask(multiply, requires=requires,
-                                        provides=provides))
+        flow.add(
+            base.ReduceFunctorTask(
+                multiply, requires=requires, provides=provides
+            )
+        )
 
         result = engines.run(flow, store=self.flow_store)
         self.assertEqual(expected, result)

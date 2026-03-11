@@ -22,9 +22,9 @@ import traceback
 
 from kazoo import client
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 from taskflow.conductors import backends as conductor_backends
@@ -90,16 +90,19 @@ def make_bottles(count):
 
     s = lf.Flow("bottle-song")
 
-    take_bottle = TakeABottleDown("take-bottle-%s" % count,
-                                  inject={'bottles_left': count},
-                                  provides='bottles_left')
+    take_bottle = TakeABottleDown(
+        "take-bottle-%s" % count,
+        inject={'bottles_left': count},
+        provides='bottles_left',
+    )
     pass_it = PassItAround("pass-%s-around" % count)
     next_bottles = Conclusion("next-bottles-%s" % (count - 1))
     s.add(take_bottle, pass_it, next_bottles)
 
     for bottle in reversed(list(range(1, count))):
-        take_bottle = TakeABottleDown("take-bottle-%s" % bottle,
-                                      provides='bottles_left')
+        take_bottle = TakeABottleDown(
+            "take-bottle-%s" % bottle, provides='bottles_left'
+        )
         pass_it = PassItAround("pass-%s-around" % bottle)
         next_bottles = Conclusion("next-bottles-%s" % (bottle - 1))
         s.add(take_bottle, pass_it, next_bottles)
@@ -122,15 +125,17 @@ def run_conductor(only_run_once=False):
         if event.endswith("_start"):
             w = timeutils.StopWatch()
             w.start()
-            base_event = event[0:-len("_start")]
+            base_event = event[0 : -len("_start")]
             event_watches[base_event] = w
         if event.endswith("_end"):
-            base_event = event[0:-len("_end")]
+            base_event = event[0 : -len("_end")]
             try:
                 w = event_watches.pop(base_event)
                 w.stop()
-                print("It took %0.3f seconds for event '%s' to finish"
-                      % (w.elapsed(), base_event))
+                print(
+                    "It took %0.3f seconds for event '%s' to finish"
+                    % (w.elapsed(), base_event)
+                )
             except KeyError:
                 pass
         if event == 'running_end' and only_run_once:
@@ -142,12 +147,14 @@ def run_conductor(only_run_once=False):
     with contextlib.closing(persist_backend):
         with contextlib.closing(persist_backend.get_connection()) as conn:
             conn.upgrade()
-        job_backend = job_backends.fetch(my_name, JB_CONF,
-                                         persistence=persist_backend)
+        job_backend = job_backends.fetch(
+            my_name, JB_CONF, persistence=persist_backend
+        )
         job_backend.connect()
         with contextlib.closing(job_backend):
-            cond = conductor_backends.fetch('blocking', my_name, job_backend,
-                                            persistence=persist_backend)
+            cond = conductor_backends.fetch(
+                'blocking', my_name, job_backend, persistence=persist_backend
+            )
             on_conductor_event = functools.partial(on_conductor_event, cond)
             cond.notifier.register(cond.notifier.ANY, on_conductor_event)
             # Run forever, and kill -9 or ctrl-c me...
@@ -166,8 +173,9 @@ def run_poster():
     with contextlib.closing(persist_backend):
         with contextlib.closing(persist_backend.get_connection()) as conn:
             conn.upgrade()
-        job_backend = job_backends.fetch(my_name, JB_CONF,
-                                         persistence=persist_backend)
+        job_backend = job_backends.fetch(
+            my_name, JB_CONF, persistence=persist_backend
+        )
         job_backend.connect()
         with contextlib.closing(job_backend):
             # Create information in the persistence backend about the
@@ -175,14 +183,19 @@ def run_poster():
             # can be called to create the tasks that the work unit needs
             # to be done.
             lb = models.LogBook("post-from-%s" % my_name)
-            fd = models.FlowDetail("song-from-%s" % my_name,
-                                   uuidutils.generate_uuid())
+            fd = models.FlowDetail(
+                "song-from-%s" % my_name, uuidutils.generate_uuid()
+            )
             lb.add(fd)
             with contextlib.closing(persist_backend.get_connection()) as conn:
                 conn.save_logbook(lb)
-            engines.save_factory_details(fd, make_bottles,
-                                         [HOW_MANY_BOTTLES], {},
-                                         backend=persist_backend)
+            engines.save_factory_details(
+                fd,
+                make_bottles,
+                [HOW_MANY_BOTTLES],
+                {},
+                backend=persist_backend,
+            )
             # Post, and be done with it!
             jb = job_backend.post("song-from-%s" % my_name, book=lb)
             print("Posted: %s" % jb)

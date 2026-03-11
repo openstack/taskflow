@@ -23,9 +23,9 @@ import time
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
@@ -90,10 +90,12 @@ class CreateSpecForVolumes(task.Task):
     def execute(self):
         volumes = []
         for i in range(0, random.randint(1, 10)):
-            volumes.append({
-                'type': 'disk',
-                'location': "/dev/vda%s" % (i + 1),
-            })
+            volumes.append(
+                {
+                    'type': 'disk',
+                    'location': "/dev/vda%s" % (i + 1),
+                }
+            )
         return volumes
 
 
@@ -115,7 +117,8 @@ flow = lf.Flow("root").add(
         PrintText("I need a nap, it took me a while to build those specs."),
         PrepareVolumes(),
     ),
-    PrintText("Finished volume create", no_slow=True))
+    PrintText("Finished volume create", no_slow=True),
+)
 
 # Setup the persistence & resumption layer.
 with example_utils.get_backend() as backend:
@@ -139,16 +142,19 @@ with example_utils.get_backend() as backend:
         book.add(flow_detail)
         with contextlib.closing(backend.get_connection()) as conn:
             conn.save_logbook(book)
-        print("!! Your tracking id is: '{}+{}'".format(book.uuid,
-                                                       flow_detail.uuid))
+        print(
+            "!! Your tracking id is: '{}+{}'".format(
+                book.uuid, flow_detail.uuid
+            )
+        )
         print("!! Please submit this on later runs for tracking purposes")
     else:
         flow_detail = find_flow_detail(backend, book_id, flow_id)
 
     # Load and run.
-    engine = engines.load(flow,
-                          flow_detail=flow_detail,
-                          backend=backend, engine='serial')
+    engine = engines.load(
+        flow, flow_detail=flow_detail, backend=backend, engine='serial'
+    )
     engine.run()
 
 # How to use.

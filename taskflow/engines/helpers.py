@@ -60,8 +60,9 @@ def _fetch_factory(factory_name):
     try:
         return importutils.import_class(factory_name)
     except (ImportError, ValueError) as e:
-        raise ImportError("Could not import factory %r: %s"
-                          % (factory_name, e))
+        raise ImportError(
+            "Could not import factory %r: %s" % (factory_name, e)
+        )
 
 
 def _fetch_validate_factory(flow_factory):
@@ -73,16 +74,25 @@ def _fetch_validate_factory(flow_factory):
         factory_name = reflection.get_callable_name(flow_factory)
         try:
             reimported = _fetch_factory(factory_name)
-            assert reimported == factory_fun
+            assert reimported == factory_fun  # noqa: S101
         except (ImportError, AssertionError):
-            raise ValueError('Flow factory %r is not reimportable by name %s'
-                             % (factory_fun, factory_name))
+            raise ValueError(
+                'Flow factory %r is not reimportable by name %s'
+                % (factory_fun, factory_name)
+            )
     return (factory_name, factory_fun)
 
 
-def load(flow, store=None, flow_detail=None, book=None,
-         backend=None, namespace=ENGINES_NAMESPACE,
-         engine=ENGINE_DEFAULT, **kwargs):
+def load(
+    flow,
+    store=None,
+    flow_detail=None,
+    book=None,
+    backend=None,
+    namespace=ENGINES_NAMESPACE,
+    engine=ENGINE_DEFAULT,
+    **kwargs,
+):
     """Load a flow into an engine.
 
     This function creates and prepares an engine to run the provided flow. All
@@ -122,15 +132,18 @@ def load(flow, store=None, flow_detail=None, book=None,
         backend = p_backends.fetch(backend)
 
     if flow_detail is None:
-        flow_detail = p_utils.create_flow_detail(flow, book=book,
-                                                 backend=backend)
+        flow_detail = p_utils.create_flow_detail(
+            flow, book=book, backend=backend
+        )
 
     LOG.debug('Looking for %r engine driver in %r', kind, namespace)
     try:
         mgr = stevedore.driver.DriverManager(
-            namespace, kind,
+            namespace,
+            kind,
             invoke_on_load=True,
-            invoke_args=(flow, flow_detail, backend, options))
+            invoke_args=(flow, flow_detail, backend, options),
+        )
         engine = mgr.driver
     except RuntimeError as e:
         raise exc.NotFound("Could not find engine '%s'" % (kind), e)
@@ -140,9 +153,16 @@ def load(flow, store=None, flow_detail=None, book=None,
         return engine
 
 
-def run(flow, store=None, flow_detail=None, book=None,
-        backend=None, namespace=ENGINES_NAMESPACE,
-        engine=ENGINE_DEFAULT, **kwargs):
+def run(
+    flow,
+    store=None,
+    flow_detail=None,
+    book=None,
+    backend=None,
+    namespace=ENGINES_NAMESPACE,
+    engine=ENGINE_DEFAULT,
+    **kwargs,
+):
     """Run the flow.
 
     This function loads the flow into an engine (with the :func:`load() <load>`
@@ -153,16 +173,23 @@ def run(flow, store=None, flow_detail=None, book=None,
     :returns: dictionary of all named
               results (see :py:meth:`~.taskflow.storage.Storage.fetch_all`)
     """
-    engine = load(flow, store=store, flow_detail=flow_detail, book=book,
-                  backend=backend, namespace=namespace,
-                  engine=engine, **kwargs)
+    engine = load(
+        flow,
+        store=store,
+        flow_detail=flow_detail,
+        book=book,
+        backend=backend,
+        namespace=namespace,
+        engine=engine,
+        **kwargs,
+    )
     engine.run()
     return engine.storage.fetch_all()
 
 
-def save_factory_details(flow_detail,
-                         flow_factory, factory_args, factory_kwargs,
-                         backend=None):
+def save_factory_details(
+    flow_detail, flow_factory, factory_args, factory_kwargs, backend=None
+):
     """Saves the given factories reimportable attributes into the flow detail.
 
     This function saves the factory name, arguments, and keyword arguments
@@ -198,10 +225,17 @@ def save_factory_details(flow_detail,
             conn.update_flow_details(flow_detail)
 
 
-def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
-                      store=None, book=None, backend=None,
-                      namespace=ENGINES_NAMESPACE, engine=ENGINE_DEFAULT,
-                      **kwargs):
+def load_from_factory(
+    flow_factory,
+    factory_args=None,
+    factory_kwargs=None,
+    store=None,
+    book=None,
+    backend=None,
+    namespace=ENGINES_NAMESPACE,
+    engine=ENGINE_DEFAULT,
+    **kwargs,
+):
     """Loads a flow from a factory function into an engine.
 
     Gets flow factory function (or name of it) and creates flow with
@@ -227,12 +261,23 @@ def load_from_factory(flow_factory, factory_args=None, factory_kwargs=None,
     if isinstance(backend, dict):
         backend = p_backends.fetch(backend)
     flow_detail = p_utils.create_flow_detail(flow, book=book, backend=backend)
-    save_factory_details(flow_detail,
-                         flow_factory, factory_args, factory_kwargs,
-                         backend=backend)
-    return load(flow=flow, store=store, flow_detail=flow_detail, book=book,
-                backend=backend, namespace=namespace,
-                engine=engine, **kwargs)
+    save_factory_details(
+        flow_detail,
+        flow_factory,
+        factory_args,
+        factory_kwargs,
+        backend=backend,
+    )
+    return load(
+        flow=flow,
+        store=store,
+        flow_detail=flow_detail,
+        book=book,
+        backend=backend,
+        namespace=namespace,
+        engine=engine,
+        **kwargs,
+    )
 
 
 def flow_from_detail(flow_detail):
@@ -247,24 +292,33 @@ def flow_from_detail(flow_detail):
     try:
         factory_data = flow_detail.meta['factory']
     except (KeyError, AttributeError, TypeError):
-        raise ValueError('Cannot reconstruct flow %s %s: '
-                         'no factory information saved.'
-                         % (flow_detail.name, flow_detail.uuid))
+        raise ValueError(
+            'Cannot reconstruct flow %s %s: '
+            'no factory information saved.'
+            % (flow_detail.name, flow_detail.uuid)
+        )
 
     try:
         factory_fun = _fetch_factory(factory_data['name'])
     except (KeyError, ImportError):
-        raise ImportError('Could not import factory for flow %s %s'
-                          % (flow_detail.name, flow_detail.uuid))
+        raise ImportError(
+            'Could not import factory for flow %s %s'
+            % (flow_detail.name, flow_detail.uuid)
+        )
 
     args = factory_data.get('args', ())
     kwargs = factory_data.get('kwargs', {})
     return factory_fun(*args, **kwargs)
 
 
-def load_from_detail(flow_detail, store=None, backend=None,
-                     namespace=ENGINES_NAMESPACE, engine=ENGINE_DEFAULT,
-                     **kwargs):
+def load_from_detail(
+    flow_detail,
+    store=None,
+    backend=None,
+    namespace=ENGINES_NAMESPACE,
+    engine=ENGINE_DEFAULT,
+    **kwargs,
+):
     """Reloads an engine previously saved.
 
     This reloads the flow using the
@@ -278,6 +332,12 @@ def load_from_detail(flow_detail, store=None, backend=None,
     :returns: engine
     """
     flow = flow_from_detail(flow_detail)
-    return load(flow, flow_detail=flow_detail,
-                store=store, backend=backend,
-                namespace=namespace, engine=engine, **kwargs)
+    return load(
+        flow,
+        flow_detail=flow_detail,
+        store=store,
+        backend=backend,
+        namespace=namespace,
+        engine=engine,
+        **kwargs,
+    )

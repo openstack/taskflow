@@ -28,9 +28,14 @@ class Direction(enum.Enum):
     BACKWARD = 2
 
 
-def _extract_connectors(execution_graph, starting_node, direction,
-                        through_flows=True, through_retries=True,
-                        through_tasks=True):
+def _extract_connectors(
+    execution_graph,
+    starting_node,
+    direction,
+    through_flows=True,
+    through_retries=True,
+    through_tasks=True,
+):
     if direction == Direction.FORWARD:
         connected_iter = execution_graph.successors
     else:
@@ -46,9 +51,14 @@ def _extract_connectors(execution_graph, starting_node, direction,
     return connected_iter(starting_node), connected_to_functors
 
 
-def breadth_first_iterate(execution_graph, starting_node, direction,
-                          through_flows=True, through_retries=True,
-                          through_tasks=True):
+def breadth_first_iterate(
+    execution_graph,
+    starting_node,
+    direction,
+    through_flows=True,
+    through_retries=True,
+    through_tasks=True,
+):
     """Iterates connected nodes in execution graph (from starting node).
 
     Does so in a breadth first manner.
@@ -56,9 +66,13 @@ def breadth_first_iterate(execution_graph, starting_node, direction,
     Jumps over nodes with ``noop`` attribute (does not yield them back).
     """
     initial_nodes_iter, connected_to_functors = _extract_connectors(
-        execution_graph, starting_node, direction,
-        through_flows=through_flows, through_retries=through_retries,
-        through_tasks=through_tasks)
+        execution_graph,
+        starting_node,
+        direction,
+        through_flows=through_flows,
+        through_retries=through_retries,
+        through_tasks=through_tasks,
+    )
     q = collections.deque(initial_nodes_iter)
     visited_nodes = set()
     while q:
@@ -79,9 +93,14 @@ def breadth_first_iterate(execution_graph, starting_node, direction,
             q.extend(connected_to_functor(node))
 
 
-def depth_first_iterate(execution_graph, starting_node, direction,
-                        through_flows=True, through_retries=True,
-                        through_tasks=True):
+def depth_first_iterate(
+    execution_graph,
+    starting_node,
+    direction,
+    through_flows=True,
+    through_retries=True,
+    through_tasks=True,
+):
     """Iterates connected nodes in execution graph (from starting node).
 
     Does so in a depth first manner.
@@ -89,9 +108,13 @@ def depth_first_iterate(execution_graph, starting_node, direction,
     Jumps over nodes with ``noop`` attribute (does not yield them back).
     """
     initial_nodes_iter, connected_to_functors = _extract_connectors(
-        execution_graph, starting_node, direction,
-        through_flows=through_flows, through_retries=through_retries,
-        through_tasks=through_tasks)
+        execution_graph,
+        starting_node,
+        direction,
+        through_flows=through_flows,
+        through_retries=through_retries,
+        through_tasks=through_tasks,
+    )
     stack = list(initial_nodes_iter)
     visited_nodes = set()
     while stack:

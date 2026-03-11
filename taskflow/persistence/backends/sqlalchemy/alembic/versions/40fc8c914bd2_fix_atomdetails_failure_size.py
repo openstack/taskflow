@@ -30,7 +30,15 @@ def upgrade():
     bind = op.get_bind()
     engine = bind.engine
     if engine.name == 'mysql':
-        op.alter_column('atomdetails', 'failure', type_=mysql.LONGTEXT,
-                        existing_nullable=True)
-        op.alter_column('atomdetails', 'revert_failure', type_=mysql.LONGTEXT,
-                        existing_nullable=True)
+        op.alter_column(
+            'atomdetails',
+            'failure',
+            type_=mysql.LONGTEXT,
+            existing_nullable=True,
+        )
+        op.alter_column(
+            'atomdetails',
+            'revert_failure',
+            type_=mysql.LONGTEXT,
+            existing_nullable=True,
+        )

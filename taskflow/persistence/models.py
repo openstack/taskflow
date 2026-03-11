@@ -36,7 +36,7 @@ def _format_meta(metadata, indent):
     lines = [
         '%s- metadata:' % (" " * indent),
     ]
-    for (k, v) in metadata.items():
+    for k, v in metadata.items():
         # Progress for now is a special snowflake and will be formatted
         # in percent format.
         if k == 'progress' and isinstance(v, misc.NUMERIC_TYPES):
@@ -53,8 +53,11 @@ def _format_shared(obj, indent):
     for attr_name in ("uuid", "state"):
         if not hasattr(obj, attr_name):
             continue
-        lines.append("{}- {} = {}".format(" " * indent, attr_name,
-                                          getattr(obj, attr_name)))
+        lines.append(
+            "{}- {} = {}".format(
+                " " * indent, attr_name, getattr(obj, attr_name)
+            )
+        )
     return lines
 
 
@@ -119,6 +122,7 @@ class LogBook:
                       was last updated at.
     :ivar meta: A dictionary of meta-data associated with this logbook.
     """
+
     def __init__(self, name, uuid=None):
         if uuid:
             self._uuid = uuid
@@ -145,16 +149,19 @@ class LogBook:
         lines.extend(_format_shared(self, indent=indent + 1))
         lines.extend(_format_meta(self.meta, indent=indent + 1))
         if self.created_at is not None:
-            lines.append("%s- created_at = %s"
-                         % (" " * (indent + 1),
-                            self.created_at.isoformat()))
+            lines.append(
+                "%s- created_at = %s"
+                % (" " * (indent + 1), self.created_at.isoformat())
+            )
         if self.updated_at is not None:
-            lines.append("%s- updated_at = %s"
-                         % (" " * (indent + 1),
-                            self.updated_at.isoformat()))
+            lines.append(
+                "%s- updated_at = %s"
+                % (" " * (indent + 1), self.updated_at.isoformat())
+            )
         for flow_detail in self:
-            lines.append(flow_detail.pformat(indent=indent + 1,
-                                             linesep=linesep))
+            lines.append(
+                flow_detail.pformat(indent=indent + 1, linesep=linesep)
+            )
         return linesep.join(lines)
 
     def add(self, fd):
@@ -299,6 +306,7 @@ class FlowDetail:
 
     :ivar meta: A dictionary of meta-data associated with this flow detail.
     """
+
     def __init__(self, name, uuid):
         self._uuid = uuid
         self._name = name
@@ -334,8 +342,9 @@ class FlowDetail:
 
         >>> from oslo_utils import uuidutils
         >>> from taskflow.persistence import models
-        >>> flow_detail = models.FlowDetail("example",
-        ...                                 uuid=uuidutils.generate_uuid())
+        >>> flow_detail = models.FlowDetail(
+        ...     "example", uuid=uuidutils.generate_uuid()
+        ... )
         >>> print(flow_detail.pformat())
         FlowDetail: 'example'
          - uuid = ...
@@ -346,8 +355,9 @@ class FlowDetail:
         lines.extend(_format_shared(self, indent=indent + 1))
         lines.extend(_format_meta(self.meta, indent=indent + 1))
         for atom_detail in self:
-            lines.append(atom_detail.pformat(indent=indent + 1,
-                                             linesep=linesep))
+            lines.append(
+                atom_detail.pformat(indent=indent + 1, linesep=linesep)
+            )
         return linesep.join(lines)
 
     def merge(self, fd, deep_copy=False):
@@ -686,12 +696,14 @@ class AtomDetail(metaclass=abc.ABCMeta):
         cls_name = self.__class__.__name__
         lines = ["{}{}: '{}'".format(" " * (indent), cls_name, self.name)]
         lines.extend(_format_shared(self, indent=indent + 1))
-        lines.append("%s- version = %s"
-                     % (" " * (indent + 1), misc.get_version_string(self)))
-        lines.append("%s- results = %s"
-                     % (" " * (indent + 1), self.results))
-        lines.append("{}- failure = {}".format(" " * (indent + 1),
-                                               bool(self.failure)))
+        lines.append(
+            "%s- version = %s"
+            % (" " * (indent + 1), misc.get_version_string(self))
+        )
+        lines.append("%s- results = %s" % (" " * (indent + 1), self.results))
+        lines.append(
+            "{}- failure = {}".format(" " * (indent + 1), bool(self.failure))
+        )
         lines.extend(_format_meta(self.meta, indent=indent + 1))
         return linesep.join(lines)
 
@@ -738,15 +750,17 @@ class TaskDetail(AtomDetail):
             if self.failure != result:
                 self.failure = result
                 was_altered = True
-            if not _is_all_none(self.results, self.revert_results,
-                                self.revert_failure):
+            if not _is_all_none(
+                self.results, self.revert_results, self.revert_failure
+            ):
                 self.results = None
                 self.revert_results = None
                 self.revert_failure = None
                 was_altered = True
         elif state == states.SUCCESS:
-            if not _is_all_none(self.revert_results, self.revert_failure,
-                                self.failure):
+            if not _is_all_none(
+                self.revert_results, self.revert_failure, self.failure
+            ):
                 self.revert_results = None
                 self.revert_failure = None
                 self.failure = None
@@ -785,8 +799,9 @@ class TaskDetail(AtomDetail):
         :rtype: :py:class:`.TaskDetail`
         """
         if not isinstance(other, TaskDetail):
-            raise exc.NotImplementedError("Can only merge with other"
-                                          " task details")
+            raise exc.NotImplementedError(
+                "Can only merge with other task details"
+            )
         if other is self:
             return self
         super().merge(other, deep_copy=deep_copy)
@@ -879,9 +894,9 @@ class RetryDetail(AtomDetail):
         results = []
         # NOTE(imelnikov): we can't just deep copy Failures, as they
         # contain tracebacks, which are not copyable.
-        for (data, failures) in self.results:
+        for data, failures in self.results:
             copied_failures = {}
-            for (key, failure) in failures.items():
+            for key, failure in failures.items():
                 copied_failures[key] = failure
             results.append((data, copied_failures))
         clone.results = results
@@ -942,8 +957,9 @@ class RetryDetail(AtomDetail):
                 self.revert_failure = None
                 was_altered = True
         elif state == states.SUCCESS:
-            if not _is_all_none(self.failure, self.revert_failure,
-                                self.revert_results):
+            if not _is_all_none(
+                self.failure, self.revert_failure, self.revert_results
+            ):
                 self.failure = None
                 self.revert_failure = None
                 self.revert_results = None
@@ -972,9 +988,9 @@ class RetryDetail(AtomDetail):
             if not results:
                 return []
             new_results = []
-            for (data, failures) in results:
+            for data, failures in results:
                 new_failures = {}
-                for (key, data) in failures.items():
+                for key, data in failures.items():
                     new_failures[key] = ft.Failure.from_dict(data)
                 new_results.append((data, new_failures))
             return new_results
@@ -990,9 +1006,9 @@ class RetryDetail(AtomDetail):
             if not results:
                 return []
             new_results = []
-            for (data, failures) in results:
+            for data, failures in results:
                 new_failures = {}
-                for (key, failure) in failures.items():
+                for key, failure in failures.items():
                     new_failures[key] = failure.to_dict()
                 new_results.append((data, new_failures))
             return new_results
@@ -1025,17 +1041,18 @@ class RetryDetail(AtomDetail):
         :rtype: :py:class:`.RetryDetail`
         """
         if not isinstance(other, RetryDetail):
-            raise exc.NotImplementedError("Can only merge with other"
-                                          " retry details")
+            raise exc.NotImplementedError(
+                "Can only merge with other retry details"
+            )
         if other is self:
             return self
         super().merge(other, deep_copy=deep_copy)
         results = []
         # NOTE(imelnikov): we can't just deep copy Failures, as they
         # contain tracebacks, which are not copyable.
-        for (data, failures) in other.results:
+        for data, failures in other.results:
             copied_failures = {}
-            for (key, failure) in failures.items():
+            for key, failure in failures.items():
                 if deep_copy:
                     copied_failures[key] = failure.copy()
                 else:
@@ -1064,5 +1081,6 @@ def atom_detail_type(atom_detail):
     try:
         return _DETAIL_TO_NAME[type(atom_detail)]
     except KeyError:
-        raise TypeError("Unknown atom '%s' (%s)"
-                        % (atom_detail, type(atom_detail)))
+        raise TypeError(
+            "Unknown atom '%s' (%s)" % (atom_detail, type(atom_detail))
+        )

@@ -75,6 +75,7 @@ class OrderedSet(abc.Set, abc.Hashable):
 
         (i.e. elements that are common to all of the sets.)
         """
+
         def absorb_it(sets):
             for value in iter(self):
                 matches = 0
@@ -85,6 +86,7 @@ class OrderedSet(abc.Set, abc.Hashable):
                         break
                 if matches == len(sets):
                     yield value
+
         return self._from_iterable(absorb_it(sets))
 
     def issuperset(self, other):
@@ -106,6 +108,7 @@ class OrderedSet(abc.Set, abc.Hashable):
 
         (i.e. all elements that are in this set but not the others.)
         """
+
         def absorb_it(sets):
             for value in iter(self):
                 seen = False
@@ -115,6 +118,7 @@ class OrderedSet(abc.Set, abc.Hashable):
                         break
                 if not seen:
                     yield value
+
         return self._from_iterable(absorb_it(sets))
 
     def union(self, *sets):

@@ -71,19 +71,26 @@ class TopicWorker:
         r = reflection.get_class_name(self, fully_qualified=False)
         if self.identity is not self._NO_IDENTITY:
             r += "(identity={}, tasks={}, topic={})".format(
-                self.identity, self.tasks, self.topic)
+                self.identity, self.tasks, self.topic
+            )
         else:
             r += "(identity=*, tasks={}, topic={})".format(
-                self.tasks, self.topic)
+                self.tasks, self.topic
+            )
         return r
 
 
 class ProxyWorkerFinder:
     """Requests and receives responses about workers topic+task details."""
 
-    def __init__(self, uuid, proxy, topics,
-                 beat_periodicity=pr.NOTIFY_PERIOD,
-                 worker_expiry=pr.EXPIRES_AFTER):
+    def __init__(
+        self,
+        uuid,
+        proxy,
+        topics,
+        beat_periodicity=pr.NOTIFY_PERIOD,
+        worker_expiry=pr.EXPIRES_AFTER,
+    ):
         self._cond = threading.Condition()
         self._proxy = proxy
         self._topics = topics
@@ -134,7 +141,7 @@ class ProxyWorkerFinder:
         if len(available_workers) == 1:
             return available_workers[0]
         else:
-            return random.choice(available_workers)
+            return random.choice(available_workers)  # noqa: S311
 
     @property
     def messages_processed(self):
@@ -157,14 +164,14 @@ class ProxyWorkerFinder:
         match workers to tasks to run).
         """
         if self._messages_published == 0:
-            self._proxy.publish(pr.Notify(),
-                                self._topics, reply_to=self._uuid)
+            self._proxy.publish(pr.Notify(), self._topics, reply_to=self._uuid)
             self._messages_published += 1
             self._watch.restart()
         else:
             if self._watch.expired():
-                self._proxy.publish(pr.Notify(),
-                                    self._topics, reply_to=self._uuid)
+                self._proxy.publish(
+                    pr.Notify(), self._topics, reply_to=self._uuid
+                )
                 self._messages_published += 1
                 self._watch.restart()
 
@@ -188,16 +195,21 @@ class ProxyWorkerFinder:
 
     def process_response(self, data, message):
         """Process notify message sent from remote side."""
-        LOG.debug("Started processing notify response message '%s'",
-                  ku.DelayedPretty(message))
+        LOG.debug(
+            "Started processing notify response message '%s'",
+            ku.DelayedPretty(message),
+        )
         response = pr.Notify(**data)
         LOG.debug("Extracted notify response '%s'", response)
         with self._cond:
-            worker, new_or_updated = self._add(response.topic,
-                                               response.tasks)
+            worker, new_or_updated = self._add(response.topic, response.tasks)
             if new_or_updated:
-                LOG.debug("Updated worker '%s' (%s total workers are"
-                          " currently known)", worker, self.total_workers)
+                LOG.debug(
+                    "Updated worker '%s' (%s total workers are"
+                    " currently known)",
+                    worker,
+                    self.total_workers,
+                )
                 self._cond.notify_all()
             worker.last_seen = timeutils.now()
             self._messages_processed += 1
@@ -207,8 +219,9 @@ class ProxyWorkerFinder:
 
         Returns how many workers were removed.
         """
-        if (not self._workers or
-                (self._worker_expiry is None or self._worker_expiry <= 0)):
+        if not self._workers or (
+            self._worker_expiry is None or self._worker_expiry <= 0
+        ):
             return 0
         dead_workers = {}
         with self._cond:
@@ -225,9 +238,12 @@ class ProxyWorkerFinder:
                 self._cond.notify_all()
         if dead_workers and LOG.isEnabledFor(logging.INFO):
             for worker, secs_since_last_seen in dead_workers.values():
-                LOG.info("Removed worker '%s' as it has not responded to"
-                         " notification requests in %0.3f seconds",
-                         worker, secs_since_last_seen)
+                LOG.info(
+                    "Removed worker '%s' as it has not responded to"
+                    " notification requests in %0.3f seconds",
+                    worker,
+                    secs_since_last_seen,
+                )
         return len(dead_workers)
 
     def reset(self):

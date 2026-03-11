@@ -23,7 +23,6 @@ def add(a, b):
 
 
 class BunchOfFunctions:
-
     def __init__(self, values):
         self.values = values
 
@@ -44,7 +43,6 @@ multiply = lambda x, y: x * y
 
 
 class FunctorTaskTest(test.TestCase):
-
     def test_simple(self):
         task = base.FunctorTask(add)
         self.assertEqual(__name__ + '.add', task.name)
@@ -59,12 +57,10 @@ class FunctorTaskTest(test.TestCase):
         t = base.FunctorTask
 
         flow = linear_flow.Flow('test')
-        flow.add(
-            t(bof.run_one, revert=bof.revert_one),
-            t(bof.run_fail)
+        flow.add(t(bof.run_one, revert=bof.revert_one), t(bof.run_fail))
+        self.assertRaisesRegex(
+            RuntimeError, '^Woot', taskflow.engines.run, flow
         )
-        self.assertRaisesRegex(RuntimeError, '^Woot',
-                               taskflow.engines.run, flow)
         self.assertEqual(['one', 'fail', 'revert one'], values)
 
     def test_lambda_functors(self):
@@ -73,20 +69,14 @@ class FunctorTaskTest(test.TestCase):
         flow = linear_flow.Flow('test')
         flow.add(
             t(five, provides='five', name='five'),
-            t(multiply, provides='product', name='product')
+            t(multiply, provides='product', name='product'),
         )
 
-        flow_store = {
-            'x': 2,
-            'y': 3
-        }
+        flow_store = {'x': 2, 'y': 3}
 
         result = taskflow.engines.run(flow, store=flow_store)
 
         expected = flow_store.copy()
-        expected.update({
-            'five': 5,
-            'product': 6
-        })
+        expected.update({'five': 5, 'product': 6})
 
         self.assertEqual(expected, result)

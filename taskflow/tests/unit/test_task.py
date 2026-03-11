@@ -72,15 +72,13 @@ class RevertKwargsTask(task.Task):
 
 
 class TaskTest(test.TestCase):
-
     def test_passed_name(self):
         my_task = MyTask(name='my name')
         self.assertEqual('my name', my_task.name)
 
     def test_generated_name(self):
         my_task = MyTask()
-        self.assertEqual('{}.{}'.format(__name__, 'MyTask'),
-                         my_task.name)
+        self.assertEqual('{}.{}'.format(__name__, 'MyTask'), my_task.name)
 
     def test_task_str(self):
         my_task = MyTask(name='my')
@@ -107,44 +105,36 @@ class TaskTest(test.TestCase):
         self.assertEqual({'food': 0}, my_task.save_as)
 
     def test_bad_provides(self):
-        self.assertRaisesRegex(TypeError, '^Atom provides',
-                               MyTask, provides=object())
+        self.assertRaisesRegex(
+            TypeError, '^Atom provides', MyTask, provides=object()
+        )
 
     def test_requires_by_default(self):
         my_task = MyTask()
-        expected = {
-            'spam': 'spam',
-            'eggs': 'eggs',
-            'context': 'context'
-        }
-        self.assertEqual(expected,
-                         my_task.rebind)
-        self.assertEqual({'spam', 'eggs', 'context'},
-                         my_task.requires)
+        expected = {'spam': 'spam', 'eggs': 'eggs', 'context': 'context'}
+        self.assertEqual(expected, my_task.rebind)
+        self.assertEqual({'spam', 'eggs', 'context'}, my_task.requires)
 
     def test_requires_amended(self):
         my_task = MyTask(requires=('spam', 'eggs'))
-        expected = {
-            'spam': 'spam',
-            'eggs': 'eggs',
-            'context': 'context'
-        }
+        expected = {'spam': 'spam', 'eggs': 'eggs', 'context': 'context'}
         self.assertEqual(expected, my_task.rebind)
 
     def test_requires_explicit(self):
-        my_task = MyTask(auto_extract=False,
-                         requires=('spam', 'eggs', 'context'))
-        expected = {
-            'spam': 'spam',
-            'eggs': 'eggs',
-            'context': 'context'
-        }
+        my_task = MyTask(
+            auto_extract=False, requires=('spam', 'eggs', 'context')
+        )
+        expected = {'spam': 'spam', 'eggs': 'eggs', 'context': 'context'}
         self.assertEqual(expected, my_task.rebind)
 
     def test_requires_explicit_not_enough(self):
-        self.assertRaisesRegex(ValueError, '^Missing arguments',
-                               MyTask,
-                               auto_extract=False, requires=('spam', 'eggs'))
+        self.assertRaisesRegex(
+            ValueError,
+            '^Missing arguments',
+            MyTask,
+            auto_extract=False,
+            requires=('spam', 'eggs'),
+        )
 
     def test_requires_ignores_optional(self):
         my_task = DefaultArgTask()
@@ -166,78 +156,53 @@ class TaskTest(test.TestCase):
 
     def test_rebind_all_args(self):
         my_task = MyTask(rebind={'spam': 'a', 'eggs': 'b', 'context': 'c'})
-        expected = {
-            'spam': 'a',
-            'eggs': 'b',
-            'context': 'c'
-        }
+        expected = {'spam': 'a', 'eggs': 'b', 'context': 'c'}
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual({'a', 'b', 'c'},
-                         my_task.requires)
+        self.assertEqual({'a', 'b', 'c'}, my_task.requires)
 
     def test_rebind_partial(self):
         my_task = MyTask(rebind={'spam': 'a', 'eggs': 'b'})
-        expected = {
-            'spam': 'a',
-            'eggs': 'b',
-            'context': 'context'
-        }
+        expected = {'spam': 'a', 'eggs': 'b', 'context': 'context'}
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual({'a', 'b', 'context'},
-                         my_task.requires)
+        self.assertEqual({'a', 'b', 'context'}, my_task.requires)
 
     def test_rebind_unknown(self):
-        self.assertRaisesRegex(ValueError, '^Extra arguments',
-                               MyTask, rebind={'foo': 'bar'})
+        self.assertRaisesRegex(
+            ValueError, '^Extra arguments', MyTask, rebind={'foo': 'bar'}
+        )
 
     def test_rebind_unknown_kwargs(self):
         my_task = KwargsTask(rebind={'foo': 'bar'})
-        expected = {
-            'foo': 'bar',
-            'spam': 'spam'
-        }
+        expected = {'foo': 'bar', 'spam': 'spam'}
         self.assertEqual(expected, my_task.rebind)
 
     def test_rebind_list_all(self):
         my_task = MyTask(rebind=('a', 'b', 'c'))
-        expected = {
-            'context': 'a',
-            'spam': 'b',
-            'eggs': 'c'
-        }
+        expected = {'context': 'a', 'spam': 'b', 'eggs': 'c'}
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual({'a', 'b', 'c'},
-                         my_task.requires)
+        self.assertEqual({'a', 'b', 'c'}, my_task.requires)
 
     def test_rebind_list_partial(self):
         my_task = MyTask(rebind=('a', 'b'))
-        expected = {
-            'context': 'a',
-            'spam': 'b',
-            'eggs': 'eggs'
-        }
+        expected = {'context': 'a', 'spam': 'b', 'eggs': 'eggs'}
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual({'a', 'b', 'eggs'},
-                         my_task.requires)
+        self.assertEqual({'a', 'b', 'eggs'}, my_task.requires)
 
     def test_rebind_list_more(self):
-        self.assertRaisesRegex(ValueError, '^Extra arguments',
-                               MyTask, rebind=('a', 'b', 'c', 'd'))
+        self.assertRaisesRegex(
+            ValueError, '^Extra arguments', MyTask, rebind=('a', 'b', 'c', 'd')
+        )
 
     def test_rebind_list_more_kwargs(self):
         my_task = KwargsTask(rebind=('a', 'b', 'c'))
-        expected = {
-            'spam': 'a',
-            'b': 'b',
-            'c': 'c'
-        }
+        expected = {'spam': 'a', 'b': 'b', 'c': 'c'}
         self.assertEqual(expected, my_task.rebind)
-        self.assertEqual({'a', 'b', 'c'},
-                         my_task.requires)
+        self.assertEqual({'a', 'b', 'c'}, my_task.requires)
 
     def test_rebind_list_bad_value(self):
-        self.assertRaisesRegex(TypeError, '^Invalid rebind value',
-                               MyTask, rebind=object())
+        self.assertRaisesRegex(
+            TypeError, '^Invalid rebind value', MyTask, rebind=object()
+        )
 
     def test_default_provides(self):
         my_task = DefaultProvidesTask()
@@ -300,15 +265,20 @@ class TaskTest(test.TestCase):
 
     def test_register_handler_is_none(self):
         a_task = MyTask()
-        self.assertRaises(ValueError, a_task.notifier.register,
-                          task.EVENT_UPDATE_PROGRESS, None)
+        self.assertRaises(
+            ValueError,
+            a_task.notifier.register,
+            task.EVENT_UPDATE_PROGRESS,
+            None,
+        )
         self.assertEqual(0, len(a_task.notifier))
 
     def test_deregister_any_handler(self):
         a_task = MyTask()
         self.assertEqual(0, len(a_task.notifier))
-        a_task.notifier.register(task.EVENT_UPDATE_PROGRESS,
-                                 lambda event_type, details: None)
+        a_task.notifier.register(
+            task.EVENT_UPDATE_PROGRESS, lambda event_type, details: None
+        )
         self.assertEqual(1, len(a_task.notifier))
         a_task.notifier.deregister_event(task.EVENT_UPDATE_PROGRESS)
         self.assertEqual(0, len(a_task.notifier))
@@ -316,8 +286,9 @@ class TaskTest(test.TestCase):
     def test_deregister_any_handler_empty_listeners(self):
         a_task = MyTask()
         self.assertEqual(0, len(a_task.notifier))
-        self.assertFalse(a_task.notifier.deregister_event(
-            task.EVENT_UPDATE_PROGRESS))
+        self.assertFalse(
+            a_task.notifier.deregister_event(task.EVENT_UPDATE_PROGRESS)
+        )
         self.assertEqual(0, len(a_task.notifier))
 
     def test_deregister_non_existent_listener(self):
@@ -333,8 +304,9 @@ class TaskTest(test.TestCase):
 
     def test_bind_not_callable(self):
         a_task = MyTask()
-        self.assertRaises(ValueError, a_task.notifier.register,
-                          task.EVENT_UPDATE_PROGRESS, 2)
+        self.assertRaises(
+            ValueError, a_task.notifier.register, task.EVENT_UPDATE_PROGRESS, 2
+        )
 
     def test_copy_no_listeners(self):
         handler1 = lambda event_type, details: None
@@ -351,8 +323,9 @@ class TaskTest(test.TestCase):
         a_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler1)
         b_task = a_task.copy()
         self.assertEqual(1, len(b_task.notifier))
-        self.assertTrue(a_task.notifier.deregister_event(
-            task.EVENT_UPDATE_PROGRESS))
+        self.assertTrue(
+            a_task.notifier.deregister_event(task.EVENT_UPDATE_PROGRESS)
+        )
         self.assertEqual(0, len(a_task.notifier))
         self.assertEqual(1, len(b_task.notifier))
         b_task.notifier.register(task.EVENT_UPDATE_PROGRESS, handler2)
@@ -364,16 +337,15 @@ class TaskTest(test.TestCase):
         my_task = SeparateRevertTask(rebind=('a',), revert_rebind=('b',))
         self.assertEqual({'execute_arg': 'a'}, my_task.rebind)
         self.assertEqual({'revert_arg': 'b'}, my_task.revert_rebind)
-        self.assertEqual({'a', 'b'},
-                         my_task.requires)
+        self.assertEqual({'a', 'b'}, my_task.requires)
 
-        my_task = SeparateRevertTask(requires='execute_arg',
-                                     revert_requires='revert_arg')
+        my_task = SeparateRevertTask(
+            requires='execute_arg', revert_requires='revert_arg'
+        )
 
         self.assertEqual({'execute_arg': 'execute_arg'}, my_task.rebind)
         self.assertEqual({'revert_arg': 'revert_arg'}, my_task.revert_rebind)
-        self.assertEqual({'execute_arg', 'revert_arg'},
-                         my_task.requires)
+        self.assertEqual({'execute_arg', 'revert_arg'}, my_task.requires)
 
     def test_separate_revert_optional_args(self):
         my_task = SeparateRevertOptionalTask()
@@ -382,17 +354,17 @@ class TaskTest(test.TestCase):
 
     def test_revert_kwargs(self):
         my_task = RevertKwargsTask()
-        expected_rebind = {'execute_arg1': 'execute_arg1',
-                           'execute_arg2': 'execute_arg2'}
+        expected_rebind = {
+            'execute_arg1': 'execute_arg1',
+            'execute_arg2': 'execute_arg2',
+        }
         self.assertEqual(expected_rebind, my_task.rebind)
         expected_rebind = {'execute_arg1': 'execute_arg1'}
         self.assertEqual(expected_rebind, my_task.revert_rebind)
-        self.assertEqual({'execute_arg1', 'execute_arg2'},
-                         my_task.requires)
+        self.assertEqual({'execute_arg1', 'execute_arg2'}, my_task.requires)
 
 
 class FunctorTaskTest(test.TestCase):
-
     def test_creation_with_version(self):
         version = (2, 0)
         f_task = task.FunctorTask(lambda: None, version=version)
@@ -402,49 +374,53 @@ class FunctorTaskTest(test.TestCase):
         self.assertRaises(ValueError, task.FunctorTask, 2)
 
     def test_revert_not_callable(self):
-        self.assertRaises(ValueError, task.FunctorTask, lambda: None,
-                          revert=2)
+        self.assertRaises(ValueError, task.FunctorTask, lambda: None, revert=2)
 
 
 class ReduceFunctorTaskTest(test.TestCase):
-
     def test_invalid_functor(self):
         # Functor not callable
         self.assertRaises(ValueError, task.ReduceFunctorTask, 2, requires=5)
 
         # Functor takes no arguments
-        self.assertRaises(ValueError, task.ReduceFunctorTask, lambda: None,
-                          requires=5)
+        self.assertRaises(
+            ValueError, task.ReduceFunctorTask, lambda: None, requires=5
+        )
 
         # Functor takes too few arguments
-        self.assertRaises(ValueError, task.ReduceFunctorTask, lambda x: None,
-                          requires=5)
+        self.assertRaises(
+            ValueError, task.ReduceFunctorTask, lambda x: None, requires=5
+        )
 
     def test_functor_invalid_requires(self):
         # Invalid type, requires is not iterable
-        self.assertRaises(TypeError, task.ReduceFunctorTask,
-                          lambda x, y: None, requires=1)
+        self.assertRaises(
+            TypeError, task.ReduceFunctorTask, lambda x, y: None, requires=1
+        )
 
         # Too few elements in requires
-        self.assertRaises(ValueError, task.ReduceFunctorTask,
-                          lambda x, y: None, requires=[1])
+        self.assertRaises(
+            ValueError, task.ReduceFunctorTask, lambda x, y: None, requires=[1]
+        )
 
 
 class MapFunctorTaskTest(test.TestCase):
-
     def test_invalid_functor(self):
         # Functor not callable
         self.assertRaises(ValueError, task.MapFunctorTask, 2, requires=5)
 
         # Functor takes no arguments
-        self.assertRaises(ValueError, task.MapFunctorTask, lambda: None,
-                          requires=5)
+        self.assertRaises(
+            ValueError, task.MapFunctorTask, lambda: None, requires=5
+        )
 
         # Functor takes too many arguments
-        self.assertRaises(ValueError, task.MapFunctorTask, lambda x, y: None,
-                          requires=5)
+        self.assertRaises(
+            ValueError, task.MapFunctorTask, lambda x, y: None, requires=5
+        )
 
     def test_functor_invalid_requires(self):
         # Invalid type, requires is not iterable
-        self.assertRaises(TypeError, task.MapFunctorTask, lambda x: None,
-                          requires=1)
+        self.assertRaises(
+            TypeError, task.MapFunctorTask, lambda x: None, requires=1
+        )

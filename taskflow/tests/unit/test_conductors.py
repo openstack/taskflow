@@ -37,7 +37,8 @@ from taskflow.utils import threading_utils
 
 TEST_PATH_TPL = '/taskflow/conductor-test/%s'
 ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
-    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
+    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION
+)
 
 
 def test_factory(blowup):
@@ -66,23 +67,34 @@ def single_factory():
     return futurist.ThreadPoolExecutor(max_workers=1)
 
 
-ComponentBundle = collections.namedtuple('ComponentBundle',
-                                         ['board', 'persistence', 'conductor'])
+ComponentBundle = collections.namedtuple(
+    'ComponentBundle', ['board', 'persistence', 'conductor']
+)
 
 
 @testtools.skipIf(not ZOOKEEPER_AVAILABLE, 'zookeeper is not available')
-class ManyConductorTest(testscenarios.TestWithScenarios,
-                        test_utils.EngineTestBase, test.TestCase):
+class ManyConductorTest(
+    testscenarios.TestWithScenarios, test_utils.EngineTestBase, test.TestCase
+):
     scenarios = [
-        ('blocking', {'kind': 'blocking',
-                      'conductor_kwargs': {'wait_timeout': 0.1}}),
-        ('nonblocking_many_thread',
-         {'kind': 'nonblocking', 'conductor_kwargs': {'wait_timeout': 0.1}}),
-        ('nonblocking_one_thread', {'kind': 'nonblocking',
-                                    'conductor_kwargs': {
-                                        'executor_factory': single_factory,
-                                        'wait_timeout': 0.1,
-                                    }})
+        (
+            'blocking',
+            {'kind': 'blocking', 'conductor_kwargs': {'wait_timeout': 0.1}},
+        ),
+        (
+            'nonblocking_many_thread',
+            {'kind': 'nonblocking', 'conductor_kwargs': {'wait_timeout': 0.1}},
+        ),
+        (
+            'nonblocking_one_thread',
+            {
+                'kind': 'nonblocking',
+                'conductor_kwargs': {
+                    'executor_factory': single_factory,
+                    'wait_timeout': 0.1,
+                },
+            },
+        ),
     ]
 
     def make_components(self):
@@ -95,18 +107,17 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
         path = TEST_PATH_TPL % uuidutils.generate_uuid()
         persistence = impl_memory.MemoryBackend()
         board = impl_zookeeper.ZookeeperJobBoard(
-            'testing',
-            {'path': path},
-            client=client,
-            persistence=persistence)
+            'testing', {'path': path}, client=client, persistence=persistence
+        )
 
         self.addCleanup(cleanup_path, client, path)
         self.addCleanup(kazoo_utils.finalize_client, client)
 
         conductor_kwargs = self.conductor_kwargs.copy()
         conductor_kwargs['persistence'] = persistence
-        conductor = backends.fetch(self.kind, 'testing', board,
-                                   **conductor_kwargs)
+        conductor = backends.fetch(
+            self.kind, 'testing', board, **conductor_kwargs
+        )
         return ComponentBundle(board, persistence, conductor)
 
     def test_connection(self):
@@ -123,8 +134,7 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             components.conductor.stop()
-            self.assertTrue(
-                components.conductor.wait(test_utils.WAIT_TIMEOUT))
+            self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
             t.join()
 
@@ -147,19 +157,18 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
                 job_abandoned_event.set()
 
         components.board.notifier.register(base.REMOVAL, on_consume)
-        components.conductor.notifier.register("job_consumed",
-                                               on_job_consumed)
-        components.conductor.notifier.register("job_abandoned",
-                                               on_job_abandoned)
+        components.conductor.notifier.register("job_consumed", on_job_consumed)
+        components.conductor.notifier.register(
+            "job_abandoned", on_job_abandoned
+        )
         with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
-            engines.save_factory_details(fd, test_factory,
-                                         [False], {},
-                                         backend=components.persistence)
-            components.board.post('poke', lb,
-                                  details={'flow_uuid': fd.uuid})
+            engines.save_factory_details(
+                fd, test_factory, [False], {}, backend=components.persistence
+            )
+            components.board.post('poke', lb, details={'flow_uuid': fd.uuid})
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
             self.assertTrue(job_consumed_event.wait(test_utils.WAIT_TIMEOUT))
             self.assertFalse(job_abandoned_event.wait(1))
@@ -185,19 +194,19 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
         components.board.notifier.register(base.REMOVAL, on_consume)
         with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(
-                lambda: components.conductor.run(max_dispatches=5))
+                lambda: components.conductor.run(max_dispatches=5)
+            )
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
-            engines.save_factory_details(fd, test_factory,
-                                         [False], {},
-                                         backend=components.persistence)
+            engines.save_factory_details(
+                fd, test_factory, [False], {}, backend=components.persistence
+            )
             for _ in range(5):
-                components.board.post('poke', lb,
-                                      details={'flow_uuid': fd.uuid})
-                self.assertTrue(consumed_event.wait(
-                    test_utils.WAIT_TIMEOUT))
-            components.board.post('poke', lb,
-                                  details={'flow_uuid': fd.uuid})
+                components.board.post(
+                    'poke', lb, details={'flow_uuid': fd.uuid}
+                )
+                self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            components.board.post('poke', lb, details={'flow_uuid': fd.uuid})
             components.conductor.stop()
             self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
             self.assertFalse(components.conductor.dispatching)
@@ -221,19 +230,18 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
                 job_abandoned_event.set()
 
         components.board.notifier.register(base.REMOVAL, on_consume)
-        components.conductor.notifier.register("job_consumed",
-                                               on_job_consumed)
-        components.conductor.notifier.register("job_abandoned",
-                                               on_job_abandoned)
+        components.conductor.notifier.register("job_consumed", on_job_consumed)
+        components.conductor.notifier.register(
+            "job_abandoned", on_job_abandoned
+        )
         with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
-            engines.save_factory_details(fd, test_factory,
-                                         [True], {},
-                                         backend=components.persistence)
-            components.board.post('poke', lb,
-                                  details={'flow_uuid': fd.uuid})
+            engines.save_factory_details(
+                fd, test_factory, [True], {}, backend=components.persistence
+            )
+            components.board.post('poke', lb, details={'flow_uuid': fd.uuid})
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
             self.assertTrue(job_consumed_event.wait(test_utils.WAIT_TIMEOUT))
             self.assertFalse(job_abandoned_event.wait(1))
@@ -261,11 +269,10 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
-            engines.save_factory_details(fd, test_store_factory,
-                                         [], {},
-                                         backend=components.persistence)
-            components.board.post('poke', lb,
-                                  details={'flow_uuid': fd.uuid})
+            engines.save_factory_details(
+                fd, test_store_factory, [], {}, backend=components.persistence
+            )
+            components.board.post('poke', lb, details={'flow_uuid': fd.uuid})
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
             components.conductor.stop()
             self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
@@ -293,12 +300,12 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
-            engines.save_factory_details(fd, test_store_factory,
-                                         [], {},
-                                         backend=components.persistence)
-            components.board.post('poke', lb,
-                                  details={'flow_uuid': fd.uuid,
-                                           'store': store})
+            engines.save_factory_details(
+                fd, test_store_factory, [], {}, backend=components.persistence
+            )
+            components.board.post(
+                'poke', lb, details={'flow_uuid': fd.uuid, 'store': store}
+            )
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
             components.conductor.stop()
             self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
@@ -325,13 +332,13 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
         with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
-            lb, fd = pu.temporary_flow_detail(components.persistence,
-                                              meta={'store': store})
-            engines.save_factory_details(fd, test_store_factory,
-                                         [], {},
-                                         backend=components.persistence)
-            components.board.post('poke', lb,
-                                  details={'flow_uuid': fd.uuid})
+            lb, fd = pu.temporary_flow_detail(
+                components.persistence, meta={'store': store}
+            )
+            engines.save_factory_details(
+                fd, test_store_factory, [], {}, backend=components.persistence
+            )
+            components.board.post('poke', lb, details={'flow_uuid': fd.uuid})
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
             components.conductor.stop()
             self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
@@ -359,14 +366,15 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
         with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
-            lb, fd = pu.temporary_flow_detail(components.persistence,
-                                              meta={'store': flow_store})
-            engines.save_factory_details(fd, test_store_factory,
-                                         [], {},
-                                         backend=components.persistence)
-            components.board.post('poke', lb,
-                                  details={'flow_uuid': fd.uuid,
-                                           'store': job_store})
+            lb, fd = pu.temporary_flow_detail(
+                components.persistence, meta={'store': flow_store}
+            )
+            engines.save_factory_details(
+                fd, test_store_factory, [], {}, backend=components.persistence
+            )
+            components.board.post(
+                'poke', lb, details={'flow_uuid': fd.uuid, 'store': job_store}
+            )
             self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
             components.conductor.stop()
             self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
@@ -402,22 +410,25 @@ class ManyConductorTest(testscenarios.TestWithScenarios,
                 job_abandoned_event.set()
 
         components.board.notifier.register(base.REMOVAL, on_consume)
-        components.conductor.notifier.register("job_consumed",
-                                               on_job_consumed)
-        components.conductor.notifier.register("job_abandoned",
-                                               on_job_abandoned)
-        components.conductor.notifier.register("running_start",
-                                               on_running_start)
+        components.conductor.notifier.register("job_consumed", on_job_consumed)
+        components.conductor.notifier.register(
+            "job_abandoned", on_job_abandoned
+        )
+        components.conductor.notifier.register(
+            "running_start", on_running_start
+        )
         with contextlib.closing(components.conductor):
             t = threading_utils.daemon_thread(components.conductor.run)
             t.start()
             lb, fd = pu.temporary_flow_detail(components.persistence)
-            engines.save_factory_details(fd, sleep_factory,
-                                         [], {},
-                                         backend=components.persistence)
-            components.board.post('poke', lb,
-                                  details={'flow_uuid': fd.uuid,
-                                           'store': {'duration': 2}})
+            engines.save_factory_details(
+                fd, sleep_factory, [], {}, backend=components.persistence
+            )
+            components.board.post(
+                'poke',
+                lb,
+                details={'flow_uuid': fd.uuid, 'store': {'duration': 2}},
+            )
             running_start_event.wait(test_utils.WAIT_TIMEOUT)
             components.conductor.stop()
             job_abandoned_event.wait(test_utils.WAIT_TIMEOUT)
@@ -433,21 +444,31 @@ class NonBlockingExecutorTest(test.TestCase):
         board = impl_zookeeper.ZookeeperJobBoard(
             'testing',
             test_utils.ZK_TEST_CONFIG.copy(),
-            persistence=persistence)
-        self.assertRaises(ValueError,
-                          backends.fetch,
-                          'nonblocking', 'testing', board,
-                          persistence=persistence,
-                          wait_timeout='testing')
+            persistence=persistence,
+        )
+        self.assertRaises(
+            ValueError,
+            backends.fetch,
+            'nonblocking',
+            'testing',
+            board,
+            persistence=persistence,
+            wait_timeout='testing',
+        )
 
     def test_bad_factory(self):
         persistence = impl_memory.MemoryBackend()
         board = impl_zookeeper.ZookeeperJobBoard(
             'testing',
             test_utils.ZK_TEST_CONFIG.copy(),
-            persistence=persistence)
-        self.assertRaises(ValueError,
-                          backends.fetch,
-                          'nonblocking', 'testing', board,
-                          persistence=persistence,
-                          executor_factory='testing')
+            persistence=persistence,
+        )
+        self.assertRaises(
+            ValueError,
+            backends.fetch,
+            'nonblocking',
+            'testing',
+            board,
+            persistence=persistence,
+            executor_factory='testing',
+        )

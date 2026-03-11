@@ -54,17 +54,20 @@ class WorkerBasedActionEngine(engine.ActionEngine):
         super().__init__(flow, flow_detail, backend, options)
         # This ensures that any provided executor will be validated before
         # we get to far in the compilation/execution pipeline...
-        self._task_executor = self._fetch_task_executor(self._options,
-                                                        self._flow_detail)
+        self._task_executor = self._fetch_task_executor(
+            self._options, self._flow_detail
+        )
 
     @classmethod
     def _fetch_task_executor(cls, options, flow_detail):
         try:
             e = options['executor']
             if not isinstance(e, executor.WorkerTaskExecutor):
-                raise TypeError("Expected an instance of type '%s' instead of"
-                                " type '%s' for 'executor' option"
-                                % (executor.WorkerTaskExecutor, type(e)))
+                raise TypeError(
+                    "Expected an instance of type '%s' instead of"
+                    " type '%s' for 'executor' option"
+                    % (executor.WorkerTaskExecutor, type(e))
+                )
             return e
         except KeyError:
             return executor.WorkerTaskExecutor(
@@ -75,8 +78,8 @@ class WorkerBasedActionEngine(engine.ActionEngine):
                 topics=options.get('topics', []),
                 transport=options.get('transport'),
                 transport_options=options.get('transport_options'),
-                transition_timeout=options.get('transition_timeout',
-                                               pr.REQUEST_TIMEOUT),
-                worker_expiry=options.get('worker_expiry',
-                                          pr.EXPIRES_AFTER),
+                transition_timeout=options.get(
+                    'transition_timeout', pr.REQUEST_TIMEOUT
+                ),
+                worker_expiry=options.get('worker_expiry', pr.EXPIRES_AFTER),
             )

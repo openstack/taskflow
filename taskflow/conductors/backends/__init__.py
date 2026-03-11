@@ -34,10 +34,12 @@ def fetch(kind, name, jobboard, namespace=CONDUCTOR_NAMESPACE, **kwargs):
     LOG.debug('Looking for %r conductor driver in %r', kind, namespace)
     try:
         mgr = stevedore.driver.DriverManager(
-            namespace, kind,
+            namespace,
+            kind,
             invoke_on_load=True,
             invoke_args=(name, jobboard),
-            invoke_kwds=kwargs)
+            invoke_kwds=kwargs,
+        )
         return mgr.driver
     except RuntimeError as e:
         raise exc.NotFound("Could not find conductor %s" % (kind), e)

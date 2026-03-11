@@ -37,12 +37,15 @@ class TestPipeline(test.TestCase):
         for cls in task_classes:
             endpoints.append(endpoint.Endpoint(cls))
         server = worker_server.Server(
-            TEST_TOPIC, TEST_EXCHANGE,
-            futurist.ThreadPoolExecutor(max_workers=1), endpoints,
+            TEST_TOPIC,
+            TEST_EXCHANGE,
+            futurist.ThreadPoolExecutor(max_workers=1),
+            endpoints,
             transport='memory',
             transport_options={
                 'polling_interval': POLLING_INTERVAL,
-            })
+            },
+        )
         server_thread = threading_utils.daemon_thread(server.start)
         return (server, server_thread)
 
@@ -54,7 +57,8 @@ class TestPipeline(test.TestCase):
             transport='memory',
             transport_options={
                 'polling_interval': POLLING_INTERVAL,
-            })
+            },
+        )
         return executor
 
     def _start_components(self, task_classes):
@@ -74,8 +78,12 @@ class TestPipeline(test.TestCase):
 
         t = test_utils.TaskOneReturn()
         progress_callback = lambda *args, **kwargs: None
-        f = executor.execute_task(t, uuidutils.generate_uuid(), {},
-                                  progress_callback=progress_callback)
+        f = executor.execute_task(
+            t,
+            uuidutils.generate_uuid(),
+            {},
+            progress_callback=progress_callback,
+        )
         waiters.wait_for_any([f])
 
         event, result = f.result()
@@ -90,8 +98,12 @@ class TestPipeline(test.TestCase):
 
         t = test_utils.TaskWithFailure()
         progress_callback = lambda *args, **kwargs: None
-        f = executor.execute_task(t, uuidutils.generate_uuid(), {},
-                                  progress_callback=progress_callback)
+        f = executor.execute_task(
+            t,
+            uuidutils.generate_uuid(),
+            {},
+            progress_callback=progress_callback,
+        )
         waiters.wait_for_any([f])
 
         action, result = f.result()

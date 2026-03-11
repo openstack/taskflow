@@ -23,9 +23,9 @@ import time
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 from taskflow import exceptions as excp
@@ -121,10 +121,12 @@ def worker(ident, client, consumed):
                         abandoned_jobs += 1
                         safe_print(name, "'%s' [abandoned]" % (job))
             time.sleep(WORKER_DELAY)
-    safe_print(name,
-               "finished (claimed %s jobs, consumed %s jobs,"
-               " abandoned %s jobs)" % (claimed_jobs, consumed_jobs,
-                                        abandoned_jobs), prefix=">>>")
+    safe_print(
+        name,
+        "finished (claimed %s jobs, consumed %s jobs,"
+        " abandoned %s jobs)" % (claimed_jobs, consumed_jobs, abandoned_jobs),
+        prefix=">>>",
+    )
 
 
 def producer(ident, client):
@@ -149,6 +151,7 @@ def main():
     # TODO(harlowja): Hack to make eventlet work right, remove when the
     # following is fixed: https://github.com/eventlet/eventlet/issues/230
     from taskflow.utils import eventlet_utils as _eu  # noqa
+
     try:
         import eventlet as _eventlet  # noqa
     except ImportError:

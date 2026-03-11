@@ -73,12 +73,15 @@ class FakeFilesystem:
     def normpath(cls, path):
         """Return a normalized absolutized version of the pathname path."""
         if not path:
-            raise ValueError("This filesystem can only normalize paths"
-                             " that are not empty")
+            raise ValueError(
+                "This filesystem can only normalize paths that are not empty"
+            )
         if not path.startswith(cls.root_path):
-            raise ValueError("This filesystem can only normalize"
-                             " paths that start with %s: '%s' is not"
-                             " valid" % (cls.root_path, path))
+            raise ValueError(
+                "This filesystem can only normalize"
+                " paths that start with %s: '%s' is not"
+                " valid" % (cls.root_path, path)
+            )
         return pp.normpath(path)
 
     #: Split a pathname into a tuple of ``(head, tail)``.
@@ -108,8 +111,7 @@ class FakeFilesystem:
             return
         node = self._root
         for piece in self._iter_pieces(path):
-            child_node = node.find(piece, only_direct=True,
-                                   include_self=False)
+            child_node = node.find(piece, only_direct=True, include_self=False)
             if child_node is None:
                 child_node = self._insert_child(node, piece)
             node = child_node
@@ -154,9 +156,10 @@ class FakeFilesystem:
             if links is None:
                 links = []
             if path in links:
-                raise ValueError("Recursive link following not"
-                                 " allowed (loop %s detected)"
-                                 % (links + [path]))
+                raise ValueError(
+                    "Recursive link following not"
+                    " allowed (loop %s detected)" % (links + [path])
+                )
             else:
                 links.append(path)
             return self._get_item(path, links=links)
@@ -186,8 +189,9 @@ class FakeFilesystem:
             selector_func = self._metadata_path_selector
         else:
             selector_func = self._up_to_root_selector
-        return [selector_func(node, child_node)
-                for child_node in node.bfs_iter()]
+        return [
+            selector_func(node, child_node) for child_node in node.bfs_iter()
+        ]
 
     def ls(self, path, absolute=False):
         """Return list of all children of the given path (not recursive)."""
@@ -197,8 +201,9 @@ class FakeFilesystem:
         else:
             selector_func = self._up_to_root_selector
         child_node_it = iter(node)
-        return [selector_func(node, child_node)
-                for child_node in child_node_it]
+        return [
+            selector_func(node, child_node) for child_node in child_node_it
+        ]
 
     def clear(self):
         """Remove all nodes (except the root) from this filesystem."""
@@ -219,8 +224,10 @@ class FakeFilesystem:
         else:
             node_child_count = node.child_count()
             if node_child_count:
-                raise ValueError("Can not delete '%s', it has %s children"
-                                 % (path, node_child_count))
+                raise ValueError(
+                    "Can not delete '%s', it has %s children"
+                    % (path, node_child_count)
+                )
             child_paths = []
         if node is self._root:
             # Don't drop/pop the root...
@@ -307,8 +314,9 @@ class MemoryBackend(path_based.PathBasedBackend):
 
     def __init__(self, conf=None):
         super().__init__(conf)
-        self.memory = FakeFilesystem(deep_copy=self._conf.get('deep_copy',
-                                                              True))
+        self.memory = FakeFilesystem(
+            deep_copy=self._conf.get('deep_copy', True)
+        )
         self.lock = fasteners.ReaderWriterLock()
 
     def get_connection(self):
@@ -335,8 +343,9 @@ class Connection(path_based.PathBasedConnection):
             except exc.TaskFlowException:
                 raise
             except Exception:
-                exc.raise_with_cause(exc.StorageFailure,
-                                     "Storage backend internal error")
+                exc.raise_with_cause(
+                    exc.StorageFailure, "Storage backend internal error"
+                )
 
     def _join_path(self, *parts):
         return pp.join(*parts)

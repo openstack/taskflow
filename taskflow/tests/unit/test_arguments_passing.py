@@ -23,7 +23,6 @@ from taskflow.utils import eventlet_utils as eu
 
 
 class ArgumentsPassingTest(utils.EngineTestBase):
-
     def test_save_as(self):
         flow = utils.TaskOneReturn(name='task1', provides='first_data')
         engine = self._make_engine(flow)
@@ -34,45 +33,50 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         flow = utils.TaskMultiReturn(provides='all_data')
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEqual({'all_data': (1, 3, 5)},
-                         engine.storage.fetch_all())
+        self.assertEqual({'all_data': (1, 3, 5)}, engine.storage.fetch_all())
 
     def test_save_several_values(self):
         flow = utils.TaskMultiReturn(provides=('badger', 'mushroom', 'snake'))
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEqual({
-            'badger': 1,
-            'mushroom': 3,
-            'snake': 5
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {'badger': 1, 'mushroom': 3, 'snake': 5},
+            engine.storage.fetch_all(),
+        )
 
     def test_save_dict(self):
-        flow = utils.TaskMultiDict(provides={'badger',
-                                             'mushroom',
-                                             'snake'})
+        flow = utils.TaskMultiDict(provides={'badger', 'mushroom', 'snake'})
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEqual({
-            'badger': 0,
-            'mushroom': 1,
-            'snake': 2,
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {
+                'badger': 0,
+                'mushroom': 1,
+                'snake': 2,
+            },
+            engine.storage.fetch_all(),
+        )
 
     def test_bad_save_as_value(self):
-        self.assertRaises(TypeError,
-                          utils.TaskOneReturn,
-                          name='task1', provides=object())
+        self.assertRaises(
+            TypeError, utils.TaskOneReturn, name='task1', provides=object()
+        )
 
     def test_arguments_passing(self):
         flow = utils.TaskMultiArgOneReturn(provides='result')
         engine = self._make_engine(flow)
         engine.storage.inject({'x': 1, 'y': 4, 'z': 9, 'a': 17})
         engine.run()
-        self.assertEqual({
-            'x': 1, 'y': 4, 'z': 9, 'a': 17,
-            'result': 14,
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {
+                'x': 1,
+                'y': 4,
+                'z': 9,
+                'a': 17,
+                'result': 14,
+            },
+            engine.storage.fetch_all(),
+        )
 
     def test_arguments_missing(self):
         flow = utils.TaskMultiArg()
@@ -81,58 +85,85 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         self.assertRaises(exc.MissingDependencies, engine.run)
 
     def test_partial_arguments_mapping(self):
-        flow = utils.TaskMultiArgOneReturn(provides='result',
-                                           rebind={'x': 'a'})
+        flow = utils.TaskMultiArgOneReturn(
+            provides='result', rebind={'x': 'a'}
+        )
         engine = self._make_engine(flow)
         engine.storage.inject({'x': 1, 'y': 4, 'z': 9, 'a': 17})
         engine.run()
-        self.assertEqual({
-            'x': 1, 'y': 4, 'z': 9, 'a': 17,
-            'result': 30,
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {
+                'x': 1,
+                'y': 4,
+                'z': 9,
+                'a': 17,
+                'result': 30,
+            },
+            engine.storage.fetch_all(),
+        )
 
     def test_argument_injection(self):
-        flow = utils.TaskMultiArgOneReturn(provides='result',
-                                           inject={'x': 1, 'y': 4, 'z': 9})
+        flow = utils.TaskMultiArgOneReturn(
+            provides='result', inject={'x': 1, 'y': 4, 'z': 9}
+        )
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEqual({
-            'result': 14,
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {
+                'result': 14,
+            },
+            engine.storage.fetch_all(),
+        )
 
     def test_argument_injection_rebind(self):
-        flow = utils.TaskMultiArgOneReturn(provides='result',
-                                           rebind=['a', 'b', 'c'],
-                                           inject={'a': 1, 'b': 4, 'c': 9})
+        flow = utils.TaskMultiArgOneReturn(
+            provides='result',
+            rebind=['a', 'b', 'c'],
+            inject={'a': 1, 'b': 4, 'c': 9},
+        )
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEqual({
-            'result': 14,
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {
+                'result': 14,
+            },
+            engine.storage.fetch_all(),
+        )
 
     def test_argument_injection_required(self):
-        flow = utils.TaskMultiArgOneReturn(provides='result',
-                                           requires=['a', 'b', 'c'],
-                                           inject={'x': 1, 'y': 4, 'z': 9,
-                                                   'a': 0, 'b': 0, 'c': 0})
+        flow = utils.TaskMultiArgOneReturn(
+            provides='result',
+            requires=['a', 'b', 'c'],
+            inject={'x': 1, 'y': 4, 'z': 9, 'a': 0, 'b': 0, 'c': 0},
+        )
         engine = self._make_engine(flow)
         engine.run()
-        self.assertEqual({
-            'result': 14,
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {
+                'result': 14,
+            },
+            engine.storage.fetch_all(),
+        )
 
     def test_all_arguments_mapping(self):
-        flow = utils.TaskMultiArgOneReturn(provides='result',
-                                           rebind=['a', 'b', 'c'])
+        flow = utils.TaskMultiArgOneReturn(
+            provides='result', rebind=['a', 'b', 'c']
+        )
         engine = self._make_engine(flow)
-        engine.storage.inject({
-            'a': 1, 'b': 2, 'c': 3, 'x': 4, 'y': 5, 'z': 6
-        })
+        engine.storage.inject({'a': 1, 'b': 2, 'c': 3, 'x': 4, 'y': 5, 'z': 6})
         engine.run()
-        self.assertEqual({
-            'a': 1, 'b': 2, 'c': 3, 'x': 4, 'y': 5, 'z': 6,
-            'result': 6,
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {
+                'a': 1,
+                'b': 2,
+                'c': 3,
+                'x': 4,
+                'y': 5,
+                'z': 6,
+                'result': 6,
+            },
+            engine.storage.fetch_all(),
+        )
 
     def test_invalid_argument_name_map(self):
         flow = utils.TaskMultiArg(rebind={'z': 'b'})
@@ -147,19 +178,18 @@ class ArgumentsPassingTest(utils.EngineTestBase):
         self.assertRaises(exc.MissingDependencies, engine.run)
 
     def test_bad_rebind_args_value(self):
-        self.assertRaises(TypeError,
-                          utils.TaskOneArg,
-                          rebind=object())
+        self.assertRaises(TypeError, utils.TaskOneArg, rebind=object())
 
     def test_long_arg_name(self):
-        flow = utils.LongArgNameTask(requires='long_arg_name',
-                                     provides='result')
+        flow = utils.LongArgNameTask(
+            requires='long_arg_name', provides='result'
+        )
         engine = self._make_engine(flow)
         engine.storage.inject({'long_arg_name': 1})
         engine.run()
-        self.assertEqual({
-            'long_arg_name': 1, 'result': 1
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {'long_arg_name': 1, 'result': 1}, engine.storage.fetch_all()
+        )
 
     def test_revert_rebound_args_required(self):
         flow = utils.TaskMultiArg(revert_rebind={'z': 'b'})
@@ -183,12 +213,13 @@ class ArgumentsPassingTest(utils.EngineTestBase):
 
 
 class SerialEngineTest(ArgumentsPassingTest, test.TestCase):
-
     def _make_engine(self, flow, flow_detail=None):
-        return taskflow.engines.load(flow,
-                                     flow_detail=flow_detail,
-                                     engine='serial',
-                                     backend=self.backend)
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            engine='serial',
+            backend=self.backend,
+        )
 
 
 class ParallelEngineWithThreadsTest(ArgumentsPassingTest, test.TestCase):
@@ -197,23 +228,26 @@ class ParallelEngineWithThreadsTest(ArgumentsPassingTest, test.TestCase):
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if executor is None:
             executor = 'threads'
-        return taskflow.engines.load(flow,
-                                     flow_detail=flow_detail,
-                                     engine='parallel',
-                                     backend=self.backend,
-                                     executor=executor,
-                                     max_workers=self._EXECUTOR_WORKERS)
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            engine='parallel',
+            backend=self.backend,
+            executor=executor,
+            max_workers=self._EXECUTOR_WORKERS,
+        )
 
 
 @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
 class ParallelEngineWithEventletTest(ArgumentsPassingTest, test.TestCase):
-
     def _make_engine(self, flow, flow_detail=None, executor=None):
         if executor is None:
             executor = futurist.GreenThreadPoolExecutor()
             self.addCleanup(executor.shutdown)
-        return taskflow.engines.load(flow,
-                                     flow_detail=flow_detail,
-                                     backend=self.backend,
-                                     engine='parallel',
-                                     executor=executor)
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            backend=self.backend,
+            engine='parallel',
+            executor=executor,
+        )

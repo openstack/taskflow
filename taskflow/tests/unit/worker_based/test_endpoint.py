@@ -21,7 +21,6 @@ from taskflow.tests import utils
 
 
 class Task(task.Task):
-
     def __init__(self, a, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -30,7 +29,6 @@ class Task(task.Task):
 
 
 class TestEndpoint(test.TestCase):
-
     def setUp(self):
         super().setUp()
         self.task_cls = utils.TaskOneReturn
@@ -64,18 +62,22 @@ class TestEndpoint(test.TestCase):
 
     def test_execute(self):
         task = self.task_ep.generate(self.task_cls_name)
-        result = self.task_ep.execute(task,
-                                      task_uuid=self.task_uuid,
-                                      arguments=self.task_args,
-                                      progress_callback=None)
+        result = self.task_ep.execute(
+            task,
+            task_uuid=self.task_uuid,
+            arguments=self.task_args,
+            progress_callback=None,
+        )
         self.assertEqual(self.task_result, result)
 
     def test_revert(self):
         task = self.task_ep.generate(self.task_cls_name)
-        result = self.task_ep.revert(task,
-                                     task_uuid=self.task_uuid,
-                                     arguments=self.task_args,
-                                     progress_callback=None,
-                                     result=self.task_result,
-                                     failures={})
+        result = self.task_ep.revert(
+            task,
+            task_uuid=self.task_uuid,
+            arguments=self.task_args,
+            progress_callback=None,
+            result=self.task_result,
+            failures={},
+        )
         self.assertIsNone(result)

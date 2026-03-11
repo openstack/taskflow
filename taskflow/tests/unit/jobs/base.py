@@ -36,7 +36,6 @@ def connect_close(*args):
 
 
 class BoardTestMixin:
-
     @contextlib.contextmanager
     def flush(self, client):
         yield
@@ -71,8 +70,10 @@ class BoardTestMixin:
 
         def poster(wait_post=0.2):
             if not ev.wait(test_utils.WAIT_TIMEOUT):
-                raise RuntimeError("Waiter did not appear ready"
-                                   " in %s seconds" % test_utils.WAIT_TIMEOUT)
+                raise RuntimeError(
+                    "Waiter did not appear ready"
+                    " in %s seconds" % test_utils.WAIT_TIMEOUT
+                )
             time.sleep(wait_post)
             self.board.post('test', p_utils.temporary_log_book())
 
@@ -133,8 +134,9 @@ class BoardTestMixin:
                 self.board.consume(j, self.board.name)
 
             self.assertEqual(0, len(list(self.board.iterjobs())))
-            self.assertRaises(excp.NotFound,
-                              self.board.consume, j, self.board.name)
+            self.assertRaises(
+                excp.NotFound, self.board.consume, j, self.board.name
+            )
 
     def test_posting_claim_abandon(self):
 
@@ -169,8 +171,12 @@ class BoardTestMixin:
 
             possible_jobs = list(self.board.iterjobs())
             self.assertEqual(1, len(possible_jobs))
-            self.assertRaises(excp.UnclaimableJob, self.board.claim,
-                              possible_jobs[0], self.board.name + "-1")
+            self.assertRaises(
+                excp.UnclaimableJob,
+                self.board.claim,
+                possible_jobs[0],
+                self.board.name + "-1",
+            )
             possible_jobs = list(self.board.iterjobs(only_unclaimed=True))
             self.assertEqual(0, len(possible_jobs))
 
@@ -188,9 +194,11 @@ class BoardTestMixin:
             self.assertFalse(jb.wait(0.1))
 
     def test_posting_with_book(self):
-        backend = impl_dir.DirBackend(conf={
-            'path': self.makeTmpDir(),
-        })
+        backend = impl_dir.DirBackend(
+            conf={
+                'path': self.makeTmpDir(),
+            }
+        )
         backend.get_connection().upgrade()
         book, flow_detail = p_utils.temporary_flow_detail(backend)
         self.assertEqual(1, len(book))
@@ -223,5 +231,4 @@ class BoardTestMixin:
             possible_jobs = list(self.board.iterjobs(only_unclaimed=True))
             self.assertEqual(1, len(possible_jobs))
             j = possible_jobs[0]
-            self.assertRaises(excp.NotFound, self.board.abandon,
-                              j, j.name)
+            self.assertRaises(excp.NotFound, self.board.abandon, j, j.name)

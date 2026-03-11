@@ -32,11 +32,12 @@ from taskflow import logging
 from taskflow import states as st
 from taskflow.utils import misc
 
-from taskflow.flow import (LINK_DECIDER, LINK_DECIDER_DEPTH)  # noqa
+from taskflow.flow import LINK_DECIDER, LINK_DECIDER_DEPTH  # noqa
 
 # Small helper to make the edge decider tuples more easily useable...
-_EdgeDecider = collections.namedtuple('_EdgeDecider',
-                                      'from_node,kind,decider,depth')
+_EdgeDecider = collections.namedtuple(
+    '_EdgeDecider', 'from_node,kind,decider,depth'
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -49,9 +50,15 @@ class Runtime:
     action engine to run to completion.
     """
 
-    def __init__(self, compilation, storage, atom_notifier,
-                 task_executor, retry_executor,
-                 options=None):
+    def __init__(
+        self,
+        compilation,
+        storage,
+        atom_notifier,
+        task_executor,
+        retry_executor,
+        options=None,
+    ):
         self._atom_notifier = atom_notifier
         self._task_executor = task_executor
         self._retry_executor = retry_executor
@@ -65,8 +72,9 @@ class Runtime:
         # This is basically a reverse breadth first exploration, with
         # special logic to further traverse down flow nodes as needed...
         predecessors_iter = graph.predecessors
-        nodes = collections.deque((u_node, atom)
-                                  for u_node in predecessors_iter(atom))
+        nodes = collections.deque(
+            (u_node, atom) for u_node in predecessors_iter(atom)
+        )
         visited = set()
         while nodes:
             u_node, v_node = nodes.popleft()
@@ -77,8 +85,7 @@ class Runtime:
                 decider_depth = u_v_data.get(LINK_DECIDER_DEPTH)
                 if decider_depth is None:
                     decider_depth = de.Depth.ALL
-                yield _EdgeDecider(u_node, u_node_kind,
-                                   decider, decider_depth)
+                yield _EdgeDecider(u_node, u_node_kind, decider, decider_depth)
             except KeyError:
                 pass
             if u_node_kind == com.FLOW and u_node not in visited:
@@ -89,8 +96,10 @@ class Runtime:
                 # sure that any prior decider that was directed at this flow
                 # node also gets used during future decisions about this
                 # atom node.
-                nodes.extend((u_u_node, u_node)
-                             for u_u_node in predecessors_iter(u_node))
+                nodes.extend(
+                    (u_u_node, u_node)
+                    for u_u_node in predecessors_iter(u_node)
+                )
 
     def compile(self):
         """Compiles & caches frequently used execution helper objects.
@@ -102,8 +111,9 @@ class Runtime:
         specific scheduler and so-on).
         """
         change_state_handlers = {
-            com.TASK: functools.partial(self.task_action.change_state,
-                                        progress=0.0),
+            com.TASK: functools.partial(
+                self.task_action.change_state, progress=0.0
+            ),
             com.RETRY: self.retry_action.change_state,
         }
         schedulers = {
@@ -129,8 +139,9 @@ class Runtime:
                 scheduler = schedulers[node_kind]
                 action = actions[node_kind]
             else:
-                raise exc.CompilationFailure("Unknown node kind '%s'"
-                                             " encountered" % node_kind)
+                raise exc.CompilationFailure(
+                    "Unknown node kind '%s' encountered" % node_kind
+                )
             metadata = {}
             deciders_it = self._walk_edge_deciders(graph, node)
             walker = sc.ScopeWalker(self.compilation, node, names_only=True)
@@ -140,8 +151,12 @@ class Runtime:
             metadata['scheduler'] = scheduler
             metadata['edge_deciders'] = tuple(deciders_it)
             metadata['action'] = action
-            LOG.trace("Compiled %s metadata for node %s (%s)",
-                      metadata, node.name, node_kind)
+            LOG.trace(
+                "Compiled %s metadata for node %s (%s)",
+                metadata,
+                node.name,
+                node_kind,
+            )
             self._atom_cache[node.name] = metadata
         # TODO(harlowja): optimize the different decider depths to avoid
         # repeated full successor searching; this can be done by searching
@@ -186,15 +201,15 @@ class Runtime:
 
     @misc.cachedproperty
     def retry_action(self):
-        return ra.RetryAction(self._storage,
-                              self._atom_notifier,
-                              self._retry_executor)
+        return ra.RetryAction(
+            self._storage, self._atom_notifier, self._retry_executor
+        )
 
     @misc.cachedproperty
     def task_action(self):
-        return ta.TaskAction(self._storage,
-                             self._atom_notifier,
-                             self._task_executor)
+        return ta.TaskAction(
+            self._storage, self._atom_notifier, self._task_executor
+        )
 
     def _fetch_atom_metadata_entry(self, atom_name, metadata_key):
         return self._atom_cache[atom_name][metadata_key]
@@ -205,7 +220,8 @@ class Runtime:
         # internally to the engine, and is not exposed to atoms that will
         # not exist and therefore doesn't need to handle that case).
         check_transition_handler = self._fetch_atom_metadata_entry(
-            atom.name, 'check_transition_handler')
+            atom.name, 'check_transition_handler'
+        )
         return check_transition_handler(current_state, target_state)
 
     def fetch_edge_deciders(self, atom):
@@ -250,8 +266,9 @@ class Runtime:
         """
         if state:
             atoms = list(self.iterate_nodes((com.RETRY,)))
-            atom_states = self._storage.get_atoms_states(atom.name
-                                                         for atom in atoms)
+            atom_states = self._storage.get_atoms_states(
+                atom.name for atom in atoms
+            )
             for atom in atoms:
                 atom_state, _atom_intention = atom_states[atom.name]
                 if atom_state == state:
@@ -270,8 +287,9 @@ class Runtime:
     def is_success(self):
         """Checks if all atoms in the execution graph are in 'happy' state."""
         atoms = list(self.iterate_nodes(com.ATOMS))
-        atom_states = self._storage.get_atoms_states(atom.name
-                                                     for atom in atoms)
+        atom_states = self._storage.get_atoms_states(
+            atom.name for atom in atoms
+        )
         for atom in atoms:
             atom_state, _atom_intention = atom_states[atom.name]
             if atom_state == st.IGNORE:
@@ -305,7 +323,8 @@ class Runtime:
                 tweaked.append((atom, state, intention))
             if state:
                 change_state_handler = self._fetch_atom_metadata_entry(
-                    atom.name, 'change_state_handler')
+                    atom.name, 'change_state_handler'
+                )
                 change_state_handler(atom, state)
             if intention:
                 self.storage.set_atom_intention(atom.name, intention)
@@ -313,8 +332,9 @@ class Runtime:
 
     def reset_all(self, state=st.PENDING, intention=st.EXECUTE):
         """Resets all atoms to the given state and intention."""
-        return self.reset_atoms(self.iterate_nodes(com.ATOMS),
-                                state=state, intention=intention)
+        return self.reset_atoms(
+            self.iterate_nodes(com.ATOMS), state=state, intention=intention
+        )
 
     def reset_subgraph(self, atom, state=st.PENDING, intention=st.EXECUTE):
         """Resets a atoms subgraph to the given state and intention.
@@ -322,8 +342,9 @@ class Runtime:
         The subgraph is contained of **all** of the atoms successors.
         """
         execution_graph = self._compilation.execution_graph
-        atoms_it = tr.depth_first_iterate(execution_graph, atom,
-                                          tr.Direction.FORWARD)
+        atoms_it = tr.depth_first_iterate(
+            execution_graph, atom, tr.Direction.FORWARD
+        )
         return self.reset_atoms(atoms_it, state=state, intention=intention)
 
     def retry_subflow(self, retry):

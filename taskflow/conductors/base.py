@@ -37,8 +37,14 @@ class Conductor(metaclass=abc.ABCMeta):
     #: Entity kind used when creating new entity objects
     ENTITY_KIND = 'conductor'
 
-    def __init__(self, name, jobboard,
-                 persistence=None, engine=None, engine_options=None):
+    def __init__(
+        self,
+        name,
+        jobboard,
+        persistence=None,
+        engine=None,
+        engine_options=None,
+    ):
         self._name = name
         self._jobboard = jobboard
         self._engine = engine
@@ -91,9 +97,11 @@ class Conductor(metaclass=abc.ABCMeta):
             flow_uuid = job.details["flow_uuid"]
             flow_detail = book.find(flow_uuid)
             if flow_detail is None:
-                raise excp.NotFound("No matching flow detail found in"
-                                    " jobs book for flow detail"
-                                    " with uuid %s" % flow_uuid)
+                raise excp.NotFound(
+                    "No matching flow detail found in"
+                    " jobs book for flow detail"
+                    " with uuid %s" % flow_uuid
+                )
         else:
             choices = len(book)
             if choices == 1:
@@ -101,8 +109,10 @@ class Conductor(metaclass=abc.ABCMeta):
             elif choices == 0:
                 raise excp.NotFound("No flow detail(s) found in jobs book")
             else:
-                raise excp.MultipleChoices("No matching flow detail found (%s"
-                                           " choices) in jobs book" % choices)
+                raise excp.MultipleChoices(
+                    "No matching flow detail found (%s"
+                    " choices) in jobs book" % choices
+                )
         return flow_detail
 
     def _engine_from_job(self, job):
@@ -116,10 +126,13 @@ class Conductor(metaclass=abc.ABCMeta):
         if job.details and 'store' in job.details:
             store.update(job.details["store"])
 
-        engine = engines.load_from_detail(flow_detail, store=store,
-                                          engine=self._engine,
-                                          backend=self._persistence,
-                                          **self._engine_options)
+        engine = engines.load_from_detail(
+            flow_detail,
+            store=store,
+            engine=self._engine,
+            backend=self._persistence,
+            **self._engine_options,
+        )
         return engine
 
     def _listeners_from_job(self, job, engine):

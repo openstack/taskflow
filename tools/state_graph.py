@@ -20,8 +20,7 @@ import optparse
 import os
 import sys
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir))
+top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 sys.path.insert(0, top_dir)
 
 from automaton.converters import pydot
@@ -47,7 +46,7 @@ def make_machine(start_state, transitions, event_name_cb):
     machine = machines.FiniteMachine()
     machine.add_state(start_state)
     machine.default_start_state = start_state
-    for (start_state, end_state) in transitions:
+    for start_state, end_state in transitions:
         if start_state not in machine:
             machine.add_state(start_state)
         if end_state not in machine:
@@ -59,35 +58,67 @@ def make_machine(start_state, transitions, event_name_cb):
 
 def main():
     parser = optparse.OptionParser()
-    parser.add_option("-f", "--file", dest="filename",
-                      help="write svg to FILE", metavar="FILE")
-    parser.add_option("-t", "--tasks", dest="tasks",
-                      action='store_true',
-                      help="use task state transitions",
-                      default=False)
-    parser.add_option("-r", "--retries", dest="retries",
-                      action='store_true',
-                      help="use retry state transitions",
-                      default=False)
-    parser.add_option("-e", "--engines", dest="engines",
-                      action='store_true',
-                      help="use engine state transitions",
-                      default=False)
-    parser.add_option("-w", "--wbe-requests", dest="wbe_requests",
-                      action='store_true',
-                      help="use wbe request transitions",
-                      default=False)
-    parser.add_option("-j", "--jobs", dest="jobs",
-                      action='store_true',
-                      help="use job transitions",
-                      default=False)
-    parser.add_option("--flow", dest="flow",
-                      action='store_true',
-                      help="use flow transitions",
-                      default=False)
-    parser.add_option("-T", "--format", dest="format",
-                      help="output in given format",
-                      default='svg')
+    parser.add_option(
+        "-f",
+        "--file",
+        dest="filename",
+        help="write svg to FILE",
+        metavar="FILE",
+    )
+    parser.add_option(
+        "-t",
+        "--tasks",
+        dest="tasks",
+        action='store_true',
+        help="use task state transitions",
+        default=False,
+    )
+    parser.add_option(
+        "-r",
+        "--retries",
+        dest="retries",
+        action='store_true',
+        help="use retry state transitions",
+        default=False,
+    )
+    parser.add_option(
+        "-e",
+        "--engines",
+        dest="engines",
+        action='store_true',
+        help="use engine state transitions",
+        default=False,
+    )
+    parser.add_option(
+        "-w",
+        "--wbe-requests",
+        dest="wbe_requests",
+        action='store_true',
+        help="use wbe request transitions",
+        default=False,
+    )
+    parser.add_option(
+        "-j",
+        "--jobs",
+        dest="jobs",
+        action='store_true',
+        help="use job transitions",
+        default=False,
+    )
+    parser.add_option(
+        "--flow",
+        dest="flow",
+        action='store_true',
+        help="use flow transitions",
+        default=False,
+    )
+    parser.add_option(
+        "-T",
+        "--format",
+        dest="format",
+        help="output in given format",
+        default='svg',
+    )
 
     (options, args) = parser.parse_args()
     if options.filename is None:
@@ -103,30 +134,40 @@ def main():
     ]
     provided = sum([int(i) for i in types])
     if provided > 1:
-        parser.error("Only one of task/retry/engines/wbe requests/jobs/flow"
-                     " may be specified.")
+        parser.error(
+            "Only one of task/retry/engines/wbe requests/jobs/flow"
+            " may be specified."
+        )
     if provided == 0:
-        parser.error("One of task/retry/engines/wbe requests/jobs/flow"
-                     " must be specified.")
+        parser.error(
+            "One of task/retry/engines/wbe requests/jobs/flow"
+            " must be specified."
+        )
 
     event_name_cb = lambda start_state, end_state: "on_%s" % end_state.lower()
     internal_states = list()
     ordering = 'in'
     if options.tasks:
         source_type = "Tasks"
-        source = make_machine(states.PENDING,
-                              list(states._ALLOWED_TASK_TRANSITIONS),
-                              event_name_cb)
+        source = make_machine(
+            states.PENDING,
+            list(states._ALLOWED_TASK_TRANSITIONS),
+            event_name_cb,
+        )
     elif options.retries:
         source_type = "Retries"
-        source = make_machine(states.PENDING,
-                              list(states._ALLOWED_RETRY_TRANSITIONS),
-                              event_name_cb)
+        source = make_machine(
+            states.PENDING,
+            list(states._ALLOWED_RETRY_TRANSITIONS),
+            event_name_cb,
+        )
     elif options.flow:
         source_type = "Flow"
-        source = make_machine(states.PENDING,
-                              list(states._ALLOWED_FLOW_TRANSITIONS),
-                              event_name_cb)
+        source = make_machine(
+            states.PENDING,
+            list(states._ALLOWED_FLOW_TRANSITIONS),
+            event_name_cb,
+        )
     elif options.engines:
         source_type = "Engines"
         b = builder.MachineBuilder(DummyRuntime(), mock.MagicMock())
@@ -135,14 +176,18 @@ def main():
         ordering = 'out'
     elif options.wbe_requests:
         source_type = "WBE requests"
-        source = make_machine(protocol.WAITING,
-                              list(protocol._ALLOWED_TRANSITIONS),
-                              event_name_cb)
+        source = make_machine(
+            protocol.WAITING,
+            list(protocol._ALLOWED_TRANSITIONS),
+            event_name_cb,
+        )
     elif options.jobs:
         source_type = "Jobs"
-        source = make_machine(states.UNCLAIMED,
-                              list(states._ALLOWED_JOB_TRANSITIONS),
-                              event_name_cb)
+        source = make_machine(
+            states.UNCLAIMED,
+            list(states._ALLOWED_JOB_TRANSITIONS),
+            event_name_cb,
+        )
 
     graph_attrs = {
         'ordering': ordering,
@@ -176,8 +221,13 @@ def main():
                 edge_attrs['fontcolor'] = 'green'
         return edge_attrs
 
-    g = pydot.convert(source, graph_name, graph_attrs=graph_attrs,
-                      node_attrs_cb=node_attrs_cb, edge_attrs_cb=edge_attrs_cb)
+    g = pydot.convert(
+        source,
+        graph_name,
+        graph_attrs=graph_attrs,
+        node_attrs_cb=node_attrs_cb,
+        edge_attrs_cb=edge_attrs_cb,
+    )
     print("*" * len(graph_name))
     print(graph_name)
     print("*" * len(graph_name))

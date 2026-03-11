@@ -25,7 +25,7 @@ from taskflow.types import tree as tr
 from taskflow.utils import iter_utils
 from taskflow.utils import misc
 
-from taskflow.flow import (LINK_INVARIANT, LINK_RETRY)  # noqa
+from taskflow.flow import LINK_INVARIANT, LINK_RETRY  # noqa
 
 LOG = logging.getLogger(__name__)
 
@@ -105,8 +105,9 @@ class Compilation:
 
 def _overlap_occurrence_detector(to_graph, from_graph):
     """Returns how many nodes in 'from' graph are in 'to' graph (if any)."""
-    return iter_utils.count(node for node in from_graph.nodes
-                            if node in to_graph)
+    return iter_utils.count(
+        node for node in from_graph.nodes if node in to_graph
+    )
 
 
 def _add_update_edges(graph, nodes_from, nodes_to, attr_dict=None):
@@ -162,22 +163,30 @@ class FlowCompiler:
             tree_node.add(tr.Node(flow.retry, kind=RETRY))
         decomposed = {
             child: self._deep_compiler_func(child, parent=tree_node)[0]
-            for child in flow}
+            for child in flow
+        }
         decomposed_graphs = list(decomposed.values())
-        graph = gr.merge_graphs(graph, *decomposed_graphs,
-                                overlap_detector=_overlap_occurrence_detector)
+        graph = gr.merge_graphs(
+            graph,
+            *decomposed_graphs,
+            overlap_detector=_overlap_occurrence_detector,
+        )
         for u, v, attr_dict in flow.iter_links():
             u_graph = decomposed[u]
             v_graph = decomposed[v]
-            _add_update_edges(graph, u_graph.no_successors_iter(),
-                              list(v_graph.no_predecessors_iter()),
-                              attr_dict=attr_dict)
+            _add_update_edges(
+                graph,
+                u_graph.no_successors_iter(),
+                list(v_graph.no_predecessors_iter()),
+                attr_dict=attr_dict,
+            )
         # Insert the flow(s) retry if needed, and always make sure it
         # is the **immediate** successor of the flow node itself.
         if flow.retry is not None:
             graph.add_node(flow.retry, kind=RETRY)
-            _add_update_edges(graph, [flow], [flow.retry],
-                              attr_dict={LINK_INVARIANT: True})
+            _add_update_edges(
+                graph, [flow], [flow.retry], attr_dict={LINK_INVARIANT: True}
+            )
             for node in graph.nodes:
                 if node is not flow.retry and node is not flow:
                     graph.nodes[node].setdefault(RETRY, flow.retry)
@@ -192,10 +201,16 @@ class FlowCompiler:
         # us to easily know when we have entered a flow (when running) and
         # do special and/or smart things such as only traverse up to the
         # start of a flow when looking for node deciders.
-        _add_update_edges(graph, from_nodes, [
-            node for node in graph.no_predecessors_iter()
-            if node is not flow
-        ], attr_dict=attr_dict)
+        _add_update_edges(
+            graph,
+            from_nodes,
+            [
+                node
+                for node in graph.no_predecessors_iter()
+                if node is not flow
+            ],
+            attr_dict=attr_dict,
+        )
         # Connect all nodes with no successors into a special terminator
         # that is used to identify the end of the flow and ensure that all
         # execution traversals will traverse over this node before executing
@@ -214,10 +229,16 @@ class FlowCompiler:
         # that networkx provides??
         flow_term = Terminator(flow)
         graph.add_node(flow_term, kind=FLOW_END, noop=True)
-        _add_update_edges(graph, [
-            node for node in graph.no_successors_iter()
-            if node is not flow_term
-        ], [flow_term], attr_dict={LINK_INVARIANT: True})
+        _add_update_edges(
+            graph,
+            [
+                node
+                for node in graph.no_successors_iter()
+                if node is not flow_term
+            ],
+            [flow_term],
+            attr_dict={LINK_INVARIANT: True},
+        )
         return graph, tree_node
 
 
@@ -337,15 +358,19 @@ class PatternCompiler:
             self._post_item_compile(item, graph, node)
             return graph, node
         else:
-            raise TypeError("Unknown object '%s' (%s) requested to compile"
-                            % (item, type(item)))
+            raise TypeError(
+                "Unknown object '%s' (%s) requested to compile"
+                % (item, type(item))
+            )
 
     def _pre_item_compile(self, item):
         """Called before a item is compiled; any pre-compilation actions."""
         if item in self._history:
-            raise ValueError("Already compiled item '%s' (%s), duplicate"
-                             " and/or recursive compiling is not"
-                             " supported" % (item, type(item)))
+            raise ValueError(
+                "Already compiled item '%s' (%s), duplicate"
+                " and/or recursive compiling is not"
+                " supported" % (item, type(item))
+            )
         self._history.add(item)
         if LOG.isEnabledFor(logging.TRACE):
             LOG.trace("%sCompiling '%s'", "  " * self._level, item)

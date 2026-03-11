@@ -58,10 +58,14 @@ class RevertAndRetry(Strategy):
         self._retry = retry
 
     def apply(self):
-        tweaked = self._runtime.reset_atoms([self._retry], state=None,
-                                            intention=st.RETRY)
-        tweaked.extend(self._runtime.reset_subgraph(self._retry, state=None,
-                                                    intention=st.REVERT))
+        tweaked = self._runtime.reset_atoms(
+            [self._retry], state=None, intention=st.RETRY
+        )
+        tweaked.extend(
+            self._runtime.reset_subgraph(
+                self._retry, state=None, intention=st.REVERT
+            )
+        )
         return tweaked
 
 
@@ -76,7 +80,9 @@ class RevertAll(Strategy):
     def apply(self):
         return self._runtime.reset_atoms(
             self._runtime.iterate_nodes(co.ATOMS),
-            state=None, intention=st.REVERT)
+            state=None,
+            intention=st.REVERT,
+        )
 
 
 class Revert(Strategy):
@@ -89,10 +95,14 @@ class Revert(Strategy):
         self._atom = atom
 
     def apply(self):
-        tweaked = self._runtime.reset_atoms([self._atom], state=None,
-                                            intention=st.REVERT)
-        tweaked.extend(self._runtime.reset_subgraph(self._atom, state=None,
-                                                    intention=st.REVERT))
+        tweaked = self._runtime.reset_atoms(
+            [self._atom], state=None, intention=st.REVERT
+        )
+        tweaked.extend(
+            self._runtime.reset_subgraph(
+                self._atom, state=None, intention=st.REVERT
+            )
+        )
         return tweaked
 
 
@@ -104,9 +114,11 @@ class Completer:
         self._storage = runtime.storage
         self._undefined_resolver = RevertAll(self._runtime)
         self._defer_reverts = strutils.bool_from_string(
-            self._runtime.options.get('defer_reverts', False))
+            self._runtime.options.get('defer_reverts', False)
+        )
         self._resolve = not strutils.bool_from_string(
-            self._runtime.options.get('never_resolve', False))
+            self._runtime.options.get('never_resolve', False)
+        )
 
     def resume(self):
         """Resumes atoms in the contained graph.
@@ -120,14 +132,16 @@ class Completer:
         attempt not previously finishing).
         """
         atoms = list(self._runtime.iterate_nodes(co.ATOMS))
-        atom_states = self._storage.get_atoms_states(atom.name
-                                                     for atom in atoms)
+        atom_states = self._storage.get_atoms_states(
+            atom.name for atom in atoms
+        )
         if self._resolve:
             for atom in atoms:
                 atom_state, _atom_intention = atom_states[atom.name]
                 if atom_state == st.FAILURE:
                     self._process_atom_failure(
-                        atom, self._storage.get(atom.name))
+                        atom, self._storage.get(atom.name)
+                    )
             for retry in self._runtime.iterate_retries(st.RETRYING):
                 retry_affected_atoms_it = self._runtime.retry_subflow(retry)
                 for atom, state, intention in retry_affected_atoms_it:
@@ -138,8 +152,11 @@ class Completer:
             atom_state, _atom_intention = atom_states[atom.name]
             if atom_state in (st.RUNNING, st.REVERTING):
                 unfinished_atoms.add(atom)
-                LOG.trace("Resuming atom '%s' since it was left in"
-                          " state %s", atom, atom_state)
+                LOG.trace(
+                    "Resuming atom '%s' since it was left in state %s",
+                    atom,
+                    atom_state,
+                )
         return unfinished_atoms
 
     def complete_failure(self, node, outcome, failure):
@@ -192,8 +209,10 @@ class Completer:
             elif strategy == retry_atom.REVERT_ALL:
                 return RevertAll(self._runtime)
             else:
-                raise ValueError("Unknown atom failure resolution"
-                                 " action/strategy '%s'" % strategy)
+                raise ValueError(
+                    "Unknown atom failure resolution"
+                    " action/strategy '%s'" % strategy
+                )
         else:
             return self._undefined_resolver
 
@@ -207,14 +226,24 @@ class Completer:
         the failure can be worked around.
         """
         resolver = self._determine_resolution(atom, failure)
-        LOG.debug("Applying resolver '%s' to resolve failure '%s'"
-                  " of atom '%s'", resolver, failure, atom)
+        LOG.debug(
+            "Applying resolver '%s' to resolve failure '%s' of atom '%s'",
+            resolver,
+            failure,
+            atom,
+        )
         tweaked = resolver.apply()
         # Only show the tweaked node list when trace is on, otherwise
         # just show the amount/count of nodes tweaks...
         if LOG.isEnabledFor(logging.TRACE):
-            LOG.trace("Modified/tweaked %s nodes while applying"
-                      " resolver '%s'", tweaked, resolver)
+            LOG.trace(
+                "Modified/tweaked %s nodes while applying resolver '%s'",
+                tweaked,
+                resolver,
+            )
         else:
-            LOG.debug("Modified/tweaked %s nodes while applying"
-                      " resolver '%s'", len(tweaked), resolver)
+            LOG.debug(
+                "Modified/tweaked %s nodes while applying resolver '%s'",
+                len(tweaked),
+                resolver,
+            )

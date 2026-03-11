@@ -54,6 +54,7 @@ class Decision(misc.StrEnum):
     #: Retries the surrounding/associated subflow again.
     RETRY = "RETRY"
 
+
 # Retain these aliases for a number of releases...
 REVERT = Decision.REVERT
 REVERT_ALL = Decision.REVERT_ALL
@@ -96,7 +97,7 @@ class History:
             contents = [
                 self._contents[index],
             ]
-        for (provided, outcomes) in contents:
+        for provided, outcomes in contents:
             yield from outcomes.items()
 
     def __len__(self):
@@ -104,7 +105,7 @@ class History:
 
     def provided_iter(self):
         """Iterates over all the values the retry has attempted (in order)."""
-        for (provided, outcomes) in self._contents:
+        for provided, outcomes in self._contents:
             yield provided
 
     def __getitem__(self, index):
@@ -119,7 +120,7 @@ class History:
                         to false) will the potential retries own failure be
                         checked against as well.
         """
-        for (name, failure) in self.outcomes_iter(index=index):
+        for name, failure in self.outcomes_iter(index=index):
             if failure.check(exception_cls):
                 return True
         if include_retry and self._failure is not None:
@@ -149,12 +150,22 @@ class Retry(atom.Atom, metaclass=abc.ABCMeta):
     decisions and outcomes that have occurred (if available).
     """
 
-    def __init__(self, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None):
-        super().__init__(name=name, provides=provides,
-                         requires=requires, rebind=rebind,
-                         auto_extract=auto_extract,
-                         ignore_list=[EXECUTE_REVERT_HISTORY])
+    def __init__(
+        self,
+        name=None,
+        provides=None,
+        requires=None,
+        auto_extract=True,
+        rebind=None,
+    ):
+        super().__init__(
+            name=name,
+            provides=provides,
+            requires=requires,
+            rebind=rebind,
+            auto_extract=auto_extract,
+            ignore_list=[EXECUTE_REVERT_HISTORY],
+        )
 
     @property
     def name(self):
@@ -257,8 +268,16 @@ class Times(Retry):
     :py:class:`~taskflow.atom.Atom` constructor.
     """
 
-    def __init__(self, attempts=1, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None, revert_all=False):
+    def __init__(
+        self,
+        attempts=1,
+        name=None,
+        provides=None,
+        requires=None,
+        auto_extract=True,
+        rebind=None,
+        revert_all=False,
+    ):
         super().__init__(name, provides, requires, auto_extract, rebind)
         self._attempts = attempts
 
@@ -279,8 +298,15 @@ class Times(Retry):
 class ForEachBase(Retry):
     """Base class for retries that iterate over a given collection."""
 
-    def __init__(self, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None, revert_all=False):
+    def __init__(
+        self,
+        name=None,
+        provides=None,
+        requires=None,
+        auto_extract=True,
+        rebind=None,
+        revert_all=False,
+    ):
         super().__init__(name, provides, requires, auto_extract, rebind)
 
         if revert_all:
@@ -294,8 +320,10 @@ class ForEachBase(Retry):
         # resolution strategy remaining.
         remaining = misc.sequence_minus(values, history.provided_iter())
         if not remaining:
-            raise exc.NotFound("No elements left in collection of iterable "
-                               "retry controller %s" % self.name)
+            raise exc.NotFound(
+                "No elements left in collection of iterable "
+                "retry controller %s" % self.name
+            )
         return remaining[0]
 
     def _on_failure(self, values, history):
@@ -329,10 +357,19 @@ class ForEach(ForEachBase):
     :py:class:`~taskflow.atom.Atom` constructor.
     """
 
-    def __init__(self, values, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None, revert_all=False):
-        super().__init__(name, provides, requires, auto_extract, rebind,
-                         revert_all)
+    def __init__(
+        self,
+        values,
+        name=None,
+        provides=None,
+        requires=None,
+        auto_extract=True,
+        rebind=None,
+        revert_all=False,
+    ):
+        super().__init__(
+            name, provides, requires, auto_extract, rebind, revert_all
+        )
         self._values = values
 
     def on_failure(self, history, *args, **kwargs):
@@ -361,10 +398,18 @@ class ParameterizedForEach(ForEachBase):
     :py:class:`~taskflow.atom.Atom` constructor.
     """
 
-    def __init__(self, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None, revert_all=False):
-        super().__init__(name, provides, requires, auto_extract, rebind,
-                         revert_all)
+    def __init__(
+        self,
+        name=None,
+        provides=None,
+        requires=None,
+        auto_extract=True,
+        rebind=None,
+        revert_all=False,
+    ):
+        super().__init__(
+            name, provides, requires, auto_extract, rebind, revert_all
+        )
 
     def on_failure(self, values, history, *args, **kwargs):
         return self._on_failure(values, history)

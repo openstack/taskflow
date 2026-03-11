@@ -19,9 +19,9 @@ import sys
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
@@ -47,7 +47,7 @@ class TotalReducer(task.Task):
     def execute(self, *args, **kwargs):
         # Reduces all mapped summed outputs into a single value.
         total = 0
-        for (k, v) in kwargs.items():
+        for k, v in kwargs.items():
             # If any other kwargs was passed in, we don't want to use those
             # in the calculation of the total...
             if k.startswith('reduction_'):
@@ -88,9 +88,13 @@ for i, chunk in enumerate(chunk_iter(CHUNK_SIZE, UPPER_BOUND)):
     # The reducer uses all of the outputs of the mappers, so it needs
     # to be recorded that it needs access to them (under a specific name).
     provided.append("reduction_%s" % i)
-    mappers.add(SumMapper(name=mapper_name,
-                          rebind={'inputs': mapper_name},
-                          provides=provided[-1]))
+    mappers.add(
+        SumMapper(
+            name=mapper_name,
+            rebind={'inputs': mapper_name},
+            provides=provided[-1],
+        )
+    )
 w.add(mappers)
 
 # The reducer will run last (after all the mappers).

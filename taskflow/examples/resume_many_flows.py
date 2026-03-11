@@ -42,9 +42,9 @@ def _exec(cmd, add_env=None):
         env = os.environ.copy()
         env.update(add_env)
 
-    proc = subprocess.Popen(cmd, env=env, stdin=None,
-                            stdout=subprocess.PIPE,
-                            stderr=sys.stderr)
+    proc = subprocess.Popen(
+        cmd, env=env, stdin=None, stdout=subprocess.PIPE, stderr=sys.stderr
+    )
 
     stdout, _stderr = proc.communicate()
     rc = proc.returncode
@@ -54,8 +54,9 @@ def _exec(cmd, add_env=None):
 
 
 def _path_to(name):
-    return os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                        'resume_many_flows', name))
+    return os.path.abspath(
+        os.path.join(os.path.dirname(__file__), 'resume_many_flows', name)
+    )
 
 
 def main():
@@ -86,6 +87,7 @@ def main():
     finally:
         if tmp_path:
             example_utils.rm_path(tmp_path)
+
 
 if __name__ == '__main__':
     main()

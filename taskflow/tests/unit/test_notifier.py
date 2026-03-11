@@ -21,7 +21,6 @@ from taskflow.types import notifier as nt
 
 
 class NotifierTest(test.TestCase):
-
     def test_notify_called(self):
         call_collector = []
 
@@ -87,37 +86,46 @@ class NotifierTest(test.TestCase):
             pass
 
         notifier = nt.Notifier()
-        self.assertRaises(KeyError, notifier.register,
-                          nt.Notifier.ANY, call_me,
-                          kwargs={'details': 5})
+        self.assertRaises(
+            KeyError,
+            notifier.register,
+            nt.Notifier.ANY,
+            call_me,
+            kwargs={'details': 5},
+        )
 
     def test_not_callable(self):
         notifier = nt.Notifier()
-        self.assertRaises(ValueError, notifier.register,
-                          nt.Notifier.ANY, 2)
+        self.assertRaises(ValueError, notifier.register, nt.Notifier.ANY, 2)
 
     def test_restricted_notifier(self):
         notifier = nt.RestrictedNotifier(['a', 'b'])
-        self.assertRaises(ValueError, notifier.register,
-                          'c', lambda *args, **kargs: None)
+        self.assertRaises(
+            ValueError, notifier.register, 'c', lambda *args, **kargs: None
+        )
         notifier.register('b', lambda *args, **kargs: None)
         self.assertEqual(1, len(notifier))
 
     def test_restricted_notifier_any(self):
         notifier = nt.RestrictedNotifier(['a', 'b'])
-        self.assertRaises(ValueError, notifier.register,
-                          'c', lambda *args, **kargs: None)
+        self.assertRaises(
+            ValueError, notifier.register, 'c', lambda *args, **kargs: None
+        )
         notifier.register('b', lambda *args, **kargs: None)
         self.assertEqual(1, len(notifier))
-        notifier.register(nt.RestrictedNotifier.ANY,
-                          lambda *args, **kargs: None)
+        notifier.register(
+            nt.RestrictedNotifier.ANY, lambda *args, **kargs: None
+        )
         self.assertEqual(2, len(notifier))
 
     def test_restricted_notifier_no_any(self):
         notifier = nt.RestrictedNotifier(['a', 'b'], allow_any=False)
-        self.assertRaises(ValueError, notifier.register,
-                          nt.RestrictedNotifier.ANY,
-                          lambda *args, **kargs: None)
+        self.assertRaises(
+            ValueError,
+            notifier.register,
+            nt.RestrictedNotifier.ANY,
+            lambda *args, **kargs: None,
+        )
         notifier.register('b', lambda *args, **kargs: None)
         self.assertEqual(1, len(notifier))
 
@@ -131,13 +139,15 @@ class NotifierTest(test.TestCase):
 
         call_me_on_success = functools.partial(call_me_on, states.SUCCESS)
         notifier.register(states.SUCCESS, call_me_on_success)
-        self.assertTrue(notifier.is_registered(states.SUCCESS,
-                                               call_me_on_success))
+        self.assertTrue(
+            notifier.is_registered(states.SUCCESS, call_me_on_success)
+        )
 
         call_me_on_any = functools.partial(call_me_on, nt.Notifier.ANY)
         notifier.register(nt.Notifier.ANY, call_me_on_any)
-        self.assertTrue(notifier.is_registered(nt.Notifier.ANY,
-                                               call_me_on_any))
+        self.assertTrue(
+            notifier.is_registered(nt.Notifier.ANY, call_me_on_any)
+        )
 
         self.assertEqual(2, len(notifier))
         notifier.notify(states.SUCCESS, {})
@@ -162,11 +172,15 @@ class NotifierTest(test.TestCase):
         notifier = nt.Notifier()
 
         call_me_on_success = functools.partial(call_me_on, states.SUCCESS)
-        notifier.register(states.SUCCESS, call_me_on_success,
-                          details_filter=when_red)
+        notifier.register(
+            states.SUCCESS, call_me_on_success, details_filter=when_red
+        )
         self.assertEqual(1, len(notifier))
-        self.assertTrue(notifier.is_registered(
-            states.SUCCESS, call_me_on_success, details_filter=when_red))
+        self.assertTrue(
+            notifier.is_registered(
+                states.SUCCESS, call_me_on_success, details_filter=when_red
+            )
+        )
 
         notifier.notify(states.SUCCESS, {})
         self.assertEqual(0, len(call_counts[states.SUCCESS]))
@@ -190,15 +204,23 @@ class NotifierTest(test.TestCase):
         notifier = nt.Notifier()
 
         call_me_on_success = functools.partial(call_me_on, states.SUCCESS)
-        notifier.register(states.SUCCESS, call_me_on_success,
-                          details_filter=when_red)
-        notifier.register(states.SUCCESS, call_me_on_success,
-                          details_filter=when_blue)
+        notifier.register(
+            states.SUCCESS, call_me_on_success, details_filter=when_red
+        )
+        notifier.register(
+            states.SUCCESS, call_me_on_success, details_filter=when_blue
+        )
         self.assertEqual(2, len(notifier))
-        self.assertTrue(notifier.is_registered(
-            states.SUCCESS, call_me_on_success, details_filter=when_blue))
-        self.assertTrue(notifier.is_registered(
-            states.SUCCESS, call_me_on_success, details_filter=when_red))
+        self.assertTrue(
+            notifier.is_registered(
+                states.SUCCESS, call_me_on_success, details_filter=when_blue
+            )
+        )
+        self.assertTrue(
+            notifier.is_registered(
+                states.SUCCESS, call_me_on_success, details_filter=when_red
+            )
+        )
 
         notifier.notify(states.SUCCESS, {})
         self.assertEqual(0, len(call_counts[states.SUCCESS]))

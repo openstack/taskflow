@@ -25,7 +25,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.viewcode',
-    'openstackdocstheme'
+    'openstackdocstheme',
 ]
 
 # openstackdocstheme options

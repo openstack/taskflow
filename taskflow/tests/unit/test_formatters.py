@@ -23,7 +23,6 @@ from taskflow.test import utils as test_utils
 
 
 class FormattersTest(test.TestCase):
-
     @staticmethod
     def _broken_atom_matcher(node):
         return node.item.name == 'Broken'
@@ -84,7 +83,8 @@ class FormattersTest(test.TestCase):
         e.storage.set_atom_intention("Broken", states.EXECUTE)
         hide_inputs_outputs_of = ['Broken', "Happy-1", "Happy-2"]
         f = formatters.FailureFormatter(
-            e, hide_inputs_outputs_of=hide_inputs_outputs_of)
+            e, hide_inputs_outputs_of=hide_inputs_outputs_of
+        )
         (exc_info, details) = f.format(fail, self._broken_atom_matcher)
         self.assertEqual(3, len(exc_info))
         self.assertFalse(mock_get_execute.called)
@@ -111,19 +111,19 @@ class FormattersTest(test.TestCase):
         self.assertEqual(f._mask_keys([], FILTER_KEYS), [])
         self.assertEqual(
             f._mask_keys({'a': 1, 'b': 'hello'}, FILTER_KEYS),
-            {'a': 1, 'b': 'hello'}
+            {'a': 1, 'b': 'hello'},
         )
         self.assertEqual(
             f._mask_keys({'certificate': 'secret'}, FILTER_KEYS),
-            {'certificate': '***'}
+            {'certificate': '***'},
         )
         self.assertEqual(
             f._mask_keys([{'certificate': 'secret'}, {'a': 'b'}], FILTER_KEYS),
-            [{'certificate': '***'}, {'a': 'b'}]
+            [{'certificate': '***'}, {'a': 'b'}],
         )
         self.assertEqual(
             f._mask_keys({'certificate': None}, FILTER_KEYS),
-            {'certificate': '***'}
+            {'certificate': '***'},
         )
         data = {
             'listeners': [
@@ -143,10 +143,11 @@ class FormattersTest(test.TestCase):
         m = f._mask_keys(data, FILTER_KEYS)
         self.assertEqual(
             m['listeners'][0]['default_tls_container_data']['certificate'],
-            '***'
+            '***',
         )
-        self.assertEqual("some string",
-                         f._mask_keys("some string", FILTER_KEYS))
+        self.assertEqual(
+            "some string", f._mask_keys("some string", FILTER_KEYS)
+        )
         self.assertEqual(12345, f._mask_keys(12345, FILTER_KEYS))
         self.assertIsNone(f._mask_keys(None, FILTER_KEYS))
         self.assertIs(False, f._mask_keys(False, FILTER_KEYS))

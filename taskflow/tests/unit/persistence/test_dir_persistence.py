@@ -28,9 +28,9 @@ from taskflow import test
 from taskflow.tests.unit.persistence import base
 
 
-class DirPersistenceTest(testscenarios.TestWithScenarios,
-                         test.TestCase, base.PersistenceTestMixin):
-
+class DirPersistenceTest(
+    testscenarios.TestWithScenarios, test.TestCase, base.PersistenceTestMixin
+):
     scenarios = [
         ('no_cache', {'max_cache_size': None}),
         ('one', {'max_cache_size': 1}),
@@ -45,10 +45,12 @@ class DirPersistenceTest(testscenarios.TestWithScenarios,
     def setUp(self):
         super().setUp()
         self.path = tempfile.mkdtemp()
-        self.backend = impl_dir.DirBackend({
-            'path': self.path,
-            'max_cache_size': self.max_cache_size,
-        })
+        self.backend = impl_dir.DirBackend(
+            {
+                'path': self.path,
+                'max_cache_size': self.max_cache_size,
+            }
+        )
         with contextlib.closing(self._get_connection()) as conn:
             conn.upgrade()
 
@@ -83,8 +85,9 @@ class DirPersistenceTest(testscenarios.TestWithScenarios,
                     self.assertRaises(exc.NotFound, conn.get_logbook, lb_id)
                     conn.save_logbook(lb)
                     books_ids_made.append(lb_id)
-                    self.assertLessEqual(self.backend.file_cache.currsize,
-                                         self.max_cache_size)
+                    self.assertLessEqual(
+                        self.backend.file_cache.currsize, self.max_cache_size
+                    )
             # Also ensure that we can still read all created books...
             with contextlib.closing(self._get_connection()) as conn:
                 for lb_id in books_ids_made:
@@ -95,8 +98,12 @@ class DirPersistenceTest(testscenarios.TestWithScenarios,
         self._check_backend(dict(connection='dir:', path=self.path))
 
     def test_dir_backend_name(self):
-        self._check_backend(dict(connection='dir',  # no colon
-                                 path=self.path))
+        self._check_backend(
+            dict(
+                connection='dir',  # no colon
+                path=self.path,
+            )
+        )
 
     def test_file_backend_entry_point(self):
         self._check_backend(dict(connection='file:', path=self.path))

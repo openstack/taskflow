@@ -19,9 +19,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 
@@ -63,6 +63,7 @@ def build_wheels():
 
 # These just return true to indiciate success, they would in the real work
 # do more than just that.
+
 
 def install_engine(frame, engine):
     return True
@@ -130,15 +131,22 @@ flow = lf.Flow("make-auto").add(
         task.FunctorTask(install_engine, provides='engine_installed'),
         task.FunctorTask(install_doors, provides='doors_installed'),
         task.FunctorTask(install_windows, provides='windows_installed'),
-        task.FunctorTask(install_wheels, provides='wheels_installed')),
-    task.FunctorTask(verify, requires=['frame',
-                                       'engine',
-                                       'doors',
-                                       'wheels',
-                                       'engine_installed',
-                                       'doors_installed',
-                                       'windows_installed',
-                                       'wheels_installed']))
+        task.FunctorTask(install_wheels, provides='wheels_installed'),
+    ),
+    task.FunctorTask(
+        verify,
+        requires=[
+            'frame',
+            'engine',
+            'doors',
+            'wheels',
+            'engine_installed',
+            'doors_installed',
+            'windows_installed',
+            'wheels_installed',
+        ],
+    ),
+)
 
 # This dictionary will be provided to the tasks as a specification for what
 # the tasks should produce, in this example this specification will influence

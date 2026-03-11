@@ -71,23 +71,32 @@ class Depth(misc.StrEnum):
             # Nothing to do in the first place...
             return desired_depth
         if not isinstance(desired_depth, str):
-            raise TypeError("Unexpected desired depth type, string type"
-                            " expected, not %s" % type(desired_depth))
+            raise TypeError(
+                "Unexpected desired depth type, string type"
+                " expected, not %s" % type(desired_depth)
+            )
         try:
             return cls(desired_depth.upper())
         except ValueError:
             pretty_depths = sorted([a_depth.name for a_depth in cls])
-            raise ValueError("Unexpected decider depth value, one of"
-                             " %s (case-insensitive) is expected and"
-                             " not '%s'" % (pretty_depths, desired_depth))
+            raise ValueError(
+                "Unexpected decider depth value, one of"
+                " %s (case-insensitive) is expected and"
+                " not '%s'" % (pretty_depths, desired_depth)
+            )
 
 
 # Depth area of influence order (from greater influence to least).
 #
 # Order very much matters here...
-_ORDERING = tuple([
-    Depth.ALL, Depth.FLOW, Depth.NEIGHBORS, Depth.ATOM,
-])
+_ORDERING = tuple(
+    [
+        Depth.ALL,
+        Depth.FLOW,
+        Depth.NEIGHBORS,
+        Depth.ATOM,
+    ]
+)
 
 
 def pick_widest(depths):

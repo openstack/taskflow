@@ -20,9 +20,9 @@ import time
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 
@@ -84,14 +84,10 @@ def run(**store):
     # here and based on those kwargs it will behave in a different manner
     # while executing; this allows for the calling code (see below) to show
     # different usages of the failure catching and handling mechanism.
-    flow = uf.Flow('flow').add(
-        FirstTask(),
-        SecondTask()
-    )
+    flow = uf.Flow('flow').add(FirstTask(), SecondTask())
     try:
         with utils.wrap_all_failures():
-            taskflow.engines.run(flow, store=store,
-                                 engine='parallel')
+            taskflow.engines.run(flow, store=store, engine='parallel')
     except exceptions.WrappedFailure as ex:
         unknown_failures = []
         for a_failure in ex:
@@ -106,20 +102,17 @@ def run(**store):
 
 
 eu.print_wrapped("Raise and catch first exception only")
-run(sleep1=0.0, raise1=True,
-    sleep2=0.0, raise2=False)
+run(sleep1=0.0, raise1=True, sleep2=0.0, raise2=False)
 
 # NOTE(imelnikov): in general, sleeping does not guarantee that we'll have both
 # task running before one of them fails, but with current implementation this
 # works most of times, which is enough for our purposes here (as an example).
 eu.print_wrapped("Raise and catch both exceptions")
-run(sleep1=1.0, raise1=True,
-    sleep2=1.0, raise2=True)
+run(sleep1=1.0, raise1=True, sleep2=1.0, raise2=True)
 
 eu.print_wrapped("Handle one exception, and re-raise another")
 try:
-    run(sleep1=1.0, raise1=True,
-        sleep2=1.0, raise2='boom')
+    run(sleep1=1.0, raise1=True, sleep2=1.0, raise2='boom')
 except TypeError as ex:
     print("As expected, TypeError is here: %s" % ex)
 else:

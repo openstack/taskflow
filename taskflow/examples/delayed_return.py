@@ -21,9 +21,9 @@ from concurrent import futures
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
@@ -45,7 +45,8 @@ class PokeFutureListener(base.Listener):
         super().__init__(
             engine,
             task_listen_for=(notifier.Notifier.ANY,),
-            flow_listen_for=[])
+            flow_listen_for=[],
+        )
         self._future = future
         self._task_name = task_name
 

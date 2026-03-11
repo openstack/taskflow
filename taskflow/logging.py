@@ -32,12 +32,11 @@ ERROR = logging.ERROR
 FATAL = logging.FATAL
 INFO = logging.INFO
 NOTSET = logging.NOTSET
-WARN = logging.WARN
+WARN = logging.WARNING
 WARNING = logging.WARNING
 
 
 class _TraceLoggerAdapter(logging.LoggerAdapter):
-
     def trace(self, msg, *args, **kwargs):
         """Delegate a trace call to the underlying logger."""
         self.log(TRACE, msg, *args, **kwargs)

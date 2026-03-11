@@ -19,7 +19,6 @@ from taskflow.utils import kazoo_utils
 
 
 class MakeClientTest(test.TestCase):
-
     @mock.patch("kazoo.client.KazooClient")
     def test_make_client_config(self, mock_kazoo_client):
         conf = {}
@@ -32,7 +31,7 @@ class MakeClientTest(test.TestCase):
             'keyfile_password': None,
             'certfile': None,
             'use_ssl': False,
-            'verify_certs': True
+            'verify_certs': True,
         }
 
         kazoo_utils.make_client(conf)
@@ -42,10 +41,7 @@ class MakeClientTest(test.TestCase):
         mock_kazoo_client.reset_mock()
 
         # With boolean passed as strings
-        conf = {
-            'use_ssl': 'True',
-            'verify_certs': 'False'
-        }
+        conf = {'use_ssl': 'True', 'verify_certs': 'False'}
         expected = {
             'hosts': 'localhost:2181',
             'logger': mock.ANY,
@@ -55,7 +51,7 @@ class MakeClientTest(test.TestCase):
             'keyfile_password': None,
             'certfile': None,
             'use_ssl': True,
-            'verify_certs': False
+            'verify_certs': False,
         }
 
         kazoo_utils.make_client(conf)

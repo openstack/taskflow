@@ -18,13 +18,14 @@ from oslo_utils import eventletutils as _eventletutils
 # are highly recommended to be patched (or otherwise bad things could
 # happen).
 _eventletutils.warn_eventlet_not_patched(
-    expected_patched_modules=['time', 'thread'])
+    expected_patched_modules=['time', 'thread']
+)
 
 
 # Promote helpers to this module namespace (for easy access).
-from taskflow.engines.helpers import flow_from_detail   # noqa
-from taskflow.engines.helpers import load               # noqa
-from taskflow.engines.helpers import load_from_detail   # noqa
+from taskflow.engines.helpers import flow_from_detail  # noqa
+from taskflow.engines.helpers import load  # noqa
+from taskflow.engines.helpers import load_from_detail  # noqa
 from taskflow.engines.helpers import load_from_factory  # noqa
-from taskflow.engines.helpers import run                # noqa
+from taskflow.engines.helpers import run  # noqa
 from taskflow.engines.helpers import save_factory_details  # noqa

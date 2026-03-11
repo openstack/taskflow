@@ -54,17 +54,25 @@ def daemon_thread(target, *args, **kwargs):
 
 
 # Container for thread creator + associated callbacks.
-_ThreadBuilder = collections.namedtuple('_ThreadBuilder',
-                                        ['thread_factory',
-                                         'before_start', 'after_start',
-                                         'before_join', 'after_join'])
-_ThreadBuilder.fields = tuple([
-    'thread_factory',
-    'before_start',
-    'after_start',
-    'before_join',
-    'after_join',
-])
+_ThreadBuilder = collections.namedtuple(
+    '_ThreadBuilder',
+    [
+        'thread_factory',
+        'before_start',
+        'after_start',
+        'before_join',
+        'after_join',
+    ],
+)
+_ThreadBuilder.fields = tuple(
+    [
+        'thread_factory',
+        'before_start',
+        'after_start',
+        'before_join',
+        'after_join',
+    ]
+)
 
 
 def no_op(*args, **kwargs):
@@ -78,9 +86,14 @@ class ThreadBundle:
         self._threads = []
         self._lock = threading.Lock()
 
-    def bind(self, thread_factory,
-             before_start=None, after_start=None,
-             before_join=None, after_join=None):
+    def bind(
+        self,
+        thread_factory,
+        before_start=None,
+        after_start=None,
+        before_join=None,
+        after_join=None,
+    ):
         """Adds a thread (to-be) into this bundle (with given callbacks).
 
         NOTE(harlowja): callbacks provided should not attempt to call
@@ -97,23 +110,27 @@ class ThreadBundle:
             before_join = no_op
         if after_join is None:
             after_join = no_op
-        builder = _ThreadBuilder(thread_factory,
-                                 before_start, after_start,
-                                 before_join, after_join)
+        builder = _ThreadBuilder(
+            thread_factory, before_start, after_start, before_join, after_join
+        )
         for attr_name in builder.fields:
             cb = getattr(builder, attr_name)
             if not callable(cb):
-                raise ValueError("Provided callback for argument"
-                                 " '%s' must be callable" % attr_name)
+                raise ValueError(
+                    "Provided callback for argument"
+                    " '%s' must be callable" % attr_name
+                )
         with self._lock:
-            self._threads.append([
-                builder,
-                # The built thread.
-                None,
-                # Whether the built thread was started (and should have
-                # ran or still be running).
-                False,
-            ])
+            self._threads.append(
+                [
+                    builder,
+                    # The built thread.
+                    None,
+                    # Whether the built thread was started (and should have
+                    # ran or still be running).
+                    False,
+                ]
+            )
 
     def start(self):
         """Creates & starts all associated threads (that are not running)."""

@@ -46,8 +46,9 @@ class RetryScheduler:
             self._runtime.retry_subflow(retry)
             return self._retry_action.schedule_execution(retry)
         else:
-            raise excp.ExecutionFailure("Unknown how to schedule retry with"
-                                        " intention: %s" % intention)
+            raise excp.ExecutionFailure(
+                "Unknown how to schedule retry with intention: %s" % intention
+            )
 
 
 class TaskScheduler:
@@ -69,8 +70,9 @@ class TaskScheduler:
         elif intention == st.REVERT:
             return self._task_action.schedule_reversion(task)
         else:
-            raise excp.ExecutionFailure("Unknown how to schedule task with"
-                                        " intention: %s" % intention)
+            raise excp.ExecutionFailure(
+                "Unknown how to schedule task with intention: %s" % intention
+            )
 
 
 class Scheduler:

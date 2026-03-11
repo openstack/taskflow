@@ -25,7 +25,6 @@ generated. Please note that this will break tests as output for most
 examples is indeterministic (due to hash randomization for example).
 """
 
-
 import keyword
 import os
 import re
@@ -39,18 +38,19 @@ from taskflow import test
 from taskflow.tests import utils as test_utils
 
 ROOT_DIR = os.path.abspath(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(__file__))))
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+)
 
 # This is used so that any uuid like data being output is removed (since it
 # will change per test run and will invalidate the deterministic output that
 # we expect to be able to check).
-UUID_RE = re.compile('XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
-                     .replace('X', '[0-9a-f]'))
+UUID_RE = re.compile(
+    'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'.replace('X', '[0-9a-f]')
+)
 
 ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
-    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
+    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION
+)
 
 
 def safe_filename(filename):
@@ -68,20 +68,22 @@ def root_path(*args):
 
 def run_example(name):
     path = root_path('taskflow', 'examples', '%s.py' % name)
-    obj = subprocess.Popen([sys.executable, path],
-                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    obj = subprocess.Popen(
+        [sys.executable, path], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
     output = obj.communicate()
     stdout = output[0].decode()
     stderr = output[1].decode()
 
     rc = obj.wait()
     if rc != 0:
-        raise RuntimeError('Example %s failed, return code=%s\n'
-                           '<<<Begin captured STDOUT>>>\n%s'
-                           '<<<End captured STDOUT>>>\n'
-                           '<<<Begin captured STDERR>>>\n%s'
-                           '<<<End captured STDERR>>>'
-                           % (name, rc, stdout, stderr))
+        raise RuntimeError(
+            'Example %s failed, return code=%s\n'
+            '<<<Begin captured STDOUT>>>\n%s'
+            '<<<End captured STDOUT>>>\n'
+            '<<<Begin captured STDERR>>>\n%s'
+            '<<<End captured STDERR>>>' % (name, rc, stdout, stderr)
+        )
     return stdout
 
 
@@ -112,6 +114,7 @@ class ExampleAdderMeta(type):
         def generate_test(example_name):
             def test_example(self):
                 self._check_example(example_name)
+
             return test_example
 
         for example_name, safe_name in iter_examples():

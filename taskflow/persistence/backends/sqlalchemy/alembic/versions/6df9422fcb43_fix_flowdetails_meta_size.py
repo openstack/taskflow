@@ -30,5 +30,6 @@ def upgrade():
     bind = op.get_bind()
     engine = bind.engine
     if engine.name == 'mysql':
-        op.alter_column('flowdetails', 'meta', type_=mysql.LONGTEXT,
-                        existing_nullable=True)
+        op.alter_column(
+            'flowdetails', 'meta', type_=mysql.LONGTEXT, existing_nullable=True
+        )

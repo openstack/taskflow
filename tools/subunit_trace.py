@@ -34,7 +34,6 @@ RESULTS = {}
 
 
 class Starts(testtools.StreamResult):
-
     def __init__(self, output):
         super().__init__()
         self._output = output
@@ -43,14 +42,31 @@ class Starts(testtools.StreamResult):
         self._neednewline = False
         self._emitted = set()
 
-    def status(self, test_id=None, test_status=None, test_tags=None,
-               runnable=True, file_name=None, file_bytes=None, eof=False,
-               mime_type=None, route_code=None, timestamp=None):
+    def status(
+        self,
+        test_id=None,
+        test_status=None,
+        test_tags=None,
+        runnable=True,
+        file_name=None,
+        file_bytes=None,
+        eof=False,
+        mime_type=None,
+        route_code=None,
+        timestamp=None,
+    ):
         super().status(
-            test_id, test_status,
-            test_tags=test_tags, runnable=runnable, file_name=file_name,
-            file_bytes=file_bytes, eof=eof, mime_type=mime_type,
-            route_code=route_code, timestamp=timestamp)
+            test_id,
+            test_status,
+            test_tags=test_tags,
+            runnable=runnable,
+            file_name=file_name,
+            file_bytes=file_bytes,
+            eof=eof,
+            mime_type=mime_type,
+            route_code=route_code,
+            timestamp=timestamp,
+        )
         if not test_id:
             if not file_bytes:
                 return
@@ -58,9 +74,11 @@ class Starts(testtools.StreamResult):
                 mime_type = 'text/plain; charset=utf-8'
             primary, sub, parameters = mimeparse.parse_mime_type(mime_type)
             content_type = testtools.content_type.ContentType(
-                primary, sub, parameters)
+                primary, sub, parameters
+            )
             content = testtools.content.Content(
-                content_type, lambda: [file_bytes])
+                content_type, lambda: [file_bytes]
+            )
             text = content.as_text()
             if text and text[-1] not in '\r\n':
                 self._neednewline = True
@@ -77,8 +95,9 @@ class Starts(testtools.StreamResult):
                 timestr = timestamp.isoformat()
             else:
                 timestr = ''
-                self._output.write('%s: %s%s [start]\n' %
-                                   (timestr, worker, test_id))
+                self._output.write(
+                    '%s: %s%s [start]\n' % (timestr, worker, test_id)
+                )
             self._emitted.add(test_id)
 
 
@@ -97,7 +116,7 @@ def cleanup_test_name(name, strip_tags=True, strip_scenarios=False):
         tags_end = name.find(']')
         if tags_start > 0 and tags_end > tags_start:
             newname = name[:tags_start]
-            newname += name[tags_end + 1:]
+            newname += name[tags_end + 1 :]
             name = newname
 
     if strip_scenarios:
@@ -105,7 +124,7 @@ def cleanup_test_name(name, strip_tags=True, strip_scenarios=False):
         tags_end = name.find(')')
         if tags_start > 0 and tags_end > tags_start:
             newname = name[:tags_start]
-            newname += name[tags_end + 1:]
+            newname += name[tags_end + 1 :]
             name = newname
 
     return name
@@ -118,7 +137,9 @@ def get_duration(timestamps):
     else:
         delta = end - start
         duration = '%d.%06ds' % (
-            delta.days * DAY_SECONDS + delta.seconds, delta.microseconds)
+            delta.days * DAY_SECONDS + delta.seconds,
+            delta.microseconds,
+        )
     return duration
 
 
@@ -174,21 +195,29 @@ def show_outcome(stream, test, print_failures=False, failonly=False):
 
     if status == 'fail':
         FAILS.append(test)
-        stream.write('{{{}}} {} [{}] ... FAILED\n'.format(
-            worker, name, duration))
+        stream.write(
+            '{{{}}} {} [{}] ... FAILED\n'.format(worker, name, duration)
+        )
         if not print_failures:
             print_attachments(stream, test, all_channels=True)
     elif not failonly:
         if status == 'success':
-            stream.write('{{{}}} {} [{}] ... ok\n'.format(
-                worker, name, duration))
+            stream.write(
+                '{{{}}} {} [{}] ... ok\n'.format(worker, name, duration)
+            )
             print_attachments(stream, test)
         elif status == 'skip':
-            stream.write('{{{}}} {} ... SKIPPED: {}\n'.format(
-                worker, name, test['details']['reason'].as_text()))
+            stream.write(
+                '{{{}}} {} ... SKIPPED: {}\n'.format(
+                    worker, name, test['details']['reason'].as_text()
+                )
+            )
         else:
-            stream.write('{{{}}} {} [{}] ... {}\n'.format(
-                worker, name, duration, test['status']))
+            stream.write(
+                '{{{}}} {} [{}] ... {}\n'.format(
+                    worker, name, duration, test['status']
+                )
+            )
             if not print_failures:
                 print_attachments(stream, test, all_channels=True)
 
@@ -240,8 +269,9 @@ def worker_stats(worker):
 
 def print_summary(stream):
     stream.write("\n======\nTotals\n======\n")
-    stream.write("Run: {} in {} sec.\n".format(count_tests('status', '.*'),
-                                               run_time()))
+    stream.write(
+        "Run: {} in {} sec.\n".format(count_tests('status', '.*'), run_time())
+    )
     stream.write(" - Passed: %s\n" % count_tests('status', 'success'))
     stream.write(" - Skipped: %s\n" % count_tests('status', 'skip'))
     stream.write(" - Failed: %s\n" % count_tests('status', 'fail'))
@@ -254,38 +284,55 @@ def print_summary(stream):
             if w not in RESULTS:
                 stream.write(
                     " - WARNING: missing Worker %s! "
-                    "Race in testr accounting.\n" % w)
+                    "Race in testr accounting.\n" % w
+                )
             else:
                 num, time = worker_stats(w)
-                stream.write(" - Worker %s (%s tests) => %ss\n" %
-                             (w, num, time))
+                stream.write(
+                    " - Worker %s (%s tests) => %ss\n" % (w, num, time)
+                )
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--no-failure-debug', '-n', action='store_true',
-                        dest='print_failures', help='Disable printing failure '
-                        'debug information in realtime')
-    parser.add_argument('--fails', '-f', action='store_true',
-                        dest='post_fails', help='Print failure debug '
-                        'information after the stream is proccesed')
-    parser.add_argument('--failonly', action='store_true',
-                        dest='failonly', help="Don't print success items",
-                        default=(
-                            os.environ.get('TRACE_FAILONLY', False)
-                            is not False))
+    parser.add_argument(
+        '--no-failure-debug',
+        '-n',
+        action='store_true',
+        dest='print_failures',
+        help='Disable printing failure debug information in realtime',
+    )
+    parser.add_argument(
+        '--fails',
+        '-f',
+        action='store_true',
+        dest='post_fails',
+        help='Print failure debug information after the stream is proccesed',
+    )
+    parser.add_argument(
+        '--failonly',
+        action='store_true',
+        dest='failonly',
+        help="Don't print success items",
+        default=(os.environ.get('TRACE_FAILONLY', False) is not False),
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     stream = subunit.ByteStreamToStreamResult(
-        sys.stdin, non_subunit_name='stdout')
+        sys.stdin, non_subunit_name='stdout'
+    )
     starts = Starts(sys.stdout)
     outcomes = testtools.StreamToDict(
-        functools.partial(show_outcome, sys.stdout,
-                          print_failures=args.print_failures,
-                          failonly=args.failonly))
+        functools.partial(
+            show_outcome,
+            sys.stdout,
+            print_failures=args.print_failures,
+            failonly=args.failonly,
+        )
+    )
     summary = testtools.StreamSummary()
     result = testtools.CopyStreamResult([starts, outcomes, summary])
     result.startTestRun()
@@ -299,7 +346,7 @@ def main():
     if args.post_fails:
         print_fails(sys.stdout)
     print_summary(sys.stdout)
-    return (0 if summary.wasSuccessful() else 1)
+    return 0 if summary.wasSuccessful() else 1
 
 
 if __name__ == '__main__':

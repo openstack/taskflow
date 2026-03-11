@@ -29,7 +29,6 @@ from taskflow.utils import persistence_utils as pu
 
 
 class BuildersTest(test.TestCase):
-
     def _make_runtime(self, flow, initial_state=None):
         compilation = compiler.PatternCompiler(flow).compile()
         flow_detail = pu.create_flow_detail(flow)
@@ -45,9 +44,9 @@ class BuildersTest(test.TestCase):
         retry_executor = executor.SerialRetryExecutor()
         task_executor.start()
         self.addCleanup(task_executor.stop)
-        r = runtime.Runtime(compilation, store,
-                            atom_notifier, task_executor,
-                            retry_executor)
+        r = runtime.Runtime(
+            compilation, store, atom_notifier, task_executor, retry_executor
+        )
         r.compile()
         return r
 
@@ -60,11 +59,13 @@ class BuildersTest(test.TestCase):
     def test_run_iterations(self):
         flow = lf.Flow("root")
         tasks = test_utils.make_many(
-            1, task_cls=test_utils.TaskNoRequiresNoReturns)
+            1, task_cls=test_utils.TaskNoRequiresNoReturns
+        )
         flow.add(*tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
 
         it = machine_runner.run_iter(builder.START)
         prior_state, new_state = next(it)
@@ -94,28 +95,29 @@ class BuildersTest(test.TestCase):
 
     def test_run_iterations_reverted(self):
         flow = lf.Flow("root")
-        tasks = test_utils.make_many(
-            1, task_cls=test_utils.TaskWithFailure)
+        tasks = test_utils.make_many(1, task_cls=test_utils.TaskWithFailure)
         flow.add(*tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
 
         transitions = list(machine_runner.run_iter(builder.START))
         prior_state, new_state = transitions[-1]
         self.assertEqual(st.REVERTED, new_state)
         self.assertEqual([], memory.failures)
-        self.assertEqual(st.REVERTED,
-                         runtime.storage.get_atom_state(tasks[0].name))
+        self.assertEqual(
+            st.REVERTED, runtime.storage.get_atom_state(tasks[0].name)
+        )
 
     def test_run_iterations_failure(self):
         flow = lf.Flow("root")
-        tasks = test_utils.make_many(
-            1, task_cls=test_utils.NastyFailingTask)
+        tasks = test_utils.make_many(1, task_cls=test_utils.NastyFailingTask)
         flow.add(*tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
 
         transitions = list(machine_runner.run_iter(builder.START))
         prior_state, new_state = transitions[-1]
@@ -123,17 +125,20 @@ class BuildersTest(test.TestCase):
         self.assertEqual(1, len(memory.failures))
         failure = memory.failures[0]
         self.assertTrue(failure.check(RuntimeError))
-        self.assertEqual(st.REVERT_FAILURE,
-                         runtime.storage.get_atom_state(tasks[0].name))
+        self.assertEqual(
+            st.REVERT_FAILURE, runtime.storage.get_atom_state(tasks[0].name)
+        )
 
     def test_run_iterations_suspended(self):
         flow = lf.Flow("root")
         tasks = test_utils.make_many(
-            2, task_cls=test_utils.TaskNoRequiresNoReturns)
+            2, task_cls=test_utils.TaskNoRequiresNoReturns
+        )
         flow.add(*tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
 
         transitions = []
         for prior_state, new_state in machine_runner.run_iter(builder.START):
@@ -144,22 +149,27 @@ class BuildersTest(test.TestCase):
         self.assertEqual(st.SUSPENDED, state)
         self.assertEqual([], failures)
 
-        self.assertEqual(st.SUCCESS,
-                         runtime.storage.get_atom_state(tasks[0].name))
-        self.assertEqual(st.PENDING,
-                         runtime.storage.get_atom_state(tasks[1].name))
+        self.assertEqual(
+            st.SUCCESS, runtime.storage.get_atom_state(tasks[0].name)
+        )
+        self.assertEqual(
+            st.PENDING, runtime.storage.get_atom_state(tasks[1].name)
+        )
 
     def test_run_iterations_suspended_failure(self):
         flow = lf.Flow("root")
         sad_tasks = test_utils.make_many(
-            1, task_cls=test_utils.NastyFailingTask)
+            1, task_cls=test_utils.NastyFailingTask
+        )
         flow.add(*sad_tasks)
         happy_tasks = test_utils.make_many(
-            1, task_cls=test_utils.TaskNoRequiresNoReturns, offset=1)
+            1, task_cls=test_utils.TaskNoRequiresNoReturns, offset=1
+        )
         flow.add(*happy_tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
 
         transitions = []
         for prior_state, new_state in machine_runner.run_iter(builder.START):
@@ -170,24 +180,29 @@ class BuildersTest(test.TestCase):
         self.assertEqual(st.SUSPENDED, state)
         self.assertEqual([], failures)
 
-        self.assertEqual(st.PENDING,
-                         runtime.storage.get_atom_state(happy_tasks[0].name))
-        self.assertEqual(st.FAILURE,
-                         runtime.storage.get_atom_state(sad_tasks[0].name))
+        self.assertEqual(
+            st.PENDING, runtime.storage.get_atom_state(happy_tasks[0].name)
+        )
+        self.assertEqual(
+            st.FAILURE, runtime.storage.get_atom_state(sad_tasks[0].name)
+        )
 
     def test_builder_manual_process(self):
         flow = lf.Flow("root")
         tasks = test_utils.make_many(
-            1, task_cls=test_utils.TaskNoRequiresNoReturns)
+            1, task_cls=test_utils.TaskNoRequiresNoReturns
+        )
         flow.add(*tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
         self.assertRaises(excp.NotInitialized, machine.process_event, 'poke')
 
         # Should now be pending...
-        self.assertEqual(st.PENDING,
-                         runtime.storage.get_atom_state(tasks[0].name))
+        self.assertEqual(
+            st.PENDING, runtime.storage.get_atom_state(tasks[0].name)
+        )
 
         machine.initialize()
         self.assertEqual(builder.UNDEFINED, machine.current_state)
@@ -203,8 +218,9 @@ class BuildersTest(test.TestCase):
 
         last_state = machine.current_state
         cb, args, kwargs = reaction
-        next_event = cb(last_state, machine.current_state,
-                        builder.START, *args, **kwargs)
+        next_event = cb(
+            last_state, machine.current_state, builder.START, *args, **kwargs
+        )
         reaction, terminal = machine.process_event(next_event)
         self.assertFalse(terminal)
         self.assertIsNotNone(reaction)
@@ -213,21 +229,24 @@ class BuildersTest(test.TestCase):
 
         last_state = machine.current_state
         cb, args, kwargs = reaction
-        next_event = cb(last_state, machine.current_state,
-                        next_event, *args, **kwargs)
+        next_event = cb(
+            last_state, machine.current_state, next_event, *args, **kwargs
+        )
         reaction, terminal = machine.process_event(next_event)
         self.assertFalse(terminal)
         self.assertEqual(st.WAITING, machine.current_state)
         self.assertRaises(excp.NotFound, machine.process_event, 'poke')
 
         # Should now be running...
-        self.assertEqual(st.RUNNING,
-                         runtime.storage.get_atom_state(tasks[0].name))
+        self.assertEqual(
+            st.RUNNING, runtime.storage.get_atom_state(tasks[0].name)
+        )
 
         last_state = machine.current_state
         cb, args, kwargs = reaction
-        next_event = cb(last_state, machine.current_state,
-                        next_event, *args, **kwargs)
+        next_event = cb(
+            last_state, machine.current_state, next_event, *args, **kwargs
+        )
         reaction, terminal = machine.process_event(next_event)
         self.assertFalse(terminal)
         self.assertIsNotNone(reaction)
@@ -236,30 +255,35 @@ class BuildersTest(test.TestCase):
 
         last_state = machine.current_state
         cb, args, kwargs = reaction
-        next_event = cb(last_state, machine.current_state,
-                        next_event, *args, **kwargs)
+        next_event = cb(
+            last_state, machine.current_state, next_event, *args, **kwargs
+        )
         reaction, terminal = machine.process_event(next_event)
         self.assertFalse(terminal)
         self.assertEqual(builder.GAME_OVER, machine.current_state)
 
         # Should now be done...
-        self.assertEqual(st.SUCCESS,
-                         runtime.storage.get_atom_state(tasks[0].name))
+        self.assertEqual(
+            st.SUCCESS, runtime.storage.get_atom_state(tasks[0].name)
+        )
 
     def test_builder_automatic_process(self):
         flow = lf.Flow("root")
         tasks = test_utils.make_many(
-            1, task_cls=test_utils.TaskNoRequiresNoReturns)
+            1, task_cls=test_utils.TaskNoRequiresNoReturns
+        )
         flow.add(*tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
 
         transitions = list(machine_runner.run_iter(builder.START))
         self.assertEqual((builder.UNDEFINED, st.RESUMING), transitions[0])
         self.assertEqual((builder.GAME_OVER, st.SUCCESS), transitions[-1])
-        self.assertEqual(st.SUCCESS,
-                         runtime.storage.get_atom_state(tasks[0].name))
+        self.assertEqual(
+            st.SUCCESS, runtime.storage.get_atom_state(tasks[0].name)
+        )
 
     def test_builder_automatic_process_failure(self):
         flow = lf.Flow("root")
@@ -267,7 +291,8 @@ class BuildersTest(test.TestCase):
         flow.add(*tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
 
         transitions = list(machine_runner.run_iter(builder.START))
         self.assertEqual((builder.GAME_OVER, st.FAILURE), transitions[-1])
@@ -279,21 +304,25 @@ class BuildersTest(test.TestCase):
         flow.add(*tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
 
         transitions = list(machine_runner.run_iter(builder.START))
         self.assertEqual((builder.GAME_OVER, st.REVERTED), transitions[-1])
-        self.assertEqual(st.REVERTED,
-                         runtime.storage.get_atom_state(tasks[0].name))
+        self.assertEqual(
+            st.REVERTED, runtime.storage.get_atom_state(tasks[0].name)
+        )
 
     def test_builder_expected_transition_occurrences(self):
         flow = lf.Flow("root")
         tasks = test_utils.make_many(
-            10, task_cls=test_utils.TaskNoRequiresNoReturns)
+            10, task_cls=test_utils.TaskNoRequiresNoReturns
+        )
         flow.add(*tasks)
 
         runtime, machine, memory, machine_runner = self._make_machine(
-            flow, initial_state=st.RUNNING)
+            flow, initial_state=st.RUNNING
+        )
         transitions = list(machine_runner.run_iter(builder.START))
 
         occurrences = {t: transitions.count(t) for t in transitions}

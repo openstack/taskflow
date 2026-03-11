@@ -37,7 +37,10 @@ def print_header(name):
 
 
 class ProfileIt:
-    stats_ordering = ('cumulative', 'calls',)
+    stats_ordering = (
+        'cumulative',
+        'calls',
+    )
 
     def __init__(self, name, args):
         self.name = name
@@ -88,21 +91,34 @@ class DummyTask(task.Task):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--profile', "-p",
-                        dest='profile', action='store_true',
-                        default=False,
-                        help='profile instead of gather timing'
-                             ' (default: False)')
-    parser.add_argument('--dummies', "-d",
-                        dest='dummies', action='store', type=int,
-                        default=100, metavar="<number>",
-                        help='how many dummy/no-op tasks to inject'
-                             ' (default: 100)')
-    parser.add_argument('--limit', '-l',
-                        dest='limit', action='store', type=float,
-                        default=100.0, metavar="<number>",
-                        help='percentage of profiling output to show'
-                             ' (default: 100%%)')
+    parser.add_argument(
+        '--profile',
+        "-p",
+        dest='profile',
+        action='store_true',
+        default=False,
+        help='profile instead of gather timing (default: False)',
+    )
+    parser.add_argument(
+        '--dummies',
+        "-d",
+        dest='dummies',
+        action='store',
+        type=int,
+        default=100,
+        metavar="<number>",
+        help='how many dummy/no-op tasks to inject (default: 100)',
+    )
+    parser.add_argument(
+        '--limit',
+        '-l',
+        dest='limit',
+        action='store',
+        type=float,
+        default=100.0,
+        metavar="<number>",
+        help='percentage of profiling output to show (default: 100%%)',
+    )
     args = parser.parse_args()
     if args.profile:
         ctx_manager = ProfileIt

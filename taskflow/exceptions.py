@@ -64,6 +64,7 @@ class TaskFlowException(Exception):
                   creating a chain of exceptions for versions of python where
                   this is not yet implemented/supported natively.
     """
+
     def __init__(self, message, cause=None):
         super().__init__(message)
         self._cause = cause
@@ -84,8 +85,10 @@ class TaskFlowException(Exception):
     def pformat(self, indent=2, indent_text=" ", show_root_class=False):
         """Pretty formats a taskflow exception + any connected causes."""
         if indent < 0:
-            raise ValueError("Provided 'indent' must be greater than"
-                             " or equal to zero instead of %s" % indent)
+            raise ValueError(
+                "Provided 'indent' must be greater than"
+                " or equal to zero instead of %s" % indent
+            )
         buf = io.StringIO()
         if show_root_class:
             buf.write(reflection.get_class_name(self, fully_qualified=False))
@@ -99,8 +102,9 @@ class TaskFlowException(Exception):
             buf.write(os.linesep)
             if isinstance(next_up, TaskFlowException):
                 buf.write(indent_text * active_indent)
-                buf.write(reflection.get_class_name(next_up,
-                                                    fully_qualified=False))
+                buf.write(
+                    reflection.get_class_name(next_up, fully_qualified=False)
+                )
                 buf.write(": ")
                 buf.write(next_up._get_message())
             else:
@@ -125,17 +129,20 @@ class TaskFlowException(Exception):
 
 # Errors related to storage or operations on storage units.
 
+
 class StorageFailure(TaskFlowException):
     """Raised when storage backends can not be read/saved/deleted."""
 
 
 # Conductor related errors.
 
+
 class ConductorFailure(TaskFlowException):
     """Errors related to conducting activities."""
 
 
 # Job related errors.
+
 
 class JobFailure(TaskFlowException):
     """Errors related to jobs or operations on jobs."""
@@ -146,6 +153,7 @@ class UnclaimableJob(JobFailure):
 
 
 # Engine/ during execution related errors.
+
 
 class ExecutionFailure(TaskFlowException):
     """Errors related to engine execution."""
@@ -181,8 +189,10 @@ class MissingDependencies(DependencyFailure):
     """
 
     #: Exception message template used when creating an actual message.
-    MESSAGE_TPL = ("'%(who)s' requires %(requirements)s but no other entity"
-                   " produces said requirements")
+    MESSAGE_TPL = (
+        "'%(who)s' requires %(requirements)s but no other entity"
+        " produces said requirements"
+    )
 
     METHOD_TPL = "'%(method)s' method on "
 
@@ -231,6 +241,7 @@ class DisallowedAccess(TaskFlowException):
 
 
 # Others.
+
 
 class NotImplementedError(NotImplementedError):
     """Exception for when some functionality really isn't implemented.

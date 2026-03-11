@@ -48,28 +48,43 @@ def _translate_failures():
     except redis_exceptions.ConnectionError:
         exc.raise_with_cause(exc.JobFailure, "Failed to connect to redis")
     except redis_exceptions.TimeoutError:
-        exc.raise_with_cause(exc.JobFailure,
-                             "Failed to communicate with redis, connection"
-                             " timed out")
+        exc.raise_with_cause(
+            exc.JobFailure,
+            "Failed to communicate with redis, connection timed out",
+        )
     except redis_exceptions.RedisError:
-        exc.raise_with_cause(exc.JobFailure,
-                             "Failed to communicate with redis,"
-                             " internal error")
+        exc.raise_with_cause(
+            exc.JobFailure, "Failed to communicate with redis, internal error"
+        )
 
 
 @functools.total_ordering
 class RedisJob(base.Job):
     """A redis job."""
 
-    def __init__(self, board, name, sequence, key,
-                 uuid=None, details=None,
-                 created_on=None, backend=None,
-                 book=None, book_data=None,
-                 priority=base.JobPriority.NORMAL):
-        super().__init__(board, name,
-                         uuid=uuid, details=details,
-                         backend=backend,
-                         book=book, book_data=book_data)
+    def __init__(
+        self,
+        board,
+        name,
+        sequence,
+        key,
+        uuid=None,
+        details=None,
+        created_on=None,
+        backend=None,
+        book=None,
+        book_data=None,
+        priority=base.JobPriority.NORMAL,
+    ):
+        super().__init__(
+            board,
+            name,
+            uuid=uuid,
+            details=details,
+            backend=backend,
+            book=book,
+            book_data=book_data,
+        )
         self._created_on = created_on
         self._client = board._client
         self._redis_version = board._redis_version
@@ -113,8 +128,11 @@ class RedisJob(base.Job):
         :attr:`.owner_key` expired at/before time of inquiry?).
         """
         with _translate_failures():
-            return ru.get_expiry(self._client, self._owner_key,
-                                 prior_version=self._redis_version)
+            return ru.get_expiry(
+                self._client,
+                self._owner_key,
+                prior_version=self._redis_version,
+            )
 
     def extend_expiry(self, expiry):
         """Extends the owner key (aka the claim) expiry for this job.
@@ -128,8 +146,12 @@ class RedisJob(base.Job):
         otherwise ``False``.
         """
         with _translate_failures():
-            return ru.apply_expiry(self._client, self._owner_key, expiry,
-                                   prior_version=self._redis_version)
+            return ru.apply_expiry(
+                self._client,
+                self._owner_key,
+                expiry,
+                prior_version=self._redis_version,
+            )
 
     def __lt__(self, other):
         if not isinstance(other, RedisJob):
@@ -139,7 +161,8 @@ class RedisJob(base.Job):
                 return self.sequence < other.sequence
             else:
                 ordered = base.JobPriority.reorder(
-                    (self.priority, self), (other.priority, other))
+                    (self.priority, self), (other.priority, other)
+                )
                 if ordered[0] is self:
                     return False
                 return True
@@ -150,8 +173,11 @@ class RedisJob(base.Job):
     def __eq__(self, other):
         if not isinstance(other, RedisJob):
             return NotImplemented
-        return ((self.board.listings_key, self.priority, self.sequence) ==
-                (other.board.listings_key, other.priority, other.sequence))
+        return (self.board.listings_key, self.priority, self.sequence) == (
+            other.board.listings_key,
+            other.priority,
+            other.sequence,
+        )
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -170,7 +196,8 @@ class RedisJob(base.Job):
         last_modified = None
         if raw_last_modified:
             last_modified = self._board._loads(
-                raw_last_modified, root_types=(datetime.datetime,))
+                raw_last_modified, root_types=(datetime.datetime,)
+            )
             # NOTE(harlowja): just incase this is somehow busted (due to time
             # sync issues/other), give back the most recent one (since redis
             # does not maintain clock information; we could have this happen
@@ -199,9 +226,13 @@ class RedisJob(base.Job):
                     # This should **not** be possible due to lua code ordering
                     # but let's log an INFO statement if it does happen (so
                     # that it can be investigated)...
-                    LOG.info("Unexpected owner key found at '%s' when job"
-                             " key '%s[%s]' was not found", owner_key,
-                             listings_key, listings_sub_key)
+                    LOG.info(
+                        "Unexpected owner key found at '%s' when job"
+                        " key '%s[%s]' was not found",
+                        owner_key,
+                        listings_key,
+                        listings_sub_key,
+                    )
                 return states.COMPLETE
             else:
                 if owner_exists:
@@ -210,9 +241,9 @@ class RedisJob(base.Job):
                     return states.UNCLAIMED
 
         with _translate_failures():
-            return self._client.transaction(_do_fetch,
-                                            listings_key, owner_key,
-                                            value_from_callable=True)
+            return self._client.transaction(
+                _do_fetch, listings_key, owner_key, value_from_callable=True
+            )
 
 
 class RedisJobBoard(base.JobBoard):
@@ -255,37 +286,33 @@ class RedisJobBoard(base.JobBoard):
     .. _hash: https://redis.io/topics/data-types#hashes
     """
 
-    CLIENT_CONF_TRANSFERS = tuple([
-        # Host config...
-        ('host', str),
-        ('port', int),
-
-        # See: http://redis.io/commands/auth
-        ('username', str),
-        ('password', str),
-
-        # Data encoding/decoding + error handling
-        ('encoding', str),
-        ('encoding_errors', str),
-
-        # Connection settings.
-        ('socket_timeout', float),
-        ('socket_connect_timeout', float),
-
-        # This one negates the usage of host, port, socket connection
-        # settings as it doesn't use the same kind of underlying socket...
-        ('unix_socket_path', str),
-
-        # Do u want ssl???
-        ('ssl', strutils.bool_from_string),
-        ('ssl_keyfile', str),
-        ('ssl_certfile', str),
-        ('ssl_cert_reqs', str),
-        ('ssl_ca_certs', str),
-
-        # See: http://www.rediscookbook.org/multiple_databases.html
-        ('db', int),
-    ])
+    CLIENT_CONF_TRANSFERS = tuple(
+        [
+            # Host config...
+            ('host', str),
+            ('port', int),
+            # See: http://redis.io/commands/auth
+            ('username', str),
+            ('password', str),
+            # Data encoding/decoding + error handling
+            ('encoding', str),
+            ('encoding_errors', str),
+            # Connection settings.
+            ('socket_timeout', float),
+            ('socket_connect_timeout', float),
+            # This one negates the usage of host, port, socket connection
+            # settings as it doesn't use the same kind of underlying socket...
+            ('unix_socket_path', str),
+            # Do u want ssl???
+            ('ssl', strutils.bool_from_string),
+            ('ssl_keyfile', str),
+            ('ssl_certfile', str),
+            ('ssl_cert_reqs', str),
+            ('ssl_ca_certs', str),
+            # See: http://www.rediscookbook.org/multiple_databases.html
+            ('db', int),
+        ]
+    )
     """
     Keys (and value type converters) that we allow to proxy from the jobboard
     configuration into the redis client (used to configure the redis client
@@ -566,8 +593,9 @@ return cmsgpack.pack(result)
     @classmethod
     def _filter_ssl_options(cls, opts):
         if not opts.get('ssl', False):
-            return {k: v for (k, v) in opts.items()
-                    if not k.startswith('ssl_')}
+            return {
+                k: v for (k, v) in opts.items() if not k.startswith('ssl_')
+            }
         return opts
 
     @classmethod
@@ -587,15 +615,14 @@ return cmsgpack.pack(result)
             sentinel_kwargs = conf.get('sentinel_kwargs')
             if sentinel_kwargs is not None:
                 sentinel_kwargs = cls._filter_ssl_options(sentinel_kwargs)
-            s = sentinel.Sentinel(sentinels,
-                                  sentinel_kwargs=sentinel_kwargs,
-                                  **client_conf)
+            s = sentinel.Sentinel(
+                sentinels, sentinel_kwargs=sentinel_kwargs, **client_conf
+            )
             return s.master_for(conf['sentinel'])
         else:
             return ru.RedisClient(**client_conf)
 
-    def __init__(self, name, conf,
-                 client=None, persistence=None):
+    def __init__(self, name, conf, client=None, persistence=None):
         super().__init__(name, conf)
         self._closed = True
         if client is not None:
@@ -682,25 +709,29 @@ return cmsgpack.pack(result)
             # op occurs).
             self._client.ping()
             is_new_enough, redis_version = ru.is_server_new_enough(
-                self._client, self.MIN_REDIS_VERSION)
+                self._client, self.MIN_REDIS_VERSION
+            )
             if not is_new_enough:
-                wanted_version = ".".join([str(p)
-                                           for p in self.MIN_REDIS_VERSION])
+                wanted_version = ".".join(
+                    [str(p) for p in self.MIN_REDIS_VERSION]
+                )
                 if redis_version:
-                    raise exc.JobFailure("Redis version %s or greater is"
-                                         " required (version %s is to"
-                                         " old)" % (wanted_version,
-                                                    redis_version))
+                    raise exc.JobFailure(
+                        "Redis version %s or greater is"
+                        " required (version %s is to"
+                        " old)" % (wanted_version, redis_version)
+                    )
                 else:
-                    raise exc.JobFailure("Redis version %s or greater is"
-                                         " required" % (wanted_version))
+                    raise exc.JobFailure(
+                        "Redis version %s or greater is"
+                        " required" % (wanted_version)
+                    )
             else:
                 self._redis_version = redis_version
                 script_params = {
                     # Status field values.
                     'ok': self.SCRIPT_STATUS_OK,
                     'error': self.SCRIPT_STATUS_ERROR,
-
                     # Known error reasons (when status field is error).
                     'not_expected_owner': self.SCRIPT_NOT_EXPECTED_OWNER,
                     'unknown_owner': self.SCRIPT_UNKNOWN_OWNER,
@@ -729,18 +760,20 @@ return cmsgpack.pack(result)
         try:
             return msgpackutils.dumps(obj)
         except Exception:
-            exc.raise_with_cause(exc.JobFailure,
-                                 "Failed to serialize object to"
-                                 " msgpack blob")
+            exc.raise_with_cause(
+                exc.JobFailure, "Failed to serialize object to msgpack blob"
+            )
 
     @staticmethod
     def _loads(blob, root_types=(dict,)):
         try:
             return misc.decode_msgpack(blob, root_types=root_types)
         except ValueError:
-            exc.raise_with_cause(exc.JobFailure,
-                                 "Failed to deserialize object from"
-                                 " msgpack blob (of length %s)" % len(blob))
+            exc.raise_with_cause(
+                exc.JobFailure,
+                "Failed to deserialize object from"
+                " msgpack blob (of length %s)" % len(blob),
+            )
 
     _decode_owner = staticmethod(misc.binary_decode)
 
@@ -752,42 +785,66 @@ return cmsgpack.pack(result)
             raw_owner = self._client.get(owner_key)
             return self._decode_owner(raw_owner)
 
-    def post(self, name, book=None, details=None,
-             priority=base.JobPriority.NORMAL):
+    def post(
+        self, name, book=None, details=None, priority=base.JobPriority.NORMAL
+    ):
         job_uuid = uuidutils.generate_uuid()
         job_priority = base.JobPriority.convert(priority)
-        posting = base.format_posting(job_uuid, name,
-                                      created_on=timeutils.utcnow(),
-                                      book=book, details=details,
-                                      priority=job_priority)
+        posting = base.format_posting(
+            job_uuid,
+            name,
+            created_on=timeutils.utcnow(),
+            book=book,
+            details=details,
+            priority=job_priority,
+        )
         with _translate_failures():
             sequence = self._client.incr(self.sequence_key)
-            posting.update({
-                'sequence': sequence,
-            })
+            posting.update(
+                {
+                    'sequence': sequence,
+                }
+            )
         with _translate_failures():
             raw_posting = self._dumps(posting)
             raw_job_uuid = job_uuid.encode('latin-1')
-            was_posted = bool(self._client.hsetnx(self.listings_key,
-                                                  raw_job_uuid, raw_posting))
+            was_posted = bool(
+                self._client.hsetnx(
+                    self.listings_key, raw_job_uuid, raw_posting
+                )
+            )
             if not was_posted:
-                raise exc.JobFailure("New job located at '%s[%s]' could not"
-                                     " be posted" % (self.listings_key,
-                                                     raw_job_uuid))
+                raise exc.JobFailure(
+                    "New job located at '%s[%s]' could not"
+                    " be posted" % (self.listings_key, raw_job_uuid)
+                )
             else:
-                return RedisJob(self, name, sequence, raw_job_uuid,
-                                uuid=job_uuid, details=details,
-                                created_on=posting['created_on'],
-                                book=book, book_data=posting.get('book'),
-                                backend=self._persistence,
-                                priority=job_priority)
+                return RedisJob(
+                    self,
+                    name,
+                    sequence,
+                    raw_job_uuid,
+                    uuid=job_uuid,
+                    details=details,
+                    created_on=posting['created_on'],
+                    book=book,
+                    book_data=posting.get('book'),
+                    backend=self._persistence,
+                    priority=job_priority,
+                )
 
-    def wait(self, timeout=None, initial_delay=0.005,
-             max_delay=1.0, sleep_func=time.sleep):
+    def wait(
+        self,
+        timeout=None,
+        initial_delay=0.005,
+        max_delay=1.0,
+        sleep_func=time.sleep,
+    ):
         if initial_delay > max_delay:
-            raise ValueError("Initial delay %s must be less than or equal"
-                             " to the provided max delay %s"
-                             % (initial_delay, max_delay))
+            raise ValueError(
+                "Initial delay %s must be less than or equal"
+                " to the provided max delay %s" % (initial_delay, max_delay)
+            )
         # This does a spin-loop that backs off by doubling the delay
         # up to the provided max-delay. In the future we could try having
         # a secondary client connected into redis pubsub and use that
@@ -801,12 +858,15 @@ return cmsgpack.pack(result)
                 curr_jobs = self._fetch_jobs()
                 if curr_jobs:
                     return base.JobBoardIterator(
-                        self, LOG,
-                        board_fetch_func=lambda ensure_fresh: curr_jobs)
+                        self,
+                        LOG,
+                        board_fetch_func=lambda ensure_fresh: curr_jobs,
+                    )
             if w.expired():
-                raise exc.NotFound("Expired waiting for jobs to"
-                                   " arrive; waited %s seconds"
-                                   % w.elapsed())
+                raise exc.NotFound(
+                    "Expired waiting for jobs to"
+                    " arrive; waited %s seconds" % w.elapsed()
+                )
             else:
                 remaining = w.leftover(return_none=True)
                 if remaining is not None:
@@ -834,27 +894,43 @@ return cmsgpack.pack(result)
                 job_details = job_data.get('details', {})
             except (ValueError, TypeError, KeyError, exc.JobFailure):
                 with excutils.save_and_reraise_exception():
-                    LOG.warning("Incorrectly formatted job data found at"
-                                " key: %s[%s]", self.listings_key,
-                                raw_job_key, exc_info=True)
-                    LOG.info("Deleting invalid job data at key: %s[%s]",
-                             self.listings_key, raw_job_key)
+                    LOG.warning(
+                        "Incorrectly formatted job data found at key: %s[%s]",
+                        self.listings_key,
+                        raw_job_key,
+                        exc_info=True,
+                    )
+                    LOG.info(
+                        "Deleting invalid job data at key: %s[%s]",
+                        self.listings_key,
+                        raw_job_key,
+                    )
                     self._client.hdel(self.listings_key, raw_job_key)
             else:
-                postings.append(RedisJob(self, job_name, job_sequence_id,
-                                         raw_job_key, uuid=job_uuid,
-                                         details=job_details,
-                                         created_on=job_created_on,
-                                         book_data=job_data.get('book'),
-                                         backend=self._persistence,
-                                         priority=job_priority))
+                postings.append(
+                    RedisJob(
+                        self,
+                        job_name,
+                        job_sequence_id,
+                        raw_job_key,
+                        uuid=job_uuid,
+                        details=job_details,
+                        created_on=job_created_on,
+                        book_data=job_data.get('book'),
+                        backend=self._persistence,
+                        priority=job_priority,
+                    )
+                )
         return sorted(postings, reverse=True)
 
     def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
         return base.JobBoardIterator(
-            self, LOG, only_unclaimed=only_unclaimed,
+            self,
+            LOG,
+            only_unclaimed=only_unclaimed,
             ensure_fresh=ensure_fresh,
-            board_fetch_func=lambda ensure_fresh: self._fetch_jobs())
+            board_fetch_func=lambda ensure_fresh: self._fetch_jobs(),
+        )
 
     def register_entity(self, entity):
         # Will implement a redis jobboard conductor register later
@@ -865,36 +941,43 @@ return cmsgpack.pack(result)
         script = self._get_script('consume')
         with _translate_failures():
             raw_who = self._encode_owner(who)
-            raw_result = script(keys=[job.owner_key, self.listings_key,
-                                      job.last_modified_key],
-                                args=[raw_who, job.key])
+            raw_result = script(
+                keys=[job.owner_key, self.listings_key, job.last_modified_key],
+                args=[raw_who, job.key],
+            )
             result = self._loads(raw_result)
         status = result['status']
         if status != self.SCRIPT_STATUS_OK:
             reason = result.get('reason')
             if reason == self.SCRIPT_UNKNOWN_JOB:
-                raise exc.NotFound("Job %s not found to be"
-                                   " consumed" % (job.uuid))
+                raise exc.NotFound(
+                    "Job %s not found to be consumed" % (job.uuid)
+                )
             elif reason == self.SCRIPT_UNKNOWN_OWNER:
-                raise exc.NotFound("Can not consume job %s"
-                                   " which we can not determine"
-                                   " the owner of" % (job.uuid))
+                raise exc.NotFound(
+                    "Can not consume job %s"
+                    " which we can not determine"
+                    " the owner of" % (job.uuid)
+                )
             elif reason == self.SCRIPT_NOT_EXPECTED_OWNER:
                 raw_owner = result.get('owner')
                 if raw_owner:
                     owner = self._decode_owner(raw_owner)
-                    raise exc.JobFailure("Can not consume job %s"
-                                         " which is not owned by %s (it is"
-                                         " actively owned by %s)"
-                                         % (job.uuid, who, owner))
+                    raise exc.JobFailure(
+                        "Can not consume job %s"
+                        " which is not owned by %s (it is"
+                        " actively owned by %s)" % (job.uuid, who, owner)
+                    )
                 else:
-                    raise exc.JobFailure("Can not consume job %s"
-                                         " which is not owned by %s"
-                                         % (job.uuid, who))
+                    raise exc.JobFailure(
+                        "Can not consume job %s"
+                        " which is not owned by %s" % (job.uuid, who)
+                    )
             else:
-                raise exc.JobFailure("Failure to consume job %s,"
-                                     " unknown internal error (reason=%s)"
-                                     % (job.uuid, reason))
+                raise exc.JobFailure(
+                    "Failure to consume job %s,"
+                    " unknown internal error (reason=%s)" % (job.uuid, reason)
+                )
 
     @base.check_who
     def claim(self, job, who, expiry=None):
@@ -906,122 +989,151 @@ return cmsgpack.pack(result)
         else:
             ms_expiry = int(expiry * 1000.0)
             if ms_expiry <= 0:
-                raise ValueError("Provided expiry (when converted to"
-                                 " milliseconds) must be greater"
-                                 " than zero instead of %s" % (expiry))
+                raise ValueError(
+                    "Provided expiry (when converted to"
+                    " milliseconds) must be greater"
+                    " than zero instead of %s" % (expiry)
+                )
         script = self._get_script('claim')
         with _translate_failures():
             raw_who = self._encode_owner(who)
-            raw_result = script(keys=[job.owner_key, self.listings_key,
-                                      job.last_modified_key],
-                                args=[raw_who, job.key,
-                                      # NOTE(harlowja): we need to send this
-                                      # in as a blob (even if it's not
-                                      # set/used), since the format can not
-                                      # currently be created in lua...
-                                      self._dumps(timeutils.utcnow()),
-                                      ms_expiry])
+            raw_result = script(
+                keys=[job.owner_key, self.listings_key, job.last_modified_key],
+                args=[
+                    raw_who,
+                    job.key,
+                    # NOTE(harlowja): we need to send this
+                    # in as a blob (even if it's not
+                    # set/used), since the format can not
+                    # currently be created in lua...
+                    self._dumps(timeutils.utcnow()),
+                    ms_expiry,
+                ],
+            )
             result = self._loads(raw_result)
         status = result['status']
         if status != self.SCRIPT_STATUS_OK:
             reason = result.get('reason')
             if reason == self.SCRIPT_UNKNOWN_JOB:
-                raise exc.NotFound("Job %s not found to be"
-                                   " claimed" % (job.uuid))
+                raise exc.NotFound(
+                    "Job %s not found to be claimed" % (job.uuid)
+                )
             elif reason == self.SCRIPT_ALREADY_CLAIMED:
                 raw_owner = result.get('owner')
                 if raw_owner:
                     owner = self._decode_owner(raw_owner)
-                    raise exc.UnclaimableJob("Job %s already"
-                                             " claimed by %s"
-                                             % (job.uuid, owner))
+                    raise exc.UnclaimableJob(
+                        "Job %s already claimed by %s" % (job.uuid, owner)
+                    )
                 else:
-                    raise exc.UnclaimableJob("Job %s already"
-                                             " claimed" % (job.uuid))
+                    raise exc.UnclaimableJob(
+                        "Job %s already claimed" % (job.uuid)
+                    )
             else:
-                raise exc.JobFailure("Failure to claim job %s,"
-                                     " unknown internal error (reason=%s)"
-                                     % (job.uuid, reason))
+                raise exc.JobFailure(
+                    "Failure to claim job %s,"
+                    " unknown internal error (reason=%s)" % (job.uuid, reason)
+                )
 
     @base.check_who
     def abandon(self, job, who):
         script = self._get_script('abandon')
         with _translate_failures():
             raw_who = self._encode_owner(who)
-            raw_result = script(keys=[job.owner_key, self.listings_key,
-                                      job.last_modified_key],
-                                args=[raw_who, job.key,
-                                      self._dumps(timeutils.utcnow())])
+            raw_result = script(
+                keys=[job.owner_key, self.listings_key, job.last_modified_key],
+                args=[raw_who, job.key, self._dumps(timeutils.utcnow())],
+            )
             result = self._loads(raw_result)
         status = result.get('status')
         if status != self.SCRIPT_STATUS_OK:
             reason = result.get('reason')
             if reason == self.SCRIPT_UNKNOWN_JOB:
-                raise exc.NotFound("Job %s not found to be"
-                                   " abandoned" % (job.uuid))
+                raise exc.NotFound(
+                    "Job %s not found to be abandoned" % (job.uuid)
+                )
             elif reason == self.SCRIPT_UNKNOWN_OWNER:
-                raise exc.NotFound("Can not abandon job %s"
-                                   " which we can not determine"
-                                   " the owner of" % (job.uuid))
+                raise exc.NotFound(
+                    "Can not abandon job %s"
+                    " which we can not determine"
+                    " the owner of" % (job.uuid)
+                )
             elif reason == self.SCRIPT_NOT_EXPECTED_OWNER:
                 raw_owner = result.get('owner')
                 if raw_owner:
                     owner = self._decode_owner(raw_owner)
-                    raise exc.JobFailure("Can not abandon job %s"
-                                         " which is not owned by %s (it is"
-                                         " actively owned by %s)"
-                                         % (job.uuid, who, owner))
+                    raise exc.JobFailure(
+                        "Can not abandon job %s"
+                        " which is not owned by %s (it is"
+                        " actively owned by %s)" % (job.uuid, who, owner)
+                    )
                 else:
-                    raise exc.JobFailure("Can not abandon job %s"
-                                         " which is not owned by %s"
-                                         % (job.uuid, who))
+                    raise exc.JobFailure(
+                        "Can not abandon job %s"
+                        " which is not owned by %s" % (job.uuid, who)
+                    )
             else:
-                raise exc.JobFailure("Failure to abandon job %s,"
-                                     " unknown internal"
-                                     " error (status=%s, reason=%s)"
-                                     % (job.uuid, status, reason))
+                raise exc.JobFailure(
+                    "Failure to abandon job %s,"
+                    " unknown internal"
+                    " error (status=%s, reason=%s)"
+                    % (job.uuid, status, reason)
+                )
 
     def _get_script(self, name):
         try:
             return self._scripts[name]
         except KeyError:
-            exc.raise_with_cause(exc.NotFound,
-                                 "Can not access %s script (has this"
-                                 " board been connected?)" % name)
+            exc.raise_with_cause(
+                exc.NotFound,
+                "Can not access %s script (has this"
+                " board been connected?)" % name,
+            )
 
     @base.check_who
     def trash(self, job, who):
         script = self._get_script('trash')
         with _translate_failures():
             raw_who = self._encode_owner(who)
-            raw_result = script(keys=[job.owner_key, self.listings_key,
-                                      job.last_modified_key, self.trash_key],
-                                args=[raw_who, job.key,
-                                      self._dumps(timeutils.utcnow())])
+            raw_result = script(
+                keys=[
+                    job.owner_key,
+                    self.listings_key,
+                    job.last_modified_key,
+                    self.trash_key,
+                ],
+                args=[raw_who, job.key, self._dumps(timeutils.utcnow())],
+            )
             result = self._loads(raw_result)
         status = result['status']
         if status != self.SCRIPT_STATUS_OK:
             reason = result.get('reason')
             if reason == self.SCRIPT_UNKNOWN_JOB:
-                raise exc.NotFound("Job %s not found to be"
-                                   " trashed" % (job.uuid))
+                raise exc.NotFound(
+                    "Job %s not found to be trashed" % (job.uuid)
+                )
             elif reason == self.SCRIPT_UNKNOWN_OWNER:
-                raise exc.NotFound("Can not trash job %s"
-                                   " which we can not determine"
-                                   " the owner of" % (job.uuid))
+                raise exc.NotFound(
+                    "Can not trash job %s"
+                    " which we can not determine"
+                    " the owner of" % (job.uuid)
+                )
             elif reason == self.SCRIPT_NOT_EXPECTED_OWNER:
                 raw_owner = result.get('owner')
                 if raw_owner:
                     owner = self._decode_owner(raw_owner)
-                    raise exc.JobFailure("Can not trash job %s"
-                                         " which is not owned by %s (it is"
-                                         " actively owned by %s)"
-                                         % (job.uuid, who, owner))
+                    raise exc.JobFailure(
+                        "Can not trash job %s"
+                        " which is not owned by %s (it is"
+                        " actively owned by %s)" % (job.uuid, who, owner)
+                    )
                 else:
-                    raise exc.JobFailure("Can not trash job %s"
-                                         " which is not owned by %s"
-                                         % (job.uuid, who))
+                    raise exc.JobFailure(
+                        "Can not trash job %s"
+                        " which is not owned by %s" % (job.uuid, who)
+                    )
             else:
-                raise exc.JobFailure("Failure to trash job %s,"
-                                     " unknown internal error (reason=%s)"
-                                     % (job.uuid, reason))
+                raise exc.JobFailure(
+                    "Failure to trash job %s,"
+                    " unknown internal error (reason=%s)" % (job.uuid, reason)
+                )

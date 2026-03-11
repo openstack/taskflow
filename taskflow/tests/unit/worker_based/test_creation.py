@@ -29,27 +29,31 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
         backend = backends.fetch({'connection': 'memory'})
         flow_detail = pu.create_flow_detail(flow, backend=backend)
         options = kwargs.copy()
-        return engine.WorkerBasedActionEngine(flow, flow_detail,
-                                              backend, options)
+        return engine.WorkerBasedActionEngine(
+            flow, flow_detail, backend, options
+        )
 
     def _patch_in_executor(self):
         executor_mock, executor_inst_mock = self.patchClass(
-            engine.executor, 'WorkerTaskExecutor', attach_as='executor')
+            engine.executor, 'WorkerTaskExecutor', attach_as='executor'
+        )
         return executor_mock, executor_inst_mock
 
     def test_creation_default(self):
         executor_mock, executor_inst_mock = self._patch_in_executor()
         eng = self._create_engine()
         expected_calls = [
-            mock.call.executor_class(uuid=eng.storage.flow_uuid,
-                                     url=None,
-                                     exchange='default',
-                                     topics=[],
-                                     transport=None,
-                                     transport_options=None,
-                                     transition_timeout=mock.ANY,
-                                     retry_options=None,
-                                     worker_expiry=mock.ANY)
+            mock.call.executor_class(
+                uuid=eng.storage.flow_uuid,
+                url=None,
+                exchange='default',
+                topics=[],
+                transport=None,
+                transport_options=None,
+                transition_timeout=mock.ANY,
+                retry_options=None,
+                worker_expiry=mock.ANY,
+            )
         ]
         self.assertEqual(expected_calls, self.master_mock.mock_calls)
 
@@ -66,17 +70,20 @@ class TestWorkerBasedActionEngine(test.MockTestCase):
             transition_timeout=200,
             topics=topics,
             retry_options={},
-            worker_expiry=1)
+            worker_expiry=1,
+        )
         expected_calls = [
-            mock.call.executor_class(uuid=eng.storage.flow_uuid,
-                                     url=broker_url,
-                                     exchange=exchange,
-                                     topics=topics,
-                                     transport='memory',
-                                     transport_options={},
-                                     transition_timeout=200,
-                                     retry_options={},
-                                     worker_expiry=1)
+            mock.call.executor_class(
+                uuid=eng.storage.flow_uuid,
+                url=broker_url,
+                exchange=exchange,
+                topics=topics,
+                transport='memory',
+                transport_options={},
+                transition_timeout=200,
+                retry_options={},
+                worker_expiry=1,
+            )
         ]
         self.assertEqual(expected_calls, self.master_mock.mock_calls)
 

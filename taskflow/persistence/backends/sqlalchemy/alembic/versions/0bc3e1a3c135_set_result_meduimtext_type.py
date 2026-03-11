@@ -31,13 +31,18 @@ def upgrade():
     bind = op.get_bind()
     engine = bind.engine
     if engine.name == 'mysql':
-        op.alter_column('atomdetails', 'results', type_=mysql.LONGTEXT,
-                        existing_nullable=True)
+        op.alter_column(
+            'atomdetails',
+            'results',
+            type_=mysql.LONGTEXT,
+            existing_nullable=True,
+        )
 
 
 def downgrade():
     bind = op.get_bind()
     engine = bind.engine
     if engine.name == 'mysql':
-        op.alter_column('atomdetails', 'results', type_=sa.Text(),
-                        existing_nullable=True)
+        op.alter_column(
+            'atomdetails', 'results', type_=sa.Text(), existing_nullable=True
+        )

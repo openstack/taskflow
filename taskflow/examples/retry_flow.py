@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
@@ -52,10 +52,12 @@ class CallJim(task.Task):
 
 
 # Create your flow and associated tasks (the work to be done).
-flow = lf.Flow('retrying-linear',
-               retry=retry.ParameterizedForEach(
-                   rebind=['phone_directory'],
-                   provides='jim_number')).add(CallJim())
+flow = lf.Flow(
+    'retrying-linear',
+    retry=retry.ParameterizedForEach(
+        rebind=['phone_directory'], provides='jim_number'
+    ),
+).add(CallJim())
 
 # Now run that flow using the provided initial data (store below).
 taskflow.engines.run(flow, store={'phone_directory': [333, 444, 555, 666]})

@@ -21,10 +21,13 @@ class Timeout:
     This object has the ability to be interrupted before the actual timeout
     is reached.
     """
+
     def __init__(self, value, event_factory=threading.Event):
         if value < 0:
-            raise ValueError("Timeout value must be greater or"
-                             " equal to zero and not '%s'" % (value))
+            raise ValueError(
+                "Timeout value must be greater or"
+                " equal to zero and not '%s'" % (value)
+            )
         self._value = value
         self._event = event_factory()
 
@@ -50,8 +53,9 @@ class Timeout:
         self._event.clear()
 
 
-def convert_to_timeout(value=None, default_value=None,
-                       event_factory=threading.Event):
+def convert_to_timeout(
+    value=None, default_value=None, event_factory=threading.Event
+):
     """Converts a given value to a timeout instance (and returns it).
 
     Does nothing if the value provided is already a timeout instance.

@@ -95,7 +95,21 @@ parallel = "taskflow.engines.action_engine.engine:ParallelActionEngine"
 worker-based = "taskflow.engines.worker_based.engine:WorkerBasedActionEngine"
 workers = "taskflow.engines.worker_based.engine:WorkerBasedActionEngine"
 
-[tool.setuptools]
-packages = [
-    "taskflow"
-]
+[tool.setuptools.packages.find]
+include = ["taskflow"]
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.format]
+quote-style = "preserve"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["E4", "E5", "E7", "E9", "F", "G", "LOG", "S"]
+external = ["H"]
+ignore = ["E402", "E721", "E731", "E741"]
+
+[tool.ruff.lint.per-file-ignores]
+"taskflow/examples/*" = ["S"]
+"taskflow/tests/*" = ["S"]

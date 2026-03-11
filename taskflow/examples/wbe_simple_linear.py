@@ -18,9 +18,9 @@ import os
 import sys
 import tempfile
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 from taskflow import engines
@@ -64,7 +64,7 @@ WORKER_CONF = {
     # not want to allow all python code to be executed).
     'tasks': [
         'taskflow.tests.utils:TaskOneArgOneReturn',
-        'taskflow.tests.utils:TaskMultiArgOneReturn'
+        'taskflow.tests.utils:TaskMultiArgOneReturn',
     ],
 }
 
@@ -72,11 +72,14 @@ WORKER_CONF = {
 def run(engine_options):
     flow = lf.Flow('simple-linear').add(
         utils.TaskOneArgOneReturn(provides='result1'),
-        utils.TaskMultiArgOneReturn(provides='result2')
+        utils.TaskMultiArgOneReturn(provides='result2'),
     )
-    eng = engines.load(flow,
-                       store=dict(x=111, y=222, z=333),
-                       engine='worker-based', **engine_options)
+    eng = engines.load(
+        flow,
+        store=dict(x=111, y=222, z=333),
+        engine='worker-based',
+        **engine_options,
+    )
     eng.run()
     return eng.storage.fetch_all()
 
@@ -92,22 +95,26 @@ if __name__ == "__main__":
     if USE_FILESYSTEM:
         worker_count = FILE_WORKERS
         tmp_path = tempfile.mkdtemp(prefix='wbe-example-')
-        shared_conf.update({
-            'transport': 'filesystem',
-            'transport_options': {
-                'data_folder_in': tmp_path,
-                'data_folder_out': tmp_path,
-                'polling_interval': 0.1,
-            },
-        })
+        shared_conf.update(
+            {
+                'transport': 'filesystem',
+                'transport_options': {
+                    'data_folder_in': tmp_path,
+                    'data_folder_out': tmp_path,
+                    'polling_interval': 0.1,
+                },
+            }
+        )
     else:
         worker_count = MEMORY_WORKERS
-        shared_conf.update({
-            'transport': 'memory',
-            'transport_options': {
-                'polling_interval': 0.1,
-            },
-        })
+        shared_conf.update(
+            {
+                'transport': 'memory',
+                'transport_options': {
+                    'polling_interval': 0.1,
+                },
+            }
+        )
     worker_conf = dict(WORKER_CONF)
     worker_conf.update(shared_conf)
     engine_options = dict(shared_conf)

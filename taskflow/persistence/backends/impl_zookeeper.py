@@ -79,8 +79,9 @@ class ZkBackend(path_based.PathBasedBackend):
         try:
             k_utils.finalize_client(self._client)
         except (k_exc.KazooException, k_exc.ZookeeperError):
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Unable to finalize client")
+            exc.raise_with_cause(
+                exc.StorageFailure, "Unable to finalize client"
+            )
 
 
 class ZkConnection(path_based.PathBasedConnection):
@@ -103,20 +104,23 @@ class ZkConnection(path_based.PathBasedConnection):
         try:
             yield
         except self._client.handler.timeout_exception:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Storage backend timeout")
+            exc.raise_with_cause(exc.StorageFailure, "Storage backend timeout")
         except k_exc.SessionExpiredError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Storage backend session has expired")
+            exc.raise_with_cause(
+                exc.StorageFailure, "Storage backend session has expired"
+            )
         except k_exc.NoNodeError:
-            exc.raise_with_cause(exc.NotFound,
-                                 "Storage backend node not found")
+            exc.raise_with_cause(
+                exc.NotFound, "Storage backend node not found"
+            )
         except k_exc.NodeExistsError:
-            exc.raise_with_cause(exc.Duplicate,
-                                 "Storage backend duplicate node")
+            exc.raise_with_cause(
+                exc.Duplicate, "Storage backend duplicate node"
+            )
         except (k_exc.KazooException, k_exc.ZookeeperError):
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Storage backend internal error")
+            exc.raise_with_cause(
+                exc.StorageFailure, "Storage backend internal error"
+            )
 
     def _join_path(self, *parts):
         return paths.join(*parts)
@@ -161,8 +165,11 @@ class ZkConnection(path_based.PathBasedConnection):
         with self._exc_wrapper():
             try:
                 if strutils.bool_from_string(
-                        self._conf.get('check_compatible'), default=True):
+                    self._conf.get('check_compatible'), default=True
+                ):
                     k_utils.check_compatible(self._client, MIN_ZK_VERSION)
             except exc.IncompatibleVersion:
-                exc.raise_with_cause(exc.StorageFailure, "Backend storage is"
-                                     " not a compatible version")
+                exc.raise_with_cause(
+                    exc.StorageFailure,
+                    "Backend storage is not a compatible version",
+                )

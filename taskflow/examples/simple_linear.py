@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
@@ -54,11 +54,7 @@ class CallJoe(task.Task):
 
 
 # Create your flow and associated tasks (the work to be done).
-flow = lf.Flow('simple-linear').add(
-    CallJim(),
-    CallJoe()
-)
+flow = lf.Flow('simple-linear').add(CallJim(), CallJoe())
 
 # Now run that flow using the provided initial data (store below).
-taskflow.engines.run(flow, store=dict(joe_number=444,
-                                      jim_number=555))
+taskflow.engines.run(flow, store=dict(joe_number=444, jim_number=555))

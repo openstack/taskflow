@@ -36,12 +36,13 @@ def _storagefailure_wrapper():
         raise
     except Exception as e:
         if isinstance(e, (IOError, OSError)) and e.errno == errno.ENOENT:
-            exc.raise_with_cause(exc.NotFound,
-                                 'Item not found: %s' % e.filename,
-                                 cause=e)
+            exc.raise_with_cause(
+                exc.NotFound, 'Item not found: %s' % e.filename, cause=e
+            )
         else:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Storage backend internal error", cause=e)
+            exc.raise_with_cause(
+                exc.StorageFailure, "Storage backend internal error", cause=e
+            )
 
 
 class DirBackend(path_based.PathBasedBackend):
@@ -71,8 +72,9 @@ class DirBackend(path_based.PathBasedBackend):
         if max_cache_size is not None:
             max_cache_size = int(max_cache_size)
             if max_cache_size < 1:
-                raise ValueError("Maximum cache size must be greater than"
-                                 " or equal to one")
+                raise ValueError(
+                    "Maximum cache size must be greater than or equal to one"
+                )
             self.file_cache = cachetools.LRUCache(max_cache_size)
         else:
             self.file_cache = {}
@@ -103,8 +105,7 @@ class Connection(path_based.PathBasedConnection):
         return cache_info['data']
 
     def _write_to(self, filename, contents):
-        contents = misc.binary_encode(contents,
-                                      encoding=self.backend.encoding)
+        contents = misc.binary_encode(contents, encoding=self.backend.encoding)
         with open(filename, 'wb') as fp:
             fp.write(contents)
         self.backend.file_cache.pop(filename, None)
@@ -139,8 +140,11 @@ class Connection(path_based.PathBasedConnection):
         else:
             filter_func = os.path.islink
         with _storagefailure_wrapper():
-            return [child for child in os.listdir(path)
-                    if filter_func(self._join_path(path, child))]
+            return [
+                child
+                for child in os.listdir(path)
+                if filter_func(self._join_path(path, child))
+            ]
 
     def _ensure_path(self, path):
         with _storagefailure_wrapper():

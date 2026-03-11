@@ -24,8 +24,9 @@ def _raise_on_closed(meth):
     @functools.wraps(meth)
     def wrapper(self, *args, **kwargs):
         if self.closed:
-            raise redis_exceptions.ConnectionError("Connection has been"
-                                                   " closed")
+            raise redis_exceptions.ConnectionError(
+                "Connection has been closed"
+            )
         return meth(self, *args, **kwargs)
 
     return wrapper
@@ -75,7 +76,8 @@ _UNKNOWN_EXPIRE_MAPPING = {e.value: e for e in list(UnknownExpire)}
 def get_expiry(client, key, prior_version=None):
     """Gets an expiry for a key (using **best** determined ttl method)."""
     is_new_enough, _prior_version = is_server_new_enough(
-        client, (2, 6), prior_version=prior_version)
+        client, (2, 6), prior_version=prior_version
+    )
     if is_new_enough:
         result = client.pttl(key)
         try:
@@ -93,7 +95,8 @@ def get_expiry(client, key, prior_version=None):
 def apply_expiry(client, key, expiry, prior_version=None):
     """Applies an expiry to a key (using **best** determined expiry method)."""
     is_new_enough, _prior_version = is_server_new_enough(
-        client, (2, 6), prior_version=prior_version)
+        client, (2, 6), prior_version=prior_version
+    )
     if is_new_enough:
         # Use milliseconds (as that is what pexpire uses/expects...)
         ms_expiry = expiry * 1000.0
@@ -107,8 +110,9 @@ def apply_expiry(client, key, expiry, prior_version=None):
     return bool(result)
 
 
-def is_server_new_enough(client, min_version,
-                         default=False, prior_version=None):
+def is_server_new_enough(
+    client, min_version, default=False, prior_version=None
+):
     """Checks if a client is attached to a new enough redis server."""
     if not prior_version:
         try:

@@ -23,8 +23,9 @@ from taskflow.test import mock
 
 
 def mock_acked_message(ack_ok=True, **kwargs):
-    msg = mock.create_autospec(message.Message, spec_set=True, instance=True,
-                               channel=None, **kwargs)
+    msg = mock.create_autospec(
+        message.Message, spec_set=True, instance=True, channel=None, **kwargs
+    )
 
     def ack_side_effect(*args, **kwargs):
         msg.acknowledged = True
@@ -70,8 +71,7 @@ class TestDispatcher(test.TestCase):
         on_hello = mock.MagicMock()
         handlers = {'hello': dispatcher.Handler(on_hello)}
         d = dispatcher.TypeDispatcher(type_handlers=handlers)
-        msg = mock_acked_message(ack_ok=False,
-                                 properties={'type': 'hello'})
+        msg = mock_acked_message(ack_ok=False, properties={'type': 'hello'})
         d.on_message("", msg)
         self.assertTrue(msg.ack_log_error.called)
         self.assertFalse(msg.acknowledged)

@@ -45,22 +45,37 @@ LOG = logging.getLogger(__name__)
 class ZookeeperJob(base.Job):
     """A zookeeper job."""
 
-    def __init__(self, board, name, client, path,
-                 uuid=None, details=None, book=None, book_data=None,
-                 created_on=None, backend=None,
-                 priority=base.JobPriority.NORMAL):
-        super().__init__(board, name,
-                         uuid=uuid, details=details,
-                         backend=backend,
-                         book=book, book_data=book_data)
+    def __init__(
+        self,
+        board,
+        name,
+        client,
+        path,
+        uuid=None,
+        details=None,
+        book=None,
+        book_data=None,
+        created_on=None,
+        backend=None,
+        priority=base.JobPriority.NORMAL,
+    ):
+        super().__init__(
+            board,
+            name,
+            uuid=uuid,
+            details=details,
+            backend=backend,
+            book=book,
+            book_data=book_data,
+        )
         self._client = client
         self._path = k_paths.normpath(path)
         self._lock_path = self._path + board.LOCK_POSTFIX
         self._created_on = created_on
         self._node_not_found = False
         basename = k_paths.basename(self._path)
-        self._root = self._path[0:-len(basename)]
-        self._sequence = int(basename[len(board.JOB_PREFIX):])
+        self._root = self._path[0 : -len(basename)]
+        self._sequence = int(basename[len(board.JOB_PREFIX) :])
         self._priority = priority
 
     @property
@@ -99,23 +114,26 @@ class ZookeeperJob(base.Job):
             excp.raise_with_cause(
                 excp.NotFound,
                 "Can not fetch the %r attribute of job %s (%s),"
-                " path %s not found" % (attr_name, self.uuid,
-                                        self.path, path))
+                " path %s not found" % (attr_name, self.uuid, self.path, path),
+            )
         except self._client.handler.timeout_exception:
             excp.raise_with_cause(
                 excp.JobFailure,
                 "Can not fetch the %r attribute of job %s (%s),"
-                " operation timed out" % (attr_name, self.uuid, self.path))
+                " operation timed out" % (attr_name, self.uuid, self.path),
+            )
         except k_exceptions.SessionExpiredError:
             excp.raise_with_cause(
                 excp.JobFailure,
                 "Can not fetch the %r attribute of job %s (%s),"
-                " session expired" % (attr_name, self.uuid, self.path))
+                " session expired" % (attr_name, self.uuid, self.path),
+            )
         except (AttributeError, k_exceptions.KazooException):
             excp.raise_with_cause(
                 excp.JobFailure,
                 "Can not fetch the %r attribute of job %s (%s),"
-                " internal error" % (attr_name, self.uuid, self.path))
+                " internal error" % (attr_name, self.uuid, self.path),
+            )
 
     @property
     def last_modified(self):
@@ -123,8 +141,8 @@ class ZookeeperJob(base.Job):
         try:
             if not self._node_not_found:
                 modified_on = self._get_node_attr(
-                    self.path, 'mtime',
-                    trans_func=misc.millis_to_datetime)
+                    self.path, 'mtime', trans_func=misc.millis_to_datetime
+                )
         except excp.NotFound:
             self._node_not_found = True
         return modified_on
@@ -137,8 +155,8 @@ class ZookeeperJob(base.Job):
         if self._created_on is None:
             try:
                 self._created_on = self._get_node_attr(
-                    self.path, 'ctime',
-                    trans_func=misc.millis_to_datetime)
+                    self.path, 'ctime', trans_func=misc.millis_to_datetime
+                )
             except excp.NotFound:
                 self._node_not_found = True
         return self._created_on
@@ -155,18 +173,19 @@ class ZookeeperJob(base.Job):
         except k_exceptions.SessionExpiredError:
             excp.raise_with_cause(
                 excp.JobFailure,
-                "Can not fetch the state of %s,"
-                " session expired" % (self.uuid))
+                "Can not fetch the state of %s, session expired" % (self.uuid),
+            )
         except self._client.handler.timeout_exception:
             excp.raise_with_cause(
                 excp.JobFailure,
                 "Can not fetch the state of %s,"
-                " operation timed out" % (self.uuid))
+                " operation timed out" % (self.uuid),
+            )
         except k_exceptions.KazooException:
             excp.raise_with_cause(
                 excp.JobFailure,
-                "Can not fetch the state of %s,"
-                " internal error" % (self.uuid))
+                "Can not fetch the state of %s, internal error" % (self.uuid),
+            )
         if not job_data:
             # No data this job has been completed (the owner that we might have
             # fetched will not be able to be fetched again, since the job node
@@ -185,7 +204,8 @@ class ZookeeperJob(base.Job):
                 return self.sequence < other.sequence
             else:
                 ordered = base.JobPriority.reorder(
-                    (self.priority, self), (other.priority, other))
+                    (self.priority, self), (other.priority, other)
+                )
                 if ordered[0] is self:
                     return False
                 return True
@@ -196,8 +216,11 @@ class ZookeeperJob(base.Job):
     def __eq__(self, other):
         if not isinstance(other, ZookeeperJob):
             return NotImplemented
-        return ((self.root, self.sequence, self.priority) ==
-                (other.root, other.sequence, other.priority))
+        return (self.root, self.sequence, self.priority) == (
+            other.root,
+            other.sequence,
+            other.priority,
+        )
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -277,8 +300,14 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     or may be recovered (aka, it has not full disconnected).
     """
 
-    def __init__(self, name, conf,
-                 client=None, persistence=None, emit_notifications=True):
+    def __init__(
+        self,
+        name,
+        conf,
+        client=None,
+        persistence=None,
+        emit_notifications=True,
+    ):
         super().__init__(name, conf)
         if client is not None:
             self._client = client
@@ -292,11 +321,12 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         if not k_paths.isabs(path):
             raise ValueError("Zookeeper path must be absolute")
         self._path = path
-        self._trash_path = self._path.replace(k_paths.basename(self._path),
-                                              self.TRASH_FOLDER)
+        self._trash_path = self._path.replace(
+            k_paths.basename(self._path), self.TRASH_FOLDER
+        )
         self._entity_path = self._path.replace(
-            k_paths.basename(self._path),
-            self.ENTITY_FOLDER)
+            k_paths.basename(self._path), self.ENTITY_FOLDER
+        )
         # The backend to load the full logbooks from, since what is sent over
         # the data connection is only the logbook uuid and name, and not the
         # full logbook.
@@ -378,23 +408,30 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             maybe_children = self._client.get_children(self.path)
             self._on_job_posting(maybe_children, delayed=False)
         except self._client.handler.timeout_exception:
-            excp.raise_with_cause(excp.JobFailure,
-                                  "Refreshing failure, operation timed out")
+            excp.raise_with_cause(
+                excp.JobFailure, "Refreshing failure, operation timed out"
+            )
         except k_exceptions.SessionExpiredError:
-            excp.raise_with_cause(excp.JobFailure,
-                                  "Refreshing failure, session expired")
+            excp.raise_with_cause(
+                excp.JobFailure, "Refreshing failure, session expired"
+            )
         except k_exceptions.NoNodeError:
             pass
         except k_exceptions.KazooException:
-            excp.raise_with_cause(excp.JobFailure,
-                                  "Refreshing failure, internal error")
+            excp.raise_with_cause(
+                excp.JobFailure, "Refreshing failure, internal error"
+            )
 
     def iterjobs(self, only_unclaimed=False, ensure_fresh=False):
         board_removal_func = lambda job: self._remove_job(job.path)
         return base.JobBoardIterator(
-            self, LOG, only_unclaimed=only_unclaimed,
-            ensure_fresh=ensure_fresh, board_fetch_func=self._fetch_jobs,
-            board_removal_func=board_removal_func)
+            self,
+            LOG,
+            only_unclaimed=only_unclaimed,
+            ensure_fresh=ensure_fresh,
+            board_fetch_func=self._fetch_jobs,
+            board_removal_func=board_removal_func,
+        )
 
     def _remove_job(self, path):
         if path not in self._known_jobs:
@@ -424,38 +461,56 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             job_name = job_data['name']
         except (ValueError, TypeError, KeyError):
             with excutils.save_and_reraise_exception(reraise=not quiet):
-                LOG.warning("Incorrectly formatted job data found at path: %s",
-                            path, exc_info=True)
+                LOG.warning(
+                    "Incorrectly formatted job data found at path: %s",
+                    path,
+                    exc_info=True,
+                )
         except self._client.handler.timeout_exception:
             with excutils.save_and_reraise_exception(reraise=not quiet):
-                LOG.warning("Operation timed out fetching job data from"
-                            " from path: %s",
-                            path, exc_info=True)
+                LOG.warning(
+                    "Operation timed out fetching job data from from path: %s",
+                    path,
+                    exc_info=True,
+                )
         except k_exceptions.SessionExpiredError:
             with excutils.save_and_reraise_exception(reraise=not quiet):
-                LOG.warning("Session expired fetching job data from path: %s",
-                            path, exc_info=True)
+                LOG.warning(
+                    "Session expired fetching job data from path: %s",
+                    path,
+                    exc_info=True,
+                )
         except k_exceptions.NoNodeError:
-            LOG.debug("No job node found at path: %s, it must have"
-                      " disappeared or was removed", path)
+            LOG.debug(
+                "No job node found at path: %s, it must have"
+                " disappeared or was removed",
+                path,
+            )
         except k_exceptions.KazooException:
             with excutils.save_and_reraise_exception(reraise=not quiet):
-                LOG.warning("Internal error fetching job data from path: %s",
-                            path, exc_info=True)
+                LOG.warning(
+                    "Internal error fetching job data from path: %s",
+                    path,
+                    exc_info=True,
+                )
         else:
             with self._job_cond:
                 # Now we can officially check if someone already placed this
                 # jobs information into the known job set (if it's already
                 # existing then just leave it alone).
                 if path not in self._known_jobs:
-                    job = ZookeeperJob(self, job_name,
-                                       self._client, path,
-                                       backend=self._persistence,
-                                       uuid=job_uuid,
-                                       book_data=job_data.get("book"),
-                                       details=job_data.get("details", {}),
-                                       created_on=job_created_on,
-                                       priority=job_priority)
+                    job = ZookeeperJob(
+                        self,
+                        job_name,
+                        self._client,
+                        path,
+                        backend=self._persistence,
+                        uuid=job_uuid,
+                        book_data=job_data.get("book"),
+                        details=job_data.get("details", {}),
+                        created_on=job_created_on,
+                        priority=job_priority,
+                    )
                     self._known_jobs[path] = job
                     self._job_cond.notify_all()
         if job is not None:
@@ -465,8 +520,9 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         LOG.debug("Got children %s under path %s", children, self.path)
         child_paths = []
         for c in children:
-            if (c.endswith(self.LOCK_POSTFIX) or
-                    not c.startswith(self.JOB_PREFIX)):
+            if c.endswith(self.LOCK_POSTFIX) or not c.startswith(
+                self.JOB_PREFIX
+            ):
                 # Skip lock paths or non-job-paths (these are not valid jobs)
                 continue
             child_paths.append(k_paths.join(self.path, c))
@@ -513,29 +569,42 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             else:
                 self._process_child(path, request, quiet=False)
 
-    def post(self, name, book=None, details=None,
-             priority=base.JobPriority.NORMAL):
+    def post(
+        self, name, book=None, details=None, priority=base.JobPriority.NORMAL
+    ):
         # NOTE(harlowja): Jobs are not ephemeral, they will persist until they
         # are consumed (this may change later, but seems safer to do this until
         # further notice).
         job_priority = base.JobPriority.convert(priority)
         job_uuid = uuidutils.generate_uuid()
-        job_posting = base.format_posting(job_uuid, name,
-                                          book=book, details=details,
-                                          priority=job_priority)
+        job_posting = base.format_posting(
+            job_uuid, name, book=book, details=details, priority=job_priority
+        )
         raw_job_posting = misc.binary_encode(jsonutils.dumps(job_posting))
-        with self._wrap(job_uuid, None,
-                        fail_msg_tpl="Posting failure: %s",
-                        ensure_known=False):
-            job_path = self._client.create(self._job_base,
-                                           value=raw_job_posting,
-                                           sequence=True,
-                                           ephemeral=False)
-            job = ZookeeperJob(self, name, self._client, job_path,
-                               backend=self._persistence,
-                               book=book, details=details, uuid=job_uuid,
-                               book_data=job_posting.get('book'),
-                               priority=job_priority)
+        with self._wrap(
+            job_uuid,
+            None,
+            fail_msg_tpl="Posting failure: %s",
+            ensure_known=False,
+        ):
+            job_path = self._client.create(
+                self._job_base,
+                value=raw_job_posting,
+                sequence=True,
+                ephemeral=False,
+            )
+            job = ZookeeperJob(
+                self,
+                name,
+                self._client,
+                job_path,
+                backend=self._persistence,
+                book=book,
+                details=details,
+                uuid=job_uuid,
+                book_data=job_posting.get('book'),
+                priority=job_priority,
+            )
             with self._job_cond:
                 self._known_jobs[job_path] = job
                 self._job_cond.notify_all()
@@ -551,19 +620,22 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                 owner = None
             if owner:
                 message = "Job {} already claimed by '{}'".format(
-                    job.uuid, owner)
+                    job.uuid, owner
+                )
             else:
                 message = "Job %s already claimed" % (job.uuid)
-            excp.raise_with_cause(excp.UnclaimableJob,
-                                  message, cause=cause)
+            excp.raise_with_cause(excp.UnclaimableJob, message, cause=cause)
 
-        with self._wrap(job.uuid, job.path,
-                        fail_msg_tpl="Claiming failure: %s"):
+        with self._wrap(
+            job.uuid, job.path, fail_msg_tpl="Claiming failure: %s"
+        ):
             # NOTE(harlowja): post as json which will allow for future changes
             # more easily than a raw string/text.
-            value = jsonutils.dumps({
-                'owner': who,
-            })
+            value = jsonutils.dumps(
+                {
+                    'owner': who,
+                }
+            )
             # Ensure the target job is still existent (at the right version).
             job_data, job_stat = self._client.get(job.path)
             txn = self._client.transaction()
@@ -571,8 +643,9 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             # removed (somehow...) or updated by someone else to a different
             # version...
             txn.check(job.path, version=job_stat.version)
-            txn.create(job.lock_path, value=misc.binary_encode(value),
-                       ephemeral=True)
+            txn.create(
+                job.lock_path, value=misc.binary_encode(value), ephemeral=True
+            )
             try:
                 kazoo_utils.checked_commit(txn)
             except k_exceptions.NodeExistsError as e:
@@ -585,24 +658,29 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                         excp.raise_with_cause(
                             excp.NotFound,
                             "Job %s not found to be claimed" % job.uuid,
-                            cause=e.failures[0])
+                            cause=e.failures[0],
+                        )
                     if isinstance(e.failures[1], k_exceptions.NodeExistsError):
                         _unclaimable_try_find_owner(e.failures[1])
                     else:
                         excp.raise_with_cause(
                             excp.UnclaimableJob,
                             "Job %s claim failed due to transaction"
-                            " not succeeding" % (job.uuid), cause=e)
+                            " not succeeding" % (job.uuid),
+                            cause=e,
+                        )
 
     @contextlib.contextmanager
-    def _wrap(self, job_uuid, job_path,
-              fail_msg_tpl="Failure: %s", ensure_known=True):
+    def _wrap(
+        self, job_uuid, job_path, fail_msg_tpl="Failure: %s", ensure_known=True
+    ):
         if job_path:
             fail_msg_tpl += " (%s)" % (job_path)
         if ensure_known:
             if not job_path:
-                raise ValueError("Unable to check if %r is a known path"
-                                 % (job_path))
+                raise ValueError(
+                    "Unable to check if %r is a known path" % (job_path)
+                )
             if job_path not in self._known_jobs:
                 fail_msg_tpl += ", unknown job"
                 raise excp.NotFound(fail_msg_tpl % (job_uuid))
@@ -622,9 +700,12 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             excp.raise_with_cause(excp.JobFailure, fail_msg_tpl % (job_uuid))
 
     def find_owner(self, job):
-        with self._wrap(job.uuid, job.path,
-                        fail_msg_tpl="Owner query failure: %s",
-                        ensure_known=False):
+        with self._wrap(
+            job.uuid,
+            job.path,
+            fail_msg_tpl="Owner query failure: %s",
+            ensure_known=False,
+        ):
             try:
                 self._client.sync(job.lock_path)
                 raw_data, _lock_stat = self._client.get(job.lock_path)
@@ -637,8 +718,12 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
     def _get_owner_and_data(self, job):
         lock_data, lock_stat = self._client.get(job.lock_path)
         job_data, job_stat = self._client.get(job.path)
-        return (misc.decode_json(lock_data), lock_stat,
-                misc.decode_json(job_data), job_stat)
+        return (
+            misc.decode_json(lock_data),
+            lock_stat,
+            misc.decode_json(job_data),
+            job_stat,
+        )
 
     def register_entity(self, entity):
         entity_type = entity.kind
@@ -646,47 +731,58 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             entity_path = k_paths.join(self.entity_path, entity_type)
             try:
                 self._client.ensure_path(entity_path)
-                self._client.create(k_paths.join(entity_path, entity.name),
-                                    value=misc.binary_encode(
-                                        jsonutils.dumps(entity.to_dict())),
-                                    ephemeral=True)
+                self._client.create(
+                    k_paths.join(entity_path, entity.name),
+                    value=misc.binary_encode(
+                        jsonutils.dumps(entity.to_dict())
+                    ),
+                    ephemeral=True,
+                )
             except k_exceptions.NodeExistsError:
                 pass
             except self._client.handler.timeout_exception:
                 excp.raise_with_cause(
                     excp.JobFailure,
                     "Can not register entity %s under %s, operation"
-                    " timed out" % (entity.name, entity_path))
+                    " timed out" % (entity.name, entity_path),
+                )
             except k_exceptions.SessionExpiredError:
                 excp.raise_with_cause(
                     excp.JobFailure,
                     "Can not register entity %s under %s, session"
-                    " expired" % (entity.name, entity_path))
+                    " expired" % (entity.name, entity_path),
+                )
             except k_exceptions.KazooException:
                 excp.raise_with_cause(
                     excp.JobFailure,
                     "Can not register entity %s under %s, internal"
-                    " error" % (entity.name, entity_path))
+                    " error" % (entity.name, entity_path),
+                )
         else:
             raise excp.NotImplementedError(
-                "Not implemented for other entity type '%s'" % entity_type)
+                "Not implemented for other entity type '%s'" % entity_type
+            )
 
     @base.check_who
     def consume(self, job, who):
-        with self._wrap(job.uuid, job.path,
-                        fail_msg_tpl="Consumption failure: %s"):
+        with self._wrap(
+            job.uuid, job.path, fail_msg_tpl="Consumption failure: %s"
+        ):
             try:
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                excp.raise_with_cause(excp.NotFound,
-                                      "Can not consume a job %s"
-                                      " which we can not determine"
-                                      " the owner of" % (job.uuid))
+                excp.raise_with_cause(
+                    excp.NotFound,
+                    "Can not consume a job %s"
+                    " which we can not determine"
+                    " the owner of" % (job.uuid),
+                )
             if lock_data.get("owner") != who:
-                raise excp.JobFailure("Can not consume a job %s"
-                                      " which is not owned by %s"
-                                      % (job.uuid, who))
+                raise excp.JobFailure(
+                    "Can not consume a job %s"
+                    " which is not owned by %s" % (job.uuid, who)
+                )
             txn = self._client.transaction()
             txn.delete(job.lock_path, version=lock_stat.version)
             txn.delete(job.path, version=data_stat.version)
@@ -695,40 +791,46 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
 
     @base.check_who
     def abandon(self, job, who):
-        with self._wrap(job.uuid, job.path,
-                        fail_msg_tpl="Abandonment failure: %s"):
+        with self._wrap(
+            job.uuid, job.path, fail_msg_tpl="Abandonment failure: %s"
+        ):
             try:
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                excp.raise_with_cause(excp.NotFound,
-                                      "Can not abandon a job %s"
-                                      " which we can not determine"
-                                      " the owner of" % (job.uuid))
+                excp.raise_with_cause(
+                    excp.NotFound,
+                    "Can not abandon a job %s"
+                    " which we can not determine"
+                    " the owner of" % (job.uuid),
+                )
             if lock_data.get("owner") != who:
-                raise excp.JobFailure("Can not abandon a job %s"
-                                      " which is not owned by %s"
-                                      % (job.uuid, who))
+                raise excp.JobFailure(
+                    "Can not abandon a job %s"
+                    " which is not owned by %s" % (job.uuid, who)
+                )
             txn = self._client.transaction()
             txn.delete(job.lock_path, version=lock_stat.version)
             kazoo_utils.checked_commit(txn)
 
     @base.check_who
     def trash(self, job, who):
-        with self._wrap(job.uuid, job.path,
-                        fail_msg_tpl="Trash failure: %s"):
+        with self._wrap(job.uuid, job.path, fail_msg_tpl="Trash failure: %s"):
             try:
                 owner_data = self._get_owner_and_data(job)
                 lock_data, lock_stat, data, data_stat = owner_data
             except k_exceptions.NoNodeError:
-                excp.raise_with_cause(excp.NotFound,
-                                      "Can not trash a job %s"
-                                      " which we can not determine"
-                                      " the owner of" % (job.uuid))
+                excp.raise_with_cause(
+                    excp.NotFound,
+                    "Can not trash a job %s"
+                    " which we can not determine"
+                    " the owner of" % (job.uuid),
+                )
             if lock_data.get("owner") != who:
-                raise excp.JobFailure("Can not trash a job %s"
-                                      " which is not owned by %s"
-                                      % (job.uuid, who))
+                raise excp.JobFailure(
+                    "Can not trash a job %s"
+                    " which is not owned by %s" % (job.uuid, who)
+                )
             trash_path = job.path.replace(self.path, self.trash_path)
             value = misc.binary_encode(jsonutils.dumps(data))
             txn = self._client.transaction()
@@ -739,12 +841,18 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
 
     def _state_change_listener(self, state):
         if self._last_states:
-            LOG.debug("Kazoo client has changed to"
-                      " state '%s' from prior states '%s'", state,
-                      self._last_states)
+            LOG.debug(
+                "Kazoo client has changed to"
+                " state '%s' from prior states '%s'",
+                state,
+                self._last_states,
+            )
         else:
-            LOG.debug("Kazoo client has changed to state '%s' (from"
-                      " its initial/uninitialized state)", state)
+            LOG.debug(
+                "Kazoo client has changed to state '%s' (from"
+                " its initial/uninitialized state)",
+                state,
+            )
         self._last_states.appendleft(state)
         if state == k_states.KazooState.LOST:
             self._connected = False
@@ -769,9 +877,10 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             while True:
                 if not self._known_jobs:
                     if watch.expired():
-                        raise excp.NotFound("Expired waiting for jobs to"
-                                            " arrive; waited %s seconds"
-                                            % watch.elapsed())
+                        raise excp.NotFound(
+                            "Expired waiting for jobs to"
+                            " arrive; waited %s seconds" % watch.elapsed()
+                        )
                     # This is done since the given timeout can not be provided
                     # to the condition variable, since we can not ensure that
                     # when we acquire the condition that there will actually
@@ -783,8 +892,11 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                     fetch_func = lambda ensure_fresh: curr_jobs
                     removal_func = lambda a_job: self._remove_job(a_job.path)
                     return base.JobBoardIterator(
-                        self, LOG, board_fetch_func=fetch_func,
-                        board_removal_func=removal_func)
+                        self,
+                        LOG,
+                        board_fetch_func=fetch_func,
+                        board_removal_func=removal_func,
+                    )
 
     @property
     def connected(self):
@@ -816,21 +928,27 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             try:
                 self.close()
             except k_exceptions.KazooException:
-                LOG.exception("Failed cleaning-up after post-connection"
-                              " initialization failed")
+                LOG.exception(
+                    "Failed cleaning-up after post-connection"
+                    " initialization failed"
+                )
 
         try:
             if timeout is not None:
                 timeout = float(timeout)
             self._client.start(timeout=timeout)
             self._closing = False
-        except (self._client.handler.timeout_exception,
-                k_exceptions.KazooException):
-            excp.raise_with_cause(excp.JobFailure,
-                                  "Failed to connect to zookeeper")
+        except (
+            self._client.handler.timeout_exception,
+            k_exceptions.KazooException,
+        ):
+            excp.raise_with_cause(
+                excp.JobFailure, "Failed to connect to zookeeper"
+            )
         try:
             if strutils.bool_from_string(
-                    self._conf.get('check_compatible'), default=True):
+                self._conf.get('check_compatible'), default=True
+            ):
                 kazoo_utils.check_compatible(self._client, self.MIN_ZK_VERSION)
             if self._worker is None and self._emit_notifications:
                 self._worker = futurist.ThreadPoolExecutor(max_workers=1)
@@ -841,18 +959,23 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
                     self._client,
                     self.path,
                     func=self._on_job_posting,
-                    allow_session_lost=True)
+                    allow_session_lost=True,
+                )
             self._connected = True
         except excp.IncompatibleVersion:
             with excutils.save_and_reraise_exception():
                 try_clean()
-        except (self._client.handler.timeout_exception,
-                k_exceptions.KazooException):
+        except (
+            self._client.handler.timeout_exception,
+            k_exceptions.KazooException,
+        ):
             exc_type, exc, exc_tb = sys.exc_info()
             try:
                 try_clean()
-                excp.raise_with_cause(excp.JobFailure,
-                                      "Failed to do post-connection"
-                                      " initialization", cause=exc)
+                excp.raise_with_cause(
+                    excp.JobFailure,
+                    "Failed to do post-connection initialization",
+                    cause=exc,
+                )
             finally:
                 del (exc_type, exc, exc_tb)

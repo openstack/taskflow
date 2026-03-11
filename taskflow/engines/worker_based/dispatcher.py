@@ -100,9 +100,13 @@ class TypeDispatcher:
                 if cb(data, message):
                     requeue_votes += 1
             except Exception:
-                LOG.exception("Failed calling requeue filter %s '%s' to"
-                              " determine if message %r should be requeued.",
-                              i + 1, cb, message.delivery_tag)
+                LOG.exception(
+                    "Failed calling requeue filter %s '%s' to"
+                    " determine if message %r should be requeued.",
+                    i + 1,
+                    cb,
+                    message.delivery_tag,
+                )
         return requeue_votes
 
     def _requeue_log_error(self, message, errors):
@@ -114,52 +118,72 @@ class TypeDispatcher:
             # This was taken from how kombu is formatting its messages
             # when its reject_log_error or ack_log_error functions are
             # used so that we have a similar error format for requeuing.
-            LOG.critical("Couldn't requeue %r, reason:%r",
-                         message.delivery_tag, exc, exc_info=True)
+            LOG.critical(
+                "Couldn't requeue %r, reason:%r",
+                message.delivery_tag,
+                exc,
+                exc_info=True,
+            )
         else:
             LOG.debug("Message '%s' was requeued.", ku.DelayedPretty(message))
 
     def _process_message(self, data, message, message_type):
         handler = self._type_handlers.get(message_type)
         if handler is None:
-            message.reject_log_error(logger=LOG,
-                                     errors=(kombu_exc.MessageStateError,))
-            LOG.warning("Unexpected message type: '%s' in message"
-                        " '%s'", message_type, ku.DelayedPretty(message))
+            message.reject_log_error(
+                logger=LOG, errors=(kombu_exc.MessageStateError,)
+            )
+            LOG.warning(
+                "Unexpected message type: '%s' in message '%s'",
+                message_type,
+                ku.DelayedPretty(message),
+            )
         else:
             if handler.validator is not None:
                 try:
                     handler.validator(data)
                 except excp.InvalidFormat as e:
                     message.reject_log_error(
-                        logger=LOG, errors=(kombu_exc.MessageStateError,))
-                    LOG.warning("Message '%s' (%s) was rejected due to it"
-                                " being in an invalid format: %s",
-                                ku.DelayedPretty(message), message_type, e)
+                        logger=LOG, errors=(kombu_exc.MessageStateError,)
+                    )
+                    LOG.warning(
+                        "Message '%s' (%s) was rejected due to it"
+                        " being in an invalid format: %s",
+                        ku.DelayedPretty(message),
+                        message_type,
+                        e,
+                    )
                     return
-            message.ack_log_error(logger=LOG,
-                                  errors=(kombu_exc.MessageStateError,))
+            message.ack_log_error(
+                logger=LOG, errors=(kombu_exc.MessageStateError,)
+            )
             if message.acknowledged:
-                LOG.debug("Message '%s' was acknowledged.",
-                          ku.DelayedPretty(message))
+                LOG.debug(
+                    "Message '%s' was acknowledged.", ku.DelayedPretty(message)
+                )
                 handler.process_message(data, message)
             else:
-                message.reject_log_error(logger=LOG,
-                                         errors=(kombu_exc.MessageStateError,))
+                message.reject_log_error(
+                    logger=LOG, errors=(kombu_exc.MessageStateError,)
+                )
 
     def on_message(self, data, message):
         """This method is called on incoming messages."""
         LOG.debug("Received message '%s'", ku.DelayedPretty(message))
         if self._collect_requeue_votes(data, message):
-            self._requeue_log_error(message,
-                                    errors=(kombu_exc.MessageStateError,))
+            self._requeue_log_error(
+                message, errors=(kombu_exc.MessageStateError,)
+            )
         else:
             try:
                 message_type = message.properties['type']
             except KeyError:
                 message.reject_log_error(
-                    logger=LOG, errors=(kombu_exc.MessageStateError,))
-                LOG.warning("The 'type' message property is missing"
-                            " in message '%s'", ku.DelayedPretty(message))
+                    logger=LOG, errors=(kombu_exc.MessageStateError,)
+                )
+                LOG.warning(
+                    "The 'type' message property is missing in message '%s'",
+                    ku.DelayedPretty(message),
+                )
             else:
                 self._process_message(data, message, message_type)

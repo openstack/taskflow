@@ -18,6 +18,7 @@ from sqlalchemy import exc as sqla_exc
 
 class WarningsFixture(fixtures.Fixture):
     """Filters out warnings during test runs."""
+
     def setUp(self):
         super().setUp()
 

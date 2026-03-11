@@ -20,9 +20,9 @@ import sys
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
@@ -63,8 +63,9 @@ def print_task_states(flowdetail, msg):
     print(f"Flow '{flowdetail.name}' state: {flowdetail.state}")
     # Sort by these so that our test validation doesn't get confused by the
     # order in which the items in the flow detail can be in.
-    items = sorted((td.name, td.version, td.state, td.results)
-                   for td in flowdetail)
+    items = sorted(
+        (td.name, td.version, td.state, td.results) for td in flowdetail
+    )
     for item in items:
         print(" %s==%s: %s, result=%s" % item)
 
@@ -94,17 +95,18 @@ def flow_factory():
     return lf.Flow('resume from backend example').add(
         TestTask(name='first'),
         InterruptTask(name='boom'),
-        TestTask(name='second'))
+        TestTask(name='second'),
+    )
 
 
 # INITIALIZE PERSISTENCE ####################################
 
 with eu.get_backend() as backend:
-
     # Create a place where the persistence information will be stored.
     book = models.LogBook("example")
-    flow_detail = models.FlowDetail("resume from backend example",
-                                    uuid=uuidutils.generate_uuid())
+    flow_detail = models.FlowDetail(
+        "resume from backend example", uuid=uuidutils.generate_uuid()
+    )
     book.add(flow_detail)
     with contextlib.closing(backend.get_connection()) as conn:
         conn.save_logbook(book)
@@ -112,8 +114,9 @@ with eu.get_backend() as backend:
     # CREATE AND RUN THE FLOW: FIRST ATTEMPT ####################
 
     flow = flow_factory()
-    engine = taskflow.engines.load(flow, flow_detail=flow_detail,
-                                   book=book, backend=backend)
+    engine = taskflow.engines.load(
+        flow, flow_detail=flow_detail, book=book, backend=backend
+    )
 
     print_task_states(flow_detail, "At the beginning, there is no state")
     eu.print_wrapped("Running")
@@ -135,8 +138,8 @@ with eu.get_backend() as backend:
     # running the above flow crashes).
     flow2 = flow_factory()
     flow_detail_2 = find_flow_detail(backend, book.uuid, flow_detail.uuid)
-    engine2 = taskflow.engines.load(flow2,
-                                    flow_detail=flow_detail_2,
-                                    backend=backend, book=book)
+    engine2 = taskflow.engines.load(
+        flow2, flow_detail=flow_detail_2, backend=backend, book=book
+    )
     engine2.run()
     print_task_states(flow_detail_2, "At the end")

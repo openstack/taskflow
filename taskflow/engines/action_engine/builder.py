@@ -143,9 +143,12 @@ class MachineBuilder:
         def do_schedule(next_nodes):
             with self._storage.lock.write_lock():
                 return self._scheduler.schedule(
-                    sorted(next_nodes,
-                           key=lambda node: getattr(node, 'priority', 0),
-                           reverse=True))
+                    sorted(
+                        next_nodes,
+                        key=lambda node: getattr(node, 'priority', 0),
+                        reverse=True,
+                    )
+                )
 
         def iter_next_atoms(atom=None, apply_deciders=True):
             # Yields and filters and tweaks the next atoms to run...
@@ -165,8 +168,10 @@ class MachineBuilder:
             # that are now ready to be ran.
             with self._storage.lock.write_lock():
                 memory.next_up.update(
-                    iter_utils.unique_seen((self._completer.resume(),
-                                            iter_next_atoms())))
+                    iter_utils.unique_seen(
+                        (self._completer.resume(), iter_next_atoms())
+                    )
+                )
             return SCHEDULE
 
         def game_over(old_state, new_state, event):
@@ -181,13 +186,17 @@ class MachineBuilder:
                     # Avoid activating the deciders, since at this point
                     # the engine is finishing and there will be no more further
                     # work done anyway...
-                    iter_next_atoms(apply_deciders=False))
+                    iter_next_atoms(apply_deciders=False)
+                )
             if leftover_atoms:
                 # Ok we didn't finish (either reverting or executing...) so
                 # that means we must of been stopped at some point...
-                LOG.trace("Suspension determined to have been reacted to"
-                          " since (at least) %s atoms have been left in an"
-                          " unfinished state", leftover_atoms)
+                LOG.trace(
+                    "Suspension determined to have been reacted to"
+                    " since (at least) %s atoms have been left in an"
+                    " unfinished state",
+                    leftover_atoms,
+                )
                 return SUSPENDED
             elif self._runtime.is_success():
                 return SUCCESS
@@ -239,11 +248,16 @@ class MachineBuilder:
                         # would suck...)
                         if LOG.isEnabledFor(logging.DEBUG):
                             intention = get_atom_intention(atom.name)
-                            LOG.debug("Discarding failure '%s' (in response"
-                                      " to outcome '%s') under completion"
-                                      " units request during completion of"
-                                      " atom '%s' (intention is to %s)",
-                                      result, outcome, atom, intention)
+                            LOG.debug(
+                                "Discarding failure '%s' (in response"
+                                " to outcome '%s') under completion"
+                                " units request during completion of"
+                                " atom '%s' (intention is to %s)",
+                                result,
+                                outcome,
+                                atom,
+                                intention,
+                            )
                         if gather_statistics:
                             statistics['discarded_failures'] += 1
                 if gather_statistics:
@@ -256,8 +270,7 @@ class MachineBuilder:
                 return WAS_CANCELLED
             except Exception:
                 memory.failures.append(failure.Failure())
-                LOG.exception("Engine '%s' atom post-completion"
-                              " failed", atom)
+                LOG.exception("Engine '%s' atom post-completion failed", atom)
                 return FAILED_COMPLETING
             else:
                 return SUCCESSFULLY_COMPLETED
@@ -286,8 +299,10 @@ class MachineBuilder:
                     # before we iterate over any successors or predecessors
                     # that we know it has been completed and saved and so on...
                     completion_status = complete_an_atom(fut)
-                    if (not memory.failures
-                            and completion_status != WAS_CANCELLED):
+                    if (
+                        not memory.failures
+                        and completion_status != WAS_CANCELLED
+                    ):
                         atom = fut.atom
                         try:
                             more_work = set(iter_next_atoms(atom=atom))
@@ -295,12 +310,17 @@ class MachineBuilder:
                             memory.failures.append(failure.Failure())
                             LOG.exception(
                                 "Engine '%s' atom post-completion"
-                                " next atom searching failed", atom)
+                                " next atom searching failed",
+                                atom,
+                            )
                         else:
                             next_up.update(more_work)
             current_flow_state = self._storage.get_flow_state()
-            if (current_flow_state == st.RUNNING
-                    and next_up and not memory.failures):
+            if (
+                current_flow_state == st.RUNNING
+                and next_up
+                and not memory.failures
+            ):
                 memory.next_up.update(next_up)
                 return SCHEDULE
             elif memory.not_done:
@@ -311,8 +331,11 @@ class MachineBuilder:
                 return FINISH
 
         def on_exit(old_state, event):
-            LOG.trace("Exiting old state '%s' in response to event '%s'",
-                      old_state, event)
+            LOG.trace(
+                "Exiting old state '%s' in response to event '%s'",
+                old_state,
+                event,
+            )
             if gather_statistics:
                 if old_state in watches:
                     w = watches[old_state]
@@ -324,8 +347,11 @@ class MachineBuilder:
                     statistics['awaiting'] = len(memory.next_up)
 
         def on_enter(new_state, event):
-            LOG.trace("Entering new state '%s' in response to event '%s'",
-                      new_state, event)
+            LOG.trace(
+                "Entering new state '%s' in response to event '%s'",
+                new_state,
+                event,
+            )
             if gather_statistics and new_state in watches:
                 watches[new_state].restart()
 

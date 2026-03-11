@@ -35,35 +35,53 @@ LOG = logging.getLogger(__name__)
 class WorkerTaskExecutor(executor.TaskExecutor):
     """Executes tasks on remote workers."""
 
-    def __init__(self, uuid, exchange, topics,
-                 transition_timeout=pr.REQUEST_TIMEOUT,
-                 url=None, transport=None, transport_options=None,
-                 retry_options=None, worker_expiry=pr.EXPIRES_AFTER):
+    def __init__(
+        self,
+        uuid,
+        exchange,
+        topics,
+        transition_timeout=pr.REQUEST_TIMEOUT,
+        url=None,
+        transport=None,
+        transport_options=None,
+        retry_options=None,
+        worker_expiry=pr.EXPIRES_AFTER,
+    ):
         self._uuid = uuid
         self._ongoing_requests = {}
         self._ongoing_requests_lock = threading.RLock()
         self._transition_timeout = transition_timeout
-        self._proxy = proxy.Proxy(uuid, exchange,
-                                  on_wait=self._on_wait, url=url,
-                                  transport=transport,
-                                  transport_options=transport_options,
-                                  retry_options=retry_options)
+        self._proxy = proxy.Proxy(
+            uuid,
+            exchange,
+            on_wait=self._on_wait,
+            url=url,
+            transport=transport,
+            transport_options=transport_options,
+            retry_options=retry_options,
+        )
         # NOTE(harlowja): This is the most simplest finder impl. that
         # doesn't have external dependencies (outside of what this engine
         # already requires); it though does create periodic 'polling' traffic
         # to workers to 'learn' of the tasks they can perform (and requires
         # pre-existing knowledge of the topics those workers are on to gather
         # and update this information).
-        self._finder = wt.ProxyWorkerFinder(uuid, self._proxy, topics,
-                                            worker_expiry=worker_expiry)
-        self._proxy.dispatcher.type_handlers.update({
-            pr.RESPONSE: dispatcher.Handler(self._process_response,
-                                            validator=pr.Response.validate),
-            pr.NOTIFY: dispatcher.Handler(
-                self._finder.process_response,
-                validator=functools.partial(pr.Notify.validate,
-                                            response=True)),
-        })
+        self._finder = wt.ProxyWorkerFinder(
+            uuid, self._proxy, topics, worker_expiry=worker_expiry
+        )
+        self._proxy.dispatcher.type_handlers.update(
+            {
+                pr.RESPONSE: dispatcher.Handler(
+                    self._process_response, validator=pr.Response.validate
+                ),
+                pr.NOTIFY: dispatcher.Handler(
+                    self._finder.process_response,
+                    validator=functools.partial(
+                        pr.Notify.validate, response=True
+                    ),
+                ),
+            }
+        )
         # Thread that will run the message dispatching (and periodically
         # call the on_wait callback to do various things) loop...
         self._helper = None
@@ -73,20 +91,27 @@ class WorkerTaskExecutor(executor.TaskExecutor):
 
     def _process_response(self, response, message):
         """Process response from remote side."""
-        LOG.debug("Started processing response message '%s'",
-                  ku.DelayedPretty(message))
+        LOG.debug(
+            "Started processing response message '%s'",
+            ku.DelayedPretty(message),
+        )
         try:
             request_uuid = message.properties['correlation_id']
         except KeyError:
-            LOG.warning("The 'correlation_id' message property is"
-                        " missing in message '%s'",
-                        ku.DelayedPretty(message))
+            LOG.warning(
+                "The 'correlation_id' message property is"
+                " missing in message '%s'",
+                ku.DelayedPretty(message),
+            )
         else:
             request = self._ongoing_requests.get(request_uuid)
             if request is not None:
                 response = pr.Response.from_dict(response)
-                LOG.debug("Extracted response '%s' and matched it to"
-                          " request '%s'", response, request)
+                LOG.debug(
+                    "Extracted response '%s' and matched it to request '%s'",
+                    response,
+                    request,
+                )
                 if response.state == pr.RUNNING:
                     request.transition_and_log_error(pr.RUNNING, logger=LOG)
                 elif response.state == pr.EVENT:
@@ -98,14 +123,16 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                     details = response.data['details']
                     request.task.notifier.notify(event_type, details)
                 elif response.state in (pr.FAILURE, pr.SUCCESS):
-                    if request.transition_and_log_error(response.state,
-                                                        logger=LOG):
+                    if request.transition_and_log_error(
+                        response.state, logger=LOG
+                    ):
                         with self._ongoing_requests_lock:
                             del self._ongoing_requests[request.uuid]
                         request.set_result(result=response.data['result'])
                 else:
-                    LOG.warning("Unexpected response status '%s'",
-                                response.state)
+                    LOG.warning(
+                        "Unexpected response status '%s'", response.state
+                    )
             else:
                 LOG.debug("Request with id='%s' not found", request_uuid)
 
@@ -126,7 +153,8 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                 raise exc.RequestTimeout(
                     "Request '%s' has expired after waiting for %0.2f"
                     " seconds for it to transition out of (%s) states"
-                    % (request, request_age, ", ".join(pr.WAITING_STATES)))
+                    % (request, request_age, ", ".join(pr.WAITING_STATES))
+                )
             except exc.RequestTimeout:
                 with misc.capture_failure() as failure:
                     LOG.debug(failure.exception_str)
@@ -169,9 +197,9 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                 while waiting_requests:
                     _request_uuid, request = waiting_requests.popitem()
                     worker = finder.get_worker_for_task(request.task)
-                    if (worker is not None and
-                            request.transition_and_log_error(pr.PENDING,
-                                                             logger=LOG)):
+                    if worker is not None and request.transition_and_log_error(
+                        pr.PENDING, logger=LOG
+                    ):
                         self._publish_request(request, worker)
                 self._messages_processed['finder'] = new_messages_processed
 
@@ -187,20 +215,36 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         # a worker located).
         self._clean()
 
-    def _submit_task(self, task, task_uuid, action, arguments,
-                     progress_callback=None, result=pr.NO_RESULT,
-                     failures=None):
+    def _submit_task(
+        self,
+        task,
+        task_uuid,
+        action,
+        arguments,
+        progress_callback=None,
+        result=pr.NO_RESULT,
+        failures=None,
+    ):
         """Submit task request to a worker."""
-        request = pr.Request(task, task_uuid, action, arguments,
-                             timeout=self._transition_timeout,
-                             result=result, failures=failures)
+        request = pr.Request(
+            task,
+            task_uuid,
+            action,
+            arguments,
+            timeout=self._transition_timeout,
+            result=result,
+            failures=failures,
+        )
         # Register the callback, so that we can proxy the progress correctly.
-        if (progress_callback is not None and
-                task.notifier.can_be_registered(EVENT_UPDATE_PROGRESS)):
+        if progress_callback is not None and task.notifier.can_be_registered(
+            EVENT_UPDATE_PROGRESS
+        ):
             task.notifier.register(EVENT_UPDATE_PROGRESS, progress_callback)
             request.future.add_done_callback(
-                lambda _fut: task.notifier.deregister(EVENT_UPDATE_PROGRESS,
-                                                      progress_callback))
+                lambda _fut: task.notifier.deregister(
+                    EVENT_UPDATE_PROGRESS, progress_callback
+                )
+            )
         # Get task's worker and publish request if worker was found.
         worker = self._finder.get_worker_for_task(task)
         if worker is not None:
@@ -209,42 +253,75 @@ class WorkerTaskExecutor(executor.TaskExecutor):
                     self._ongoing_requests[request.uuid] = request
                 self._publish_request(request, worker)
         else:
-            LOG.debug("Delaying submission of '%s', no currently known"
-                      " worker/s available to process it", request)
+            LOG.debug(
+                "Delaying submission of '%s', no currently known"
+                " worker/s available to process it",
+                request,
+            )
             with self._ongoing_requests_lock:
                 self._ongoing_requests[request.uuid] = request
         return request.future
 
     def _publish_request(self, request, worker):
         """Publish request to a given topic."""
-        LOG.debug("Submitting execution of '%s' to worker '%s' (expecting"
-                  " response identified by reply_to=%s and"
-                  " correlation_id=%s) - waited %0.3f seconds to"
-                  " get published", request, worker, self._uuid,
-                  request.uuid, timeutils.now() - request.created_on)
+        LOG.debug(
+            "Submitting execution of '%s' to worker '%s' (expecting"
+            " response identified by reply_to=%s and"
+            " correlation_id=%s) - waited %0.3f seconds to"
+            " get published",
+            request,
+            worker,
+            self._uuid,
+            request.uuid,
+            timeutils.now() - request.created_on,
+        )
         try:
-            self._proxy.publish(request, worker.topic,
-                                reply_to=self._uuid,
-                                correlation_id=request.uuid)
+            self._proxy.publish(
+                request,
+                worker.topic,
+                reply_to=self._uuid,
+                correlation_id=request.uuid,
+            )
         except Exception:
             with misc.capture_failure() as failure:
-                LOG.critical("Failed to submit '%s' (transitioning it to"
-                             " %s)", request, pr.FAILURE, exc_info=True)
+                LOG.critical(
+                    "Failed to submit '%s' (transitioning it to %s)",
+                    request,
+                    pr.FAILURE,
+                    exc_info=True,
+                )
                 if request.transition_and_log_error(pr.FAILURE, logger=LOG):
                     with self._ongoing_requests_lock:
                         del self._ongoing_requests[request.uuid]
                     request.set_result(failure)
 
-    def execute_task(self, task, task_uuid, arguments,
-                     progress_callback=None):
-        return self._submit_task(task, task_uuid, pr.EXECUTE, arguments,
-                                 progress_callback=progress_callback)
+    def execute_task(self, task, task_uuid, arguments, progress_callback=None):
+        return self._submit_task(
+            task,
+            task_uuid,
+            pr.EXECUTE,
+            arguments,
+            progress_callback=progress_callback,
+        )
 
-    def revert_task(self, task, task_uuid, arguments, result, failures,
-                    progress_callback=None):
-        return self._submit_task(task, task_uuid, pr.REVERT, arguments,
-                                 result=result, failures=failures,
-                                 progress_callback=progress_callback)
+    def revert_task(
+        self,
+        task,
+        task_uuid,
+        arguments,
+        result,
+        failures,
+        progress_callback=None,
+    ):
+        return self._submit_task(
+            task,
+            task_uuid,
+            pr.REVERT,
+            arguments,
+            result=result,
+            failures=failures,
+            progress_callback=progress_callback,
+        )
 
     def wait_for_workers(self, workers=1, timeout=None):
         """Waits for geq workers to notify they are ready to do work.
@@ -255,14 +332,14 @@ class WorkerTaskExecutor(executor.TaskExecutor):
         return how many workers are still needed, otherwise it will
         return zero.
         """
-        return self._finder.wait_for_workers(workers=workers,
-                                             timeout=timeout)
+        return self._finder.wait_for_workers(workers=workers, timeout=timeout)
 
     def start(self):
         """Starts message processing thread."""
         if self._helper is not None:
-            raise RuntimeError("Worker executor must be stopped before"
-                               " it can be started")
+            raise RuntimeError(
+                "Worker executor must be stopped before it can be started"
+            )
         self._helper = tu.daemon_thread(self._proxy.start)
         self._helper.start()
         self._proxy.wait()

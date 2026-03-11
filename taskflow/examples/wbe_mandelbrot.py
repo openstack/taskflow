@@ -17,9 +17,9 @@ import math
 import os
 import sys
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 from taskflow import engines
@@ -118,7 +118,7 @@ def calculate(engine_conf):
         'mandelbrot_config': [-2.0, 1.0, -1.0, 1.0, MAX_ITERATIONS],
         'image_config': {
             'size': IMAGE_SIZE,
-        }
+        },
     }
 
     # We need the task names to be in the right order so that we can extract
@@ -135,13 +135,16 @@ def calculate(engine_conf):
         # Break the calculation up into chunk size pieces.
         rows = [i * chunk_size, i * chunk_size + chunk_size]
         flow.add(
-            MandelCalculator(task_name,
-                             # This ensures the storage symbol with name
-                             # 'chunk_name' is sent into the tasks local
-                             # symbol 'chunk'. This is how we give each
-                             # calculator its own correct sequence of rows
-                             # to work on.
-                             rebind={'chunk': chunk_name}))
+            MandelCalculator(
+                task_name,
+                # This ensures the storage symbol with name
+                # 'chunk_name' is sent into the tasks local
+                # symbol 'chunk'. This is how we give each
+                # calculator its own correct sequence of rows
+                # to work on.
+                rebind={'chunk': chunk_name},
+            )
+        )
         store[chunk_name] = rows
         task_names.append(task_name)
 
@@ -161,9 +164,11 @@ def calculate(engine_conf):
 
 
 def write_image(results, output_filename=None):
-    print("Gathered %s results that represents a mandelbrot"
-          " image (using %s chunks that are computed jointly"
-          " by %s workers)." % (len(results), CHUNK_COUNT, WORKERS))
+    print(
+        "Gathered %s results that represents a mandelbrot"
+        " image (using %s chunks that are computed jointly"
+        " by %s workers)." % (len(results), CHUNK_COUNT, WORKERS)
+    )
     if not output_filename:
         return
 
@@ -198,12 +203,14 @@ def create_fractal():
     # Setup our transport configuration and merge it into the worker and
     # engine configuration so that both of those use it correctly.
     shared_conf = dict(BASE_SHARED_CONF)
-    shared_conf.update({
-        'transport': 'memory',
-        'transport_options': {
-            'polling_interval': 0.1,
-        },
-    })
+    shared_conf.update(
+        {
+            'transport': 'memory',
+            'transport_options': {
+                'polling_interval': 0.1,
+            },
+        }
+    )
 
     if len(sys.argv) >= 2:
         output_filename = sys.argv[1]

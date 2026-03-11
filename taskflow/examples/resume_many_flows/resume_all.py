@@ -20,7 +20,8 @@ logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
 top_dir = os.path.abspath(
-    os.path.join(self_dir, os.pardir, os.pardir, os.pardir))
+    os.path.join(self_dir, os.pardir, os.pardir, os.pardir)
+)
 example_dir = os.path.abspath(os.path.join(self_dir, os.pardir))
 
 sys.path.insert(0, top_dir)
@@ -38,8 +39,9 @@ FINISHED_STATES = (states.SUCCESS, states.FAILURE, states.REVERTED)
 
 def resume(flowdetail, backend):
     print(f'Resuming flow {flowdetail.name} {flowdetail.uuid}')
-    engine = taskflow.engines.load_from_detail(flow_detail=flowdetail,
-                                               backend=backend)
+    engine = taskflow.engines.load_from_detail(
+        flow_detail=flowdetail, backend=backend
+    )
     engine.run()
 
 

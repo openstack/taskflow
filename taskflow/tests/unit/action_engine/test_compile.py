@@ -42,7 +42,8 @@ class PatternCompileTest(test.TestCase):
     def test_task(self):
         task = test_utils.DummyTask(name='a')
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(task).compile())
+            compiler.PatternCompiler(task).compile()
+        )
         self.assertEqual(['a'], list(g.nodes()))
         self.assertEqual([], list(g.edges()))
 
@@ -52,8 +53,9 @@ class PatternCompileTest(test.TestCase):
 
     def test_wrong_object(self):
         msg_regex = '^Unknown object .* requested to compile'
-        self.assertRaisesRegex(TypeError, msg_regex,
-                               compiler.PatternCompiler(42).compile)
+        self.assertRaisesRegex(
+            TypeError, msg_regex, compiler.PatternCompiler(42).compile
+        )
 
     def test_empty(self):
         flo = lf.Flow("test")
@@ -68,17 +70,18 @@ class PatternCompileTest(test.TestCase):
         flo.add(inner_flo)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(8, len(g))
 
         order = list(g.topological_sort())
-        self.assertEqual(['test', 'a', 'b', 'c',
-                          "sub-test", 'd', "sub-test[$]",
-                          'test[$]'], order)
+        self.assertEqual(
+            ['test', 'a', 'b', 'c', "sub-test", 'd', "sub-test[$]", 'test[$]'],
+            order,
+        )
         self.assertTrue(g.has_edge('c', "sub-test"))
         self.assertTrue(g.has_edge("sub-test", 'd'))
-        self.assertEqual({'invariant': True},
-                         g.get_edge_data("sub-test", 'd'))
+        self.assertEqual({'invariant': True}, g.get_edge_data("sub-test", 'd'))
         self.assertEqual(['test[$]'], list(g.no_successors_iter()))
         self.assertEqual(['test'], list(g.no_predecessors_iter()))
 
@@ -87,8 +90,7 @@ class PatternCompileTest(test.TestCase):
         flo = lf.Flow("test")
         flo.add(a, b, c)
         flo.add(flo)
-        self.assertRaises(ValueError,
-                          compiler.PatternCompiler(flo).compile)
+        self.assertRaises(ValueError, compiler.PatternCompiler(flo).compile)
 
     def test_unordered(self):
         a, b, c, d = test_utils.make_many(4)
@@ -96,18 +98,22 @@ class PatternCompileTest(test.TestCase):
         flo.add(a, b, c, d)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(6, len(g))
-        self.assertCountEqual(g.edges(), [
-            ('test', 'a'),
-            ('test', 'b'),
-            ('test', 'c'),
-            ('test', 'd'),
-            ('a', 'test[$]'),
-            ('b', 'test[$]'),
-            ('c', 'test[$]'),
-            ('d', 'test[$]'),
-        ])
+        self.assertCountEqual(
+            g.edges(),
+            [
+                ('test', 'a'),
+                ('test', 'b'),
+                ('test', 'c'),
+                ('test', 'd'),
+                ('a', 'test[$]'),
+                ('b', 'test[$]'),
+                ('c', 'test[$]'),
+                ('d', 'test[$]'),
+            ],
+        )
         self.assertEqual({'test'}, set(g.no_predecessors_iter()))
 
     def test_linear_nested(self):
@@ -119,7 +125,8 @@ class PatternCompileTest(test.TestCase):
         flo.add(inner_flo)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(8, len(g))
 
         sub_g = g.subgraph(['a', 'b'])
@@ -144,19 +151,23 @@ class PatternCompileTest(test.TestCase):
         flo.add(flo2)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(8, len(g))
-        self.assertCountEqual(g.edges(), [
-            ('test', 'a'),
-            ('test', 'b'),
-            ('test', 'test2'),
-            ('test2', 'c'),
-            ('c', 'd'),
-            ('d', 'test2[$]'),
-            ('test2[$]', 'test[$]'),
-            ('a', 'test[$]'),
-            ('b', 'test[$]'),
-        ])
+        self.assertCountEqual(
+            g.edges(),
+            [
+                ('test', 'a'),
+                ('test', 'b'),
+                ('test', 'test2'),
+                ('test2', 'c'),
+                ('c', 'd'),
+                ('d', 'test2[$]'),
+                ('test2[$]', 'test[$]'),
+                ('a', 'test[$]'),
+                ('b', 'test[$]'),
+            ],
+        )
 
     def test_unordered_nested_in_linear(self):
         a, b, c, d = test_utils.make_many(4)
@@ -164,18 +175,22 @@ class PatternCompileTest(test.TestCase):
         flo = lf.Flow('lt').add(a, inner_flo, d)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(8, len(g))
-        self.assertCountEqual(g.edges(), [
-            ('lt', 'a'),
-            ('a', 'ut'),
-            ('ut', 'b'),
-            ('ut', 'c'),
-            ('b', 'ut[$]'),
-            ('c', 'ut[$]'),
-            ('ut[$]', 'd'),
-            ('d', 'lt[$]'),
-        ])
+        self.assertCountEqual(
+            g.edges(),
+            [
+                ('lt', 'a'),
+                ('a', 'ut'),
+                ('ut', 'b'),
+                ('ut', 'c'),
+                ('b', 'ut[$]'),
+                ('c', 'ut[$]'),
+                ('ut[$]', 'd'),
+                ('d', 'lt[$]'),
+            ],
+        )
 
     def test_graph(self):
         a, b, c, d = test_utils.make_many(4)
@@ -195,26 +210,28 @@ class PatternCompileTest(test.TestCase):
         flo.add(flo2)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(11, len(g))
-        self.assertCountEqual(g.edges(), [
-            ('test', 'a'),
-            ('test', 'b'),
-            ('test', 'c'),
-            ('test', 'd'),
-            ('a', 'test[$]'),
-            ('b', 'test[$]'),
-            ('c', 'test[$]'),
-            ('d', 'test[$]'),
-
-            ('test', 'test2'),
-            ('test2', 'e'),
-            ('e', 'f'),
-            ('f', 'g'),
-
-            ('g', 'test2[$]'),
-            ('test2[$]', 'test[$]'),
-        ])
+        self.assertCountEqual(
+            g.edges(),
+            [
+                ('test', 'a'),
+                ('test', 'b'),
+                ('test', 'c'),
+                ('test', 'd'),
+                ('a', 'test[$]'),
+                ('b', 'test[$]'),
+                ('c', 'test[$]'),
+                ('d', 'test[$]'),
+                ('test', 'test2'),
+                ('test2', 'e'),
+                ('e', 'f'),
+                ('f', 'g'),
+                ('g', 'test2[$]'),
+                ('test2[$]', 'test[$]'),
+            ],
+        )
 
     def test_graph_nested_graph(self):
         a, b, c, d, e, f, g = test_utils.make_many(7)
@@ -226,29 +243,30 @@ class PatternCompileTest(test.TestCase):
         flo.add(flo2)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(11, len(g))
-        self.assertCountEqual(g.edges(), [
-            ('test', 'a'),
-            ('test', 'b'),
-            ('test', 'c'),
-            ('test', 'd'),
-            ('test', 'test2'),
-
-            ('test2', 'e'),
-            ('test2', 'f'),
-            ('test2', 'g'),
-
-            ('e', 'test2[$]'),
-            ('f', 'test2[$]'),
-            ('g', 'test2[$]'),
-
-            ('test2[$]', 'test[$]'),
-            ('a', 'test[$]'),
-            ('b', 'test[$]'),
-            ('c', 'test[$]'),
-            ('d', 'test[$]'),
-        ])
+        self.assertCountEqual(
+            g.edges(),
+            [
+                ('test', 'a'),
+                ('test', 'b'),
+                ('test', 'c'),
+                ('test', 'd'),
+                ('test', 'test2'),
+                ('test2', 'e'),
+                ('test2', 'f'),
+                ('test2', 'g'),
+                ('e', 'test2[$]'),
+                ('f', 'test2[$]'),
+                ('g', 'test2[$]'),
+                ('test2[$]', 'test[$]'),
+                ('a', 'test[$]'),
+                ('b', 'test[$]'),
+                ('c', 'test[$]'),
+                ('d', 'test[$]'),
+            ],
+        )
 
     def test_graph_links(self):
         a, b, c, d = test_utils.make_many(4)
@@ -259,15 +277,19 @@ class PatternCompileTest(test.TestCase):
         flo.link(c, d)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(6, len(g))
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'a', {'invariant': True}),
-            ('a', 'b', {'manual': True}),
-            ('b', 'c', {'manual': True}),
-            ('c', 'd', {'manual': True}),
-            ('d', 'test[$]', {'invariant': True}),
-        ])
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'a', {'invariant': True}),
+                ('a', 'b', {'manual': True}),
+                ('b', 'c', {'manual': True}),
+                ('c', 'd', {'manual': True}),
+                ('d', 'test[$]', {'invariant': True}),
+            ],
+        )
         self.assertCountEqual(['test'], g.no_predecessors_iter())
         self.assertCountEqual(['test[$]'], g.no_successors_iter())
 
@@ -277,13 +299,17 @@ class PatternCompileTest(test.TestCase):
         flo = gf.Flow("test").add(a, b)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(4, len(g))
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'a', {'invariant': True}),
-            ('a', 'b', {'reasons': {'x'}}),
-            ('b', 'test[$]', {'invariant': True}),
-        ])
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'a', {'invariant': True}),
+                ('a', 'b', {'reasons': {'x'}}),
+                ('b', 'test[$]', {'invariant': True}),
+            ],
+        )
         self.assertCountEqual(['test'], g.no_predecessors_iter())
         self.assertCountEqual(['test[$]'], g.no_successors_iter())
 
@@ -295,16 +321,20 @@ class PatternCompileTest(test.TestCase):
         flo = gf.Flow("test").add(a, inner_flo)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(7, len(g))
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'a', {'invariant': True}),
-            ('test2', 'b', {'invariant': True}),
-            ('a', 'test2', {'reasons': {'x'}}),
-            ('b', 'c', {'invariant': True}),
-            ('c', 'test2[$]', {'invariant': True}),
-            ('test2[$]', 'test[$]', {'invariant': True}),
-        ])
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'a', {'invariant': True}),
+                ('test2', 'b', {'invariant': True}),
+                ('a', 'test2', {'reasons': {'x'}}),
+                ('b', 'c', {'invariant': True}),
+                ('c', 'test2[$]', {'invariant': True}),
+                ('test2[$]', 'test[$]', {'invariant': True}),
+            ],
+        )
         self.assertCountEqual(['test'], list(g.no_predecessors_iter()))
         self.assertCountEqual(['test[$]'], list(g.no_successors_iter()))
 
@@ -316,19 +346,21 @@ class PatternCompileTest(test.TestCase):
         flo = gf.Flow("test").add(a, inner_flo)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(7, len(g))
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'test2', {'invariant': True}),
-            ('a', 'test[$]', {'invariant': True}),
-
-            # The 'x' requirement is produced out of test2...
-            ('test2[$]', 'a', {'reasons': {'x'}}),
-
-            ('test2', 'b', {'invariant': True}),
-            ('b', 'c', {'invariant': True}),
-            ('c', 'test2[$]', {'invariant': True}),
-        ])
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'test2', {'invariant': True}),
+                ('a', 'test[$]', {'invariant': True}),
+                # The 'x' requirement is produced out of test2...
+                ('test2[$]', 'a', {'reasons': {'x'}}),
+                ('test2', 'b', {'invariant': True}),
+                ('b', 'c', {'invariant': True}),
+                ('c', 'test2[$]', {'invariant': True}),
+            ],
+        )
         self.assertCountEqual(['test'], g.no_predecessors_iter())
         self.assertCountEqual(['test[$]'], g.no_successors_iter())
 
@@ -340,14 +372,18 @@ class PatternCompileTest(test.TestCase):
         flo.add(a, empty_flo, b)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
-        self.assertCountEqual(g.edges(), [
-            ("lf", "a"),
-            ("a", "empty"),
-            ("empty", "empty[$]"),
-            ("empty[$]", "b"),
-            ("b", "lf[$]"),
-        ])
+            compiler.PatternCompiler(flo).compile()
+        )
+        self.assertCountEqual(
+            g.edges(),
+            [
+                ("lf", "a"),
+                ("a", "empty"),
+                ("empty", "empty[$]"),
+                ("empty[$]", "b"),
+                ("b", "lf[$]"),
+            ],
+        )
 
     def test_many_empty_in_graph_flow(self):
         flo = gf.Flow('root')
@@ -378,7 +414,8 @@ class PatternCompileTest(test.TestCase):
         flo.link(c, d)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
 
         self.assertTrue(g.has_edge('root', 'a'))
         self.assertTrue(g.has_edge('root', 'b'))
@@ -409,11 +446,18 @@ class PatternCompileTest(test.TestCase):
         flow.add(a, flow2, b)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flow).compile())
-        for u, v in [('lf', 'a'), ('a', 'lf-2'),
-                     ('lf-2', 'c'), ('c', 'empty'),
-                     ('empty[$]', 'd'), ('d', 'lf-2[$]'),
-                     ('lf-2[$]', 'b'), ('b', 'lf[$]')]:
+            compiler.PatternCompiler(flow).compile()
+        )
+        for u, v in [
+            ('lf', 'a'),
+            ('a', 'lf-2'),
+            ('lf-2', 'c'),
+            ('c', 'empty'),
+            ('empty[$]', 'd'),
+            ('d', 'lf-2[$]'),
+            ('lf-2[$]', 'b'),
+            ('b', 'lf[$]'),
+        ]:
             self.assertTrue(g.has_edge(u, v))
 
     def test_empty_flow_in_graph_flow(self):
@@ -432,8 +476,9 @@ class PatternCompileTest(test.TestCase):
         self.assertEqual(1, len(empty_flow_successors))
         empty_flow_terminal = empty_flow_successors[0]
         self.assertIs(empty_flow, empty_flow_terminal.flow)
-        self.assertEqual(compiler.FLOW_END,
-                         g.nodes[empty_flow_terminal]['kind'])
+        self.assertEqual(
+            compiler.FLOW_END, g.nodes[empty_flow_terminal]['kind']
+        )
         self.assertTrue(g.has_edge(empty_flow_terminal, b))
 
     def test_empty_flow_in_graph_flow_linkage(self):
@@ -452,22 +497,22 @@ class PatternCompileTest(test.TestCase):
 
     def test_checks_for_dups(self):
         flo = gf.Flow("test").add(
-            test_utils.DummyTask(name="a"),
-            test_utils.DummyTask(name="a")
+            test_utils.DummyTask(name="a"), test_utils.DummyTask(name="a")
         )
         e = engines.load(flo)
-        self.assertRaisesRegex(exc.Duplicate,
-                               '^Atoms with duplicate names',
-                               e.compile)
+        self.assertRaisesRegex(
+            exc.Duplicate, '^Atoms with duplicate names', e.compile
+        )
 
     def test_checks_for_dups_globally(self):
         flo = gf.Flow("test").add(
             gf.Flow("int1").add(test_utils.DummyTask(name="a")),
-            gf.Flow("int2").add(test_utils.DummyTask(name="a")))
+            gf.Flow("int2").add(test_utils.DummyTask(name="a")),
+        )
         e = engines.load(flo)
-        self.assertRaisesRegex(exc.Duplicate,
-                               '^Atoms with duplicate names',
-                               e.compile)
+        self.assertRaisesRegex(
+            exc.Duplicate, '^Atoms with duplicate names', e.compile
+        )
 
     def test_retry_in_linear_flow(self):
         flo = lf.Flow("test", retry.AlwaysRevert("c"))
@@ -495,15 +540,19 @@ class PatternCompileTest(test.TestCase):
         flo = lf.Flow("test", c1).add(inner_flo)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(6, len(g))
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'c1', {'invariant': True}),
-            ('c1', 'test2', {'invariant': True, 'retry': True}),
-            ('test2', 'c2', {'invariant': True}),
-            ('c2', 'test2[$]', {'invariant': True}),
-            ('test2[$]', 'test[$]', {'invariant': True}),
-        ])
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'c1', {'invariant': True}),
+                ('c1', 'test2', {'invariant': True, 'retry': True}),
+                ('test2', 'c2', {'invariant': True}),
+                ('c2', 'test2[$]', {'invariant': True}),
+                ('test2[$]', 'test[$]', {'invariant': True}),
+            ],
+        )
         self.assertIs(c1, g.nodes['c2']['retry'])
         self.assertCountEqual(['test'], list(g.no_predecessors_iter()))
         self.assertCountEqual(['test[$]'], list(g.no_successors_iter()))
@@ -514,14 +563,18 @@ class PatternCompileTest(test.TestCase):
         flo = lf.Flow("test", c).add(a, b)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(5, len(g))
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'c', {'invariant': True}),
-            ('a', 'b', {'invariant': True}),
-            ('c', 'a', {'invariant': True, 'retry': True}),
-            ('b', 'test[$]', {'invariant': True}),
-        ])
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'c', {'invariant': True}),
+                ('a', 'b', {'invariant': True}),
+                ('c', 'a', {'invariant': True, 'retry': True}),
+                ('b', 'test[$]', {'invariant': True}),
+            ],
+        )
 
         self.assertCountEqual(['test'], g.no_predecessors_iter())
         self.assertCountEqual(['test[$]'], g.no_successors_iter())
@@ -534,15 +587,19 @@ class PatternCompileTest(test.TestCase):
         flo = uf.Flow("test", c).add(a, b)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(5, len(g))
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'c', {'invariant': True}),
-            ('c', 'a', {'invariant': True, 'retry': True}),
-            ('c', 'b', {'invariant': True, 'retry': True}),
-            ('b', 'test[$]', {'invariant': True}),
-            ('a', 'test[$]', {'invariant': True}),
-        ])
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'c', {'invariant': True}),
+                ('c', 'a', {'invariant': True, 'retry': True}),
+                ('c', 'b', {'invariant': True, 'retry': True}),
+                ('b', 'test[$]', {'invariant': True}),
+                ('a', 'test[$]', {'invariant': True}),
+            ],
+        )
 
         self.assertCountEqual(['test'], list(g.no_predecessors_iter()))
         self.assertCountEqual(['test[$]'], list(g.no_successors_iter()))
@@ -555,15 +612,19 @@ class PatternCompileTest(test.TestCase):
         flo = gf.Flow("test", r).add(a, b, c).link(b, c)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'r', {'invariant': True}),
-            ('r', 'a', {'invariant': True, 'retry': True}),
-            ('r', 'b', {'invariant': True, 'retry': True}),
-            ('b', 'c', {'manual': True}),
-            ('a', 'test[$]', {'invariant': True}),
-            ('c', 'test[$]', {'invariant': True}),
-        ])
+            compiler.PatternCompiler(flo).compile()
+        )
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'r', {'invariant': True}),
+                ('r', 'a', {'invariant': True, 'retry': True}),
+                ('r', 'b', {'invariant': True, 'retry': True}),
+                ('b', 'c', {'manual': True}),
+                ('a', 'test[$]', {'invariant': True}),
+                ('c', 'test[$]', {'invariant': True}),
+            ],
+        )
 
         self.assertCountEqual(['test'], g.no_predecessors_iter())
         self.assertCountEqual(['test[$]'], g.no_successors_iter())
@@ -579,19 +640,23 @@ class PatternCompileTest(test.TestCase):
         flo = lf.Flow("test", c1).add(a, inner_flo, d)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(10, len(g))
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'c1', {'invariant': True}),
-            ('c1', 'a', {'invariant': True, 'retry': True}),
-            ('a', 'test2', {'invariant': True}),
-            ('test2', 'c2', {'invariant': True}),
-            ('c2', 'b', {'invariant': True, 'retry': True}),
-            ('b', 'c', {'invariant': True}),
-            ('c', 'test2[$]', {'invariant': True}),
-            ('test2[$]', 'd', {'invariant': True}),
-            ('d', 'test[$]', {'invariant': True}),
-        ])
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'c1', {'invariant': True}),
+                ('c1', 'a', {'invariant': True, 'retry': True}),
+                ('a', 'test2', {'invariant': True}),
+                ('test2', 'c2', {'invariant': True}),
+                ('c2', 'b', {'invariant': True, 'retry': True}),
+                ('b', 'c', {'invariant': True}),
+                ('c', 'test2[$]', {'invariant': True}),
+                ('test2[$]', 'd', {'invariant': True}),
+                ('d', 'test[$]', {'invariant': True}),
+            ],
+        )
         self.assertIs(c1, g.nodes['a']['retry'])
         self.assertIs(c1, g.nodes['d']['retry'])
         self.assertIs(c2, g.nodes['b']['retry'])
@@ -606,18 +671,22 @@ class PatternCompileTest(test.TestCase):
         flo = lf.Flow("test", c1).add(a, inner_flo, d)
 
         g = _replicate_graph_with_names(
-            compiler.PatternCompiler(flo).compile())
+            compiler.PatternCompiler(flo).compile()
+        )
         self.assertEqual(9, len(g))
-        self.assertCountEqual(g.edges(data=True), [
-            ('test', 'c1', {'invariant': True}),
-            ('c1', 'a', {'invariant': True, 'retry': True}),
-            ('a', 'test2', {'invariant': True}),
-            ('test2', 'b', {'invariant': True}),
-            ('b', 'c', {'invariant': True}),
-            ('c', 'test2[$]', {'invariant': True}),
-            ('test2[$]', 'd', {'invariant': True}),
-            ('d', 'test[$]', {'invariant': True}),
-        ])
+        self.assertCountEqual(
+            g.edges(data=True),
+            [
+                ('test', 'c1', {'invariant': True}),
+                ('c1', 'a', {'invariant': True, 'retry': True}),
+                ('a', 'test2', {'invariant': True}),
+                ('test2', 'b', {'invariant': True}),
+                ('b', 'c', {'invariant': True}),
+                ('c', 'test2[$]', {'invariant': True}),
+                ('test2[$]', 'd', {'invariant': True}),
+                ('d', 'test[$]', {'invariant': True}),
+            ],
+        )
         self.assertIs(c1, g.nodes['a']['retry'])
         self.assertIs(c1, g.nodes['d']['retry'])
         self.assertIs(c1, g.nodes['b']['retry'])

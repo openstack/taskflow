@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
@@ -50,7 +50,6 @@ from taskflow import task
 # storage backend before your tasks are ran (which accomplishes a similar goal
 # in a more uniform manner).
 class Provider(task.Task):
-
     def __init__(self, name, *args, **kwargs):
         super().__init__(name=name, **kwargs)
         self._provide = args
@@ -77,8 +76,7 @@ class Adder(task.Task):
 # this function needs to undo if some later operation fails.
 class Multiplier(task.Task):
     def __init__(self, name, multiplier, provides=None, rebind=None):
-        super().__init__(name=name, provides=provides,
-                         rebind=rebind)
+        super().__init__(name=name, provides=provides, rebind=rebind)
         self._multiplier = multiplier
 
     def execute(self, z):
@@ -104,7 +102,7 @@ flow = lf.Flow('root').add(
     # bound to the 'z' variable provided from the above 'provider' object but
     # instead the 'z' argument will be taken from the 'a' variable provided
     # by the second add-2 listed above.
-    Multiplier("multi", 3, provides='r', rebind={'z': 'a'})
+    Multiplier("multi", 3, provides='r', rebind={'z': 'a'}),
 )
 
 # The result here will be all results (from all tasks) which is stored in an

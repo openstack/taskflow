@@ -29,15 +29,18 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.add_column('taskdetails',
-                  sa.Column('failure', sa.Text(), nullable=True))
+    op.add_column(
+        'taskdetails', sa.Column('failure', sa.Text(), nullable=True)
+    )
     op.drop_column('taskdetails', 'exception')
     op.drop_column('taskdetails', 'stacktrace')
 
 
 def downgrade():
     op.drop_column('taskdetails', 'failure')
-    op.add_column('taskdetails',
-                  sa.Column('stacktrace', sa.Text(), nullable=True))
-    op.add_column('taskdetails',
-                  sa.Column('exception', sa.Text(), nullable=True))
+    op.add_column(
+        'taskdetails', sa.Column('stacktrace', sa.Text(), nullable=True)
+    )
+    op.add_column(
+        'taskdetails', sa.Column('exception', sa.Text(), nullable=True)
+    )

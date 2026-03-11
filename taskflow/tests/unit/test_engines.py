@@ -42,8 +42,11 @@ from taskflow.utils import threading_utils as tu
 
 # Expected engine transitions when empty workflows are ran...
 _EMPTY_TRANSITIONS = [
-    states.RESUMING, states.SCHEDULING, states.WAITING,
-    states.ANALYZING, states.SUCCESS,
+    states.RESUMING,
+    states.SCHEDULING,
+    states.WAITING,
+    states.ANALYZING,
+    states.SUCCESS,
 ]
 
 
@@ -57,18 +60,21 @@ class EngineTaskNotificationsTest:
 
         flow = lf.Flow("flow")
         work_1 = utils.MultiProgressingTask('work-1')
-        work_1.notifier.register(task.EVENT_UPDATE_PROGRESS,
-                                 functools.partial(do_capture, 'work-1'))
+        work_1.notifier.register(
+            task.EVENT_UPDATE_PROGRESS, functools.partial(do_capture, 'work-1')
+        )
         work_2 = utils.MultiProgressingTask('work-2')
-        work_2.notifier.register(task.EVENT_UPDATE_PROGRESS,
-                                 functools.partial(do_capture, 'work-2'))
+        work_2.notifier.register(
+            task.EVENT_UPDATE_PROGRESS, functools.partial(do_capture, 'work-2')
+        )
         flow.add(work_1, work_2)
 
         # NOTE(harlowja): These were selected so that float comparison will
         # work vs not work...
         progress_chunks = tuple([0.2, 0.5, 0.8])
         engine = self._make_engine(
-            flow, store={'progress_chunks': progress_chunks})
+            flow, store={'progress_chunks': progress_chunks}
+        )
         engine.run()
 
         expected = [
@@ -83,7 +89,6 @@ class EngineTaskNotificationsTest:
 
 
 class EngineTaskTest:
-
     def test_run_task_as_flow(self):
         flow = utils.ProgressingTask(name='task1')
         engine = self._make_engine(flow)
@@ -97,18 +102,26 @@ class EngineTaskTest:
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine) as capturer:
             engine.run()
-        expected = ['task1.f RUNNING', 'task1.t RUNNING',
-                    'task1.t SUCCESS(5)', 'task1.f SUCCESS']
+        expected = [
+            'task1.f RUNNING',
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task1.f SUCCESS',
+        ]
         self.assertEqual(expected, capturer.values)
 
     def test_failing_task_with_flow_notifications(self):
         values = []
         flow = utils.FailingTask('fail')
         engine = self._make_engine(flow)
-        expected = ['fail.f RUNNING', 'fail.t RUNNING',
-                    'fail.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'fail.t REVERTING', 'fail.t REVERTED(None)',
-                    'fail.f REVERTED']
+        expected = [
+            'fail.f RUNNING',
+            'fail.t RUNNING',
+            'fail.t FAILURE(Failure: RuntimeError: Woot!)',
+            'fail.t REVERTING',
+            'fail.t REVERTED(None)',
+            'fail.f REVERTED',
+        ]
         with utils.CaptureListener(engine, values=values) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
         self.assertEqual(expected, capturer.values)
@@ -153,20 +166,21 @@ class EngineOptionalRequirementsTest(utils.EngineTestBase):
         flow_no_inject.add(utils.OptionalTask(provides='result'))
 
         flow_inject_a = lf.Flow("flow")
-        flow_inject_a.add(utils.OptionalTask(provides='result',
-                                             inject={'a': 10}))
+        flow_inject_a.add(
+            utils.OptionalTask(provides='result', inject={'a': 10})
+        )
 
         flow_inject_b = lf.Flow("flow")
-        flow_inject_b.add(utils.OptionalTask(provides='result',
-                                             inject={'b': 1000}))
+        flow_inject_b.add(
+            utils.OptionalTask(provides='result', inject={'b': 1000})
+        )
 
         engine = self._make_engine(flow_no_inject, store={'a': 3})
         engine.run()
         result = engine.storage.fetch_all()
         self.assertEqual({'a': 3, 'result': 15}, result)
 
-        engine = self._make_engine(flow_no_inject,
-                                   store={'a': 3, 'b': 7})
+        engine = self._make_engine(flow_no_inject, store={'a': 3, 'b': 7})
         engine.run()
         result = engine.storage.fetch_all()
         self.assertEqual({'a': 3, 'b': 7, 'result': 21}, result)
@@ -204,8 +218,9 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
 
     def test_many_results_visible_to(self):
         flow = lf.Flow("flow")
-        flow.add(utils.AddOneSameProvidesRequires(
-            'a', rebind={'value': 'source'}))
+        flow.add(
+            utils.AddOneSameProvidesRequires('a', rebind={'value': 'source'})
+        )
         flow.add(utils.AddOneSameProvidesRequires('b'))
         flow.add(utils.AddOneSameProvidesRequires('c'))
         engine = self._make_engine(flow, store={'source': 0})
@@ -214,18 +229,15 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
         # Check what each task in the prior should be seeing...
         atoms = list(flow)
         a = atoms[0]
-        a_kwargs = engine.storage.fetch_mapped_args(a.rebind,
-                                                    atom_name='a')
+        a_kwargs = engine.storage.fetch_mapped_args(a.rebind, atom_name='a')
         self.assertEqual({'value': 0}, a_kwargs)
 
         b = atoms[1]
-        b_kwargs = engine.storage.fetch_mapped_args(b.rebind,
-                                                    atom_name='b')
+        b_kwargs = engine.storage.fetch_mapped_args(b.rebind, atom_name='b')
         self.assertEqual({'value': 1}, b_kwargs)
 
         c = atoms[2]
-        c_kwargs = engine.storage.fetch_mapped_args(c.rebind,
-                                                    atom_name='c')
+        c_kwargs = engine.storage.fetch_mapped_args(c.rebind, atom_name='c')
         self.assertEqual({'value': 2}, c_kwargs)
 
     def test_many_results_storage_provided_visible_to(self):
@@ -242,18 +254,15 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
         # Check what each task in the prior should be seeing...
         atoms = list(flow)
         a = atoms[0]
-        a_kwargs = engine.storage.fetch_mapped_args(a.rebind,
-                                                    atom_name='a')
+        a_kwargs = engine.storage.fetch_mapped_args(a.rebind, atom_name='a')
         self.assertEqual({'value': 0}, a_kwargs)
 
         b = atoms[1]
-        b_kwargs = engine.storage.fetch_mapped_args(b.rebind,
-                                                    atom_name='b')
+        b_kwargs = engine.storage.fetch_mapped_args(b.rebind, atom_name='b')
         self.assertEqual({'value': 0}, b_kwargs)
 
         c = atoms[2]
-        c_kwargs = engine.storage.fetch_mapped_args(c.rebind,
-                                                    atom_name='c')
+        c_kwargs = engine.storage.fetch_mapped_args(c.rebind, atom_name='c')
         self.assertEqual({'value': 0}, c_kwargs)
 
     def test_fetch_with_two_results(self):
@@ -294,7 +303,6 @@ class EngineMultipleResultsTest(utils.EngineTestBase):
 
 
 class EngineLinearFlowTest(utils.EngineTestBase):
-
     def test_run_empty_linear_flow(self):
         flow = lf.Flow('flow-1')
         engine = self._make_engine(flow)
@@ -365,9 +373,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         self.assertEqual(states.FAILURE, engine.storage.get_flow_state())
 
     def test_sequential_flow_one_task(self):
-        flow = lf.Flow('flow-1').add(
-            utils.ProgressingTask(name='task1')
-        )
+        flow = lf.Flow('flow-1').add(utils.ProgressingTask(name='task1'))
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
@@ -377,34 +383,42 @@ class EngineLinearFlowTest(utils.EngineTestBase):
     def test_sequential_flow_two_tasks(self):
         flow = lf.Flow('flow-2').add(
             utils.ProgressingTask(name='task1'),
-            utils.ProgressingTask(name='task2')
+            utils.ProgressingTask(name='task2'),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
-        expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                    'task2.t RUNNING', 'task2.t SUCCESS(5)']
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+        ]
         self.assertEqual(expected, capturer.values)
         self.assertEqual(2, len(flow))
 
     def test_sequential_flow_two_tasks_iter(self):
         flow = lf.Flow('flow-2').add(
             utils.ProgressingTask(name='task1'),
-            utils.ProgressingTask(name='task2')
+            utils.ProgressingTask(name='task2'),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             gathered_states = list(engine.run_iter())
         self.assertGreater(len(gathered_states), 0)
-        expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                    'task2.t RUNNING', 'task2.t SUCCESS(5)']
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+        ]
         self.assertEqual(expected, capturer.values)
         self.assertEqual(2, len(flow))
 
     def test_sequential_flow_iter_suspend_resume(self):
         flow = lf.Flow('flow-2').add(
             utils.ProgressingTask(name='task1'),
-            utils.ProgressingTask(name='task2')
+            utils.ProgressingTask(name='task2'),
         )
         lb, fd = p_utils.temporary_flow_detail(self.backend)
 
@@ -439,7 +453,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         flow = lf.Flow('revert-removes').add(
             utils.TaskOneReturn(provides='one'),
             utils.TaskMultiReturn(provides=('a', 'b', 'c')),
-            utils.FailingTask(name='fail')
+            utils.FailingTask(name='fail'),
         )
         engine = self._make_engine(flow)
         self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
@@ -447,8 +461,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
 
     def test_revert_provided(self):
         flow = lf.Flow('revert').add(
-            utils.GiveBackRevert('giver'),
-            utils.FailingTask(name='fail')
+            utils.GiveBackRevert('giver'), utils.FailingTask(name='fail')
         )
         engine = self._make_engine(flow, store={'value': 0})
         self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
@@ -456,8 +469,7 @@ class EngineLinearFlowTest(utils.EngineTestBase):
 
     def test_nasty_revert(self):
         flow = lf.Flow('revert').add(
-            utils.NastyTask('nasty'),
-            utils.FailingTask(name='fail')
+            utils.NastyTask('nasty'), utils.FailingTask(name='fail')
         )
         engine = self._make_engine(flow)
         self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
@@ -471,21 +483,22 @@ class EngineLinearFlowTest(utils.EngineTestBase):
     def test_sequential_flow_nested_blocks(self):
         flow = lf.Flow('nested-1').add(
             utils.ProgressingTask('task1'),
-            lf.Flow('inner-1').add(
-                utils.ProgressingTask('task2')
-            )
+            lf.Flow('inner-1').add(utils.ProgressingTask('task2')),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
-        expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                    'task2.t RUNNING', 'task2.t SUCCESS(5)']
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+        ]
         self.assertEqual(expected, capturer.values)
 
     def test_revert_exception_is_reraised(self):
         flow = lf.Flow('revert-1').add(
-            utils.NastyTask(),
-            utils.FailingTask(name='fail')
+            utils.NastyTask(), utils.FailingTask(name='fail')
         )
         engine = self._make_engine(flow)
         self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
@@ -498,34 +511,42 @@ class EngineLinearFlowTest(utils.EngineTestBase):
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
-        expected = ['fail.t RUNNING',
-                    'fail.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'fail.t REVERTING', 'fail.t REVERTED(None)']
+        expected = [
+            'fail.t RUNNING',
+            'fail.t FAILURE(Failure: RuntimeError: Woot!)',
+            'fail.t REVERTING',
+            'fail.t REVERTED(None)',
+        ]
         self.assertEqual(expected, capturer.values)
 
     def test_correctly_reverts_children(self):
         flow = lf.Flow('root-1').add(
             utils.ProgressingTask('task1'),
             lf.Flow('child-1').add(
-                utils.ProgressingTask('task2'),
-                utils.FailingTask('fail')
-            )
+                utils.ProgressingTask('task2'), utils.FailingTask('fail')
+            ),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
-        expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                    'task2.t RUNNING', 'task2.t SUCCESS(5)',
-                    'fail.t RUNNING',
-                    'fail.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'fail.t REVERTING', 'fail.t REVERTED(None)',
-                    'task2.t REVERTING', 'task2.t REVERTED(None)',
-                    'task1.t REVERTING', 'task1.t REVERTED(None)']
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+            'fail.t RUNNING',
+            'fail.t FAILURE(Failure: RuntimeError: Woot!)',
+            'fail.t REVERTING',
+            'fail.t REVERTED(None)',
+            'task2.t REVERTING',
+            'task2.t REVERTED(None)',
+            'task1.t REVERTING',
+            'task1.t REVERTED(None)',
+        ]
         self.assertEqual(expected, capturer.values)
 
 
 class EngineParallelFlowTest(utils.EngineTestBase):
-
     def test_run_empty_unordered_flow(self):
         flow = uf.Flow('p-1')
         engine = self._make_engine(flow)
@@ -571,26 +592,31 @@ class EngineParallelFlowTest(utils.EngineTestBase):
     def test_parallel_flow_two_tasks(self):
         flow = uf.Flow('p-2').add(
             utils.ProgressingTask(name='task1'),
-            utils.ProgressingTask(name='task2')
+            utils.ProgressingTask(name='task2'),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
-        expected = {'task2.t SUCCESS(5)', 'task2.t RUNNING',
-                    'task1.t RUNNING', 'task1.t SUCCESS(5)'}
+        expected = {
+            'task2.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+        }
         self.assertEqual(expected, set(capturer.values))
 
     def test_parallel_revert(self):
         flow = uf.Flow('p-r-3').add(
             utils.TaskNoRequiresNoReturns(name='task1'),
             utils.FailingTask(name='fail'),
-            utils.TaskNoRequiresNoReturns(name='task2')
+            utils.TaskNoRequiresNoReturns(name='task2'),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
-        self.assertIn('fail.t FAILURE(Failure: RuntimeError: Woot!)',
-                      capturer.values)
+        self.assertIn(
+            'fail.t FAILURE(Failure: RuntimeError: Woot!)', capturer.values
+        )
 
     def test_parallel_revert_exception_is_reraised(self):
         # NOTE(imelnikov): if we put NastyTask and FailingTask
@@ -599,10 +625,9 @@ class EngineParallelFlowTest(utils.EngineTestBase):
         # FailingTask fails.
         flow = lf.Flow('p-r-r-l').add(
             uf.Flow('p-r-r').add(
-                utils.TaskNoRequiresNoReturns(name='task1'),
-                utils.NastyTask()
+                utils.TaskNoRequiresNoReturns(name='task1'), utils.NastyTask()
             ),
-            utils.FailingTask()
+            utils.FailingTask(),
         )
         engine = self._make_engine(flow)
         self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
@@ -610,7 +635,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
     def test_sequential_flow_two_tasks_with_resumption(self):
         flow = lf.Flow('lf-2-r').add(
             utils.ProgressingTask(name='task1', provides='x1'),
-            utils.ProgressingTask(name='task2', provides='x2')
+            utils.ProgressingTask(name='task2', provides='x2'),
         )
 
         # Create FlowDetail as if we already run task1
@@ -629,8 +654,7 @@ class EngineParallelFlowTest(utils.EngineTestBase):
             engine.run()
         expected = ['task2.t RUNNING', 'task2.t SUCCESS(5)']
         self.assertEqual(expected, capturer.values)
-        self.assertEqual({'x1': 17, 'x2': 5},
-                         engine.storage.fetch_all())
+        self.assertEqual({'x1': 17, 'x2': 5}, engine.storage.fetch_all())
 
     # Reproducer for #2139228 and #2086453
     def test_many_unordered_flows_in_linear_flow(self):
@@ -648,15 +672,13 @@ class EngineParallelFlowTest(utils.EngineTestBase):
 
 
 class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
-
     def test_revert_ok_for_unordered_in_linear(self):
         flow = lf.Flow('p-root').add(
             utils.ProgressingTask(name='task1'),
             utils.ProgressingTask(name='task2'),
             uf.Flow('p-inner').add(
-                utils.ProgressingTask(name='task3'),
-                utils.FailingTask('fail')
-            )
+                utils.ProgressingTask(name='task3'), utils.FailingTask('fail')
+            ),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
@@ -665,20 +687,27 @@ class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
         # NOTE(imelnikov): we don't know if task 3 was run, but if it was,
         # it should have been REVERTED(None) in correct order.
         possible_values_no_task3 = [
-            'task1.t RUNNING', 'task2.t RUNNING',
+            'task1.t RUNNING',
+            'task2.t RUNNING',
             'fail.t FAILURE(Failure: RuntimeError: Woot!)',
-            'task2.t REVERTED(None)', 'task1.t REVERTED(None)'
+            'task2.t REVERTED(None)',
+            'task1.t REVERTED(None)',
         ]
-        self.assertIsSuperAndSubsequence(capturer.values,
-                                         possible_values_no_task3)
+        self.assertIsSuperAndSubsequence(
+            capturer.values, possible_values_no_task3
+        )
         if 'task3' in capturer.values:
             possible_values_task3 = [
-                'task1.t RUNNING', 'task2.t RUNNING', 'task3.t RUNNING',
-                'task3.t REVERTED(None)', 'task2.t REVERTED(None)',
-                'task1.t REVERTED(None)'
+                'task1.t RUNNING',
+                'task2.t RUNNING',
+                'task3.t RUNNING',
+                'task3.t REVERTED(None)',
+                'task2.t REVERTED(None)',
+                'task1.t REVERTED(None)',
             ]
-            self.assertIsSuperAndSubsequence(capturer.values,
-                                             possible_values_task3)
+            self.assertIsSuperAndSubsequence(
+                capturer.values, possible_values_task3
+            )
 
     def test_revert_raises_for_unordered_in_linear(self):
         flow = lf.Flow('p-root').add(
@@ -686,59 +715,70 @@ class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
             utils.ProgressingTask(name='task2'),
             uf.Flow('p-inner').add(
                 utils.ProgressingTask(name='task3'),
-                utils.NastyFailingTask(name='nasty')
-            )
+                utils.NastyFailingTask(name='nasty'),
+            ),
         )
         engine = self._make_engine(flow)
-        with utils.CaptureListener(engine,
-                                   capture_flow=False,
-                                   skip_tasks=['nasty']) as capturer:
+        with utils.CaptureListener(
+            engine, capture_flow=False, skip_tasks=['nasty']
+        ) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
 
         # NOTE(imelnikov): we don't know if task 3 was run, but if it was,
         # it should have been REVERTED(None) in correct order.
-        possible_values = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                           'task2.t RUNNING', 'task2.t SUCCESS(5)',
-                           'task3.t RUNNING', 'task3.t SUCCESS(5)',
-                           'task3.t REVERTING',
-                           'task3.t REVERTED(None)']
+        possible_values = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+            'task3.t RUNNING',
+            'task3.t SUCCESS(5)',
+            'task3.t REVERTING',
+            'task3.t REVERTED(None)',
+        ]
         self.assertIsSuperAndSubsequence(possible_values, capturer.values)
         possible_values_no_task3 = ['task1.t RUNNING', 'task2.t RUNNING']
-        self.assertIsSuperAndSubsequence(capturer.values,
-                                         possible_values_no_task3)
+        self.assertIsSuperAndSubsequence(
+            capturer.values, possible_values_no_task3
+        )
 
     def test_revert_ok_for_linear_in_unordered(self):
         flow = uf.Flow('p-root').add(
             utils.ProgressingTask(name='task1'),
             lf.Flow('p-inner').add(
-                utils.ProgressingTask(name='task2'),
-                utils.FailingTask('fail')
-            )
+                utils.ProgressingTask(name='task2'), utils.FailingTask('fail')
+            ),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
-        self.assertIn('fail.t FAILURE(Failure: RuntimeError: Woot!)',
-                      capturer.values)
+        self.assertIn(
+            'fail.t FAILURE(Failure: RuntimeError: Woot!)', capturer.values
+        )
 
         # NOTE(imelnikov): if task1 was run, it should have been reverted.
         if 'task1' in capturer.values:
-            task1_story = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                           'task1.t REVERTED(None)']
+            task1_story = [
+                'task1.t RUNNING',
+                'task1.t SUCCESS(5)',
+                'task1.t REVERTED(None)',
+            ]
             self.assertIsSuperAndSubsequence(capturer.values, task1_story)
 
         # NOTE(imelnikov): task2 should have been run and reverted
-        task2_story = ['task2.t RUNNING', 'task2.t SUCCESS(5)',
-                       'task2.t REVERTED(None)']
+        task2_story = [
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+            'task2.t REVERTED(None)',
+        ]
         self.assertIsSuperAndSubsequence(capturer.values, task2_story)
 
     def test_revert_raises_for_linear_in_unordered(self):
         flow = uf.Flow('p-root').add(
             utils.ProgressingTask(name='task1'),
             lf.Flow('p-inner').add(
-                utils.ProgressingTask(name='task2'),
-                utils.NastyFailingTask()
-            )
+                utils.ProgressingTask(name='task2'), utils.NastyFailingTask()
+            ),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
@@ -747,7 +787,6 @@ class EngineLinearAndUnorderedExceptionsTest(utils.EngineTestBase):
 
 
 class EngineDeciderDepthTest(utils.EngineTestBase):
-
     def test_run_graph_flow_decider_various_depths(self):
         sub_flow_1 = gf.Flow('g_1')
         g_1_1 = utils.ProgressingTask(name='g_1-1')
@@ -756,21 +795,26 @@ class EngineDeciderDepthTest(utils.EngineTestBase):
         g_2 = utils.ProgressingTask(name='g-2')
         g_3 = utils.ProgressingTask(name='g-3')
         g_4 = utils.ProgressingTask(name='g-4')
-        for a_depth, ran_how_many in [('all', 1),
-                                      ('atom', 4),
-                                      ('flow', 2),
-                                      ('neighbors', 3)]:
+        for a_depth, ran_how_many in [
+            ('all', 1),
+            ('atom', 4),
+            ('flow', 2),
+            ('neighbors', 3),
+        ]:
             flow = gf.Flow('g')
             flow.add(g_1, g_2, sub_flow_1, g_3, g_4)
-            flow.link(g_1, g_2,
-                      decider=lambda history: False,
-                      decider_depth=a_depth)
+            flow.link(
+                g_1, g_2, decider=lambda history: False, decider_depth=a_depth
+            )
             flow.link(g_2, sub_flow_1)
             flow.link(g_2, g_3)
             flow.link(g_3, g_4)
-            flow.link(g_1, sub_flow_1,
-                      decider=lambda history: True,
-                      decider_depth=a_depth)
+            flow.link(
+                g_1,
+                sub_flow_1,
+                decider=lambda history: True,
+                decider_depth=a_depth,
+            )
             e = self._make_engine(flow)
             with utils.CaptureListener(e, capture_flow=False) as capturer:
                 e.run()
@@ -786,8 +830,7 @@ class EngineDeciderDepthTest(utils.EngineTestBase):
         b = utils.AddOneSameProvidesRequires("b")
         c = utils.AddOneSameProvidesRequires("c")
         flow.add(a, b, c, resolve_requires=False)
-        flow.link(a, b, decider=lambda history: False,
-                  decider_depth='atom')
+        flow.link(a, b, decider=lambda history: False, decider_depth='atom')
         flow.link(b, c)
         e = self._make_engine(flow)
         e.run()
@@ -800,8 +843,7 @@ class EngineDeciderDepthTest(utils.EngineTestBase):
         b = utils.FailingTask("b")
         c = utils.NoopTask("c")
         flow.add(a, b, c)
-        flow.link(a, b, decider=lambda history: False,
-                  decider_depth='atom')
+        flow.link(a, b, decider=lambda history: False, decider_depth='atom')
         flow.link(b, c)
         e = self._make_engine(flow)
         e.run()
@@ -812,8 +854,7 @@ class EngineDeciderDepthTest(utils.EngineTestBase):
         b = utils.NoopTask("b")
         c = utils.FailingTask("c")
         flow.add(a, b, c)
-        flow.link(a, b, decider=lambda history: False,
-                  decider_depth='atom')
+        flow.link(a, b, decider=lambda history: False, decider_depth='atom')
         flow.link(b, c)
         e = self._make_engine(flow)
         with utils.CaptureListener(e, capture_flow=False) as capturer:
@@ -835,22 +876,18 @@ class EngineDeciderDepthTest(utils.EngineTestBase):
 
 
 class EngineGraphFlowTest(utils.EngineTestBase):
-
     def test_run_empty_graph_flow(self):
         flow = gf.Flow('g-1')
         engine = self._make_engine(flow)
         self.assertEqual(_EMPTY_TRANSITIONS, list(engine.run_iter()))
 
     def test_run_empty_nested_graph_flows(self):
-        flow = gf.Flow('g-1').add(lf.Flow('l-1'),
-                                  gf.Flow('g-2'))
+        flow = gf.Flow('g-1').add(lf.Flow('l-1'), gf.Flow('g-2'))
         engine = self._make_engine(flow)
         self.assertEqual(_EMPTY_TRANSITIONS, list(engine.run_iter()))
 
     def test_graph_flow_one_task(self):
-        flow = gf.Flow('g-1').add(
-            utils.ProgressingTask(name='task1')
-        )
+        flow = gf.Flow('g-1').add(utils.ProgressingTask(name='task1'))
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
@@ -860,71 +897,96 @@ class EngineGraphFlowTest(utils.EngineTestBase):
     def test_graph_flow_two_independent_tasks(self):
         flow = gf.Flow('g-2').add(
             utils.ProgressingTask(name='task1'),
-            utils.ProgressingTask(name='task2')
+            utils.ProgressingTask(name='task2'),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
-        expected = {'task2.t SUCCESS(5)', 'task2.t RUNNING',
-                    'task1.t RUNNING', 'task1.t SUCCESS(5)'}
+        expected = {
+            'task2.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+        }
         self.assertEqual(expected, set(capturer.values))
         self.assertEqual(2, len(flow))
 
     def test_graph_flow_two_tasks(self):
         flow = gf.Flow('g-1-1').add(
             utils.ProgressingTask(name='task2', requires=['a']),
-            utils.ProgressingTask(name='task1', provides='a')
+            utils.ProgressingTask(name='task1', provides='a'),
         )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
-        expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                    'task2.t RUNNING', 'task2.t SUCCESS(5)']
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+        ]
         self.assertEqual(expected, capturer.values)
 
     def test_graph_flow_four_tasks_added_separately(self):
-        flow = (gf.Flow('g-4')
-                .add(utils.ProgressingTask(name='task4',
-                                           provides='d', requires=['c']))
-                .add(utils.ProgressingTask(name='task2',
-                                           provides='b', requires=['a']))
-                .add(utils.ProgressingTask(name='task3',
-                                           provides='c', requires=['b']))
-                .add(utils.ProgressingTask(name='task1',
-                                           provides='a'))
+        flow = (
+            gf.Flow('g-4')
+            .add(
+                utils.ProgressingTask(
+                    name='task4', provides='d', requires=['c']
                 )
+            )
+            .add(
+                utils.ProgressingTask(
+                    name='task2', provides='b', requires=['a']
+                )
+            )
+            .add(
+                utils.ProgressingTask(
+                    name='task3', provides='c', requires=['b']
+                )
+            )
+            .add(utils.ProgressingTask(name='task1', provides='a'))
+        )
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             engine.run()
-        expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                    'task2.t RUNNING', 'task2.t SUCCESS(5)',
-                    'task3.t RUNNING', 'task3.t SUCCESS(5)',
-                    'task4.t RUNNING', 'task4.t SUCCESS(5)']
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+            'task3.t RUNNING',
+            'task3.t SUCCESS(5)',
+            'task4.t RUNNING',
+            'task4.t SUCCESS(5)',
+        ]
         self.assertEqual(expected, capturer.values)
 
     def test_graph_flow_four_tasks_revert(self):
         flow = gf.Flow('g-4-failing').add(
-            utils.ProgressingTask(name='task4',
-                                  provides='d', requires=['c']),
-            utils.ProgressingTask(name='task2',
-                                  provides='b', requires=['a']),
-            utils.FailingTask(name='task3',
-                              provides='c', requires=['b']),
-            utils.ProgressingTask(name='task1', provides='a'))
+            utils.ProgressingTask(name='task4', provides='d', requires=['c']),
+            utils.ProgressingTask(name='task2', provides='b', requires=['a']),
+            utils.FailingTask(name='task3', provides='c', requires=['b']),
+            utils.ProgressingTask(name='task1', provides='a'),
+        )
 
         engine = self._make_engine(flow)
         with utils.CaptureListener(engine, capture_flow=False) as capturer:
             self.assertFailuresRegexp(RuntimeError, '^Woot', engine.run)
-        expected = ['task1.t RUNNING', 'task1.t SUCCESS(5)',
-                    'task2.t RUNNING', 'task2.t SUCCESS(5)',
-                    'task3.t RUNNING',
-                    'task3.t FAILURE(Failure: RuntimeError: Woot!)',
-                    'task3.t REVERTING',
-                    'task3.t REVERTED(None)',
-                    'task2.t REVERTING',
-                    'task2.t REVERTED(None)',
-                    'task1.t REVERTING',
-                    'task1.t REVERTED(None)']
+        expected = [
+            'task1.t RUNNING',
+            'task1.t SUCCESS(5)',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+            'task3.t RUNNING',
+            'task3.t FAILURE(Failure: RuntimeError: Woot!)',
+            'task3.t REVERTING',
+            'task3.t REVERTED(None)',
+            'task2.t REVERTING',
+            'task2.t REVERTED(None)',
+            'task1.t REVERTING',
+            'task1.t REVERTED(None)',
+        ]
         self.assertEqual(expected, capturer.values)
         self.assertEqual(states.REVERTED, engine.storage.get_flow_state())
 
@@ -932,7 +994,8 @@ class EngineGraphFlowTest(utils.EngineTestBase):
         flow = gf.Flow('g-3-nasty').add(
             utils.NastyTask(name='task2', provides='b', requires=['a']),
             utils.FailingTask(name='task3', requires=['b']),
-            utils.ProgressingTask(name='task1', provides='a'))
+            utils.ProgressingTask(name='task1', provides='a'),
+        )
 
         engine = self._make_engine(flow)
         self.assertFailuresRegexp(RuntimeError, '^Gotcha', engine.run)
@@ -940,28 +1003,28 @@ class EngineGraphFlowTest(utils.EngineTestBase):
 
     def test_graph_flow_with_multireturn_and_multiargs_tasks(self):
         flow = gf.Flow('g-3-multi').add(
-            utils.TaskMultiArgOneReturn(name='task1',
-                                        rebind=['a', 'b', 'y'], provides='z'),
+            utils.TaskMultiArgOneReturn(
+                name='task1', rebind=['a', 'b', 'y'], provides='z'
+            ),
             utils.TaskMultiReturn(name='task2', provides=['a', 'b', 'c']),
-            utils.TaskMultiArgOneReturn(name='task3',
-                                        rebind=['c', 'b', 'x'], provides='y'))
+            utils.TaskMultiArgOneReturn(
+                name='task3', rebind=['c', 'b', 'x'], provides='y'
+            ),
+        )
 
         engine = self._make_engine(flow)
         engine.storage.inject({'x': 30})
         engine.run()
-        self.assertEqual({
-            'a': 1,
-            'b': 3,
-            'c': 5,
-            'x': 30,
-            'y': 38,
-            'z': 42
-        }, engine.storage.fetch_all())
+        self.assertEqual(
+            {'a': 1, 'b': 3, 'c': 5, 'x': 30, 'y': 38, 'z': 42},
+            engine.storage.fetch_all(),
+        )
 
     def test_task_graph_property(self):
         flow = gf.Flow('test').add(
             utils.TaskNoRequiresNoReturns(name='task1'),
-            utils.TaskNoRequiresNoReturns(name='task2'))
+            utils.TaskNoRequiresNoReturns(name='task2'),
+        )
 
         engine = self._make_engine(flow)
         engine.compile()
@@ -980,10 +1043,9 @@ class EngineGraphFlowTest(utils.EngineTestBase):
 class EngineMissingDepsTest(utils.EngineTestBase):
     def test_missing_deps_deep(self):
         flow = gf.Flow('missing-many').add(
-            utils.TaskOneReturn(name='task1',
-                                requires=['a', 'b', 'c']),
-            utils.TaskMultiArgOneReturn(name='task2',
-                                        rebind=['e', 'f', 'g']))
+            utils.TaskOneReturn(name='task1', requires=['a', 'b', 'c']),
+            utils.TaskMultiArgOneReturn(name='task2', rebind=['e', 'f', 'g']),
+        )
         engine = self._make_engine(flow)
         engine.compile()
         engine.prepare()
@@ -1012,10 +1074,8 @@ class EngineResetTests(utils.EngineTestBase):
         expected = [
             'task1.t RUNNING',
             'task1.t SUCCESS(5)',
-
             'task2.t RUNNING',
             'task2.t SUCCESS(5)',
-
             'task3.t RUNNING',
             'task3.t SUCCESS(5)',
         ]
@@ -1051,9 +1111,7 @@ class EngineResetTests(utils.EngineTestBase):
             'task2.t RUNNING',
             'task2.t SUCCESS(5)',
             'task3.t RUNNING',
-
             'task3.t FAILURE(Failure: RuntimeError: Woot!)',
-
             'task3.t REVERTING',
             'task3.t REVERTED(None)',
             'task2.t REVERTING',
@@ -1099,7 +1157,6 @@ class EngineResetTests(utils.EngineTestBase):
         expected = [
             'task1.t RUNNING',
             'task1.t SUCCESS(5)',
-
             'task2.t RUNNING',
             'task2.t SUCCESS(5)',
         ]
@@ -1119,10 +1176,8 @@ class EngineResetTests(utils.EngineTestBase):
         expected = [
             'task1.t RUNNING',
             'task1.t SUCCESS(5)',
-
             'task2.t RUNNING',
             'task2.t SUCCESS(5)',
-
             'task3.t RUNNING',
             'task3.t SUCCESS(5)',
         ]
@@ -1130,7 +1185,6 @@ class EngineResetTests(utils.EngineTestBase):
 
 
 class EngineGraphConditionalFlowTest(utils.EngineTestBase):
-
     def test_graph_flow_conditional_jumps_across_2(self):
         histories = []
 
@@ -1161,10 +1215,8 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
         expected = [
             'task1.t RUNNING',
             'task1.t SUCCESS(5)',
-
             'task2.t RUNNING',
             'task2.t SUCCESS(5)',
-
             'task3.t IGNORE',
             'task4.t IGNORE',
         ]
@@ -1200,10 +1252,8 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
         expected = [
             'task1.t RUNNING',
             'task1.t SUCCESS(5)',
-
             'task2.t RUNNING',
             'task2.t SUCCESS(5)',
-
             'task3.t IGNORE',
             'task4.t IGNORE',
         ]
@@ -1233,10 +1283,8 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
         expected = {
             'task1.t RUNNING',
             'task1.t SUCCESS(5)',
-
             'task2.t IGNORE',
             'task2_2.t IGNORE',
-
             'task3.t RUNNING',
             'task3.t SUCCESS(5)',
         }
@@ -1261,17 +1309,15 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
         expected = {
             'task1.t RUNNING',
             'task1.t SUCCESS(5)',
-
             'task2.t RUNNING',
             'task2.t SUCCESS(5)',
-
             'task3.t IGNORE',
         }
         self.assertEqual(expected, set(capturer.values))
-        self.assertEqual(states.IGNORE,
-                         engine.storage.get_atom_state('task3'))
-        self.assertEqual(states.IGNORE,
-                         engine.storage.get_atom_intention('task3'))
+        self.assertEqual(states.IGNORE, engine.storage.get_atom_state('task3'))
+        self.assertEqual(
+            states.IGNORE, engine.storage.get_atom_intention('task3')
+        )
 
         engine.reset()
         allow_execute.set()
@@ -1281,10 +1327,8 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
         expected = {
             'task1.t RUNNING',
             'task1.t SUCCESS(5)',
-
             'task2.t RUNNING',
             'task2.t SUCCESS(5)',
-
             'task3.t RUNNING',
             'task3.t SUCCESS(5)',
         }
@@ -1311,20 +1355,17 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
         expected = {
             'task1.t RUNNING',
             'task1.t SUCCESS(5)',
-
             'task2.t RUNNING',
             'task2.t SUCCESS(5)',
-
             'task3.t RUNNING',
             'task3.t SUCCESS(5)',
-
             'task4.t IGNORE',
         }
         self.assertEqual(expected, set(capturer.values))
-        self.assertEqual(states.IGNORE,
-                         engine.storage.get_atom_state('task4'))
-        self.assertEqual(states.IGNORE,
-                         engine.storage.get_atom_intention('task4'))
+        self.assertEqual(states.IGNORE, engine.storage.get_atom_state('task4'))
+        self.assertEqual(
+            states.IGNORE, engine.storage.get_atom_intention('task4')
+        )
 
     def test_graph_flow_conditional_history(self):
 
@@ -1343,12 +1384,18 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
         task3_3 = utils.ProgressingTask(name='task3_3')
 
         flow.add(task1, task2, task2_2, task3, task3_3)
-        flow.link(task1, task2,
-                  decider=functools.partial(even_odd_decider, allowed=2))
+        flow.link(
+            task1,
+            task2,
+            decider=functools.partial(even_odd_decider, allowed=2),
+        )
         flow.link(task2, task2_2)
 
-        flow.link(task1, task3,
-                  decider=functools.partial(even_odd_decider, allowed=1))
+        flow.link(
+            task1,
+            task3,
+            decider=functools.partial(even_odd_decider, allowed=1),
+        )
         flow.link(task3, task3_3)
 
         engine = self._make_engine(flow)
@@ -1358,10 +1405,14 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
             engine.run()
 
         expected = {
-            'task1.t RUNNING', 'task1.t SUCCESS(2)',
-            'task3.t IGNORE', 'task3_3.t IGNORE',
-            'task2.t RUNNING', 'task2.t SUCCESS(5)',
-            'task2_2.t RUNNING', 'task2_2.t SUCCESS(5)',
+            'task1.t RUNNING',
+            'task1.t SUCCESS(2)',
+            'task3.t IGNORE',
+            'task3_3.t IGNORE',
+            'task2.t RUNNING',
+            'task2.t SUCCESS(5)',
+            'task2_2.t RUNNING',
+            'task2_2.t SUCCESS(5)',
         }
         self.assertEqual(expected, set(capturer.values))
 
@@ -1371,10 +1422,14 @@ class EngineGraphConditionalFlowTest(utils.EngineTestBase):
             engine.run()
 
         expected = {
-            'task1.t RUNNING', 'task1.t SUCCESS(1)',
-            'task2.t IGNORE', 'task2_2.t IGNORE',
-            'task3.t RUNNING', 'task3.t SUCCESS(5)',
-            'task3_3.t RUNNING', 'task3_3.t SUCCESS(5)',
+            'task1.t RUNNING',
+            'task1.t SUCCESS(1)',
+            'task2.t IGNORE',
+            'task2_2.t IGNORE',
+            'task3.t RUNNING',
+            'task3.t SUCCESS(5)',
+            'task3_3.t RUNNING',
+            'task3_3.t SUCCESS(5)',
         }
         self.assertEqual(expected, set(capturer.values))
 
@@ -1396,35 +1451,36 @@ class EngineCheckingTaskTest(utils.EngineTestBase):
                 self.assertIsInstance(fail, failure.Failure)
                 self.assertEqual('Failure: RuntimeError: Woot!', str(fail))
 
-        flow = lf.Flow('test').add(
-            CheckingTask(),
-            utils.FailingTask('fail1')
-        )
+        flow = lf.Flow('test').add(CheckingTask(), utils.FailingTask('fail1'))
         engine = self._make_engine(flow)
         self.assertRaisesRegex(RuntimeError, '^Woot', engine.run)
 
 
-class SerialEngineTest(EngineTaskTest,
-                       EngineMultipleResultsTest,
-                       EngineLinearFlowTest,
-                       EngineParallelFlowTest,
-                       EngineLinearAndUnorderedExceptionsTest,
-                       EngineOptionalRequirementsTest,
-                       EngineGraphFlowTest,
-                       EngineMissingDepsTest,
-                       EngineResetTests,
-                       EngineGraphConditionalFlowTest,
-                       EngineCheckingTaskTest,
-                       EngineDeciderDepthTest,
-                       EngineTaskNotificationsTest,
-                       test.TestCase):
-    def _make_engine(self, flow,
-                     flow_detail=None, store=None, **kwargs):
-        return taskflow.engines.load(flow,
-                                     flow_detail=flow_detail,
-                                     engine='serial',
-                                     backend=self.backend,
-                                     store=store, **kwargs)
+class SerialEngineTest(
+    EngineTaskTest,
+    EngineMultipleResultsTest,
+    EngineLinearFlowTest,
+    EngineParallelFlowTest,
+    EngineLinearAndUnorderedExceptionsTest,
+    EngineOptionalRequirementsTest,
+    EngineGraphFlowTest,
+    EngineMissingDepsTest,
+    EngineResetTests,
+    EngineGraphConditionalFlowTest,
+    EngineCheckingTaskTest,
+    EngineDeciderDepthTest,
+    EngineTaskNotificationsTest,
+    test.TestCase,
+):
+    def _make_engine(self, flow, flow_detail=None, store=None, **kwargs):
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            engine='serial',
+            backend=self.backend,
+            store=store,
+            **kwargs,
+        )
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
@@ -1435,34 +1491,39 @@ class SerialEngineTest(EngineTaskTest,
         self.assertIsInstance(engine, eng.SerialActionEngine)
 
 
-class ParallelEngineWithThreadsTest(EngineTaskTest,
-                                    EngineMultipleResultsTest,
-                                    EngineLinearFlowTest,
-                                    EngineParallelFlowTest,
-                                    EngineLinearAndUnorderedExceptionsTest,
-                                    EngineOptionalRequirementsTest,
-                                    EngineGraphFlowTest,
-                                    EngineResetTests,
-                                    EngineMissingDepsTest,
-                                    EngineGraphConditionalFlowTest,
-                                    EngineCheckingTaskTest,
-                                    EngineDeciderDepthTest,
-                                    EngineTaskNotificationsTest,
-                                    test.TestCase):
+class ParallelEngineWithThreadsTest(
+    EngineTaskTest,
+    EngineMultipleResultsTest,
+    EngineLinearFlowTest,
+    EngineParallelFlowTest,
+    EngineLinearAndUnorderedExceptionsTest,
+    EngineOptionalRequirementsTest,
+    EngineGraphFlowTest,
+    EngineResetTests,
+    EngineMissingDepsTest,
+    EngineGraphConditionalFlowTest,
+    EngineCheckingTaskTest,
+    EngineDeciderDepthTest,
+    EngineTaskNotificationsTest,
+    test.TestCase,
+):
     _EXECUTOR_WORKERS = 2
 
-    def _make_engine(self, flow,
-                     flow_detail=None, executor=None, store=None,
-                     **kwargs):
+    def _make_engine(
+        self, flow, flow_detail=None, executor=None, store=None, **kwargs
+    ):
         if executor is None:
             executor = 'threads'
-        return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     backend=self.backend,
-                                     executor=executor,
-                                     engine='parallel',
-                                     store=store,
-                                     max_workers=self._EXECUTOR_WORKERS,
-                                     **kwargs)
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            backend=self.backend,
+            executor=executor,
+            engine='parallel',
+            store=store,
+            max_workers=self._EXECUTOR_WORKERS,
+            **kwargs,
+        )
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)
@@ -1480,45 +1541,53 @@ class ParallelEngineWithThreadsTest(EngineTaskTest,
 
 
 @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
-class ParallelEngineWithEventletTest(EngineTaskTest,
-                                     EngineMultipleResultsTest,
-                                     EngineLinearFlowTest,
-                                     EngineParallelFlowTest,
-                                     EngineLinearAndUnorderedExceptionsTest,
-                                     EngineOptionalRequirementsTest,
-                                     EngineGraphFlowTest,
-                                     EngineResetTests,
-                                     EngineMissingDepsTest,
-                                     EngineGraphConditionalFlowTest,
-                                     EngineCheckingTaskTest,
-                                     EngineDeciderDepthTest,
-                                     EngineTaskNotificationsTest,
-                                     test.TestCase):
-
-    def _make_engine(self, flow,
-                     flow_detail=None, executor=None, store=None,
-                     **kwargs):
+class ParallelEngineWithEventletTest(
+    EngineTaskTest,
+    EngineMultipleResultsTest,
+    EngineLinearFlowTest,
+    EngineParallelFlowTest,
+    EngineLinearAndUnorderedExceptionsTest,
+    EngineOptionalRequirementsTest,
+    EngineGraphFlowTest,
+    EngineResetTests,
+    EngineMissingDepsTest,
+    EngineGraphConditionalFlowTest,
+    EngineCheckingTaskTest,
+    EngineDeciderDepthTest,
+    EngineTaskNotificationsTest,
+    test.TestCase,
+):
+    def _make_engine(
+        self, flow, flow_detail=None, executor=None, store=None, **kwargs
+    ):
         if executor is None:
             executor = 'greenthreads'
-        return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     backend=self.backend, engine='parallel',
-                                     executor=executor,
-                                     store=store, **kwargs)
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            backend=self.backend,
+            engine='parallel',
+            executor=executor,
+            store=store,
+            **kwargs,
+        )
 
 
-class WorkerBasedEngineTest(EngineTaskTest,
-                            EngineMultipleResultsTest,
-                            EngineLinearFlowTest,
-                            EngineParallelFlowTest,
-                            EngineLinearAndUnorderedExceptionsTest,
-                            EngineOptionalRequirementsTest,
-                            EngineGraphFlowTest,
-                            EngineResetTests,
-                            EngineMissingDepsTest,
-                            EngineGraphConditionalFlowTest,
-                            EngineDeciderDepthTest,
-                            EngineTaskNotificationsTest,
-                            test.TestCase):
+class WorkerBasedEngineTest(
+    EngineTaskTest,
+    EngineMultipleResultsTest,
+    EngineLinearFlowTest,
+    EngineParallelFlowTest,
+    EngineLinearAndUnorderedExceptionsTest,
+    EngineOptionalRequirementsTest,
+    EngineGraphFlowTest,
+    EngineResetTests,
+    EngineMissingDepsTest,
+    EngineGraphConditionalFlowTest,
+    EngineDeciderDepthTest,
+    EngineTaskNotificationsTest,
+    test.TestCase,
+):
     def setUp(self):
         super().setUp()
         shared_conf = {
@@ -1535,20 +1604,24 @@ class WorkerBasedEngineTest(EngineTaskTest,
             },
         }
         worker_conf = shared_conf.copy()
-        worker_conf.update({
-            'topic': 'my-topic',
-            'tasks': [
-                # This makes it possible for the worker to run/find any atoms
-                # that are defined in the test.utils module (which are all
-                # the task/atom types that this test uses)...
-                utils.__name__,
-            ],
-        })
+        worker_conf.update(
+            {
+                'topic': 'my-topic',
+                'tasks': [
+                    # This makes it possible for the worker to run/find any
+                    # atoms that are defined in the test.utils module (which
+                    # are all the task/atom types that this test uses)...
+                    utils.__name__,
+                ],
+            }
+        )
         self.engine_conf = shared_conf.copy()
-        self.engine_conf.update({
-            'engine': 'worker-based',
-            'topics': tuple([worker_conf['topic']]),
-        })
+        self.engine_conf.update(
+            {
+                'engine': 'worker-based',
+                'topics': tuple([worker_conf['topic']]),
+            }
+        )
         self.worker = wkr.Worker(**worker_conf)
         self.worker_thread = tu.daemon_thread(self.worker.run)
         self.worker_thread.start()
@@ -1562,12 +1635,15 @@ class WorkerBasedEngineTest(EngineTaskTest,
         # Make sure the worker is started before we can continue...
         self.worker.wait()
 
-    def _make_engine(self, flow,
-                     flow_detail=None, store=None, **kwargs):
+    def _make_engine(self, flow, flow_detail=None, store=None, **kwargs):
         kwargs.update(self.engine_conf)
-        return taskflow.engines.load(flow, flow_detail=flow_detail,
-                                     backend=self.backend,
-                                     store=store, **kwargs)
+        return taskflow.engines.load(
+            flow,
+            flow_detail=flow_detail,
+            backend=self.backend,
+            store=store,
+            **kwargs,
+        )
 
     def test_correct_load(self):
         engine = self._make_engine(utils.TaskNoRequiresNoReturns)

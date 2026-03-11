@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 from taskflow import engines
@@ -56,8 +56,10 @@ print("---------")
 print("After run")
 print("---------")
 backend = e.storage.backend
-entries = [os.path.join(backend.memory.root_path, child)
-           for child in backend.memory.ls(backend.memory.root_path)]
+entries = [
+    os.path.join(backend.memory.root_path, child)
+    for child in backend.memory.ls(backend.memory.root_path)
+]
 while entries:
     path = entries.pop()
     value = backend.memory[path]
@@ -65,5 +67,6 @@ while entries:
         print(f"{path} -> {value}")
     else:
         print("%s" % (path))
-    entries.extend(os.path.join(path, child)
-                   for child in backend.memory.ls(path))
+    entries.extend(
+        os.path.join(path, child) for child in backend.memory.ls(path)
+    )

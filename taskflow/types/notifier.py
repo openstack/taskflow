@@ -89,7 +89,9 @@ class Listener:
     def __repr__(self):
         repr_msg = "{} object at 0x{:x} calling into '{!r}'".format(
             reflection.get_class_name(self, fully_qualified=False),
-            id(self), self._callback)
+            id(self),
+            self._callback,
+        )
         if self._details_filter is not None:
             repr_msg += " using details filter '%r'" % self._details_filter
         return "<%s>" % repr_msg
@@ -108,15 +110,17 @@ class Listener:
             if self._details_filter is None:
                 return False
             else:
-                return reflection.is_same_callback(self._details_filter,
-                                                   details_filter)
+                return reflection.is_same_callback(
+                    self._details_filter, details_filter
+                )
         else:
             return self._details_filter is None
 
     def __eq__(self, other):
         if isinstance(other, Listener):
-            return self.is_equivalent(other._callback,
-                                      details_filter=other._details_filter)
+            return self.is_equivalent(
+                other._callback, details_filter=other._details_filter
+            )
         else:
             return NotImplemented
 
@@ -161,7 +165,7 @@ class Notifier:
         :rtype: number
         """
         count = 0
-        for (_event_type, listeners) in self._topics.items():
+        for _event_type, listeners in self._topics.items():
             count += len(listeners)
         return count
 
@@ -196,8 +200,10 @@ class Notifier:
         :type details: dictionary
         """
         if not self.can_trigger_notification(event_type):
-            LOG.debug("Event type '%s' is not allowed to trigger"
-                      " notifications", event_type)
+            LOG.debug(
+                "Event type '%s' is not allowed to trigger notifications",
+                event_type,
+            )
             return
         listeners = list(self._topics.get(self.ANY, []))
         listeners.extend(self._topics.get(event_type, []))
@@ -209,12 +215,18 @@ class Notifier:
             try:
                 listener(event_type, details.copy())
             except Exception:
-                LOG.warning("Failure calling listener %s to notify about event"
-                            " %s, details: %s", listener, event_type,
-                            details, exc_info=True)
+                LOG.warning(
+                    "Failure calling listener %s to notify about event"
+                    " %s, details: %s",
+                    listener,
+                    event_type,
+                    details,
+                    exc_info=True,
+                )
 
-    def register(self, event_type, callback,
-                 args=None, kwargs=None, details_filter=None):
+    def register(
+        self, event_type, callback, args=None, kwargs=None, details_filter=None
+    ):
         """Register a callback to be called when event of a given type occurs.
 
         Callback will be called with provided ``args`` and ``kwargs`` and
@@ -238,21 +250,31 @@ class Notifier:
             if not callable(details_filter):
                 raise ValueError("Details filter must be callable")
         if not self.can_be_registered(event_type):
-            raise ValueError("Disallowed event type '%s' can not have a"
-                             " callback registered" % event_type)
-        if self.is_registered(event_type, callback,
-                              details_filter=details_filter):
-            raise ValueError("Event callback already registered with"
-                             " equivalent details filter")
+            raise ValueError(
+                "Disallowed event type '%s' can not have a"
+                " callback registered" % event_type
+            )
+        if self.is_registered(
+            event_type, callback, details_filter=details_filter
+        ):
+            raise ValueError(
+                "Event callback already registered with"
+                " equivalent details filter"
+            )
         if kwargs:
             for k in self.RESERVED_KEYS:
                 if k in kwargs:
-                    raise KeyError("Reserved key '%s' not allowed in "
-                                   "kwargs" % k)
+                    raise KeyError(
+                        "Reserved key '%s' not allowed in kwargs" % k
+                    )
         self._topics[event_type].append(
-            Listener(callback,
-                     args=args, kwargs=kwargs,
-                     details_filter=details_filter))
+            Listener(
+                callback,
+                args=args,
+                kwargs=kwargs,
+                details_filter=details_filter,
+            )
+        )
 
     def deregister(self, event_type, callback, details_filter=None):
         """Remove a single listener bound to event ``event_type``.
@@ -277,7 +299,7 @@ class Notifier:
     def copy(self):
         c = copy.copy(self)
         c._topics = collections.defaultdict(list)
-        for (event_type, listeners) in self._topics.items():
+        for event_type, listeners in self._topics.items():
             c._topics[event_type] = listeners[:]
         return c
 
@@ -339,13 +361,20 @@ class RestrictedNotifier(Notifier):
         :returns: whether the event can be registered/subscribed to
         :rtype: boolean
         """
-        return (event_type in self._watchable_events or
-                (event_type == self.ANY and self._allow_any))
+        return event_type in self._watchable_events or (
+            event_type == self.ANY and self._allow_any
+        )
 
 
 @contextlib.contextmanager
-def register_deregister(notifier, event_type, callback=None,
-                        args=None, kwargs=None, details_filter=None):
+def register_deregister(
+    notifier,
+    event_type,
+    callback=None,
+    args=None,
+    kwargs=None,
+    details_filter=None,
+):
     """Context manager that registers a callback, then deregisters on exit.
 
     NOTE(harlowja): if the callback is none, then this registers nothing, which
@@ -355,11 +384,16 @@ def register_deregister(notifier, event_type, callback=None,
     if callback is None:
         yield
     else:
-        notifier.register(event_type, callback,
-                          args=args, kwargs=kwargs,
-                          details_filter=details_filter)
+        notifier.register(
+            event_type,
+            callback,
+            args=args,
+            kwargs=kwargs,
+            details_filter=details_filter,
+        )
         try:
             yield
         finally:
-            notifier.deregister(event_type, callback,
-                                details_filter=details_filter)
+            notifier.deregister(
+                event_type, callback, details_filter=details_filter
+            )

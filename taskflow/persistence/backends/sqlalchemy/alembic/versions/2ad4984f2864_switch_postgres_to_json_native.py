@@ -28,22 +28,24 @@ from alembic import op
 
 
 _ALTER_TO_JSON_TPL = 'ALTER TABLE %s ALTER COLUMN %s TYPE JSON USING %s::JSON'
-_TABLES_COLS = tuple([
-    ('logbooks', 'meta'),
-    ('flowdetails', 'meta'),
-    ('atomdetails', 'meta'),
-    ('atomdetails', 'failure'),
-    ('atomdetails', 'revert_failure'),
-    ('atomdetails', 'results'),
-    ('atomdetails', 'revert_results'),
-])
+_TABLES_COLS = tuple(
+    [
+        ('logbooks', 'meta'),
+        ('flowdetails', 'meta'),
+        ('atomdetails', 'meta'),
+        ('atomdetails', 'failure'),
+        ('atomdetails', 'revert_failure'),
+        ('atomdetails', 'results'),
+        ('atomdetails', 'revert_results'),
+    ]
+)
 _ALTER_TO_TEXT_TPL = 'ALTER TABLE %s ALTER COLUMN %s TYPE TEXT'
 
 
 def upgrade():
     b = op.get_bind()
     if b.dialect.name.startswith('postgresql'):
-        for (table_name, col_name) in _TABLES_COLS:
+        for table_name, col_name in _TABLES_COLS:
             q = _ALTER_TO_JSON_TPL % (table_name, col_name, col_name)
             op.execute(q)
 
@@ -51,6 +53,6 @@ def upgrade():
 def downgrade():
     b = op.get_bind()
     if b.dialect.name.startswith('postgresql'):
-        for (table_name, col_name) in _TABLES_COLS:
+        for table_name, col_name in _TABLES_COLS:
             q = _ALTER_TO_TEXT_TPL % (table_name, col_name)
             op.execute(q)

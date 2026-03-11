@@ -109,8 +109,12 @@ DEFAULT_TXN_ISOLATION_LEVELS = {
 
 def _log_statements(log_level, conn, cursor, statement, parameters, *args):
     if LOG.isEnabledFor(log_level):
-        LOG.log(log_level, "Running statement '%s' with parameters %s",
-                statement, parameters)
+        LOG.log(
+            log_level,
+            "Running statement '%s' with parameters %s",
+            statement,
+            parameters,
+        )
 
 
 def _in_any(reason, err_haystack):
@@ -188,6 +192,7 @@ class _Alchemist:
 
     NOTE(harlowja): for internal usage only.
     """
+
     def __init__(self, tables):
         self._tables = tables
 
@@ -206,15 +211,17 @@ class _Alchemist:
         return atom_cls.from_dict(row)
 
     def atom_query_iter(self, conn, parent_uuid):
-        q = (sql.select(self._tables.atomdetails).
-             where(self._tables.atomdetails.c.parent_uuid == parent_uuid))
+        q = sql.select(self._tables.atomdetails).where(
+            self._tables.atomdetails.c.parent_uuid == parent_uuid
+        )
         for row in conn.execute(q):
             row = row._mapping
             yield self.convert_atom_detail(row)
 
     def flow_query_iter(self, conn, parent_uuid):
-        q = (sql.select(self._tables.flowdetails).
-             where(self._tables.flowdetails.c.parent_uuid == parent_uuid))
+        q = sql.select(self._tables.flowdetails).where(
+            self._tables.flowdetails.c.parent_uuid == parent_uuid
+        )
         for row in conn.execute(q):
             row = row._mapping
             yield self.convert_flow_detail(row)
@@ -238,6 +245,7 @@ class SQLAlchemyBackend(base.Backend):
             "connection": "sqlite:////tmp/test.db",
         }
     """
+
     def __init__(self, conf, engine=None):
         super().__init__(conf)
         if engine is not None:
@@ -275,24 +283,27 @@ class SQLAlchemyBackend(base.Backend):
                 engine_args["poolclass"] = sa_pool.StaticPool
                 engine_args["connect_args"] = {'check_same_thread': False}
         else:
-            for (k, lookup_key) in [('pool_size', 'max_pool_size'),
-                                    ('max_overflow', 'max_overflow'),
-                                    ('pool_timeout', 'pool_timeout')]:
+            for k, lookup_key in [
+                ('pool_size', 'max_pool_size'),
+                ('max_overflow', 'max_overflow'),
+                ('pool_timeout', 'pool_timeout'),
+            ]:
                 if lookup_key in conf:
                     engine_args[k] = misc.as_int(conf.pop(lookup_key))
         if 'isolation_level' not in conf:
             # Check driver name exact matches first, then try driver name
             # partial matches...
-            txn_isolation_levels = conf.pop('isolation_levels',
-                                            DEFAULT_TXN_ISOLATION_LEVELS)
+            txn_isolation_levels = conf.pop(
+                'isolation_levels', DEFAULT_TXN_ISOLATION_LEVELS
+            )
             level_applied = False
-            for (driver, level) in txn_isolation_levels.items():
+            for driver, level in txn_isolation_levels.items():
                 if driver == e_url.drivername:
                     engine_args['isolation_level'] = level
                     level_applied = True
                     break
             if not level_applied:
-                for (driver, level) in txn_isolation_levels.items():
+                for driver, level in txn_isolation_levels.items():
                     if e_url.drivername.find(driver) != -1:
                         engine_args['isolation_level'] = level
                         break
@@ -304,13 +315,17 @@ class SQLAlchemyBackend(base.Backend):
         engine = sa.create_engine(sql_connection, **engine_args)
         log_statements = conf.pop('log_statements', False)
         if _as_bool(log_statements):
-            log_statements_level = conf.pop("log_statements_level",
-                                            logging.TRACE)
-            sa.event.listen(engine, "before_cursor_execute",
-                            functools.partial(_log_statements,
-                                              log_statements_level))
-        checkin_yield = conf.pop('checkin_yield',
-                                 eventlet_utils.EVENTLET_AVAILABLE)
+            log_statements_level = conf.pop(
+                "log_statements_level", logging.TRACE
+            )
+            sa.event.listen(
+                engine,
+                "before_cursor_execute",
+                functools.partial(_log_statements, log_statements_level),
+            )
+        checkin_yield = conf.pop(
+            'checkin_yield', eventlet_utils.EVENTLET_AVAILABLE
+        )
         if _as_bool(checkin_yield):
             sa.event.listen(engine, 'checkin', _thread_yield)
         if 'mysql' in e_url.drivername:
@@ -320,8 +335,9 @@ class SQLAlchemyBackend(base.Backend):
             if 'mysql_sql_mode' in conf:
                 mode = conf.pop('mysql_sql_mode')
             if mode is not None:
-                sa.event.listen(engine, 'connect',
-                                functools.partial(_set_sql_mode, mode))
+                sa.event.listen(
+                    engine, 'connect', functools.partial(_set_sql_mode, mode)
+                )
         return engine
 
     @property
@@ -362,13 +378,19 @@ class Connection(base.Connection):
 
         def _retry_on_exception(exc):
             LOG.warning("Engine connection (validate) failed due to '%s'", exc)
-            if isinstance(exc, sa_exc.OperationalError) and \
-               _is_db_connection_error(str(exc.args[0])):
+            if isinstance(
+                exc, sa_exc.OperationalError
+            ) and _is_db_connection_error(str(exc.args[0])):
                 # We may be able to fix this by retrying...
                 return True
-            if isinstance(exc, (sa_exc.TimeoutError,
-                                sa_exc.ResourceClosedError,
-                                sa_exc.DisconnectionError)):
+            if isinstance(
+                exc,
+                (
+                    sa_exc.TimeoutError,
+                    sa_exc.ResourceClosedError,
+                    sa_exc.DisconnectionError,
+                ),
+            ):
                 # We may be able to fix this by retrying...
                 return True
             # Other failures we likely can't fix by retrying...
@@ -378,7 +400,7 @@ class Connection(base.Connection):
             stop=tenacity.stop_after_attempt(max(0, int(max_retries))),
             wait=tenacity.wait_exponential(),
             reraise=True,
-            retry=tenacity.retry_if_exception(_retry_on_exception)
+            retry=tenacity.retry_if_exception(_retry_on_exception),
         )
         def _try_connect(engine):
             # See if we can make a connection happen.
@@ -408,8 +430,9 @@ class Connection(base.Connection):
                     else:
                         migration.db_sync(conn)
         except sa_exc.SQLAlchemyError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed upgrading database version")
+            exc.raise_with_cause(
+                exc.StorageFailure, "Failed upgrading database version"
+            )
 
     def clear_all(self):
         try:
@@ -417,27 +440,33 @@ class Connection(base.Connection):
             with self._engine.begin() as conn:
                 conn.execute(logbooks.delete())
         except sa_exc.DBAPIError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed clearing all entries")
+            exc.raise_with_cause(
+                exc.StorageFailure, "Failed clearing all entries"
+            )
 
     def update_atom_details(self, atom_detail):
         try:
             atomdetails = self._tables.atomdetails
             with self._engine.begin() as conn:
-                q = (sql.select(atomdetails).
-                     where(atomdetails.c.uuid == atom_detail.uuid))
+                q = sql.select(atomdetails).where(
+                    atomdetails.c.uuid == atom_detail.uuid
+                )
                 row = conn.execute(q).first()
                 if not row:
-                    raise exc.NotFound("No atom details found with uuid"
-                                       " '%s'" % atom_detail.uuid)
+                    raise exc.NotFound(
+                        "No atom details found with uuid"
+                        " '%s'" % atom_detail.uuid
+                    )
                 row = row._mapping
                 e_ad = self._converter.convert_atom_detail(row)
                 self._update_atom_details(conn, atom_detail, e_ad)
             return e_ad
         except sa_exc.SQLAlchemyError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed updating atom details"
-                                 " with uuid '%s'" % atom_detail.uuid)
+            exc.raise_with_cause(
+                exc.StorageFailure,
+                "Failed updating atom details"
+                " with uuid '%s'" % atom_detail.uuid,
+            )
 
     def _insert_flow_details(self, conn, fd, parent_uuid):
         value = fd.to_dict()
@@ -454,15 +483,19 @@ class Connection(base.Connection):
 
     def _update_atom_details(self, conn, ad, e_ad):
         e_ad.merge(ad)
-        conn.execute(sql.update(self._tables.atomdetails)
-                     .where(self._tables.atomdetails.c.uuid == e_ad.uuid)
-                     .values(e_ad.to_dict()))
+        conn.execute(
+            sql.update(self._tables.atomdetails)
+            .where(self._tables.atomdetails.c.uuid == e_ad.uuid)
+            .values(e_ad.to_dict())
+        )
 
     def _update_flow_details(self, conn, fd, e_fd):
         e_fd.merge(fd)
-        conn.execute(sql.update(self._tables.flowdetails)
-                     .where(self._tables.flowdetails.c.uuid == e_fd.uuid)
-                     .values(e_fd.to_dict()))
+        conn.execute(
+            sql.update(self._tables.flowdetails)
+            .where(self._tables.flowdetails.c.uuid == e_fd.uuid)
+            .values(e_fd.to_dict())
+        )
         for ad in fd:
             e_ad = e_fd.find(ad.uuid)
             if e_ad is None:
@@ -475,21 +508,26 @@ class Connection(base.Connection):
         try:
             flowdetails = self._tables.flowdetails
             with self._engine.begin() as conn:
-                q = (sql.select(flowdetails).
-                     where(flowdetails.c.uuid == flow_detail.uuid))
+                q = sql.select(flowdetails).where(
+                    flowdetails.c.uuid == flow_detail.uuid
+                )
                 row = conn.execute(q).first()
                 if not row:
-                    raise exc.NotFound("No flow details found with"
-                                       " uuid '%s'" % flow_detail.uuid)
+                    raise exc.NotFound(
+                        "No flow details found with"
+                        " uuid '%s'" % flow_detail.uuid
+                    )
                 row = row._mapping
                 e_fd = self._converter.convert_flow_detail(row)
                 self._converter.populate_flow_detail(conn, e_fd)
                 self._update_flow_details(conn, flow_detail, e_fd)
             return e_fd
         except sa_exc.SQLAlchemyError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed updating flow details with"
-                                 " uuid '%s'" % flow_detail.uuid)
+            exc.raise_with_cause(
+                exc.StorageFailure,
+                "Failed updating flow details with"
+                " uuid '%s'" % flow_detail.uuid,
+            )
 
     def destroy_logbook(self, book_uuid):
         try:
@@ -498,27 +536,31 @@ class Connection(base.Connection):
                 q = logbooks.delete().where(logbooks.c.uuid == book_uuid)
                 r = conn.execute(q)
                 if r.rowcount == 0:
-                    raise exc.NotFound("No logbook found with"
-                                       " uuid '%s'" % book_uuid)
+                    raise exc.NotFound(
+                        "No logbook found with uuid '%s'" % book_uuid
+                    )
         except sa_exc.DBAPIError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed destroying logbook '%s'" % book_uuid)
+            exc.raise_with_cause(
+                exc.StorageFailure,
+                "Failed destroying logbook '%s'" % book_uuid,
+            )
 
     def save_logbook(self, book):
         try:
             logbooks = self._tables.logbooks
             with self._engine.begin() as conn:
-                q = (sql.select(logbooks).
-                     where(logbooks.c.uuid == book.uuid))
+                q = sql.select(logbooks).where(logbooks.c.uuid == book.uuid)
                 row = conn.execute(q).first()
                 if row:
                     row = row._mapping
                     e_lb = self._converter.convert_book(row)
                     self._converter.populate_book(conn, e_lb)
                     e_lb.merge(book)
-                    conn.execute(sql.update(logbooks)
-                                 .where(logbooks.c.uuid == e_lb.uuid)
-                                 .values(e_lb.to_dict()))
+                    conn.execute(
+                        sql.update(logbooks)
+                        .where(logbooks.c.uuid == e_lb.uuid)
+                        .values(e_lb.to_dict())
+                    )
                     for fd in book:
                         e_fd = e_lb.find(fd.uuid)
                         if e_fd is None:
@@ -534,27 +576,28 @@ class Connection(base.Connection):
                     return book
         except sa_exc.DBAPIError:
             exc.raise_with_cause(
-                exc.StorageFailure,
-                "Failed saving logbook '%s'" % book.uuid)
+                exc.StorageFailure, "Failed saving logbook '%s'" % book.uuid
+            )
 
     def get_logbook(self, book_uuid, lazy=False):
         try:
             logbooks = self._tables.logbooks
             with self._engine.connect() as conn:
-                q = (sql.select(logbooks).
-                     where(logbooks.c.uuid == book_uuid))
+                q = sql.select(logbooks).where(logbooks.c.uuid == book_uuid)
                 row = conn.execute(q).first()
                 if not row:
-                    raise exc.NotFound("No logbook found with"
-                                       " uuid '%s'" % book_uuid)
+                    raise exc.NotFound(
+                        "No logbook found with uuid '%s'" % book_uuid
+                    )
                 row = row._mapping
                 book = self._converter.convert_book(row)
                 if not lazy:
                     self._converter.populate_book(conn, book)
                 return book
         except sa_exc.DBAPIError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed getting logbook '%s'" % book_uuid)
+            exc.raise_with_cause(
+                exc.StorageFailure, "Failed getting logbook '%s'" % book_uuid
+            )
 
     def get_logbooks(self, lazy=False):
         gathered = []
@@ -568,8 +611,7 @@ class Connection(base.Connection):
                         self._converter.populate_book(conn, book)
                     gathered.append(book)
         except sa_exc.DBAPIError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed getting logbooks")
+            exc.raise_with_cause(exc.StorageFailure, "Failed getting logbooks")
         for book in gathered:
             yield book
 
@@ -582,47 +624,54 @@ class Connection(base.Connection):
                         self._converter.populate_flow_detail(conn, fd)
                     gathered.append(fd)
         except sa_exc.DBAPIError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed getting flow details in"
-                                 " logbook '%s'" % book_uuid)
+            exc.raise_with_cause(
+                exc.StorageFailure,
+                "Failed getting flow details in logbook '%s'" % book_uuid,
+            )
         yield from gathered
 
     def get_flow_details(self, fd_uuid, lazy=False):
         try:
             flowdetails = self._tables.flowdetails
             with self._engine.begin() as conn:
-                q = (sql.select(flowdetails).
-                     where(flowdetails.c.uuid == fd_uuid))
+                q = sql.select(flowdetails).where(
+                    flowdetails.c.uuid == fd_uuid
+                )
                 row = conn.execute(q).first()
                 if not row:
-                    raise exc.NotFound("No flow details found with uuid"
-                                       " '%s'" % fd_uuid)
+                    raise exc.NotFound(
+                        "No flow details found with uuid '%s'" % fd_uuid
+                    )
                 row = row._mapping
                 fd = self._converter.convert_flow_detail(row)
                 if not lazy:
                     self._converter.populate_flow_detail(conn, fd)
                 return fd
         except sa_exc.SQLAlchemyError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed getting flow details with"
-                                 " uuid '%s'" % fd_uuid)
+            exc.raise_with_cause(
+                exc.StorageFailure,
+                "Failed getting flow details with uuid '%s'" % fd_uuid,
+            )
 
     def get_atom_details(self, ad_uuid):
         try:
             atomdetails = self._tables.atomdetails
             with self._engine.begin() as conn:
-                q = (sql.select(atomdetails).
-                     where(atomdetails.c.uuid == ad_uuid))
+                q = sql.select(atomdetails).where(
+                    atomdetails.c.uuid == ad_uuid
+                )
                 row = conn.execute(q).first()
                 if not row:
-                    raise exc.NotFound("No atom details found with uuid"
-                                       " '%s'" % ad_uuid)
+                    raise exc.NotFound(
+                        "No atom details found with uuid '%s'" % ad_uuid
+                    )
                 row = row._mapping
                 return self._converter.convert_atom_detail(row)
         except sa_exc.SQLAlchemyError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed getting atom details with"
-                                 " uuid '%s'" % ad_uuid)
+            exc.raise_with_cause(
+                exc.StorageFailure,
+                "Failed getting atom details with uuid '%s'" % ad_uuid,
+            )
 
     def get_atoms_for_flow(self, fd_uuid):
         gathered = []
@@ -631,9 +680,10 @@ class Connection(base.Connection):
                 for ad in self._converter.atom_query_iter(conn, fd_uuid):
                     gathered.append(ad)
         except sa_exc.DBAPIError:
-            exc.raise_with_cause(exc.StorageFailure,
-                                 "Failed getting atom details in flow"
-                                 " detail '%s'" % fd_uuid)
+            exc.raise_with_cause(
+                exc.StorageFailure,
+                "Failed getting atom details in flow detail '%s'" % fd_uuid,
+            )
         yield from gathered
 
     def close(self):

@@ -19,9 +19,9 @@ import sys
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
@@ -51,12 +51,19 @@ def make_alphabet_flow(i):
     while ord(curr_value) <= ord(end_value):
         next_value = chr(ord(curr_value) + 1)
         if curr_value != end_value:
-            f.add(EchoTask(name="echoer_%s" % curr_value,
-                           rebind={'value': curr_value},
-                           provides=next_value))
+            f.add(
+                EchoTask(
+                    name="echoer_%s" % curr_value,
+                    rebind={'value': curr_value},
+                    provides=next_value,
+                )
+            )
         else:
-            f.add(EchoTask(name="echoer_%s" % curr_value,
-                           rebind={'value': curr_value}))
+            f.add(
+                EchoTask(
+                    name="echoer_%s" % curr_value, rebind={'value': curr_value}
+                )
+            )
         curr_value = next_value
     return f
 

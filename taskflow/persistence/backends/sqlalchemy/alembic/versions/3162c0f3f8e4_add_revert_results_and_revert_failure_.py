@@ -29,10 +29,12 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.add_column('atomdetails',
-                  sa.Column('revert_results', sa.Text(), nullable=True))
-    op.add_column('atomdetails',
-                  sa.Column('revert_failure', sa.Text(), nullable=True))
+    op.add_column(
+        'atomdetails', sa.Column('revert_results', sa.Text(), nullable=True)
+    )
+    op.add_column(
+        'atomdetails', sa.Column('revert_failure', sa.Text(), nullable=True)
+    )
 
 
 def downgrade():

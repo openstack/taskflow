@@ -93,14 +93,18 @@ class _ProviderLocator:
          follow...
     """
 
-    def __init__(self, transient_results,
-                 providers_fetcher, result_fetcher):
+    def __init__(self, transient_results, providers_fetcher, result_fetcher):
         self.result_fetcher = result_fetcher
         self.providers_fetcher = providers_fetcher
         self.transient_results = transient_results
 
-    def _try_get_results(self, looking_for, provider,
-                         look_into_results=True, find_potentials=False):
+    def _try_get_results(
+        self,
+        looking_for,
+        provider,
+        look_into_results=True,
+        find_potentials=False,
+    ):
         if provider.name is _TRANSIENT_PROVIDER:
             # TODO(harlowja): This 'is' check still sucks, do this
             # better in the future...
@@ -120,8 +124,13 @@ class _ProviderLocator:
             _item_from_single(provider, results, looking_for)
         return results
 
-    def _find(self, looking_for, scope_walker=None,
-              short_circuit=True, find_potentials=False):
+    def _find(
+        self,
+        looking_for,
+        scope_walker=None,
+        short_circuit=True,
+        find_potentials=False,
+    ):
         if scope_walker is None:
             scope_walker = []
         default_providers, atom_providers = self.providers_fetcher(looking_for)
@@ -132,12 +141,15 @@ class _ProviderLocator:
                 searched_providers.add(p)
                 try:
                     provider_results = self._try_get_results(
-                        looking_for, p, find_potentials=find_potentials,
+                        looking_for,
+                        p,
+                        find_potentials=find_potentials,
                         # For default providers always look into there
                         # results as default providers are statically setup
                         # and therefore looking into there provided results
                         # should fail early.
-                        look_into_results=True)
+                        look_into_results=True,
+                    )
                 except exceptions.NotFound:
                     if not find_potentials:
                         raise
@@ -153,9 +165,11 @@ class _ProviderLocator:
             # happen); instead of retaining the possible provider match
             # order (which isn't that important and may be different from
             # the scope requested ordering).
-            maybe_atom_providers = [atom_providers_by_name[atom_name]
-                                    for atom_name in accessible_atom_names
-                                    if atom_name in atom_providers_by_name]
+            maybe_atom_providers = [
+                atom_providers_by_name[atom_name]
+                for atom_name in accessible_atom_names
+                if atom_name in atom_providers_by_name
+            ]
             tmp_providers_and_results = []
             if find_potentials:
                 for p in maybe_atom_providers:
@@ -170,20 +184,28 @@ class _ProviderLocator:
                         # get the result from the *first* provider that
                         # actually provided it (or die).
                         provider_results = self._try_get_results(
-                            looking_for, p, find_potentials=find_potentials,
-                            look_into_results=False)
+                            looking_for,
+                            p,
+                            find_potentials=find_potentials,
+                            look_into_results=False,
+                        )
                     except exceptions.DisallowedAccess as e:
                         if e.state != states.IGNORE:
                             exceptions.raise_with_cause(
                                 exceptions.NotFound,
                                 "Expected to be able to find output %r"
                                 " produced by %s but was unable to get at"
-                                " that providers results" % (looking_for, p))
+                                " that providers results" % (looking_for, p),
+                            )
                         else:
-                            LOG.trace("Avoiding using the results of"
-                                      " %r (from %s) for name %r because"
-                                      " it was ignored", p.name, p,
-                                      looking_for)
+                            LOG.trace(
+                                "Avoiding using the results of"
+                                " %r (from %s) for name %r because"
+                                " it was ignored",
+                                p.name,
+                                p,
+                                looking_for,
+                            )
                     else:
                         tmp_providers_and_results.append((p, provider_results))
             if tmp_providers_and_results and short_circuit:
@@ -195,15 +217,21 @@ class _ProviderLocator:
     def find_potentials(self, looking_for, scope_walker=None):
         """Returns the accessible **potential** providers."""
         _searched_providers, providers_and_results = self._find(
-            looking_for, scope_walker=scope_walker,
-            short_circuit=False, find_potentials=True)
+            looking_for,
+            scope_walker=scope_walker,
+            short_circuit=False,
+            find_potentials=True,
+        )
         return {p for (p, _provider_results) in providers_and_results}
 
     def find(self, looking_for, scope_walker=None, short_circuit=True):
         """Returns the accessible providers."""
-        return self._find(looking_for, scope_walker=scope_walker,
-                          short_circuit=short_circuit,
-                          find_potentials=False)
+        return self._find(
+            looking_for,
+            scope_walker=scope_walker,
+            short_circuit=short_circuit,
+            find_potentials=False,
+        )
 
 
 class _Provider:
@@ -251,12 +279,13 @@ def _item_from_single(provider, container, looking_for):
             exceptions.NotFound,
             "Unable to find result %r, expected to be able to find it"
             " created by %s but was unable to perform successful"
-            " extraction" % (looking_for, provider))
+            " extraction" % (looking_for, provider),
+        )
 
 
 def _item_from_first_of(providers, looking_for):
     """Returns item from the *first* successful container extraction."""
-    for (provider, container) in providers:
+    for provider, container in providers:
         try:
             return (provider, _item_from(container, provider.index))
         except _EXTRACTION_EXCEPTIONS:
@@ -265,7 +294,8 @@ def _item_from_first_of(providers, looking_for):
     raise exceptions.NotFound(
         "Unable to find result %r, expected to be able to find it"
         " created by one of %s but was unable to perform successful"
-        " extraction" % (looking_for, providers))
+        " extraction" % (looking_for, providers)
+    )
 
 
 class Storage:
@@ -324,17 +354,18 @@ class Storage:
                 fail_cache[states.REVERT] = ad.revert_failure
             self._failures[ad.name] = fail_cache
 
-        self._atom_name_to_uuid = {ad.name: ad.uuid
-                                   for ad in self._flowdetail}
+        self._atom_name_to_uuid = {ad.name: ad.uuid for ad in self._flowdetail}
         try:
             source, _clone = self._atomdetail_by_name(
-                self.injector_name, expected_type=models.TaskDetail)
+                self.injector_name, expected_type=models.TaskDetail
+            )
         except exceptions.NotFound:
             pass
         else:
             names_iter = source.results.keys()
-            self._set_result_mapping(source.name,
-                                     {name: name for name in names_iter})
+            self._set_result_mapping(
+                source.name, {name: name for name in names_iter}
+            )
 
     def _with_connection(self, functor, *args, **kwargs):
         # Run the given functor with a backend connection as its first
@@ -344,8 +375,12 @@ class Storage:
             return functor(conn, *args, **kwargs)
 
     @staticmethod
-    def _create_atom_detail(atom_name, atom_detail_cls,
-                            atom_version=None, atom_state=states.PENDING):
+    def _create_atom_detail(
+        atom_name,
+        atom_detail_cls,
+        atom_version=None,
+        atom_state=states.PENDING,
+    ):
         ad = atom_detail_cls(atom_name, uuidutils.generate_uuid())
         ad.state = atom_state
         if atom_version is not None:
@@ -363,8 +398,10 @@ class Storage:
         for i, atom in enumerate(atoms):
             match = misc.match_type(atom, self._ensure_matchers)
             if not match:
-                raise TypeError("Unknown atom '%s' (%s) requested to ensure"
-                                % (atom, type(atom)))
+                raise TypeError(
+                    "Unknown atom '%s' (%s) requested to ensure"
+                    % (atom, type(atom))
+                )
             atom_detail_cls, kind = match
             atom_name = atom.name
             if not atom_name:
@@ -380,26 +417,29 @@ class Storage:
                 if not isinstance(ad, atom_detail_cls):
                     raise exceptions.Duplicate(
                         "Atom detail '%s' already exists in flow"
-                        " detail '%s'" % (atom_name, self._flowdetail.name))
+                        " detail '%s'" % (atom_name, self._flowdetail.name)
+                    )
                 else:
                     atom_ids.append(ad.uuid)
                     self._set_result_mapping(atom_name, atom.save_as)
         if missing_ads:
             needs_to_be_created_ads = []
-            for (i, atom, atom_detail_cls) in missing_ads:
+            for i, atom, atom_detail_cls in missing_ads:
                 ad = self._create_atom_detail(
-                    atom.name, atom_detail_cls,
-                    atom_version=misc.get_version_string(atom))
+                    atom.name,
+                    atom_detail_cls,
+                    atom_version=misc.get_version_string(atom),
+                )
                 needs_to_be_created_ads.append((i, atom, ad))
             # Add the atom detail(s) to a clone, which upon success will be
             # updated into the contained flow detail; if it does not get saved
             # then no update will happen.
             source, clone = self._fetch_flowdetail(clone=True)
-            for (_i, _atom, ad) in needs_to_be_created_ads:
+            for _i, _atom, ad in needs_to_be_created_ads:
                 clone.add(ad)
             self._with_connection(self._save_flow_detail, source, clone)
             # Insert the needed data, and get outta here...
-            for (i, atom, ad) in needs_to_be_created_ads:
+            for i, atom, ad in needs_to_be_created_ads:
                 atom_name = atom.name
                 atom_ids[i] = ad.uuid
                 self._atom_name_to_uuid[atom_name] = ad.uuid
@@ -449,11 +489,14 @@ class Storage:
         # This never changes (so no read locking needed).
         return self._backend
 
-    @tenacity.retry(retry=tenacity.retry_if_exception_type(
-                    exception_types=exceptions.StorageFailure),
-                    stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
-                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT),
-                    reraise=True)
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            exception_types=exceptions.StorageFailure
+        ),
+        stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
+        wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT),
+        reraise=True,
+    )
     def _save_flow_detail(self, conn, original_flow_detail, flow_detail):
         # NOTE(harlowja): we need to update our contained flow detail if
         # the result of the update actually added more (aka another process
@@ -472,26 +515,31 @@ class Storage:
         try:
             ad = self._flowdetail.find(self._atom_name_to_uuid[atom_name])
         except KeyError:
-            exceptions.raise_with_cause(exceptions.NotFound,
-                                        "Unknown atom name '%s'" % atom_name)
+            exceptions.raise_with_cause(
+                exceptions.NotFound, "Unknown atom name '%s'" % atom_name
+            )
         else:
             # TODO(harlowja): we need to figure out how to get away from doing
             # these kinds of type checks in general (since they likely mean
             # we aren't doing something right).
             if expected_type and not isinstance(ad, expected_type):
-                raise TypeError("Atom '%s' is not of the expected type: %s"
-                                % (atom_name,
-                                   reflection.get_class_name(expected_type)))
+                raise TypeError(
+                    "Atom '%s' is not of the expected type: %s"
+                    % (atom_name, reflection.get_class_name(expected_type))
+                )
             if clone:
                 return (ad, ad.copy())
             else:
                 return (ad, ad)
 
-    @tenacity.retry(retry=tenacity.retry_if_exception_type(
-                    exception_types=exceptions.StorageFailure),
-                    stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
-                    wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT),
-                    reraise=True)
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            exception_types=exceptions.StorageFailure
+        ),
+        stop=tenacity.stop_after_attempt(RETRY_ATTEMPTS),
+        wait=tenacity.wait_fixed(RETRY_WAIT_TIMEOUT),
+        reraise=True,
+    )
     def _save_atom_detail(self, conn, original_atom_detail, atom_detail):
         # NOTE(harlowja): we need to update our contained atom detail if
         # the result of the update actually added more (aka another process
@@ -545,11 +593,12 @@ class Storage:
         return details
 
     @fasteners.write_locked
-    def _update_atom_metadata(self, atom_name, update_with,
-                              expected_type=None):
-        source, clone = self._atomdetail_by_name(atom_name,
-                                                 expected_type=expected_type,
-                                                 clone=True)
+    def _update_atom_metadata(
+        self, atom_name, update_with, expected_type=None
+    ):
+        source, clone = self._atomdetail_by_name(
+            atom_name, expected_type=expected_type, clone=True
+        )
         if update_with:
             clone.meta.update(update_with)
             self._with_connection(self._save_atom_detail, source, clone)
@@ -585,8 +634,9 @@ class Storage:
                 }
             else:
                 update_with[META_PROGRESS_DETAILS] = None
-        self._update_atom_metadata(task_name, update_with,
-                                   expected_type=models.TaskDetail)
+        self._update_atom_metadata(
+            task_name, update_with, expected_type=models.TaskDetail
+        )
 
     @fasteners.read_locked
     def get_task_progress(self, task_name):
@@ -596,7 +646,8 @@ class Storage:
         :returns: current task progress value
         """
         source, _clone = self._atomdetail_by_name(
-            task_name, expected_type=models.TaskDetail)
+            task_name, expected_type=models.TaskDetail
+        )
         try:
             return source.meta[META_PROGRESS]
         except KeyError:
@@ -611,7 +662,8 @@ class Storage:
                  dict
         """
         source, _clone = self._atomdetail_by_name(
-            task_name, expected_type=models.TaskDetail)
+            task_name, expected_type=models.TaskDetail
+        )
         try:
             return source.meta[META_PROGRESS_DETAILS]
         except KeyError:
@@ -631,9 +683,13 @@ class Storage:
             try:
                 _item_from(container, index)
             except _EXTRACTION_EXCEPTIONS:
-                LOG.warning("Atom '%s' did not supply result "
-                            "with index %r (name '%s')", atom_name, index,
-                            name)
+                LOG.warning(
+                    "Atom '%s' did not supply result "
+                    "with index %r (name '%s')",
+                    atom_name,
+                    index,
+                    name,
+                )
 
     @fasteners.write_locked
     def save(self, atom_name, result, state=states.SUCCESS):
@@ -658,14 +714,17 @@ class Storage:
     def save_retry_failure(self, retry_name, failed_atom_name, failure):
         """Save subflow failure to retry controller history."""
         source, clone = self._atomdetail_by_name(
-            retry_name, expected_type=models.RetryDetail, clone=True)
+            retry_name, expected_type=models.RetryDetail, clone=True
+        )
         try:
             failures = clone.last_failures
         except exceptions.NotFound:
-            exceptions.raise_with_cause(exceptions.StorageFailure,
-                                        "Unable to fetch most recent retry"
-                                        " failures so new retry failure can"
-                                        " be inserted")
+            exceptions.raise_with_cause(
+                exceptions.StorageFailure,
+                "Unable to fetch most recent retry"
+                " failures so new retry failure can"
+                " be inserted",
+            )
         else:
             if failed_atom_name not in failures:
                 failures[failed_atom_name] = failure
@@ -675,15 +734,21 @@ class Storage:
     def cleanup_retry_history(self, retry_name, state):
         """Cleanup history of retry atom with given name."""
         source, clone = self._atomdetail_by_name(
-            retry_name, expected_type=models.RetryDetail, clone=True)
+            retry_name, expected_type=models.RetryDetail, clone=True
+        )
         clone.state = state
         clone.results = []
         self._with_connection(self._save_atom_detail, source, clone)
 
     @fasteners.read_locked
-    def _get(self, atom_name,
-             results_attr_name, fail_attr_name,
-             allowed_states, fail_cache_key):
+    def _get(
+        self,
+        atom_name,
+        results_attr_name,
+        fail_attr_name,
+        allowed_states,
+        fail_cache_key,
+    ):
         source, _clone = self._atomdetail_by_name(atom_name)
         failure = getattr(source, fail_attr_name)
         if failure is not None:
@@ -703,27 +768,35 @@ class Storage:
                 raise exceptions.DisallowedAccess(
                     "Result for atom '%s' is not known/accessible"
                     " due to it being in %s state when result access"
-                    " is restricted to %s states" % (atom_name,
-                                                     source.state,
-                                                     allowed_states),
-                    state=source.state)
+                    " is restricted to %s states"
+                    % (atom_name, source.state, allowed_states),
+                    state=source.state,
+                )
             return getattr(source, results_attr_name)
 
     def get_execute_result(self, atom_name):
         """Gets the ``execute`` results for an atom from storage."""
         try:
-            results = self._get(atom_name, 'results', 'failure',
-                                _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE)
+            results = self._get(
+                atom_name,
+                'results',
+                'failure',
+                _EXECUTE_STATES_WITH_RESULTS,
+                states.EXECUTE,
+            )
         except exceptions.DisallowedAccess as e:
             if e.state == states.IGNORE:
-                exceptions.raise_with_cause(exceptions.NotFound,
-                                            "Result for atom '%s' execution"
-                                            " is not known (as it was"
-                                            " ignored)" % atom_name)
+                exceptions.raise_with_cause(
+                    exceptions.NotFound,
+                    "Result for atom '%s' execution"
+                    " is not known (as it was"
+                    " ignored)" % atom_name,
+                )
             else:
-                exceptions.raise_with_cause(exceptions.NotFound,
-                                            "Result for atom '%s' execution"
-                                            " is not known" % atom_name)
+                exceptions.raise_with_cause(
+                    exceptions.NotFound,
+                    "Result for atom '%s' execution is not known" % atom_name,
+                )
         else:
             return results
 
@@ -748,18 +821,26 @@ class Storage:
     def get_revert_result(self, atom_name):
         """Gets the ``revert`` results for an atom from storage."""
         try:
-            results = self._get(atom_name, 'revert_results', 'revert_failure',
-                                _REVERT_STATES_WITH_RESULTS, states.REVERT)
+            results = self._get(
+                atom_name,
+                'revert_results',
+                'revert_failure',
+                _REVERT_STATES_WITH_RESULTS,
+                states.REVERT,
+            )
         except exceptions.DisallowedAccess as e:
             if e.state == states.IGNORE:
-                exceptions.raise_with_cause(exceptions.NotFound,
-                                            "Result for atom '%s' revert is"
-                                            " not known (as it was"
-                                            " ignored)" % atom_name)
+                exceptions.raise_with_cause(
+                    exceptions.NotFound,
+                    "Result for atom '%s' revert is"
+                    " not known (as it was"
+                    " ignored)" % atom_name,
+                )
             else:
-                exceptions.raise_with_cause(exceptions.NotFound,
-                                            "Result for atom '%s' revert is"
-                                            " not known" % atom_name)
+                exceptions.raise_with_cause(
+                    exceptions.NotFound,
+                    "Result for atom '%s' revert is not known" % atom_name,
+                )
         else:
             return results
 
@@ -876,27 +957,30 @@ class Storage:
                 source, clone = self._atomdetail_by_name(
                     self.injector_name,
                     expected_type=models.TaskDetail,
-                    clone=True)
+                    clone=True,
+                )
             except exceptions.NotFound:
                 # Ensure we have our special task detail...
                 #
                 # TODO(harlowja): get this removed when
                 # https://review.openstack.org/#/c/165645/ merges.
-                source = self._create_atom_detail(self.injector_name,
-                                                  models.TaskDetail,
-                                                  atom_state=None)
+                source = self._create_atom_detail(
+                    self.injector_name, models.TaskDetail, atom_state=None
+                )
                 fd_source, fd_clone = self._fetch_flowdetail(clone=True)
                 fd_clone.add(source)
-                self._with_connection(self._save_flow_detail, fd_source,
-                                      fd_clone)
+                self._with_connection(
+                    self._save_flow_detail, fd_source, fd_clone
+                )
                 self._atom_name_to_uuid[source.name] = source.uuid
                 clone = source
                 clone.results = dict(pairs)
                 clone.state = states.SUCCESS
             else:
                 clone.results.update(pairs)
-            result = self._with_connection(self._save_atom_detail,
-                                           source, clone)
+            result = self._with_connection(
+                self._save_atom_detail, source, clone
+            )
             return (self.injector_name, result.results.keys())
 
         def save_transient():
@@ -908,8 +992,7 @@ class Storage:
         else:
             provider_name, names = save_persistent()
 
-        self._set_result_mapping(provider_name,
-                                 {name: name for name in names})
+        self._set_result_mapping(provider_name, {name: name for name in names})
 
     def _fetch_providers(self, looking_for, providers=None):
         """Return pair of (default providers, atom providers)."""
@@ -945,44 +1028,58 @@ class Storage:
     @fasteners.read_locked
     def fetch(self, name, many_handler=None):
         """Fetch a named ``execute`` result."""
+
         def _many_handler(values):
             # By default we just return the first of many (unless provided
             # a different callback that can translate many results into
             # something more meaningful).
             return values[0]
+
         if many_handler is None:
             many_handler = _many_handler
         try:
             maybe_providers = self._reverse_mapping[name]
         except KeyError:
-            raise exceptions.NotFound("Name %r is not mapped as a produced"
-                                      " output by any providers" % name)
+            raise exceptions.NotFound(
+                "Name %r is not mapped as a produced"
+                " output by any providers" % name
+            )
         locator = _ProviderLocator(
             self._transients,
-            functools.partial(self._fetch_providers,
-                              providers=maybe_providers),
-            lambda atom_name:
-                self._get(atom_name, 'last_results', 'failure',
-                          _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE))
+            functools.partial(
+                self._fetch_providers, providers=maybe_providers
+            ),
+            lambda atom_name: self._get(
+                atom_name,
+                'last_results',
+                'failure',
+                _EXECUTE_STATES_WITH_RESULTS,
+                states.EXECUTE,
+            ),
+        )
         values = []
         searched_providers, providers = locator.find(
-            name, short_circuit=False,
+            name,
+            short_circuit=False,
             # NOTE(harlowja): There are no scopes used here (as of now), so
             # we just return all known providers as if it was one large
             # scope.
-            scope_walker=[[p.name for p in maybe_providers]])
+            scope_walker=[[p.name for p in maybe_providers]],
+        )
         for provider, results in providers:
             values.append(_item_from_single(provider, results, name))
         if not values:
             raise exceptions.NotFound(
                 "Unable to find result %r, searched %s providers"
-                % (name, len(searched_providers)))
+                % (name, len(searched_providers))
+            )
         else:
             return many_handler(values)
 
     @fasteners.read_locked
-    def fetch_unsatisfied_args(self, atom_name, args_mapping,
-                               scope_walker=None, optional_args=None):
+    def fetch_unsatisfied_args(
+        self, atom_name, args_mapping, scope_walker=None, optional_args=None
+    ):
         """Fetch unsatisfied ``execute`` arguments using an atoms args mapping.
 
         NOTE(harlowja): this takes into account the provided scope walker
@@ -1003,14 +1100,24 @@ class Storage:
         ]
         missing = set(args_mapping.keys())
         locator = _ProviderLocator(
-            self._transients, self._fetch_providers,
-            lambda atom_name:
-                self._get(atom_name, 'last_results', 'failure',
-                          _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE))
-        for (bound_name, name) in args_mapping.items():
+            self._transients,
+            self._fetch_providers,
+            lambda atom_name: self._get(
+                atom_name,
+                'last_results',
+                'failure',
+                _EXECUTE_STATES_WITH_RESULTS,
+                states.EXECUTE,
+            ),
+        )
+        for bound_name, name in args_mapping.items():
             if LOG.isEnabledFor(logging.TRACE):
-                LOG.trace("Looking for %r <= %r for atom '%s'",
-                          bound_name, name, atom_name)
+                LOG.trace(
+                    "Looking for %r <= %r for atom '%s'",
+                    bound_name,
+                    name,
+                    atom_name,
+                )
             if bound_name in optional_args:
                 LOG.trace("Argument %r is optional, skipping", bound_name)
                 missing.discard(bound_name)
@@ -1022,21 +1129,28 @@ class Storage:
                 if name in source:
                     maybe_providers += 1
             maybe_providers += len(
-                locator.find_potentials(name, scope_walker=scope_walker))
+                locator.find_potentials(name, scope_walker=scope_walker)
+            )
             if maybe_providers:
-                LOG.trace("Atom '%s' will have %s potential providers"
-                          " of %r <= %r", atom_name, maybe_providers,
-                          bound_name, name)
+                LOG.trace(
+                    "Atom '%s' will have %s potential providers of %r <= %r",
+                    atom_name,
+                    maybe_providers,
+                    bound_name,
+                    name,
+                )
                 missing.discard(bound_name)
         return missing
 
     @fasteners.read_locked
     def fetch_all(self, many_handler=None):
         """Fetch all named ``execute`` results known so far."""
+
         def _many_handler(values):
             if len(values) > 1:
                 return values
             return values[0]
+
         if many_handler is None:
             many_handler = _many_handler
         results = {}
@@ -1048,10 +1162,15 @@ class Storage:
         return results
 
     @fasteners.read_locked
-    def fetch_mapped_args(self, args_mapping,
-                          atom_name=None, scope_walker=None,
-                          optional_args=None):
+    def fetch_mapped_args(
+        self,
+        args_mapping,
+        atom_name=None,
+        scope_walker=None,
+        optional_args=None,
+    ):
         """Fetch ``execute`` arguments for an atom using its args mapping."""
+
         def _extract_first_from(name, sources):
             """Extracts/returns first occurrence of key in list of dicts."""
             for i, source in enumerate(sources):
@@ -1060,6 +1179,7 @@ class Storage:
                 if name in source:
                     return (i, source[name])
             raise KeyError(name)
+
         if optional_args is None:
             optional_args = []
         if atom_name:
@@ -1074,57 +1194,89 @@ class Storage:
             injected_sources = []
         if not args_mapping:
             return {}
-        get_results = lambda atom_name: \
-            self._get(atom_name, 'last_results', 'failure',
-                      _EXECUTE_STATES_WITH_RESULTS, states.EXECUTE)
+        get_results = lambda atom_name: self._get(
+            atom_name,
+            'last_results',
+            'failure',
+            _EXECUTE_STATES_WITH_RESULTS,
+            states.EXECUTE,
+        )
         mapped_args = {}
-        for (bound_name, name) in args_mapping.items():
+        for bound_name, name in args_mapping.items():
             if LOG.isEnabledFor(logging.TRACE):
                 if atom_name:
-                    LOG.trace("Looking for %r <= %r for atom '%s'",
-                              bound_name, name, atom_name)
+                    LOG.trace(
+                        "Looking for %r <= %r for atom '%s'",
+                        bound_name,
+                        name,
+                        atom_name,
+                    )
                 else:
                     LOG.trace("Looking for %r <= %r", bound_name, name)
             try:
                 source_index, value = _extract_first_from(
-                    name, injected_sources)
+                    name, injected_sources
+                )
                 mapped_args[bound_name] = value
                 if LOG.isEnabledFor(logging.TRACE):
                     if source_index == 0:
-                        LOG.trace("Matched %r <= %r to %r (from injected"
-                                  " atom-specific transient"
-                                  " values)", bound_name, name, value)
+                        LOG.trace(
+                            "Matched %r <= %r to %r (from injected"
+                            " atom-specific transient"
+                            " values)",
+                            bound_name,
+                            name,
+                            value,
+                        )
                     else:
-                        LOG.trace("Matched %r <= %r to %r (from injected"
-                                  " atom-specific persistent"
-                                  " values)", bound_name, name, value)
+                        LOG.trace(
+                            "Matched %r <= %r to %r (from injected"
+                            " atom-specific persistent"
+                            " values)",
+                            bound_name,
+                            name,
+                            value,
+                        )
             except KeyError:
                 try:
                     maybe_providers = self._reverse_mapping[name]
                 except KeyError:
                     if bound_name in optional_args:
-                        LOG.trace("Argument %r is optional, skipping",
-                                  bound_name)
+                        LOG.trace(
+                            "Argument %r is optional, skipping", bound_name
+                        )
                         continue
-                    raise exceptions.NotFound("Name %r is not mapped as a"
-                                              " produced output by any"
-                                              " providers" % name)
+                    raise exceptions.NotFound(
+                        "Name %r is not mapped as a"
+                        " produced output by any"
+                        " providers" % name
+                    )
                 locator = _ProviderLocator(
                     self._transients,
-                    functools.partial(self._fetch_providers,
-                                      providers=maybe_providers), get_results)
+                    functools.partial(
+                        self._fetch_providers, providers=maybe_providers
+                    ),
+                    get_results,
+                )
                 searched_providers, providers = locator.find(
-                    name, scope_walker=scope_walker)
+                    name, scope_walker=scope_walker
+                )
                 if not providers:
                     raise exceptions.NotFound(
                         "Mapped argument %r <= %r was not produced"
                         " by any accessible provider (%s possible"
                         " providers were scanned)"
-                        % (bound_name, name, len(searched_providers)))
+                        % (bound_name, name, len(searched_providers))
+                    )
                 provider, value = _item_from_first_of(providers, name)
                 mapped_args[bound_name] = value
-                LOG.trace("Matched %r <= %r to %r (from %s)",
-                          bound_name, name, value, provider)
+                LOG.trace(
+                    "Matched %r <= %r to %r (from %s)",
+                    bound_name,
+                    name,
+                    value,
+                    provider,
+                )
         return mapped_args
 
     @fasteners.write_locked
@@ -1186,7 +1338,8 @@ class Storage:
     def get_retry_history(self, retry_name):
         """Fetch a single retrys history."""
         source, _clone = self._atomdetail_by_name(
-            retry_name, expected_type=models.RetryDetail)
+            retry_name, expected_type=models.RetryDetail
+        )
         return self._translate_into_history(source)
 
     @fasteners.read_locked
@@ -1195,6 +1348,5 @@ class Storage:
         histories = []
         for ad in self._flowdetail:
             if isinstance(ad, models.RetryDetail):
-                histories.append((ad.name,
-                                  self._translate_into_history(ad)))
+                histories.append((ad.name, self._translate_into_history(ad)))
         return histories

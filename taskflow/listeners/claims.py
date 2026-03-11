@@ -55,8 +55,9 @@ class CheckingClaimListener(base.Listener):
             self._on_job_loss = self._suspend_engine_on_loss
         else:
             if not callable(on_job_loss):
-                raise ValueError("Custom 'on_job_loss' handler must be"
-                                 " callable")
+                raise ValueError(
+                    "Custom 'on_job_loss' handler must be callable"
+                )
             self._on_job_loss = on_job_loss
 
     def _suspend_engine_on_loss(self, engine, state, details):
@@ -64,9 +65,14 @@ class CheckingClaimListener(base.Listener):
         try:
             engine.suspend()
         except exceptions.TaskFlowException as e:
-            LOG.warning("Failed suspending engine '%s', (previously owned by"
-                        " '%s'):%s%s", engine, self._owner, os.linesep,
-                        e.pformat())
+            LOG.warning(
+                "Failed suspending engine '%s', (previously owned by"
+                " '%s'):%s%s",
+                engine,
+                self._owner,
+                os.linesep,
+                e.pformat(),
+            )
 
     def _flow_receiver(self, state, details):
         self._claim_checker(state, details)
@@ -88,10 +94,15 @@ class CheckingClaimListener(base.Listener):
 
     def _claim_checker(self, state, details):
         if not self._has_been_lost():
-            LOG.debug("Job '%s' is still claimed (actively owned by '%s')",
-                      self._job, self._owner)
+            LOG.debug(
+                "Job '%s' is still claimed (actively owned by '%s')",
+                self._job,
+                self._owner,
+            )
         else:
-            LOG.warning("Job '%s' has lost its claim"
-                        " (previously owned by '%s')",
-                        self._job, self._owner)
+            LOG.warning(
+                "Job '%s' has lost its claim (previously owned by '%s')",
+                self._job,
+                self._owner,
+            )
             self._on_job_loss(self._engine, state, details)

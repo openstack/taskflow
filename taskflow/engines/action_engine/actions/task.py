@@ -47,11 +47,13 @@ class TaskAction(base.Action):
             return False
         return True
 
-    def change_state(self, task, state,
-                     progress=None, result=base.Action.NO_RESULT):
+    def change_state(
+        self, task, state, progress=None, result=base.Action.NO_RESULT
+    ):
         old_state = self._storage.get_atom_state(task.name)
-        if self._is_identity_transition(old_state, state, task,
-                                        progress=progress):
+        if self._is_identity_transition(
+            old_state, state, task, progress=progress
+        ):
             # NOTE(imelnikov): ignore identity transitions in order
             # to avoid extra write to storage backend and, what's
             # more important, extra notifications.
@@ -85,60 +87,71 @@ class TaskAction(base.Action):
             pass
         else:
             try:
-                self._storage.set_task_progress(task.name, progress,
-                                                details=details)
+                self._storage.set_task_progress(
+                    task.name, progress, details=details
+                )
             except Exception:
                 # Update progress callbacks should never fail, so capture and
                 # log the emitted exception instead of raising it.
-                LOG.exception("Failed setting task progress for %s to %0.3f",
-                              task, progress)
+                LOG.exception(
+                    "Failed setting task progress for %s to %0.3f",
+                    task,
+                    progress,
+                )
 
     def schedule_execution(self, task):
         self.change_state(task, states.RUNNING, progress=0.0)
         arguments = self._storage.fetch_mapped_args(
-            task.rebind,
-            atom_name=task.name,
-            optional_args=task.optional
+            task.rebind, atom_name=task.name, optional_args=task.optional
         )
         if task.notifier.can_be_registered(task_atom.EVENT_UPDATE_PROGRESS):
-            progress_callback = functools.partial(self._on_update_progress,
-                                                  task)
+            progress_callback = functools.partial(
+                self._on_update_progress, task
+            )
         else:
             progress_callback = None
         task_uuid = self._storage.get_atom_uuid(task.name)
         return self._task_executor.execute_task(
-            task, task_uuid, arguments,
-            progress_callback=progress_callback)
+            task, task_uuid, arguments, progress_callback=progress_callback
+        )
 
     def complete_execution(self, task, result):
         if isinstance(result, failure.Failure):
             self.change_state(task, states.FAILURE, result=result)
         else:
-            self.change_state(task, states.SUCCESS,
-                              result=result, progress=1.0)
+            self.change_state(
+                task, states.SUCCESS, result=result, progress=1.0
+            )
 
     def schedule_reversion(self, task):
         self.change_state(task, states.REVERTING, progress=0.0)
         arguments = self._storage.fetch_mapped_args(
             task.revert_rebind,
             atom_name=task.name,
-            optional_args=task.revert_optional
+            optional_args=task.revert_optional,
         )
         task_uuid = self._storage.get_atom_uuid(task.name)
         task_result = self._storage.get(task.name)
         failures = self._storage.get_failures()
         if task.notifier.can_be_registered(task_atom.EVENT_UPDATE_PROGRESS):
-            progress_callback = functools.partial(self._on_update_progress,
-                                                  task)
+            progress_callback = functools.partial(
+                self._on_update_progress, task
+            )
         else:
             progress_callback = None
         return self._task_executor.revert_task(
-            task, task_uuid, arguments, task_result, failures,
-            progress_callback=progress_callback)
+            task,
+            task_uuid,
+            arguments,
+            task_result,
+            failures,
+            progress_callback=progress_callback,
+        )
 
     def complete_reversion(self, task, result):
         if isinstance(result, failure.Failure):
             self.change_state(task, states.REVERT_FAILURE, result=result)
         else:
-            self.change_state(task, states.REVERTED, progress=1.0,
-                              result=result)
+            self.change_state(
+                task, states.REVERTED, progress=1.0, result=result
+            )

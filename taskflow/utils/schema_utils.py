@@ -27,7 +27,9 @@ def schema_validate(data, schema):
     # Special jsonschema validation types/adjustments.
     # See: https://github.com/Julian/jsonschema/issues/148
     type_checker = Validator.TYPE_CHECKER.redefine(
-        "array", lambda checker, data: isinstance(data, (list, tuple)))
+        "array", lambda checker, data: isinstance(data, (list, tuple))
+    )
     TupleAllowingValidator = jsonschema.validators.extend(
-        Validator, type_checker=type_checker)
+        Validator, type_checker=type_checker
+    )
     TupleAllowingValidator(schema).validate(data)

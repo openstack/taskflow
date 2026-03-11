@@ -78,47 +78,72 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
     """
 
     #: Exceptions that will **not** cause consumption to occur.
-    NO_CONSUME_EXCEPTIONS = tuple([
-        excp.ExecutionFailure,
-        excp.StorageFailure,
-    ])
+    NO_CONSUME_EXCEPTIONS = tuple(
+        [
+            excp.ExecutionFailure,
+            excp.StorageFailure,
+        ]
+    )
 
     _event_factory = threading.Event
     """This attribute *can* be overridden by subclasses (for example if
        an eventlet *green* event works better for the conductor user)."""
 
-    EVENTS_EMITTED = tuple([
-        'compilation_start', 'compilation_end',
-        'preparation_start', 'preparation_end',
-        'validation_start', 'validation_end',
-        'running_start', 'running_end',
-        'job_consumed', 'job_abandoned',
-    ])
+    EVENTS_EMITTED = tuple(
+        [
+            'compilation_start',
+            'compilation_end',
+            'preparation_start',
+            'preparation_end',
+            'validation_start',
+            'validation_end',
+            'running_start',
+            'running_end',
+            'job_consumed',
+            'job_abandoned',
+        ]
+    )
     """Events will be emitted for each of the events above.  The event is
        emitted to listeners registered with the conductor.
     """
 
-    def __init__(self, name, jobboard,
-                 persistence=None, engine=None,
-                 engine_options=None, wait_timeout=None,
-                 log=None, max_simultaneous_jobs=MAX_SIMULTANEOUS_JOBS):
+    def __init__(
+        self,
+        name,
+        jobboard,
+        persistence=None,
+        engine=None,
+        engine_options=None,
+        wait_timeout=None,
+        log=None,
+        max_simultaneous_jobs=MAX_SIMULTANEOUS_JOBS,
+    ):
         super().__init__(
-            name, jobboard, persistence=persistence,
-            engine=engine, engine_options=engine_options)
+            name,
+            jobboard,
+            persistence=persistence,
+            engine=engine,
+            engine_options=engine_options,
+        )
         self._wait_timeout = tt.convert_to_timeout(
-            value=wait_timeout, default_value=self.WAIT_TIMEOUT,
-            event_factory=self._event_factory)
+            value=wait_timeout,
+            default_value=self.WAIT_TIMEOUT,
+            event_factory=self._event_factory,
+        )
         self._dead = self._event_factory()
         self._log = misc.pick_first_not_none(log, self.LOG, LOG)
         self._max_simultaneous_jobs = int(
-            misc.pick_first_not_none(max_simultaneous_jobs,
-                                     self.MAX_SIMULTANEOUS_JOBS))
+            misc.pick_first_not_none(
+                max_simultaneous_jobs, self.MAX_SIMULTANEOUS_JOBS
+            )
+        )
         self._dispatched = set()
 
     def _executor_factory(self):
         """Creates an executor to be used during dispatching."""
-        raise excp.NotImplementedError("This method must be implemented but"
-                                       " it has not been")
+        raise excp.NotImplementedError(
+            "This method must be implemented but it has not been"
+        )
 
     def stop(self):
         self._wait_timeout.interrupt()
@@ -134,8 +159,9 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
 
     def _listeners_from_job(self, job, engine):
         listeners = super()._listeners_from_job(job, engine)
-        listeners.append(logging_listener.LoggingListener(engine,
-                                                          log=self._log))
+        listeners.append(
+            logging_listener.LoggingListener(engine, log=self._log)
+        )
         return listeners
 
     def _dispatch_job(self, job):
@@ -156,17 +182,22 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
                 has_suspended = False
                 for _state in engine.run_iter():
                     if not has_suspended and self._wait_timeout.is_stopped():
-                        self._log.info("Conductor stopped, requesting "
-                                       "suspension of engine running "
-                                       "job %s", job)
+                        self._log.info(
+                            "Conductor stopped, requesting "
+                            "suspension of engine running "
+                            "job %s",
+                            job,
+                        )
                         engine.suspend()
                         has_suspended = True
 
             try:
-                for stage_func, event_name in [(engine.compile, 'compilation'),
-                                               (engine.prepare, 'preparation'),
-                                               (engine.validate, 'validation'),
-                                               (_run_engine, 'running')]:
+                for stage_func, event_name in [
+                    (engine.compile, 'compilation'),
+                    (engine.prepare, 'preparation'),
+                    (engine.validate, 'validation'),
+                    (_run_engine, 'running'),
+                ]:
                     self._notifier.notify("%s_start" % event_name, details)
                     stage_func()
                     self._notifier.notify("%s_end" % event_name, details)
@@ -177,23 +208,35 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
                     if consume:
                         self._log.warning(
                             "Job execution failed (consumption being"
-                            " skipped): %s [%s failures]", job, len(e))
+                            " skipped): %s [%s failures]",
+                            job,
+                            len(e),
+                        )
                     else:
                         self._log.warning(
                             "Job execution failed (consumption"
-                            " proceeding): %s [%s failures]", job, len(e))
+                            " proceeding): %s [%s failures]",
+                            job,
+                            len(e),
+                        )
                     # Show the failure/s + traceback (if possible)...
                     for i, f in enumerate(e):
-                        self._log.warning("%s. %s", i + 1,
-                                          f.pformat(traceback=True))
+                        self._log.warning(
+                            "%s. %s", i + 1, f.pformat(traceback=True)
+                        )
             except self.NO_CONSUME_EXCEPTIONS:
-                self._log.warning("Job execution failed (consumption being"
-                                  " skipped): %s", job, exc_info=True)
+                self._log.warning(
+                    "Job execution failed (consumption being skipped): %s",
+                    job,
+                    exc_info=True,
+                )
                 consume = False
             except Exception:
                 self._log.warning(
                     "Job execution failed (consumption proceeding): %s",
-                    job, exc_info=True)
+                    job,
+                    exc_info=True,
+                )
             else:
                 if engine.storage.get_flow_state() == states.SUSPENDED:
                     self._log.info("Job execution was suspended: %s", job)
@@ -206,32 +249,43 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
         try:
             if consume:
                 self._jobboard.consume(job, self._name)
-                self._notifier.notify("job_consumed", {
-                    'job': job,
-                    'conductor': self,
-                    'persistence': self._persistence,
-                })
+                self._notifier.notify(
+                    "job_consumed",
+                    {
+                        'job': job,
+                        'conductor': self,
+                        'persistence': self._persistence,
+                    },
+                )
             elif trash:
                 self._jobboard.trash(job, self._name)
-                self._notifier.notify("job_trashed", {
-                    'job': job,
-                    'conductor': self,
-                    'persistence': self._persistence,
-                })
+                self._notifier.notify(
+                    "job_trashed",
+                    {
+                        'job': job,
+                        'conductor': self,
+                        'persistence': self._persistence,
+                    },
+                )
             else:
                 self._jobboard.abandon(job, self._name)
-                self._notifier.notify("job_abandoned", {
-                    'job': job,
-                    'conductor': self,
-                    'persistence': self._persistence,
-                })
+                self._notifier.notify(
+                    "job_abandoned",
+                    {
+                        'job': job,
+                        'conductor': self,
+                        'persistence': self._persistence,
+                    },
+                )
         except (excp.JobFailure, excp.NotFound):
             if consume:
-                self._log.warn("Failed job consumption: %s", job,
-                               exc_info=True)
+                self._log.warn(
+                    "Failed job consumption: %s", job, exc_info=True
+                )
             else:
-                self._log.warn("Failed job abandonment: %s", job,
-                               exc_info=True)
+                self._log.warn(
+                    "Failed job abandonment: %s", job, exc_info=True
+                )
 
     def _on_job_done(self, job, fut):
         consume = False
@@ -273,7 +327,8 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
             if max_dispatches == 0:
                 raise StopIteration
             fresh_period = timeutils.StopWatch(
-                duration=self.REFRESH_PERIODICITY)
+                duration=self.REFRESH_PERIODICITY
+            )
             fresh_period.start()
             while not is_stopped():
                 any_dispatched = False
@@ -284,28 +339,32 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
                     ensure_fresh = False
                 job_it = itertools.takewhile(
                     self._can_claim_more_jobs,
-                    self._jobboard.iterjobs(ensure_fresh=ensure_fresh))
+                    self._jobboard.iterjobs(ensure_fresh=ensure_fresh),
+                )
                 for job in job_it:
                     self._log.debug("Trying to claim job: %s", job)
                     try:
                         self._jobboard.claim(job, self._name)
                     except (excp.UnclaimableJob, excp.NotFound):
-                        self._log.debug("Job already claimed or"
-                                        " consumed: %s", job)
+                        self._log.debug(
+                            "Job already claimed or consumed: %s", job
+                        )
                     else:
                         try:
                             fut = executor.submit(self._dispatch_job, job)
                         except RuntimeError:
                             with excutils.save_and_reraise_exception():
-                                self._log.warn("Job dispatch submitting"
-                                               " failed: %s", job)
+                                self._log.warn(
+                                    "Job dispatch submitting failed: %s", job
+                                )
                                 self._try_finish_job(job, False)
                         else:
                             fut.job = job
                             self._dispatched.add(fut)
                             any_dispatched = True
                             fut.add_done_callback(
-                                functools.partial(self._on_job_done, job))
+                                functools.partial(self._on_job_done, job)
+                            )
                             total_dispatched = next(dispatch_gen)
                 if not any_dispatched and not is_stopped():
                     self._wait_timeout.wait()
@@ -314,8 +373,9 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
             # max dispatch number (which implies we should do no more work).
             with excutils.save_and_reraise_exception():
                 if max_dispatches >= 0 and total_dispatched >= max_dispatches:
-                    self._log.info("Maximum dispatch limit of %s reached",
-                                   max_dispatches)
+                    self._log.info(
+                        "Maximum dispatch limit of %s reached", max_dispatches
+                    )
 
     def run(self, max_dispatches=None):
         self._dead.clear()
@@ -323,8 +383,7 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
         try:
             self._jobboard.register_entity(self.conductor)
             with self._executor_factory() as executor:
-                self._run_until_dead(executor,
-                                     max_dispatches=max_dispatches)
+                self._run_until_dead(executor, max_dispatches=max_dispatches)
         except StopIteration:
             pass
         except KeyboardInterrupt:

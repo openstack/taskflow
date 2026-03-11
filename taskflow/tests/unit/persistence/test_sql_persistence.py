@@ -34,8 +34,7 @@ import testtools
 
 USER = "openstack_citest"
 PASSWD = "openstack_citest"
-DATABASE = "tftest_" + ''.join(random.choice('0123456789')
-                               for _ in range(12))
+DATABASE = "tftest_" + ''.join(random.choice('0123456789') for _ in range(12))
 
 import sqlalchemy as sa
 
@@ -99,6 +98,7 @@ def _postgres_exists():
 
 class SqlitePersistenceTest(test.TestCase, base.PersistenceTestMixin):
     """Inherits from the base test and sets up a sqlite temporary db."""
+
     def _get_connection(self):
         conf = {
             'connection': self.db_uri,
@@ -120,8 +120,9 @@ class SqlitePersistenceTest(test.TestCase, base.PersistenceTestMixin):
             self.db_location = None
 
 
-class BackendPersistenceTestMixin(base.PersistenceTestMixin,
-                                  metaclass=abc.ABCMeta):
+class BackendPersistenceTestMixin(
+    base.PersistenceTestMixin, metaclass=abc.ABCMeta
+):
     """Specifies a backend type and does required setup and teardown."""
 
     def _get_connection(self):
@@ -148,15 +149,15 @@ class BackendPersistenceTestMixin(base.PersistenceTestMixin,
         self.backend = None
         try:
             self.db_uri = self._init_db()
-            self.db_conf = {
-                'connection': self.db_uri
-            }
+            self.db_conf = {'connection': self.db_uri}
             # Since we are using random database names, we need to make sure
             # and remove our random database when we are done testing.
             self.addCleanup(self._remove_db)
         except Exception as e:
-            self.skipTest("Failed to create temporary database;"
-                          " testing being skipped due to: %s" % (e))
+            self.skipTest(
+                "Failed to create temporary database;"
+                " testing being skipped due to: %s" % (e)
+            )
         else:
             self.backend = impl_sqlalchemy.SQLAlchemyBackend(self.db_conf)
             self.addCleanup(self.backend.close)
@@ -166,7 +167,6 @@ class BackendPersistenceTestMixin(base.PersistenceTestMixin,
 
 @testtools.skipIf(not _mysql_exists(), 'mysql is not available')
 class MysqlPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
-
     def _init_db(self):
         engine = None
         try:
@@ -182,8 +182,7 @@ class MysqlPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
                     engine.dispose()
                 except Exception:
                     pass
-        return _get_connect_string('mysql', USER, PASSWD,
-                                   database=DATABASE)
+        return _get_connect_string('mysql', USER, PASSWD, database=DATABASE)
 
     def _remove_db(self):
         engine = None
@@ -203,15 +202,15 @@ class MysqlPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
 
 @testtools.skipIf(not _postgres_exists(), 'postgres is not available')
 class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
-
     def _init_db(self):
         engine = None
         try:
             # Postgres can't operate on the database it's connected to, that's
             # why we connect to the database 'postgres' and then create the
             # desired database.
-            db_uri = _get_connect_string('postgres', USER, PASSWD,
-                                         database='postgres')
+            db_uri = _get_connect_string(
+                'postgres', USER, PASSWD, database='postgres'
+            )
             engine = sa.create_engine(db_uri)
             with contextlib.closing(engine.connect()) as conn:
                 conn.connection.set_isolation_level(0)
@@ -225,8 +224,7 @@ class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
                     engine.dispose()
                 except Exception:
                     pass
-        return _get_connect_string('postgres', USER, PASSWD,
-                                   database=DATABASE)
+        return _get_connect_string('postgres', USER, PASSWD, database=DATABASE)
 
     def _remove_db(self):
         engine = None
@@ -234,8 +232,9 @@ class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
             # Postgres can't operate on the database it's connected to, that's
             # why we connect to the 'postgres' database and then drop the
             # database.
-            db_uri = _get_connect_string('postgres', USER, PASSWD,
-                                         database='postgres')
+            db_uri = _get_connect_string(
+                'postgres', USER, PASSWD, database='postgres'
+            )
             engine = sa.create_engine(db_uri)
             with contextlib.closing(engine.connect()) as conn:
                 conn.connection.set_isolation_level(0)
@@ -252,7 +251,6 @@ class PostgresPersistenceTest(BackendPersistenceTestMixin, test.TestCase):
 
 
 class SQLBackendFetchingTest(test.TestCase):
-
     def test_sqlite_persistence_entry_point(self):
         conf = {'connection': 'sqlite:///'}
         with contextlib.closing(backends.fetch(conf)) as be:

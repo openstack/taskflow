@@ -21,9 +21,9 @@ import traceback
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
@@ -95,8 +95,7 @@ with eu.get_backend(backend_uri) as backend:
     flow = make_flow(blowup=blowup)
     eu.print_wrapped("Running")
     try:
-        eng = engines.load(flow, engine='serial',
-                           backend=backend, book=book)
+        eng = engines.load(flow, engine='serial', backend=backend, book=book)
         eng.run()
         if not blowup:
             eu.rm_path(persist_path)

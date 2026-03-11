@@ -56,16 +56,16 @@ ANALYZING = 'ANALYZING'
 # Job state transitions
 # See: https://docs.openstack.org/taskflow/latest/user/states.html
 
-_ALLOWED_JOB_TRANSITIONS = frozenset((
-    # Job is being claimed.
-    (UNCLAIMED, CLAIMED),
-
-    # Job has been lost (or manually unclaimed/abandoned).
-    (CLAIMED, UNCLAIMED),
-
-    # Job has been finished.
-    (CLAIMED, COMPLETE),
-))
+_ALLOWED_JOB_TRANSITIONS = frozenset(
+    (
+        # Job is being claimed.
+        (UNCLAIMED, CLAIMED),
+        # Job has been lost (or manually unclaimed/abandoned).
+        (CLAIMED, UNCLAIMED),
+        # Job has been finished.
+        (CLAIMED, COMPLETE),
+    )
+)
 
 
 def check_job_transition(old_state, new_state):
@@ -80,39 +80,38 @@ def check_job_transition(old_state, new_state):
     pair = (old_state, new_state)
     if pair in _ALLOWED_JOB_TRANSITIONS:
         return True
-    raise exc.InvalidState("Job transition from '%s' to '%s' is not allowed"
-                           % pair)
+    raise exc.InvalidState(
+        "Job transition from '%s' to '%s' is not allowed" % pair
+    )
 
 
 # Flow state transitions
 # See: https://docs.openstack.org/taskflow/latest/user/states.html#flow
 
-_ALLOWED_FLOW_TRANSITIONS = frozenset((
-    (PENDING, RUNNING),       # run it!
-
-    (RUNNING, SUCCESS),       # all tasks finished successfully
-    (RUNNING, FAILURE),       # some of task failed
-    (RUNNING, REVERTED),      # some of task failed and flow has been reverted
-    (RUNNING, SUSPENDING),    # engine.suspend was called
-    (RUNNING, RESUMING),      # resuming from a previous running
-
-    (SUCCESS, RUNNING),       # see note below
-
-    (FAILURE, RUNNING),       # see note below
-
-    (REVERTED, PENDING),      # try again
-    (SUCCESS, PENDING),       # run it again
-
-    (SUSPENDING, SUSPENDED),  # suspend finished
-    (SUSPENDING, SUCCESS),    # all tasks finished while we were waiting
-    (SUSPENDING, FAILURE),    # some tasks failed while we were waiting
-    (SUSPENDING, REVERTED),   # all tasks were reverted while we were waiting
-    (SUSPENDING, RESUMING),   # resuming from a previous suspending
-
-    (SUSPENDED, RUNNING),     # restart from suspended
-
-    (RESUMING, SUSPENDED),    # after flow resumed, it is suspended
-))
+_ALLOWED_FLOW_TRANSITIONS = frozenset(
+    (
+        (PENDING, RUNNING),  # run it!
+        (RUNNING, SUCCESS),  # all tasks finished successfully
+        (RUNNING, FAILURE),  # some of task failed
+        (RUNNING, REVERTED),  # some of task failed and flow has been reverted
+        (RUNNING, SUSPENDING),  # engine.suspend was called
+        (RUNNING, RESUMING),  # resuming from a previous running
+        (SUCCESS, RUNNING),  # see note below
+        (FAILURE, RUNNING),  # see note below
+        (REVERTED, PENDING),  # try again
+        (SUCCESS, PENDING),  # run it again
+        (SUSPENDING, SUSPENDED),  # suspend finished
+        (SUSPENDING, SUCCESS),  # all tasks finished while we were waiting
+        (SUSPENDING, FAILURE),  # some tasks failed while we were waiting
+        (
+            SUSPENDING,
+            REVERTED,
+        ),  # all tasks were reverted while we were waiting
+        (SUSPENDING, RESUMING),  # resuming from a previous suspending
+        (SUSPENDED, RUNNING),  # restart from suspended
+        (RESUMING, SUSPENDED),  # after flow resumed, it is suspended
+    )
+)
 
 
 # NOTE(imelnikov) SUCCESS->RUNNING and FAILURE->RUNNING transitions are
@@ -152,29 +151,28 @@ def check_flow_transition(old_state, new_state):
         return True
     if pair in _IGNORED_FLOW_TRANSITIONS:
         return False
-    raise exc.InvalidState("Flow transition from '%s' to '%s' is not allowed"
-                           % pair)
+    raise exc.InvalidState(
+        "Flow transition from '%s' to '%s' is not allowed" % pair
+    )
 
 
 # Task state transitions
 # See: https://docs.openstack.org/taskflow/latest/user/states.html#task
 
-_ALLOWED_TASK_TRANSITIONS = frozenset((
-    (PENDING, RUNNING),       # run it!
-    (PENDING, IGNORE),        # skip it!
-
-    (RUNNING, SUCCESS),       # the task executed successfully
-    (RUNNING, FAILURE),       # the task execution failed
-
-    (FAILURE, REVERTING),     # task execution failed, try reverting...
-    (SUCCESS, REVERTING),     # some other task failed, try reverting...
-
-    (REVERTING, REVERTED),           # the task reverted successfully
-    (REVERTING, REVERT_FAILURE),     # the task failed reverting (terminal!)
-
-    (REVERTED, PENDING),      # try again
-    (IGNORE, PENDING),        # try again
-))
+_ALLOWED_TASK_TRANSITIONS = frozenset(
+    (
+        (PENDING, RUNNING),  # run it!
+        (PENDING, IGNORE),  # skip it!
+        (RUNNING, SUCCESS),  # the task executed successfully
+        (RUNNING, FAILURE),  # the task execution failed
+        (FAILURE, REVERTING),  # task execution failed, try reverting...
+        (SUCCESS, REVERTING),  # some other task failed, try reverting...
+        (REVERTING, REVERTED),  # the task reverted successfully
+        (REVERTING, REVERT_FAILURE),  # the task failed reverting (terminal!)
+        (REVERTED, PENDING),  # try again
+        (IGNORE, PENDING),  # try again
+    )
+)
 
 
 def check_task_transition(old_state, new_state):
@@ -192,10 +190,12 @@ def check_task_transition(old_state, new_state):
 # See: https://docs.openstack.org/taskflow/latest/user/states.html#retry
 
 _ALLOWED_RETRY_TRANSITIONS = list(_ALLOWED_TASK_TRANSITIONS)
-_ALLOWED_RETRY_TRANSITIONS.extend([
-    (SUCCESS, RETRYING),      # retrying retry controller
-    (RETRYING, RUNNING),      # run retry controller that has been retrying
-])
+_ALLOWED_RETRY_TRANSITIONS.extend(
+    [
+        (SUCCESS, RETRYING),  # retrying retry controller
+        (RETRYING, RUNNING),  # run retry controller that has been retrying
+    ]
+)
 _ALLOWED_RETRY_TRANSITIONS = frozenset(_ALLOWED_RETRY_TRANSITIONS)
 
 

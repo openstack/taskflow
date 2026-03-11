@@ -22,8 +22,9 @@ from taskflow.tests import utils
 
 class TestTopicWorker(test.TestCase):
     def test_topic_worker(self):
-        worker = worker_types.TopicWorker("dummy-topic",
-                                          [utils.DummyTask], identity="dummy")
+        worker = worker_types.TopicWorker(
+            "dummy-topic", [utils.DummyTask], identity="dummy"
+        )
         self.assertTrue(worker.performs(utils.DummyTask))
         self.assertFalse(worker.performs(utils.NastyTask))
         self.assertEqual('dummy', worker.identity)
@@ -31,11 +32,11 @@ class TestTopicWorker(test.TestCase):
 
 
 class TestProxyFinder(test.TestCase):
-
     @mock.patch("oslo_utils.timeutils.now")
     def test_expiry(self, mock_now):
-        finder = worker_types.ProxyWorkerFinder('me', mock.MagicMock(), [],
-                                                worker_expiry=60)
+        finder = worker_types.ProxyWorkerFinder(
+            'me', mock.MagicMock(), [], worker_expiry=60
+        )
         w, emit = finder._add('dummy-topic', [utils.DummyTask])
         w.last_seen = 0
         mock_now.side_effect = [120]
@@ -61,7 +62,8 @@ class TestProxyFinder(test.TestCase):
         self.assertIsNotNone(w2)
         self.assertTrue(emit)
         w3 = finder.get_worker_for_task(
-            reflection.get_class_name(utils.DummyTask))
+            reflection.get_class_name(utils.DummyTask)
+        )
         self.assertIn(w3.identity, [w.identity, w2.identity])
 
     def test_multi_different_topic_workers(self):

@@ -24,8 +24,10 @@ class Backend(metaclass=abc.ABCMeta):
         if not conf:
             conf = {}
         if not isinstance(conf, dict):
-            raise TypeError("Configuration dictionary expected not '%s' (%s)"
-                            % (conf, type(conf)))
+            raise TypeError(
+                "Configuration dictionary expected not '%s' (%s)"
+                % (conf, type(conf))
+            )
         self._conf = conf
 
     @abc.abstractmethod

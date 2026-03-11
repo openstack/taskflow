@@ -44,8 +44,11 @@ class Flow(flow.Flow):
             if not self._graph.has_node(item):
                 self._graph.add_node(item)
                 if self._last_item is not self._no_last_item:
-                    self._graph.add_edge(self._last_item, item,
-                                         attr_dict={flow.LINK_INVARIANT: True})
+                    self._graph.add_edge(
+                        self._last_item,
+                        item,
+                        attr_dict={flow.LINK_INVARIANT: True},
+                    )
                 self._last_item = item
         return self
 

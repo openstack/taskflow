@@ -82,50 +82,65 @@ def _get_foreign_keys():
 
 
 def upgrade():
-    op.create_table('logbooks',
-                    sa.Column('created_at', sa.DateTime),
-                    sa.Column('updated_at', sa.DateTime),
-                    sa.Column('meta', sa.Text(), nullable=True),
-                    sa.Column('name', sa.String(length=tables.NAME_LENGTH),
-                              nullable=True),
-                    sa.Column('uuid', sa.String(length=tables.UUID_LENGTH),
-                              primary_key=True, nullable=False),
-                    mysql_engine='InnoDB',
-                    mysql_charset='utf8')
-    op.create_table('flowdetails',
-                    sa.Column('created_at', sa.DateTime),
-                    sa.Column('updated_at', sa.DateTime),
-                    sa.Column('parent_uuid',
-                              sa.String(length=tables.UUID_LENGTH)),
-                    sa.Column('meta', sa.Text(), nullable=True),
-                    sa.Column('state', sa.String(length=tables.STATE_LENGTH),
-                              nullable=True),
-                    sa.Column('name', sa.String(length=tables.NAME_LENGTH),
-                              nullable=True),
-                    sa.Column('uuid', sa.String(length=tables.UUID_LENGTH),
-                              primary_key=True, nullable=False),
-                    mysql_engine='InnoDB',
-                    mysql_charset='utf8')
-    op.create_table('taskdetails',
-                    sa.Column('created_at', sa.DateTime),
-                    sa.Column('updated_at', sa.DateTime),
-                    sa.Column('parent_uuid',
-                              sa.String(length=tables.UUID_LENGTH)),
-                    sa.Column('meta', sa.Text(), nullable=True),
-                    sa.Column('name', sa.String(length=tables.NAME_LENGTH),
-                              nullable=True),
-                    sa.Column('results', sa.Text(), nullable=True),
-                    sa.Column('version',
-                              sa.String(length=tables.VERSION_LENGTH),
-                              nullable=True),
-                    sa.Column('stacktrace', sa.Text(), nullable=True),
-                    sa.Column('exception', sa.Text(), nullable=True),
-                    sa.Column('state', sa.String(length=tables.STATE_LENGTH),
-                              nullable=True),
-                    sa.Column('uuid', sa.String(length=tables.UUID_LENGTH),
-                              primary_key=True, nullable=False),
-                    mysql_engine='InnoDB',
-                    mysql_charset='utf8')
+    op.create_table(
+        'logbooks',
+        sa.Column('created_at', sa.DateTime),
+        sa.Column('updated_at', sa.DateTime),
+        sa.Column('meta', sa.Text(), nullable=True),
+        sa.Column('name', sa.String(length=tables.NAME_LENGTH), nullable=True),
+        sa.Column(
+            'uuid',
+            sa.String(length=tables.UUID_LENGTH),
+            primary_key=True,
+            nullable=False,
+        ),
+        mysql_engine='InnoDB',
+        mysql_charset='utf8',
+    )
+    op.create_table(
+        'flowdetails',
+        sa.Column('created_at', sa.DateTime),
+        sa.Column('updated_at', sa.DateTime),
+        sa.Column('parent_uuid', sa.String(length=tables.UUID_LENGTH)),
+        sa.Column('meta', sa.Text(), nullable=True),
+        sa.Column(
+            'state', sa.String(length=tables.STATE_LENGTH), nullable=True
+        ),
+        sa.Column('name', sa.String(length=tables.NAME_LENGTH), nullable=True),
+        sa.Column(
+            'uuid',
+            sa.String(length=tables.UUID_LENGTH),
+            primary_key=True,
+            nullable=False,
+        ),
+        mysql_engine='InnoDB',
+        mysql_charset='utf8',
+    )
+    op.create_table(
+        'taskdetails',
+        sa.Column('created_at', sa.DateTime),
+        sa.Column('updated_at', sa.DateTime),
+        sa.Column('parent_uuid', sa.String(length=tables.UUID_LENGTH)),
+        sa.Column('meta', sa.Text(), nullable=True),
+        sa.Column('name', sa.String(length=tables.NAME_LENGTH), nullable=True),
+        sa.Column('results', sa.Text(), nullable=True),
+        sa.Column(
+            'version', sa.String(length=tables.VERSION_LENGTH), nullable=True
+        ),
+        sa.Column('stacktrace', sa.Text(), nullable=True),
+        sa.Column('exception', sa.Text(), nullable=True),
+        sa.Column(
+            'state', sa.String(length=tables.STATE_LENGTH), nullable=True
+        ),
+        sa.Column(
+            'uuid',
+            sa.String(length=tables.UUID_LENGTH),
+            primary_key=True,
+            nullable=False,
+        ),
+        mysql_engine='InnoDB',
+        mysql_charset='utf8',
+    )
     try:
         for fkey_descriptor in _get_foreign_keys():
             op.create_foreign_key(**fkey_descriptor)

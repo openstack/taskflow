@@ -51,23 +51,31 @@ class CaptureListener(base.Listener):
     #: Kind that denotes a 'retry' capture.
     RETRY = 'retry'
 
-    def __init__(self, engine,
-                 task_listen_for=base.DEFAULT_LISTEN_FOR,
-                 flow_listen_for=base.DEFAULT_LISTEN_FOR,
-                 retry_listen_for=base.DEFAULT_LISTEN_FOR,
-                 # Easily override what you want captured and where it
-                 # should save into and what should be skipped...
-                 capture_flow=True, capture_task=True, capture_retry=True,
-                 # Skip capturing *all* tasks, all retries, all flows...
-                 skip_tasks=None, skip_retries=None, skip_flows=None,
-                 # Provide your own list (or previous list) to accumulate
-                 # into...
-                 values=None):
+    def __init__(
+        self,
+        engine,
+        task_listen_for=base.DEFAULT_LISTEN_FOR,
+        flow_listen_for=base.DEFAULT_LISTEN_FOR,
+        retry_listen_for=base.DEFAULT_LISTEN_FOR,
+        # Easily override what you want captured and where it
+        # should save into and what should be skipped...
+        capture_flow=True,
+        capture_task=True,
+        capture_retry=True,
+        # Skip capturing *all* tasks, all retries, all flows...
+        skip_tasks=None,
+        skip_retries=None,
+        skip_flows=None,
+        # Provide your own list (or previous list) to accumulate
+        # into...
+        values=None,
+    ):
         super().__init__(
             engine,
             task_listen_for=task_listen_for,
             flow_listen_for=flow_listen_for,
-            retry_listen_for=retry_listen_for)
+            retry_listen_for=retry_listen_for,
+        )
         self._capture_flow = capture_flow
         self._capture_task = capture_task
         self._capture_retry = capture_retry
@@ -87,17 +95,20 @@ class CaptureListener(base.Listener):
     def _task_receiver(self, state, details):
         if self._capture_task:
             if details['task_name'] not in self._skip_tasks:
-                self.values.append(self._format_capture(self.TASK,
-                                                        state, details))
+                self.values.append(
+                    self._format_capture(self.TASK, state, details)
+                )
 
     def _retry_receiver(self, state, details):
         if self._capture_retry:
             if details['retry_name'] not in self._skip_retries:
-                self.values.append(self._format_capture(self.RETRY,
-                                                        state, details))
+                self.values.append(
+                    self._format_capture(self.RETRY, state, details)
+                )
 
     def _flow_receiver(self, state, details):
         if self._capture_flow:
             if details['flow_name'] not in self._skip_flows:
-                self.values.append(self._format_capture(self.FLOW,
-                                                        state, details))
+                self.values.append(
+                    self._format_capture(self.FLOW, state, details)
+                )

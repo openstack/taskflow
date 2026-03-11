@@ -21,7 +21,6 @@ def _bytes(data):
 
 
 class BinaryEncodeTest(test.TestCase):
-
     def _check(self, data, expected_result):
         result = misc.binary_encode(data)
         self.assertIsInstance(result, bytes)
@@ -48,7 +47,6 @@ class BinaryEncodeTest(test.TestCase):
 
 
 class BinaryDecodeTest(test.TestCase):
-
     def _check(self, data, expected_result):
         result = misc.binary_decode(data)
         self.assertIsInstance(result, str)
@@ -76,23 +74,18 @@ class BinaryDecodeTest(test.TestCase):
 
 
 class DecodeJsonTest(test.TestCase):
-
     def test_it_works(self):
-        self.assertEqual({"foo": 1},
-                         misc.decode_json(_bytes('{"foo": 1}')))
+        self.assertEqual({"foo": 1}, misc.decode_json(_bytes('{"foo": 1}')))
 
     def test_it_works_with_unicode(self):
         data = _bytes('{"foo": "фуу"}')
         self.assertEqual({"foo": 'фуу'}, misc.decode_json(data))
 
     def test_handles_invalid_unicode(self):
-        self.assertRaises(ValueError, misc.decode_json,
-                          b'{"\xf1": 1}')
+        self.assertRaises(ValueError, misc.decode_json, b'{"\xf1": 1}')
 
     def test_handles_bad_json(self):
-        self.assertRaises(ValueError, misc.decode_json,
-                          _bytes('{"foo":'))
+        self.assertRaises(ValueError, misc.decode_json, _bytes('{"foo":'))
 
     def test_handles_wrong_types(self):
-        self.assertRaises(ValueError, misc.decode_json,
-                          _bytes('42'))
+        self.assertRaises(ValueError, misc.decode_json, _bytes('42'))

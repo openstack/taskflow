@@ -26,8 +26,12 @@ class Action(metaclass=abc.ABCMeta):
     """
 
     #: States that are expected to have a result to save...
-    SAVE_RESULT_STATES = (states.SUCCESS, states.FAILURE,
-                          states.REVERTED, states.REVERT_FAILURE)
+    SAVE_RESULT_STATES = (
+        states.SUCCESS,
+        states.FAILURE,
+        states.REVERTED,
+        states.REVERT_FAILURE,
+    )
 
     def __init__(self, storage, notifier):
         self._storage = storage

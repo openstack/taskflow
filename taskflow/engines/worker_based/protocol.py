@@ -53,10 +53,7 @@ EXECUTE = 'execute'
 REVERT = 'revert'
 
 # Remote task action to event map.
-ACTION_TO_EVENT = {
-    EXECUTE: executor.EXECUTED,
-    REVERT: executor.REVERTED
-}
+ACTION_TO_EVENT = {EXECUTE: executor.EXECUTED, REVERT: executor.REVERTED}
 
 # NOTE(skudriashev): A timeout which specifies request expiration period.
 REQUEST_TIMEOUT = 60
@@ -149,9 +146,11 @@ class Message(metaclass=abc.ABCMeta):
     """Base class for all message types."""
 
     def __repr__(self):
-        return ("<%s object at 0x%x with contents %s>"
-                % (reflection.get_class_name(self, fully_qualified=False),
-                   id(self), self.to_dict()))
+        return "<%s object at 0x%x with contents %s>" % (
+            reflection.get_class_name(self, fully_qualified=False),
+            id(self),
+            self.to_dict(),
+        )
 
     @abc.abstractmethod
     def to_dict(self):
@@ -180,7 +179,7 @@ class Notify(Message):
                 "items": {
                     "type": "string",
                 },
-            }
+            },
         },
         "required": ["topic", 'tasks'],
         "additionalProperties": False,
@@ -217,21 +216,24 @@ class Notify(Message):
         except su.ValidationError as e:
             cls_name = reflection.get_class_name(cls, fully_qualified=False)
             if response:
-                excp.raise_with_cause(excp.InvalidFormat,
-                                      "%s message response data not of the"
-                                      " expected format: %s" % (cls_name,
-                                                                e.message),
-                                      cause=e)
+                excp.raise_with_cause(
+                    excp.InvalidFormat,
+                    "%s message response data not of the"
+                    " expected format: %s" % (cls_name, e.message),
+                    cause=e,
+                )
             else:
-                excp.raise_with_cause(excp.InvalidFormat,
-                                      "%s message sender data not of the"
-                                      " expected format: %s" % (cls_name,
-                                                                e.message),
-                                      cause=e)
+                excp.raise_with_cause(
+                    excp.InvalidFormat,
+                    "%s message sender data not of the"
+                    " expected format: %s" % (cls_name, e.message),
+                    cause=e,
+                )
 
 
-_WorkUnit = collections.namedtuple('_WorkUnit', ['task_cls', 'task_name',
-                                                 'action', 'arguments'])
+_WorkUnit = collections.namedtuple(
+    '_WorkUnit', ['task_cls', 'task_name', 'action', 'arguments']
+)
 
 
 class Request(Message):
@@ -299,9 +301,16 @@ class Request(Message):
         'required': ['task_cls', 'task_name', 'task_version', 'action'],
     }
 
-    def __init__(self, task, uuid, action,
-                 arguments, timeout=REQUEST_TIMEOUT, result=NO_RESULT,
-                 failures=None):
+    def __init__(
+        self,
+        task,
+        uuid,
+        action,
+        arguments,
+        timeout=REQUEST_TIMEOUT,
+        result=NO_RESULT,
+        failures=None,
+    ):
         self._action = action
         self._event = ACTION_TO_EVENT[action]
         self._arguments = arguments
@@ -383,8 +392,12 @@ class Request(Message):
         try:
             moved = self.transition(new_state)
         except excp.InvalidState:
-            logger.warnng("Failed to transition '%s' to %s state.", self,
-                          new_state, exc_info=True)
+            logger.warnng(
+                "Failed to transition '%s' to %s state.",
+                self,
+                new_state,
+                exc_info=True,
+            )
         return moved
 
     @fasteners.locked
@@ -402,14 +415,19 @@ class Request(Message):
         try:
             self._machine.process_event(make_an_event(new_state))
         except (machine_excp.NotFound, machine_excp.InvalidState) as e:
-            raise excp.InvalidState("Request transition from %s to %s is"
-                                    " not allowed: %s" % (old_state,
-                                                          new_state, e))
+            raise excp.InvalidState(
+                "Request transition from %s to %s is"
+                " not allowed: %s" % (old_state, new_state, e)
+            )
         else:
             if new_state in STOP_TIMER_STATES:
                 self._watch.stop()
-            LOG.debug("Transitioned '%s' from %s state to %s state", self,
-                      old_state, new_state)
+            LOG.debug(
+                "Transitioned '%s' from %s state to %s state",
+                self,
+                old_state,
+                new_state,
+            )
             return True
 
     @classmethod
@@ -418,11 +436,12 @@ class Request(Message):
             su.schema_validate(data, cls.SCHEMA)
         except su.ValidationError as e:
             cls_name = reflection.get_class_name(cls, fully_qualified=False)
-            excp.raise_with_cause(excp.InvalidFormat,
-                                  "%s message response data not of the"
-                                  " expected format: %s" % (cls_name,
-                                                            e.message),
-                                  cause=e)
+            excp.raise_with_cause(
+                excp.InvalidFormat,
+                "%s message response data not of the"
+                " expected format: %s" % (cls_name, e.message),
+                cause=e,
+            )
         else:
             # Validate all failure dictionaries that *may* be present...
             failures = []
@@ -556,11 +575,12 @@ class Response(Message):
             su.schema_validate(data, cls.SCHEMA)
         except su.ValidationError as e:
             cls_name = reflection.get_class_name(cls, fully_qualified=False)
-            excp.raise_with_cause(excp.InvalidFormat,
-                                  "%s message response data not of the"
-                                  " expected format: %s" % (cls_name,
-                                                            e.message),
-                                  cause=e)
+            excp.raise_with_cause(
+                excp.InvalidFormat,
+                "%s message response data not of the"
+                " expected format: %s" % (cls_name, e.message),
+                cause=e,
+            )
         else:
             state = data['state']
             if state == FAILURE and 'result' in data:

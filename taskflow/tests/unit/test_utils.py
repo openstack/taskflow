@@ -173,7 +173,6 @@ class UriParseTest(test.TestCase):
 
 
 class TestSequenceMinus(test.TestCase):
-
     def test_simple_case(self):
         result = misc.sequence_minus([1, 2, 3, 4], [2, 3])
         self.assertEqual([1, 4], result)

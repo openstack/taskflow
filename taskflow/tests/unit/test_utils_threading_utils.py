@@ -59,14 +59,16 @@ class TestThreadBundle(test.TestCase):
 
     def test_bind_invalid(self):
         self.assertRaises(ValueError, self.bundle.bind, 1)
-        for k in ['after_start', 'before_start',
-                  'before_join', 'after_join']:
+        for k in ['after_start', 'before_start', 'before_join', 'after_join']:
             kwargs = {
                 k: 1,
             }
-            self.assertRaises(ValueError, self.bundle.bind,
-                              lambda: tu.daemon_thread(_spinner, self.death),
-                              **kwargs)
+            self.assertRaises(
+                ValueError,
+                self.bundle.bind,
+                lambda: tu.daemon_thread(_spinner, self.death),
+                **kwargs,
+            )
 
     def test_bundle_length(self):
         self.assertEqual(0, len(self.bundle))
@@ -96,11 +98,13 @@ class TestThreadBundle(test.TestCase):
             death_events.append((i, 'aj'))
 
         for i in range(0, self.thread_count):
-            self.bundle.bind(lambda: tu.daemon_thread(_spinner, self.death),
-                             before_join=functools.partial(before_join, i),
-                             after_join=functools.partial(after_join, i),
-                             before_start=functools.partial(before_start, i),
-                             after_start=functools.partial(after_start, i))
+            self.bundle.bind(
+                lambda: tu.daemon_thread(_spinner, self.death),
+                before_join=functools.partial(before_join, i),
+                after_join=functools.partial(after_join, i),
+                before_start=functools.partial(before_start, i),
+                after_start=functools.partial(after_start, i),
+            )
         self.assertEqual(self.thread_count, self.bundle.start())
         self.assertEqual(self.thread_count, len(self.bundle))
         self.assertEqual(self.thread_count, self.bundle.stop())
@@ -109,17 +113,23 @@ class TestThreadBundle(test.TestCase):
 
         expected_start_events = []
         for i in range(0, self.thread_count):
-            expected_start_events.extend([
-                (i, 'bs'), (i, 'as'),
-            ])
+            expected_start_events.extend(
+                [
+                    (i, 'bs'),
+                    (i, 'as'),
+                ]
+            )
         self.assertEqual(expected_start_events, list(start_events))
 
         expected_death_events = []
         j = self.thread_count - 1
         for _i in range(0, self.thread_count):
-            expected_death_events.extend([
-                (j, 'bj'), (j, 'aj'),
-            ])
+            expected_death_events.extend(
+                [
+                    (j, 'bj'),
+                    (j, 'aj'),
+                ]
+            )
             j -= 1
         self.assertEqual(expected_death_events, list(death_events))
 
@@ -140,16 +150,19 @@ class TestThreadBundle(test.TestCase):
             events.append('aj')
 
         for _i in range(0, self.thread_count):
-            self.bundle.bind(lambda: tu.daemon_thread(_spinner, self.death),
-                             before_join=before_join,
-                             after_join=after_join,
-                             before_start=before_start,
-                             after_start=after_start)
+            self.bundle.bind(
+                lambda: tu.daemon_thread(_spinner, self.death),
+                before_join=before_join,
+                after_join=after_join,
+                before_start=before_start,
+                after_start=after_start,
+            )
         self.assertEqual(self.thread_count, self.bundle.start())
         self.assertEqual(self.thread_count, len(self.bundle))
         self.assertEqual(self.thread_count, self.bundle.stop())
         for event in ['as', 'bs', 'bj', 'aj']:
-            self.assertEqual(self.thread_count,
-                             len([e for e in events if e == event]))
+            self.assertEqual(
+                self.thread_count, len([e for e in events if e == event])
+            )
         self.assertEqual(0, self.bundle.stop())
         self.assertTrue(self.death.is_set())

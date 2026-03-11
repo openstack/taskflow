@@ -91,8 +91,9 @@ def redis_available(min_version):
     except Exception:
         return False
     else:
-        ok, redis_version = redis_utils.is_server_new_enough(client,
-                                                             min_version)
+        ok, redis_version = redis_utils.is_server_new_enough(
+            client, min_version
+        )
         return ok
 
 
@@ -114,13 +115,11 @@ class NoopRetry(retry.AlwaysRevert):
 
 
 class NoopTask(task.Task):
-
     def execute(self):
         pass
 
 
 class DummyTask(task.Task):
-
     def execute(self, context, *args, **kwargs):
         pass
 
@@ -129,9 +128,14 @@ class EmittingTask(task.Task):
     TASK_EVENTS = (task.EVENT_UPDATE_PROGRESS, 'hi')
 
     def execute(self, *args, **kwargs):
-        self.notifier.notify('hi',
-                             details={'sent_on': timeutils.utcnow(),
-                                      'args': args, 'kwargs': kwargs})
+        self.notifier.notify(
+            'hi',
+            details={
+                'sent_on': timeutils.utcnow(),
+                'args': args,
+                'kwargs': kwargs,
+            },
+        )
 
 
 class AddOneSameProvidesRequires(task.Task):
@@ -149,7 +153,6 @@ class AddOne(task.Task):
 
 
 class GiveBackRevert(task.Task):
-
     def execute(self, value):
         return value + 1
 
@@ -162,19 +165,21 @@ class GiveBackRevert(task.Task):
 
 
 class FakeTask:
-
     def execute(self, **kwargs):
         pass
 
 
 class LongArgNameTask(task.Task):
-
     def execute(self, long_arg_name):
         return long_arg_name
 
 
-RUNTIME_ERROR_CLASSES = ['RuntimeError', 'Exception', 'BaseException',
-                         'object']
+RUNTIME_ERROR_CLASSES = [
+    'RuntimeError',
+    'Exception',
+    'BaseException',
+    'object',
+]
 
 
 class ProvidesRequiresTask(task.Task):
@@ -199,7 +204,6 @@ LOOKUP_NAME_POSTFIX = {
 
 
 class CaptureListener(capturing.CaptureListener):
-
     @staticmethod
     def _format_capture(kind, state, details):
         name_postfix, name_key = LOOKUP_NAME_POSTFIX[kind]
@@ -269,7 +273,6 @@ class OptionalTask(task.Task):
 
 
 class TaskWithFailure(task.Task):
-
     def execute(self, **kwargs):
         raise RuntimeError('Woot!')
 
@@ -280,7 +283,6 @@ class FailingTaskWithOneArg(ProgressingTask):
 
 
 class NastyTask(task.Task):
-
     def execute(self, **kwargs):
         pass
 
@@ -294,7 +296,6 @@ class NastyFailingTask(NastyTask):
 
 
 class TaskNoRequiresNoReturns(task.Task):
-
     def execute(self, **kwargs):
         pass
 
@@ -303,7 +304,6 @@ class TaskNoRequiresNoReturns(task.Task):
 
 
 class TaskOneArg(task.Task):
-
     def execute(self, x, **kwargs):
         pass
 
@@ -312,7 +312,6 @@ class TaskOneArg(task.Task):
 
 
 class TaskMultiArg(task.Task):
-
     def execute(self, x, y, z, **kwargs):
         pass
 
@@ -321,7 +320,6 @@ class TaskMultiArg(task.Task):
 
 
 class TaskOneReturn(task.Task):
-
     def execute(self, **kwargs):
         return 1
 
@@ -330,7 +328,6 @@ class TaskOneReturn(task.Task):
 
 
 class TaskMultiReturn(task.Task):
-
     def execute(self, **kwargs):
         return 1, 3, 5
 
@@ -339,7 +336,6 @@ class TaskMultiReturn(task.Task):
 
 
 class TaskOneArgOneReturn(task.Task):
-
     def execute(self, x, **kwargs):
         return 1
 
@@ -348,7 +344,6 @@ class TaskOneArgOneReturn(task.Task):
 
 
 class TaskMultiArgOneReturn(task.Task):
-
     def execute(self, x, y, z, **kwargs):
         return x + y + z
 
@@ -357,7 +352,6 @@ class TaskMultiArgOneReturn(task.Task):
 
 
 class TaskMultiArgMultiReturn(task.Task):
-
     def execute(self, x, y, z, **kwargs):
         return 1, 3, 5
 
@@ -366,7 +360,6 @@ class TaskMultiArgMultiReturn(task.Task):
 
 
 class TaskMultiDict(task.Task):
-
     def execute(self):
         output = {}
         for i, k in enumerate(sorted(self.provides)):
@@ -408,9 +401,9 @@ class EngineTestBase:
         super().tearDown()
 
     def _make_engine(self, flow, **kwargs):
-        raise exceptions.NotImplementedError("_make_engine() must be"
-                                             " overridden if an engine is"
-                                             " desired")
+        raise exceptions.NotImplementedError(
+            "_make_engine() must be overridden if an engine is desired"
+        )
 
 
 class FailureMatcher:
@@ -430,7 +423,6 @@ class FailureMatcher:
 
 
 class OneReturnRetry(retry.AlwaysRevert):
-
     def execute(self, **kwargs):
         return 1
 
@@ -439,7 +431,6 @@ class OneReturnRetry(retry.AlwaysRevert):
 
 
 class ConditionalTask(ProgressingTask):
-
     def execute(self, x, y):
         super().execute()
         if x != y:
@@ -447,7 +438,6 @@ class ConditionalTask(ProgressingTask):
 
 
 class WaitForOneFromTask(ProgressingTask):
-
     def __init__(self, name, wait_for, wait_states, **kwargs):
         super().__init__(name, **kwargs)
         if isinstance(wait_for, str):
@@ -462,10 +452,11 @@ class WaitForOneFromTask(ProgressingTask):
 
     def execute(self):
         if not self.event.wait(WAIT_TIMEOUT):
-            raise RuntimeError('%s second timeout occurred while waiting '
-                               'for %s to change state to %s'
-                               % (WAIT_TIMEOUT, self.wait_for,
-                                  self.wait_states))
+            raise RuntimeError(
+                '%s second timeout occurred while waiting '
+                'for %s to change state to %s'
+                % (WAIT_TIMEOUT, self.wait_for, self.wait_states)
+            )
         return super().execute()
 
     def callback(self, state, details):
@@ -480,8 +471,10 @@ def make_many(amount, task_cls=DummyTask, offset=0):
     tasks = []
     while amount > 0:
         if offset >= len(name_pool):
-            raise AssertionError('Name pool size to small (%s < %s)'
-                                 % (len(name_pool), offset + 1))
+            raise AssertionError(
+                'Name pool size to small (%s < %s)'
+                % (len(name_pool), offset + 1)
+            )
         tasks.append(task_cls(name=name_pool[offset]))
         offset += 1
         amount -= 1

@@ -41,17 +41,20 @@ from taskflow.utils import persistence_utils
 
 
 ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
-    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
+    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION
+)
 
 
-_LOG_LEVELS = frozenset([
-    logging.CRITICAL,
-    logging.DEBUG,
-    logging.ERROR,
-    logging.INFO,
-    logging.NOTSET,
-    logging.WARNING,
-])
+_LOG_LEVELS = frozenset(
+    [
+        logging.CRITICAL,
+        logging.DEBUG,
+        logging.ERROR,
+        logging.INFO,
+        logging.NOTSET,
+        logging.WARNING,
+    ]
+)
 
 
 class SleepyTask(task.Task):
@@ -68,9 +71,9 @@ class SleepyTask(task.Task):
 
 class EngineMakerMixin:
     def _make_engine(self, flow, flow_detail=None, backend=None):
-        e = taskflow.engines.load(flow,
-                                  flow_detail=flow_detail,
-                                  backend=backend)
+        e = taskflow.engines.load(
+            flow, flow_detail=flow_detail, backend=backend
+        )
         e.compile()
         e.prepare()
         return e
@@ -125,8 +128,10 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
         altered = 0
         for p in children:
             if p.endswith(".lock"):
-                self.client.set("/taskflow/jobs/" + p, misc.binary_encode(
-                    jsonutils.dumps({'owner': new_owner})))
+                self.client.set(
+                    "/taskflow/jobs/" + p,
+                    misc.binary_encode(jsonutils.dumps({'owner': new_owner})),
+                )
                 altered += 1
         return altered
 
@@ -134,9 +139,15 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
         job = self._post_claim_job('test')
         f = self._make_dummy_flow(10)
         e = self._make_engine(f)
-        self.assertRaises(ValueError, claims.CheckingClaimListener,
-                          e, job, self.board, self.board.name,
-                          on_job_loss=1)
+        self.assertRaises(
+            ValueError,
+            claims.CheckingClaimListener,
+            e,
+            job,
+            self.board,
+            self.board.name,
+            on_job_loss=1,
+        )
 
     def test_claim_lost_suspended(self):
         job = self._post_claim_job('test')
@@ -145,8 +156,7 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
 
         try_destroy = True
         ran_states = []
-        with claims.CheckingClaimListener(e, job,
-                                          self.board, self.board.name):
+        with claims.CheckingClaimListener(e, job, self.board, self.board.name):
             for state in e.run_iter():
                 ran_states.append(state)
                 if state == states.SCHEDULING and try_destroy:
@@ -166,9 +176,9 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
         ran_states = []
         try_destroy = True
         destroyed_at = -1
-        with claims.CheckingClaimListener(e, job, self.board,
-                                          self.board.name,
-                                          on_job_loss=handler):
+        with claims.CheckingClaimListener(
+            e, job, self.board, self.board.name, on_job_loss=handler
+        ):
             for i, state in enumerate(e.run_iter()):
                 ran_states.append(state)
                 if state == states.SCHEDULING and try_destroy:
@@ -191,8 +201,7 @@ class TestClaimListener(test.TestCase, EngineMakerMixin):
 
         change_owner = True
         ran_states = []
-        with claims.CheckingClaimListener(e, job,
-                                          self.board, self.board.name):
+        with claims.CheckingClaimListener(e, job, self.board, self.board.name):
             for state in e.run_iter():
                 ran_states.append(state)
                 if state == states.SCHEDULING and change_owner:
@@ -252,13 +261,15 @@ class TestDurationListener(test.TestCase, EngineMakerMixin):
             (lb, fd) = persistence_utils.temporary_flow_detail(be)
             e = self._make_engine(flow, fd, be)
             duration_listener = timing.DurationListener(e)
-            with mock.patch.object(duration_listener._engine.storage,
-                                   'update_atom_metadata') as mocked_uam:
+            with mock.patch.object(
+                duration_listener._engine.storage, 'update_atom_metadata'
+            ) as mocked_uam:
                 mocked_uam.side_effect = exc.StorageFailure('Woot!')
                 with duration_listener:
                     e.run()
-        mocked_warning.assert_called_once_with(mock.ANY, mock.ANY, 'task',
-                                               'test-1', exc_info=True)
+        mocked_warning.assert_called_once_with(
+            mock.ANY, mock.ANY, 'task', 'test-1', exc_info=True
+        )
 
 
 class TestEventTimeListener(test.TestCase, EngineMakerMixin):
@@ -291,15 +302,15 @@ class TestCapturingListeners(test.TestCase, EngineMakerMixin):
         e = self._make_engine(flow)
         with test_utils.CaptureListener(e, capture_task=False) as capturer:
             e.run()
-        expected = ['test.f RUNNING',
-                    'test.f SUCCESS']
+        expected = ['test.f RUNNING', 'test.f SUCCESS']
         self.assertEqual(expected, capturer.values)
 
 
 class TestLoggingListeners(test.TestCase, EngineMakerMixin):
     def _make_logger(self, level=logging.DEBUG):
         log = logging.getLogger(
-            reflection.get_callable_name(self._get_test_method()))
+            reflection.get_callable_name(self._get_test_method())
+        )
         log.propagate = False
         for handler in reversed(log.handlers):
             log.removeHandler(handler)
@@ -328,7 +339,8 @@ class TestLoggingListeners(test.TestCase, EngineMakerMixin):
         e = self._make_engine(flow)
         log, handler = self._make_logger()
         listener = logging_listeners.LoggingListener(
-            e, log=log, level=logging.INFO)
+            e, log=log, level=logging.INFO
+        )
         with listener:
             e.run()
         self.assertGreater(handler.counts[logging.INFO], 0)
@@ -379,7 +391,8 @@ class TestLoggingListeners(test.TestCase, EngineMakerMixin):
         e = self._make_engine(flow)
         log, handler = self._make_logger()
         listener = logging_listeners.DynamicLoggingListener(
-            e, log=log, failure_level=logging.ERROR)
+            e, log=log, failure_level=logging.ERROR
+        )
         with listener:
             self.assertRaises(RuntimeError, e.run)
         self.assertGreater(handler.counts[logging.ERROR], 0)

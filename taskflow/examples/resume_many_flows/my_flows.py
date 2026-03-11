@@ -38,4 +38,5 @@ def flow_factory():
     return lf.Flow('example').add(
         TestTask(name='first'),
         UnfortunateTask(name='boom'),
-        TestTask(name='second'))
+        TestTask(name='second'),
+    )

@@ -31,11 +31,13 @@ DRAIN_EVENTS_PERIOD = 1
 # instead of returning the raw results from the kombu connection objects
 # themselves so that a person can not mutate those objects (which would be
 # bad).
-_ConnectionDetails = collections.namedtuple('_ConnectionDetails',
-                                            ['uri', 'transport'])
-_TransportDetails = collections.namedtuple('_TransportDetails',
-                                           ['options', 'driver_type',
-                                            'driver_name', 'driver_version'])
+_ConnectionDetails = collections.namedtuple(
+    '_ConnectionDetails', ['uri', 'transport']
+)
+_TransportDetails = collections.namedtuple(
+    '_TransportDetails',
+    ['options', 'driver_type', 'driver_name', 'driver_version'],
+)
 
 
 class Proxy:
@@ -65,10 +67,17 @@ class Proxy:
     # value is valid...
     _RETRY_INT_OPTS = frozenset(['max_retries'])
 
-    def __init__(self, topic, exchange,
-                 type_handlers=None, on_wait=None, url=None,
-                 transport=None, transport_options=None,
-                 retry_options=None):
+    def __init__(
+        self,
+        topic,
+        exchange,
+        type_handlers=None,
+        on_wait=None,
+        url=None,
+        transport=None,
+        transport_options=None,
+        retry_options=None,
+    ):
         self._topic = topic
         self._exchange_name = exchange
         self._on_wait = on_wait
@@ -77,7 +86,8 @@ class Proxy:
             # NOTE(skudriashev): Process all incoming messages only if proxy is
             # running, otherwise requeue them.
             requeue_filters=[lambda data, message: not self.is_running],
-            type_handlers=type_handlers)
+            type_handlers=type_handlers,
+        )
 
         ensure_options = self.DEFAULT_RETRY_OPTIONS.copy()
         if retry_options is not None:
@@ -91,9 +101,11 @@ class Proxy:
                     else:
                         tmp_val = float(val)
                     if tmp_val < 0:
-                        raise ValueError("Expected value greater or equal to"
-                                         " zero for 'retry_options' %s; got"
-                                         " %s instead" % (k, val))
+                        raise ValueError(
+                            "Expected value greater or equal to"
+                            " zero for 'retry_options' %s; got"
+                            " %s instead" % (k, val)
+                        )
                     ensure_options[k] = tmp_val
         self._ensure_options = ensure_options
 
@@ -104,12 +116,14 @@ class Proxy:
                 self._drain_events_timeout = polling_interval
 
         # create connection
-        self._conn = kombu.Connection(url, transport=transport,
-                                      transport_options=transport_options)
+        self._conn = kombu.Connection(
+            url, transport=transport, transport_options=transport_options
+        )
 
         # create exchange
-        self._exchange = kombu.Exchange(name=self._exchange_name,
-                                        durable=False, auto_delete=True)
+        self._exchange = kombu.Exchange(
+            name=self._exchange_name, durable=False, auto_delete=True
+        )
 
     @property
     def dispatcher(self):
@@ -131,10 +145,11 @@ class Proxy:
             options=transport_options,
             driver_type=self._conn.transport.driver_type,
             driver_name=self._conn.transport.driver_name,
-            driver_version=driver_version)
+            driver_version=driver_version,
+        )
         return _ConnectionDetails(
-            uri=self._conn.as_uri(include_password=False),
-            transport=transport)
+            uri=self._conn.as_uri(include_password=False), transport=transport
+        )
 
     @property
     def is_running(self):
@@ -144,10 +159,14 @@ class Proxy:
     def _make_queue(self, routing_key, exchange, channel=None):
         """Make a named queue for the given exchange."""
         queue_name = f"{self._exchange_name}_{routing_key}"
-        return kombu.Queue(name=queue_name,
-                           routing_key=routing_key, durable=False,
-                           exchange=exchange, auto_delete=True,
-                           channel=channel)
+        return kombu.Queue(
+            name=queue_name,
+            routing_key=routing_key,
+            durable=False,
+            exchange=exchange,
+            auto_delete=True,
+            channel=channel,
+        )
 
     def publish(self, msg, routing_key, reply_to=None, correlation_id=None):
         """Publish message to the named exchange with given routing key."""
@@ -159,27 +178,33 @@ class Proxy:
         # Filter out any empty keys...
         routing_keys = [r_k for r_k in routing_keys if r_k]
         if not routing_keys:
-            LOG.warning("No routing key/s specified; unable to send '%s'"
-                        " to any target queue on exchange '%s'", msg,
-                        self._exchange_name)
+            LOG.warning(
+                "No routing key/s specified; unable to send '%s'"
+                " to any target queue on exchange '%s'",
+                msg,
+                self._exchange_name,
+            )
             return
 
         def _publish(producer, routing_key):
             queue = self._make_queue(routing_key, self._exchange)
-            producer.publish(body=msg.to_dict(),
-                             routing_key=routing_key,
-                             exchange=self._exchange,
-                             declare=[queue],
-                             type=msg.TYPE,
-                             reply_to=reply_to,
-                             correlation_id=correlation_id)
+            producer.publish(
+                body=msg.to_dict(),
+                routing_key=routing_key,
+                exchange=self._exchange,
+                declare=[queue],
+                type=msg.TYPE,
+                reply_to=reply_to,
+                correlation_id=correlation_id,
+            )
 
         def _publish_errback(exc, interval):
             LOG.exception('Publishing error: %s', exc)
             LOG.info('Retry triggering in %s seconds', interval)
 
-        LOG.debug("Sending '%s' message using routing keys %s",
-                  msg, routing_keys)
+        LOG.debug(
+            "Sending '%s' message using routing keys %s", msg, routing_keys
+        )
         with kombu.connections[self._conn].acquire(block=True) as conn:
             with conn.Producer() as producer:
                 ensure_kwargs = self._ensure_options.copy()
@@ -201,8 +226,9 @@ class Proxy:
             LOG.exception('Draining error: %s', exc)
             LOG.info('Retry triggering in %s seconds', interval)
 
-        LOG.info("Starting to consume from the '%s' exchange.",
-                 self._exchange_name)
+        LOG.info(
+            "Starting to consume from the '%s' exchange.", self._exchange_name
+        )
         with kombu.connections[self._conn].acquire(block=True) as conn:
             queue = self._make_queue(self._topic, self._exchange, channel=conn)
             callbacks = [self._dispatcher.on_message]

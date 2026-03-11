@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
@@ -40,17 +40,18 @@ import example_utils as eu  # noqa
 
 class CompileTask(task.Task):
     """Pretends to take a source and make object file."""
+
     default_provides = 'object_filename'
 
     def execute(self, source_filename):
         object_filename = '%s.o' % os.path.splitext(source_filename)[0]
-        print('Compiling %s into %s'
-              % (source_filename, object_filename))
+        print('Compiling %s into %s' % (source_filename, object_filename))
         return object_filename
 
 
 class LinkTask(task.Task):
     """Pretends to link executable form several object files."""
+
     default_provides = 'executable'
 
     def __init__(self, executable_path, *args, **kwargs):
@@ -59,14 +60,16 @@ class LinkTask(task.Task):
 
     def execute(self, **kwargs):
         object_filenames = list(kwargs.values())
-        print('Linking executable %s from files %s'
-              % (self._executable_path,
-                 ', '.join(object_filenames)))
+        print(
+            'Linking executable %s from files %s'
+            % (self._executable_path, ', '.join(object_filenames))
+        )
         return self._executable_path
 
 
 class BuildDocsTask(task.Task):
     """Pretends to build docs from sources."""
+
     default_provides = 'docs'
 
     def execute(self, **kwargs):
@@ -84,9 +87,13 @@ def make_flow_and_store(source_files, executable_only=False):
         object_stored = '%s-object' % source
         store[source_stored] = source
         object_targets.append(object_stored)
-        flow.add(CompileTask(name='compile-%s' % source,
-                             rebind={'source_filename': source_stored},
-                             provides=object_stored))
+        flow.add(
+            CompileTask(
+                name='compile-%s' % source,
+                rebind={'source_filename': source_stored},
+                provides=object_stored,
+            )
+        )
     flow.add(BuildDocsTask(requires=list(store.keys())))
 
     # Try this to see executable_only switch broken:

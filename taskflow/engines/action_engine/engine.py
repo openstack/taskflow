@@ -55,8 +55,9 @@ def _start_stop(task_executor, retry_executor):
         task_executor.stop()
 
 
-def _pre_check(check_compiled=True, check_storage_ensured=True,
-               check_validated=True):
+def _pre_check(
+    check_compiled=True, check_storage_ensured=True, check_validated=True
+):
     """Engine state precondition checking decorator."""
 
     def decorator(meth):
@@ -65,15 +66,21 @@ def _pre_check(check_compiled=True, check_storage_ensured=True,
         @functools.wraps(meth)
         def wrapper(self, *args, **kwargs):
             if check_compiled and not self._compiled:
-                raise exc.InvalidState("Can not %s an engine which"
-                                       " has not been compiled" % do_what)
+                raise exc.InvalidState(
+                    "Can not %s an engine which"
+                    " has not been compiled" % do_what
+                )
             if check_storage_ensured and not self._storage_ensured:
-                raise exc.InvalidState("Can not %s an engine"
-                                       " which has not had its storage"
-                                       " populated" % do_what)
+                raise exc.InvalidState(
+                    "Can not %s an engine"
+                    " which has not had its storage"
+                    " populated" % do_what
+                )
             if check_validated and not self._validated:
-                raise exc.InvalidState("Can not %s an engine which"
-                                       " has not been validated" % do_what)
+                raise exc.InvalidState(
+                    "Can not %s an engine which"
+                    " has not been validated" % do_what
+                )
             return meth(self, *args, **kwargs)
 
         return wrapper
@@ -148,8 +155,16 @@ class ActionEngine(base.Engine):
     """
 
     IGNORABLE_STATES = frozenset(
-        itertools.chain([states.SCHEDULING, states.WAITING, states.RESUMING,
-                         states.ANALYZING], builder.META_STATES))
+        itertools.chain(
+            [
+                states.SCHEDULING,
+                states.WAITING,
+                states.RESUMING,
+                states.ANALYZING,
+            ],
+            builder.META_STATES,
+        )
+    )
     """
     Informational states this engines internal machine yields back while
     running, not useful to have the engine record but useful to provide to
@@ -175,18 +190,22 @@ class ActionEngine(base.Engine):
         # or thread (this could change in the future if we desire it to).
         self._retry_executor = executor.SerialRetryExecutor()
         self._inject_transient = strutils.bool_from_string(
-            self._options.get('inject_transient', True))
+            self._options.get('inject_transient', True)
+        )
         self._gather_statistics = strutils.bool_from_string(
-            self._options.get('gather_statistics', True))
+            self._options.get('gather_statistics', True)
+        )
         self._statistics = {}
 
-    @_pre_check(check_compiled=True,
-                # NOTE(harlowja): We can alter the state of the
-                # flow without ensuring its storage is setup for
-                # its atoms (since this state change does not affect
-                # those units).
-                check_storage_ensured=False,
-                check_validated=False)
+    @_pre_check(
+        check_compiled=True,
+        # NOTE(harlowja): We can alter the state of the
+        # flow without ensuring its storage is setup for
+        # its atoms (since this state change does not affect
+        # those units).
+        check_storage_ensured=False,
+        check_validated=False,
+    )
     def suspend(self):
         self._change_state(states.SUSPENDING)
 
@@ -221,14 +240,18 @@ class ActionEngine(base.Engine):
         the actual runtime lookup strategy, which typically will be, but is
         not always different).
         """
+
         def _scope_fetcher(atom_name):
             if self._compiled:
                 return self._runtime.fetch_scopes_for(atom_name)
             else:
                 return None
-        return storage.Storage(self._flow_detail,
-                               backend=self._backend,
-                               scope_fetcher=_scope_fetcher)
+
+        return storage.Storage(
+            self._flow_detail,
+            backend=self._backend,
+            scope_fetcher=_scope_fetcher,
+        )
 
     def run(self, timeout=None):
         """Runs the engine (or die trying).
@@ -239,8 +262,9 @@ class ActionEngine(base.Engine):
         """
         with fasteners.try_lock(self._lock) as was_locked:
             if not was_locked:
-                raise exc.ExecutionFailure("Engine currently locked, please"
-                                           " try again later")
+                raise exc.ExecutionFailure(
+                    "Engine currently locked, please try again later"
+                )
             for _state in self.run_iter(timeout=timeout):
                 pass
 
@@ -272,7 +296,8 @@ class ActionEngine(base.Engine):
         # are quite useful to log (and the performance of tracking this
         # should be negligible).
         last_transitions = collections.deque(
-            maxlen=max(1, self.MAX_MACHINE_STATES_RETAINED))
+            maxlen=max(1, self.MAX_MACHINE_STATES_RETAINED)
+        )
         with _start_stop(self._task_executor, self._retry_executor):
             self._change_state(states.RUNNING)
             if self._gather_statistics:
@@ -284,8 +309,10 @@ class ActionEngine(base.Engine):
             try:
                 closed = False
                 machine, memory = self._runtime.builder.build(
-                    self._statistics, timeout=timeout,
-                    gather_statistics=self._gather_statistics)
+                    self._statistics,
+                    timeout=timeout,
+                    gather_statistics=self._gather_statistics,
+                )
                 r = runners.FiniteRunner(machine)
                 for transition in r.run_iter(builder.START):
                     last_transitions.append(transition)
@@ -317,11 +344,13 @@ class ActionEngine(base.Engine):
                             self.suspend()
             except Exception:
                 with excutils.save_and_reraise_exception():
-                    LOG.exception("Engine execution has failed, something"
-                                  " bad must have happened (last"
-                                  " %s machine transitions were %s)",
-                                  last_transitions.maxlen,
-                                  list(last_transitions))
+                    LOG.exception(
+                        "Engine execution has failed, something"
+                        " bad must have happened (last"
+                        " %s machine transitions were %s)",
+                        last_transitions.maxlen,
+                        list(last_transitions),
+                    )
                     self._change_state(states.FAILURE)
             else:
                 if last_transitions:
@@ -332,8 +361,8 @@ class ActionEngine(base.Engine):
                             e_failures = self.storage.get_execute_failures()
                             r_failures = self.storage.get_revert_failures()
                             er_failures = itertools.chain(
-                                e_failures.values(),
-                                r_failures.values())
+                                e_failures.values(), r_failures.values()
+                            )
                             failure.Failure.reraise_if_any(er_failures)
             finally:
                 if w is not None:
@@ -355,7 +384,8 @@ class ActionEngine(base.Engine):
                     seen.add(atom_name)
         if dups:
             raise exc.Duplicate(
-                "Atoms with duplicate names found: %s" % (sorted(dups)))
+                "Atoms with duplicate names found: %s" % (sorted(dups))
+            )
         return compilation
 
     def _change_state(self, state):
@@ -371,12 +401,12 @@ class ActionEngine(base.Engine):
 
     def _ensure_storage(self):
         """Ensure all contained atoms exist in the storage unit."""
-        self.storage.ensure_atoms(
-            self._runtime.iterate_nodes(compiler.ATOMS))
+        self.storage.ensure_atoms(self._runtime.iterate_nodes(compiler.ATOMS))
         for atom in self._runtime.iterate_nodes(compiler.ATOMS):
             if atom.inject:
-                self.storage.inject_atom_args(atom.name, atom.inject,
-                                              transient=self._inject_transient)
+                self.storage.inject_atom_args(
+                    atom.name, atom.inject, transient=self._inject_transient
+                )
 
     @fasteners.locked
     @_pre_check(check_validated=False)
@@ -387,11 +417,14 @@ class ActionEngine(base.Engine):
         # by failing at validation time).
         if LOG.isEnabledFor(logging.TRACE):
             execution_graph = self._compilation.execution_graph
-            LOG.trace("Validating scoping and argument visibility for"
-                      " execution graph with %s nodes and %s edges with"
-                      " density %0.3f", execution_graph.number_of_nodes(),
-                      execution_graph.number_of_edges(),
-                      nx.density(execution_graph))
+            LOG.trace(
+                "Validating scoping and argument visibility for"
+                " execution graph with %s nodes and %s edges with"
+                " density %0.3f",
+                execution_graph.number_of_nodes(),
+                execution_graph.number_of_edges(),
+                nx.density(execution_graph),
+            )
         missing = set()
         # Attempt to retain a chain of what was missing (so that the final
         # raised exception for the flow has the nodes that had missing
@@ -401,18 +434,25 @@ class ActionEngine(base.Engine):
         missing_nodes = 0
         for atom in self._runtime.iterate_nodes(compiler.ATOMS):
             exec_missing = self.storage.fetch_unsatisfied_args(
-                atom.name, atom.rebind, optional_args=atom.optional)
+                atom.name, atom.rebind, optional_args=atom.optional
+            )
             revert_missing = self.storage.fetch_unsatisfied_args(
-                atom.name, atom.revert_rebind,
-                optional_args=atom.revert_optional)
-            atom_missing = (('execute', exec_missing),
-                            ('revert', revert_missing))
+                atom.name,
+                atom.revert_rebind,
+                optional_args=atom.revert_optional,
+            )
+            atom_missing = (
+                ('execute', exec_missing),
+                ('revert', revert_missing),
+            )
             for method, method_missing in atom_missing:
                 if method_missing:
-                    cause = exc.MissingDependencies(atom,
-                                                    sorted(method_missing),
-                                                    cause=last_cause,
-                                                    method=method)
+                    cause = exc.MissingDependencies(
+                        atom,
+                        sorted(method_missing),
+                        cause=last_cause,
+                        method=method,
+                    )
                     last_cause = cause
                     last_node = atom
                     missing_nodes += 1
@@ -424,9 +464,9 @@ class ActionEngine(base.Engine):
             if missing_nodes == 1 and last_node is self._flow:
                 raise last_cause
             else:
-                raise exc.MissingDependencies(self._flow,
-                                              sorted(missing),
-                                              cause=last_cause)
+                raise exc.MissingDependencies(
+                    self._flow, sorted(missing), cause=last_cause
+                )
         self._validated = True
 
     @fasteners.locked
@@ -458,12 +498,14 @@ class ActionEngine(base.Engine):
         if self._compiled:
             return
         self._compilation = self._check_compilation(self._compiler.compile())
-        self._runtime = runtime.Runtime(self._compilation,
-                                        self.storage,
-                                        self.atom_notifier,
-                                        self._task_executor,
-                                        self._retry_executor,
-                                        options=self._options)
+        self._runtime = runtime.Runtime(
+            self._compilation,
+            self.storage,
+            self.atom_notifier,
+            self._task_executor,
+            self._retry_executor,
+            options=self._options,
+        )
         self._runtime.compile()
         self._compiled = True
 
@@ -476,14 +518,16 @@ class SerialActionEngine(ActionEngine):
         self._task_executor = executor.SerialTaskExecutor()
 
 
-class _ExecutorTypeMatch(collections.namedtuple('_ExecutorTypeMatch',
-                                                ['types', 'executor_cls'])):
+class _ExecutorTypeMatch(
+    collections.namedtuple('_ExecutorTypeMatch', ['types', 'executor_cls'])
+):
     def matches(self, executor):
         return isinstance(executor, self.types)
 
 
-class _ExecutorTextMatch(collections.namedtuple('_ExecutorTextMatch',
-                                                ['strings', 'executor_cls'])):
+class _ExecutorTextMatch(
+    collections.namedtuple('_ExecutorTextMatch', ['strings', 'executor_cls'])
+):
     def matches(self, text):
         return text.lower() in self.strings
 
@@ -494,51 +538,52 @@ class ParallelActionEngine(ActionEngine):
     **Additional engine options:**
 
     * ``executor``: a object that implements a :pep:`3148` compatible executor
-      interface; it will be used for scheduling tasks. The following
-      type are applicable (other unknown types passed will cause a type
-      error to be raised).
+      interface; it will be used for scheduling tasks. The following type are
+      applicable (other unknown types passed will cause a type error to be
+      raised).
 
-=========================  ===============================================
-Type provided              Executor used
-=========================  ===============================================
-|cft|.ThreadPoolExecutor   :class:`~.executor.ParallelThreadTaskExecutor`
-|cfp|.ProcessPoolExecutor  :class:`~.|pe|.ParallelProcessTaskExecutor`
-|cf|._base.Executor        :class:`~.executor.ParallelThreadTaskExecutor`
-=========================  ===============================================
+    =========================  ==============================================
+    Type provided              Executor used
+    =========================  ==============================================
+    |cft|.ThreadPoolExecutor   :class:`~.executor.ParallelThreadTaskExecutor`
+    |cfp|.ProcessPoolExecutor  :class:`~.|pe|.ParallelProcessTaskExecutor`
+    |cf|._base.Executor        :class:`~.executor.ParallelThreadTaskExecutor`
+    =========================  ==============================================
 
     * ``executor``: a string that will be used to select a :pep:`3148`
       compatible executor; it will be used for scheduling tasks. The following
       string are applicable (other unknown strings passed will cause a value
       error to be raised).
 
-===========================  ===============================================
-String (case insensitive)    Executor used
-===========================  ===============================================
-``process``                  :class:`~.|pe|.ParallelProcessTaskExecutor`
-``processes``                :class:`~.|pe|.ParallelProcessTaskExecutor`
-``thread``                   :class:`~.executor.ParallelThreadTaskExecutor`
-``threaded``                 :class:`~.executor.ParallelThreadTaskExecutor`
-``threads``                  :class:`~.executor.ParallelThreadTaskExecutor`
-``greenthread``              :class:`~.executor.ParallelThreadTaskExecutor`
-                              (greened version)
-``greedthreaded``            :class:`~.executor.ParallelThreadTaskExecutor`
-                              (greened version)
-``greenthreads``             :class:`~.executor.ParallelThreadTaskExecutor`
-                              (greened version)
-===========================  ===============================================
+    ===========================  ==============================================
+    String (case insensitive)    Executor used
+    ===========================  ==============================================
+    ``process``                  :class:`~.|pe|.ParallelProcessTaskExecutor`
+    ``processes``                :class:`~.|pe|.ParallelProcessTaskExecutor`
+    ``thread``                   :class:`~.executor.ParallelThreadTaskExecutor`
+    ``threaded``                 :class:`~.executor.ParallelThreadTaskExecutor`
+    ``threads``                  :class:`~.executor.ParallelThreadTaskExecutor`
+    ``greenthread``              :class:`~.executor.ParallelThreadTaskExecutor`
+                                  (greened version)
+    ``greedthreaded``            :class:`~.executor.ParallelThreadTaskExecutor`
+                                  (greened version)
+    ``greenthreads``             :class:`~.executor.ParallelThreadTaskExecutor`
+                                  (greened version)
+    ===========================  ==============================================
 
     * ``max_workers``: a integer that will affect the number of parallel
       workers that are used to dispatch tasks into (this number is bounded
       by the maximum parallelization your workflow can support).
 
     * ``wait_timeout``: a float (in seconds) that will affect the
-      parallel process task executor (and therefore is **only** applicable when
-      the executor provided above is of the process variant). This number
-      affects how much time the process task executor waits for messages from
-      child processes (typically indicating they have finished or failed). A
-      lower number will have high granularity but *currently* involves more
-      polling while a higher number will involve less polling but a slower time
-      for an engine to notice a task has completed.
+      parallel process task executor (and therefore is **only** applicable
+      when the executor provided above is of the process variant). This
+      number affects how much time the process task executor waits for
+      messages from child processes (typically indicating they have
+      finished or failed). A lower number will have high granularity but
+      *currently* involves more polling while a higher number will involve
+      less polling but a slower time for an engine to notice a task has
+      completed.
 
     .. |cfp| replace:: concurrent.futures.process
     .. |cft| replace:: concurrent.futures.thread
@@ -552,21 +597,26 @@ String (case insensitive)    Executor used
     # allow for instances of that to be detected and handled correctly, instead
     # of forcing everyone to use our derivatives (futurist or other)...
     _executor_cls_matchers = [
-        _ExecutorTypeMatch((futures.ThreadPoolExecutor,),
-                           executor.ParallelThreadTaskExecutor),
-        _ExecutorTypeMatch((futures.Executor,),
-                           executor.ParallelThreadTaskExecutor),
+        _ExecutorTypeMatch(
+            (futures.ThreadPoolExecutor,), executor.ParallelThreadTaskExecutor
+        ),
+        _ExecutorTypeMatch(
+            (futures.Executor,), executor.ParallelThreadTaskExecutor
+        ),
     ]
 
     # One of these should match when a string/text is provided for the
     # 'executor' option (a mixed case equivalent is allowed since the match
     # will be lower-cased before checking).
     _executor_str_matchers = [
-        _ExecutorTextMatch(frozenset(['thread', 'threads', 'threaded']),
-                           executor.ParallelThreadTaskExecutor),
-        _ExecutorTextMatch(frozenset(['greenthread', 'greenthreads',
-                                      'greenthreaded']),
-                           executor.ParallelGreenThreadTaskExecutor),
+        _ExecutorTextMatch(
+            frozenset(['thread', 'threads', 'threaded']),
+            executor.ParallelThreadTaskExecutor,
+        ),
+        _ExecutorTextMatch(
+            frozenset(['greenthread', 'greenthreads', 'greenthreaded']),
+            executor.ParallelGreenThreadTaskExecutor,
+        ),
     ]
 
     # Used when no executor is provided (either a string or object)...
@@ -594,9 +644,11 @@ String (case insensitive)    Executor used
                 expected = set()
                 for m in cls._executor_str_matchers:
                     expected.update(m.strings)
-                raise ValueError("Unknown executor string '%s' expected"
-                                 " one of %s (or mixed case equivalent)"
-                                 % (desired_executor, list(expected)))
+                raise ValueError(
+                    "Unknown executor string '%s' expected"
+                    " one of %s (or mixed case equivalent)"
+                    % (desired_executor, list(expected))
+                )
             else:
                 executor_cls = matched_executor_cls
         elif desired_executor is not None:
@@ -609,15 +661,20 @@ String (case insensitive)    Executor used
                 expected = set()
                 for m in cls._executor_cls_matchers:
                     expected.update(m.types)
-                raise TypeError("Unknown executor '%s' (%s) expected an"
-                                " instance of %s" % (desired_executor,
-                                                     type(desired_executor),
-                                                     list(expected)))
+                raise TypeError(
+                    "Unknown executor '%s' (%s) expected an"
+                    " instance of %s"
+                    % (
+                        desired_executor,
+                        type(desired_executor),
+                        list(expected),
+                    )
+                )
             else:
                 executor_cls = matched_executor_cls
                 kwargs['executor'] = desired_executor
         try:
-            for (k, value_converter) in executor_cls.constructor_options:
+            for k, value_converter in executor_cls.constructor_options:
                 try:
                     kwargs[k] = value_converter(options[k])
                 except KeyError:

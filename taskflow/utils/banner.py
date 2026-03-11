@@ -19,11 +19,13 @@ from taskflow.utils import misc
 from taskflow import version
 
 
-BANNER_HEADER = string.Template("""
+BANNER_HEADER = string.Template(
+    """
 ___    __
  |    |_
  |ask |low v$version
-""".strip())
+""".strip()
+)
 BANNER_HEADER = BANNER_HEADER.substitute(version=version.version_string())
 
 
@@ -72,13 +74,17 @@ def make_banner(what, chapters):
             section_names = sorted(chapter_contents.keys())
             for j, section_name in enumerate(section_names):
                 if j + 1 < len(section_names):
-                    buf.write_nl("  {} => {}".format(
-                        section_name,
-                        chapter_contents[section_name]))
+                    buf.write_nl(
+                        "  {} => {}".format(
+                            section_name, chapter_contents[section_name]
+                        )
+                    )
                 else:
-                    buf.write("  {} => {}".format(
-                        section_name,
-                        chapter_contents[section_name]))
+                    buf.write(
+                        "  {} => {}".format(
+                            section_name, chapter_contents[section_name]
+                        )
+                    )
         elif isinstance(chapter_contents, (list, tuple, set)):
             if isinstance(chapter_contents, set):
                 sections = sorted(chapter_contents)
@@ -90,9 +96,11 @@ def make_banner(what, chapters):
                 else:
                     buf.write(f"  {j + 1}. {section}")
         else:
-            raise TypeError("Unsupported chapter contents"
-                            " type: one of dict, list, tuple, set expected"
-                            " and not %s" % type(chapter_contents).__name__)
+            raise TypeError(
+                "Unsupported chapter contents"
+                " type: one of dict, list, tuple, set expected"
+                " and not %s" % type(chapter_contents).__name__
+            )
         if i + 1 < len(chapter_names):
             buf.write_nl("")
     # NOTE(harlowja): this is needed since the template in this file

@@ -23,7 +23,6 @@ def _task(name, provides=None, requires=None):
 
 
 class LinearFlowTest(test.TestCase):
-
     def test_linear_flow_stringy(self):
         f = lf.Flow('test')
         expected = '"linear_flow.Flow: test(len=0)"'
@@ -73,8 +72,9 @@ class LinearFlowTest(test.TestCase):
 
         self.assertEqual(2, len(f))
         self.assertEqual([task1, task2], list(f))
-        self.assertEqual([(task1, task2, {'invariant': True})],
-                         list(f.iter_links()))
+        self.assertEqual(
+            [(task1, task2, {'invariant': True})], list(f.iter_links())
+        )
 
     def test_linear_flow_two_dependent_tasks(self):
         task1 = _task(name='task1', provides=['a'])
@@ -83,8 +83,9 @@ class LinearFlowTest(test.TestCase):
 
         self.assertEqual(2, len(f))
         self.assertEqual([task1, task2], list(f))
-        self.assertEqual([(task1, task2, {'invariant': True})],
-                         list(f.iter_links()))
+        self.assertEqual(
+            [(task1, task2, {'invariant': True})], list(f.iter_links())
+        )
 
         self.assertEqual(set(), f.requires)
         self.assertEqual({'a'}, f.provides)
@@ -96,8 +97,10 @@ class LinearFlowTest(test.TestCase):
 
         self.assertEqual(2, len(f))
         self.assertEqual([task1, task2], list(f))
-        self.assertEqual([(task1, task2, {'invariant': True})],
-                         list(f.iter_links()), )
+        self.assertEqual(
+            [(task1, task2, {'invariant': True})],
+            list(f.iter_links()),
+        )
 
     def test_linear_flow_three_tasks(self):
         task1 = _task(name='task1')
@@ -107,10 +110,13 @@ class LinearFlowTest(test.TestCase):
 
         self.assertEqual(3, len(f))
         self.assertEqual([task1, task2, task3], list(f))
-        self.assertEqual([
-            (task1, task2, {'invariant': True}),
-            (task2, task3, {'invariant': True})
-        ], list(f.iter_links()))
+        self.assertEqual(
+            [
+                (task1, task2, {'invariant': True}),
+                (task2, task3, {'invariant': True}),
+            ],
+            list(f.iter_links()),
+        )
 
     def test_linear_flow_with_retry(self):
         ret = retry.AlwaysRevert(requires=['a'], provides=['b'])
@@ -127,7 +133,7 @@ class LinearFlowTest(test.TestCase):
         task3 = _task(name='task3')
         f = lf.Flow('test').add(task1, task2, task3)
         tasks = {task1, task2, task3}
-        for (node, data) in f.iter_nodes():
+        for node, data in f.iter_nodes():
             self.assertIn(node, tasks)
             self.assertEqual({}, data)
 
@@ -137,7 +143,7 @@ class LinearFlowTest(test.TestCase):
         task3 = _task(name='task3')
         f = lf.Flow('test').add(task1, task2, task3)
         tasks = {task1, task2, task3}
-        for (u, v, data) in f.iter_links():
+        for u, v, data in f.iter_links():
             self.assertIn(u, tasks)
             self.assertIn(v, tasks)
             self.assertEqual({'invariant': True}, data)

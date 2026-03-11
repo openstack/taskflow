@@ -55,24 +55,38 @@ class Worker:
                           (see: :py:attr:`~.proxy.Proxy.DEFAULT_RETRY_OPTIONS`)
     """
 
-    def __init__(self, exchange, topic, tasks,
-                 executor=None, threads_count=None, url=None,
-                 transport=None, transport_options=None,
-                 retry_options=None):
+    def __init__(
+        self,
+        exchange,
+        topic,
+        tasks,
+        executor=None,
+        threads_count=None,
+        url=None,
+        transport=None,
+        transport_options=None,
+        retry_options=None,
+    ):
         self._topic = topic
         self._executor = executor
         self._owns_executor = False
         if self._executor is None:
             self._executor = futurist.ThreadPoolExecutor(
-                max_workers=threads_count)
+                max_workers=threads_count
+            )
             self._owns_executor = True
         self._endpoints = self._derive_endpoints(tasks)
         self._exchange = exchange
-        self._server = server.Server(topic, exchange, self._executor,
-                                     self._endpoints, url=url,
-                                     transport=transport,
-                                     transport_options=transport_options,
-                                     retry_options=retry_options)
+        self._server = server.Server(
+            topic,
+            exchange,
+            self._executor,
+            self._endpoints,
+            url=url,
+            transport=transport,
+            transport_options=transport_options,
+            retry_options=retry_options,
+        )
 
     @staticmethod
     def _derive_endpoints(tasks):
@@ -86,8 +100,9 @@ class Worker:
         connection_details = self._server.connection_details
         transport = connection_details.transport
         if transport.driver_version:
-            transport_driver = "{} v{}".format(transport.driver_name,
-                                               transport.driver_version)
+            transport_driver = "{} v{}".format(
+                transport.driver_name, transport.driver_version
+            )
         else:
             transport_driver = transport.driver_name
         try:
@@ -145,12 +160,12 @@ class Worker:
 if __name__ == '__main__':
     import argparse
     import logging as log
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--exchange", required=True)
     parser.add_argument("--connection-url", required=True)
     parser.add_argument("--topic", required=True)
-    parser.add_argument("--task", action='append',
-                        metavar="TASK", default=[])
+    parser.add_argument("--task", action='append', metavar="TASK", default=[])
     parser.add_argument("-v", "--verbose", action='store_true')
     args = parser.parse_args()
     if args.verbose:

@@ -30,13 +30,13 @@ class RetryAction(base.Action):
             arguments = self._storage.fetch_mapped_args(
                 retry.revert_rebind,
                 atom_name=retry.name,
-                optional_args=retry.revert_optional
+                optional_args=retry.revert_optional,
             )
         else:
             arguments = self._storage.fetch_mapped_args(
                 retry.rebind,
                 atom_name=retry.name,
-                optional_args=retry.optional
+                optional_args=retry.optional,
             )
         history = self._storage.get_retry_history(retry.name)
         arguments[retry_atom.EXECUTE_REVERT_HISTORY] = history
@@ -74,7 +74,8 @@ class RetryAction(base.Action):
     def schedule_execution(self, retry):
         self.change_state(retry, states.RUNNING)
         return self._retry_executor.execute_retry(
-            retry, self._get_retry_args(retry))
+            retry, self._get_retry_args(retry)
+        )
 
     def complete_reversion(self, retry, result):
         if isinstance(result, failure.Failure):
@@ -94,7 +95,8 @@ class RetryAction(base.Action):
             retry_atom.REVERT_FLOW_FAILURES: self._storage.get_failures(),
         }
         return self._retry_executor.revert_retry(
-            retry, self._get_retry_args(retry, addons=arg_addons, revert=True))
+            retry, self._get_retry_args(retry, addons=arg_addons, revert=True)
+        )
 
     def on_failure(self, retry, atom, last_failure):
         self._storage.save_retry_failure(retry.name, atom.name, last_failure)

@@ -32,27 +32,41 @@ LOG = logging.getLogger(__name__)
 class Server:
     """Server implementation that waits for incoming tasks requests."""
 
-    def __init__(self, topic, exchange, executor, endpoints,
-                 url=None, transport=None, transport_options=None,
-                 retry_options=None):
+    def __init__(
+        self,
+        topic,
+        exchange,
+        executor,
+        endpoints,
+        url=None,
+        transport=None,
+        transport_options=None,
+        retry_options=None,
+    ):
         type_handlers = {
             pr.NOTIFY: dispatcher.Handler(
                 self._delayed_process(self._process_notify),
-                validator=functools.partial(pr.Notify.validate,
-                                            response=False)),
+                validator=functools.partial(
+                    pr.Notify.validate, response=False
+                ),
+            ),
             pr.REQUEST: dispatcher.Handler(
                 self._delayed_process(self._process_request),
-                validator=pr.Request.validate),
+                validator=pr.Request.validate,
+            ),
         }
         self._executor = executor
-        self._proxy = proxy.Proxy(topic, exchange,
-                                  type_handlers=type_handlers,
-                                  url=url, transport=transport,
-                                  transport_options=transport_options,
-                                  retry_options=retry_options)
+        self._proxy = proxy.Proxy(
+            topic,
+            exchange,
+            type_handlers=type_handlers,
+            url=url,
+            transport=transport,
+            transport_options=transport_options,
+            retry_options=retry_options,
+        )
         self._topic = topic
-        self._endpoints = {endpoint.name: endpoint
-                           for endpoint in endpoints}
+        self._endpoints = {endpoint.name: endpoint for endpoint in endpoints}
 
     def _delayed_process(self, func):
         """Runs the function using the instances executor (eventually).
@@ -65,25 +79,34 @@ class Server:
         func_name = reflection.get_callable_name(func)
 
         def _on_run(watch, content, message):
-            LOG.trace("It took %s seconds to get around to running"
-                      " function/method '%s' with"
-                      " message '%s'", watch.elapsed(), func_name,
-                      ku.DelayedPretty(message))
+            LOG.trace(
+                "It took %s seconds to get around to running"
+                " function/method '%s' with"
+                " message '%s'",
+                watch.elapsed(),
+                func_name,
+                ku.DelayedPretty(message),
+            )
             return func(content, message)
 
         def _on_receive(content, message):
-            LOG.debug("Submitting message '%s' for execution in the"
-                      " future to '%s'", ku.DelayedPretty(message), func_name)
+            LOG.debug(
+                "Submitting message '%s' for execution in the future to '%s'",
+                ku.DelayedPretty(message),
+                func_name,
+            )
             watch = timeutils.StopWatch()
             watch.start()
             try:
                 self._executor.submit(_on_run, watch, content, message)
             except RuntimeError:
-                LOG.error("Unable to continue processing message '%s',"
-                          " submission to instance executor (with later"
-                          " execution by '%s') was unsuccessful",
-                          ku.DelayedPretty(message), func_name,
-                          exc_info=True)
+                LOG.exception(
+                    "Unable to continue processing message '%s',"
+                    " submission to instance executor (with later"
+                    " execution by '%s') was unsuccessful",
+                    ku.DelayedPretty(message),
+                    func_name,
+                )
 
         return _on_receive
 
@@ -103,8 +126,7 @@ class Server:
             try:
                 properties.append(message.properties[prop])
             except KeyError:
-                raise ValueError("The '%s' message property is missing" %
-                                 prop)
+                raise ValueError("The '%s' message property is missing" % prop)
         return properties
 
     def _reply(self, capture, reply_to, task_uuid, state=pr.FAILURE, **kwargs):
@@ -122,9 +144,13 @@ class Server:
         except Exception:
             if not capture:
                 raise
-            LOG.critical("Failed to send reply to '%s' for task '%s' with"
-                         " response %s", reply_to, task_uuid, response,
-                         exc_info=True)
+            LOG.critical(
+                "Failed to send reply to '%s' for task '%s' with response %s",
+                reply_to,
+                task_uuid,
+                response,
+                exc_info=True,
+            )
         return published
 
     def _on_event(self, reply_to, task_uuid, event_type, details):
@@ -132,26 +158,39 @@ class Server:
         # NOTE(harlowja): the executor that will trigger this using the
         # task notification/listener mechanism will handle logging if this
         # fails, so thats why capture is 'False' is used here.
-        self._reply(False, reply_to, task_uuid, pr.EVENT,
-                    event_type=event_type, details=details)
+        self._reply(
+            False,
+            reply_to,
+            task_uuid,
+            pr.EVENT,
+            event_type=event_type,
+            details=details,
+        )
 
     def _process_notify(self, notify, message):
         """Process notify message and reply back."""
         try:
             reply_to = message.properties['reply_to']
         except KeyError:
-            LOG.warning("The 'reply_to' message property is missing"
-                        " in received notify message '%s'",
-                        ku.DelayedPretty(message), exc_info=True)
+            LOG.warning(
+                "The 'reply_to' message property is missing"
+                " in received notify message '%s'",
+                ku.DelayedPretty(message),
+                exc_info=True,
+            )
         else:
-            response = pr.Notify(topic=self._topic,
-                                 tasks=list(self._endpoints.keys()))
+            response = pr.Notify(
+                topic=self._topic, tasks=list(self._endpoints.keys())
+            )
             try:
                 self._proxy.publish(response, routing_key=reply_to)
             except Exception:
-                LOG.critical("Failed to send reply to '%s' with notify"
-                             " response '%s'", reply_to, response,
-                             exc_info=True)
+                LOG.critical(
+                    "Failed to send reply to '%s' with notify response '%s'",
+                    reply_to,
+                    response,
+                    exc_info=True,
+                )
 
     def _process_request(self, request, message):
         """Process request message and reply back."""
@@ -162,22 +201,28 @@ class Server:
             # in the first place...).
             reply_to, task_uuid = self._parse_message(message)
         except ValueError:
-            LOG.warning("Failed to parse request attributes from message '%s'",
-                        ku.DelayedPretty(message), exc_info=True)
+            LOG.warning(
+                "Failed to parse request attributes from message '%s'",
+                ku.DelayedPretty(message),
+                exc_info=True,
+            )
             return
         else:
             # prepare reply callback
-            reply_callback = functools.partial(self._reply, True, reply_to,
-                                               task_uuid)
+            reply_callback = functools.partial(
+                self._reply, True, reply_to, task_uuid
+            )
 
         # Parse the request to get the activity/work to perform.
         try:
             work = pr.Request.from_dict(request, task_uuid=task_uuid)
         except ValueError:
             with misc.capture_failure() as failure:
-                LOG.warning("Failed to parse request contents"
-                            " from message '%s'",
-                            ku.DelayedPretty(message), exc_info=True)
+                LOG.warning(
+                    "Failed to parse request contents from message '%s'",
+                    ku.DelayedPretty(message),
+                    exc_info=True,
+                )
                 reply_callback(result=pr.failure_to_dict(failure))
                 return
 
@@ -186,10 +231,13 @@ class Server:
             endpoint = self._endpoints[work.task_cls]
         except KeyError:
             with misc.capture_failure() as failure:
-                LOG.warning("The '%s' task endpoint does not exist, unable"
-                            " to continue processing request message '%s'",
-                            work.task_cls, ku.DelayedPretty(message),
-                            exc_info=True)
+                LOG.warning(
+                    "The '%s' task endpoint does not exist, unable"
+                    " to continue processing request message '%s'",
+                    work.task_cls,
+                    ku.DelayedPretty(message),
+                    exc_info=True,
+                )
                 reply_callback(result=pr.failure_to_dict(failure))
                 return
         else:
@@ -197,10 +245,15 @@ class Server:
                 handler = getattr(endpoint, work.action)
             except AttributeError:
                 with misc.capture_failure() as failure:
-                    LOG.warning("The '%s' handler does not exist on task"
-                                " endpoint '%s', unable to continue processing"
-                                " request message '%s'", work.action, endpoint,
-                                ku.DelayedPretty(message), exc_info=True)
+                    LOG.warning(
+                        "The '%s' handler does not exist on task"
+                        " endpoint '%s', unable to continue processing"
+                        " request message '%s'",
+                        work.action,
+                        endpoint,
+                        ku.DelayedPretty(message),
+                        exc_info=True,
+                    )
                     reply_callback(result=pr.failure_to_dict(failure))
                     return
             else:
@@ -208,10 +261,14 @@ class Server:
                     task = endpoint.generate(name=work.task_name)
                 except Exception:
                     with misc.capture_failure() as failure:
-                        LOG.warning("The '%s' task '%s' generation for request"
-                                    " message '%s' failed", endpoint,
-                                    work.action, ku.DelayedPretty(message),
-                                    exc_info=True)
+                        LOG.warning(
+                            "The '%s' task '%s' generation for request"
+                            " message '%s' failed",
+                            endpoint,
+                            work.action,
+                            ku.DelayedPretty(message),
+                            exc_info=True,
+                        )
                         reply_callback(result=pr.failure_to_dict(failure))
                         return
                 else:
@@ -222,24 +279,31 @@ class Server:
         # emit them back to the engine... for handling at the engine side
         # of things...
         if task.notifier.can_be_registered(nt.Notifier.ANY):
-            task.notifier.register(nt.Notifier.ANY,
-                                   functools.partial(self._on_event,
-                                                     reply_to, task_uuid))
+            task.notifier.register(
+                nt.Notifier.ANY,
+                functools.partial(self._on_event, reply_to, task_uuid),
+            )
         elif isinstance(task.notifier, nt.RestrictedNotifier):
             # Only proxy the allowable events then...
             for event_type in task.notifier.events_iter():
-                task.notifier.register(event_type,
-                                       functools.partial(self._on_event,
-                                                         reply_to, task_uuid))
+                task.notifier.register(
+                    event_type,
+                    functools.partial(self._on_event, reply_to, task_uuid),
+                )
 
         # Perform the task action.
         try:
             result = handler(task, **work.arguments)
         except Exception:
             with misc.capture_failure() as failure:
-                LOG.warning("The '%s' endpoint '%s' execution for request"
-                            " message '%s' failed", endpoint, work.action,
-                            ku.DelayedPretty(message), exc_info=True)
+                LOG.warning(
+                    "The '%s' endpoint '%s' execution for request"
+                    " message '%s' failed",
+                    endpoint,
+                    work.action,
+                    ku.DelayedPretty(message),
+                    exc_info=True,
+                )
                 reply_callback(result=pr.failure_to_dict(failure))
         else:
             # And be done with it!

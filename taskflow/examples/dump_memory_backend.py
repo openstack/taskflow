@@ -19,9 +19,9 @@ import sys
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
@@ -38,6 +38,7 @@ from taskflow import task
 class PrintTask(task.Task):
     def execute(self):
         print("Running '%s'" % self.name)
+
 
 # Make a little flow and run it...
 f = lf.Flow('root')

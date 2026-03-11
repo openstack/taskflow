@@ -23,9 +23,9 @@ import time
 logging.basicConfig(level=logging.ERROR)
 
 self_dir = os.path.abspath(os.path.dirname(__file__))
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 sys.path.insert(0, self_dir)
 
@@ -59,6 +59,7 @@ def slow_down(how_long=0.5):
 
 class PrintText(task.Task):
     """Just inserts some text print outs in a workflow."""
+
     def __init__(self, print_what, no_slow=False):
         content_hash = hashlib.md5(print_what.encode('utf-8')).hexdigest()[0:8]
         super().__init__(name="Print: %s" % (content_hash))
@@ -75,6 +76,7 @@ class PrintText(task.Task):
 
 class DefineVMSpec(task.Task):
     """Defines a vm specification to be."""
+
     def __init__(self, name):
         super().__init__(provides='vm_spec', name=name)
 
@@ -90,6 +92,7 @@ class DefineVMSpec(task.Task):
 
 class LocateImages(task.Task):
     """Locates where the vm images are."""
+
     def __init__(self, name):
         super().__init__(provides='image_locations', name=name)
 
@@ -103,9 +106,9 @@ class LocateImages(task.Task):
 
 class DownloadImages(task.Task):
     """Downloads all the vm images."""
+
     def __init__(self, name):
-        super().__init__(provides='download_paths',
-                         name=name)
+        super().__init__(provides='download_paths', name=name)
 
     def execute(self, image_locations):
         for src, loc in image_locations.items():
@@ -116,14 +119,14 @@ class DownloadImages(task.Task):
 
 class CreateNetworkTpl(task.Task):
     """Generates the network settings file to be placed in the images."""
+
     SYSCONFIG_CONTENTS = """DEVICE=eth%s
 BOOTPROTO=static
 IPADDR=%s
 ONBOOT=yes"""
 
     def __init__(self, name):
-        super().__init__(provides='network_settings',
-                         name=name)
+        super().__init__(provides='network_settings', name=name)
 
     def execute(self, ips):
         settings = []
@@ -134,6 +137,7 @@ ONBOOT=yes"""
 
 class AllocateIP(task.Task):
     """Allocates the ips for the given vm."""
+
     def __init__(self, name):
         super().__init__(provides='ips', name=name)
 
@@ -146,13 +150,15 @@ class AllocateIP(task.Task):
 
 class WriteNetworkSettings(task.Task):
     """Writes all the network settings into the downloaded images."""
+
     def execute(self, download_paths, network_settings):
         for j, path in enumerate(download_paths):
             with slow_down(1):
                 print(f"Mounting {path} to /tmp/{j}")
             for i, setting in enumerate(network_settings):
-                filename = ("/tmp/etc/sysconfig/network-scripts/"
-                            "ifcfg-eth%s" % (i))
+                filename = "/tmp/etc/sysconfig/network-scripts/ifcfg-eth%s" % (
+                    i
+                )
                 with slow_down(1):
                     print("Writing to %s" % (filename))
                     print(setting)
@@ -160,6 +166,7 @@ class WriteNetworkSettings(task.Task):
 
 class BootVM(task.Task):
     """Fires off the vm boot operation."""
+
     def execute(self, vm_spec):
         print("Starting vm!")
         with slow_down(1):
@@ -168,6 +175,7 @@ class BootVM(task.Task):
 
 class AllocateVolumes(task.Task):
     """Allocates the volumes for the vm."""
+
     def execute(self, vm_spec):
         volumes = []
         for i in range(0, vm_spec['volumes']):
@@ -179,6 +187,7 @@ class AllocateVolumes(task.Task):
 
 class FormatVolumes(task.Task):
     """Formats the volumes for the vm."""
+
     def execute(self, volumes):
         for v in volumes:
             print("Formatting volume %s" % v)
@@ -215,14 +224,15 @@ def create_flow():
         ),
         # Ya it worked!
         PrintText("Finished vm create.", no_slow=True),
-        PrintText("Instance is running!", no_slow=True))
+        PrintText("Instance is running!", no_slow=True),
+    )
     return flow
+
 
 eu.print_wrapped("Initializing")
 
 # Setup the persistence & resumption layer.
 with eu.get_backend() as backend:
-
     # Try to find a previously passed in tracking id...
     try:
         book_id, flow_id = sys.argv[2].split("+", 1)
@@ -256,17 +266,24 @@ with eu.get_backend() as backend:
         book = models.LogBook("vm-boot")
         with contextlib.closing(backend.get_connection()) as conn:
             conn.save_logbook(book)
-        engine = engines.load_from_factory(create_flow,
-                                           backend=backend, book=book,
-                                           engine='parallel',
-                                           executor=executor)
-        print("!! Your tracking id is: '{}+{}'".format(
-            book.uuid, engine.storage.flow_uuid))
+        engine = engines.load_from_factory(
+            create_flow,
+            backend=backend,
+            book=book,
+            engine='parallel',
+            executor=executor,
+        )
+        print(
+            "!! Your tracking id is: '{}+{}'".format(
+                book.uuid, engine.storage.flow_uuid
+            )
+        )
         print("!! Please submit this on later runs for tracking purposes")
     else:
         # Attempt to load from a previously partially completed flow.
-        engine = engines.load_from_detail(flow_detail, backend=backend,
-                                          engine='parallel', executor=executor)
+        engine = engines.load_from_detail(
+            flow_detail, backend=backend, engine='parallel', executor=executor
+        )
 
     # Make me my vm please!
     eu.print_wrapped('Running')

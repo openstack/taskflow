@@ -167,8 +167,9 @@ class PathBasedConnection(base.Connection, metaclass=abc.ABCMeta):
             for flow_details in book:
                 flow_path = self._get_obj_path(flow_details)
                 link_path = self._join_path(book_path, flow_details.uuid)
-                self._do_update_flow_details(flow_details, transaction,
-                                             ignore_missing=True)
+                self._do_update_flow_details(
+                    flow_details, transaction, ignore_missing=True
+                )
                 self._create_link(flow_path, link_path, transaction)
         return book
 
@@ -186,11 +187,13 @@ class PathBasedConnection(base.Connection, metaclass=abc.ABCMeta):
                 flow_details.add(atom_details)
         return flow_details
 
-    def _do_update_flow_details(self, flow_detail, transaction,
-                                ignore_missing=False):
+    def _do_update_flow_details(
+        self, flow_detail, transaction, ignore_missing=False
+    ):
         flow_path = self._get_obj_path(flow_detail)
-        self._update_object(flow_detail, transaction,
-                            ignore_missing=ignore_missing)
+        self._update_object(
+            flow_detail, transaction, ignore_missing=ignore_missing
+        )
         for atom_details in flow_detail:
             atom_path = self._get_obj_path(atom_details)
             link_path = self._join_path(flow_path, atom_details.uuid)
@@ -200,8 +203,9 @@ class PathBasedConnection(base.Connection, metaclass=abc.ABCMeta):
 
     def update_flow_details(self, flow_detail, ignore_missing=False):
         with self._transaction() as transaction:
-            return self._do_update_flow_details(flow_detail, transaction,
-                                                ignore_missing=ignore_missing)
+            return self._do_update_flow_details(
+                flow_detail, transaction, ignore_missing=ignore_missing
+            )
 
     def get_atoms_for_flow(self, flow_uuid):
         flow_path = self._join_path(self.flow_path, flow_uuid)
@@ -215,8 +219,9 @@ class PathBasedConnection(base.Connection, metaclass=abc.ABCMeta):
 
     def update_atom_details(self, atom_detail, ignore_missing=False):
         with self._transaction() as transaction:
-            return self._update_object(atom_detail, transaction,
-                                       ignore_missing=ignore_missing)
+            return self._update_object(
+                atom_detail, transaction, ignore_missing=ignore_missing
+            )
 
     def _do_destroy_logbook(self, book_uuid, transaction):
         book_path = self._join_path(self.book_path, book_uuid)

@@ -30,10 +30,14 @@ class GraphFlowTest(test.TestCase):
         for not_a_depth in ['not-a-depth', object(), 2, 3.4, False]:
             flow = gf.Flow('g')
             flow.add(g_1, g_2)
-            self.assertRaises((ValueError, TypeError),
-                              flow.link, g_1, g_2,
-                              decider=lambda history: False,
-                              decider_depth=not_a_depth)
+            self.assertRaises(
+                (ValueError, TypeError),
+                flow.link,
+                g_1,
+                g_2,
+                decider=lambda history: False,
+                decider_depth=not_a_depth,
+            )
 
     def test_graph_flow_stringy(self):
         f = gf.Flow('test')
@@ -93,8 +97,9 @@ class GraphFlowTest(test.TestCase):
 
         self.assertEqual(2, len(f))
         self.assertCountEqual(f, [task1, task2])
-        self.assertEqual([(task1, task2, {'reasons': {'a'}})],
-                         list(f.iter_links()))
+        self.assertEqual(
+            [(task1, task2, {'reasons': {'a'}})], list(f.iter_links())
+        )
 
         self.assertEqual(set(), f.requires)
         self.assertEqual({'a'}, f.provides)
@@ -106,8 +111,9 @@ class GraphFlowTest(test.TestCase):
 
         self.assertEqual(2, len(f))
         self.assertCountEqual(f, [task1, task2])
-        self.assertEqual([(task1, task2, {'reasons': {'a'}})],
-                         list(f.iter_links()))
+        self.assertEqual(
+            [(task1, task2, {'reasons': {'a'}})], list(f.iter_links())
+        )
 
     def test_graph_flow_two_task_same_provide(self):
         task1 = _task(name='task1', provides=['a', 'b'])
@@ -165,10 +171,13 @@ class GraphFlowTest(test.TestCase):
 
         self.assertEqual(3, len(f))
 
-        self.assertCountEqual(list(f.iter_links()), [
-            (task1, task2, {'reasons': {'a', 'b'}}),
-            (task2, task3, {'reasons': {'c'}})
-        ])
+        self.assertCountEqual(
+            list(f.iter_links()),
+            [
+                (task1, task2, {'reasons': {'a', 'b'}}),
+                (task2, task3, {'reasons': {'c'}}),
+            ],
+        )
 
     def test_graph_flow_links(self):
         task1 = _task('task1')
@@ -176,9 +185,9 @@ class GraphFlowTest(test.TestCase):
         f = gf.Flow('test').add(task1, task2)
         linked = f.link(task1, task2)
         self.assertIs(linked, f)
-        self.assertCountEqual(list(f.iter_links()), [
-            (task1, task2, {'manual': True})
-        ])
+        self.assertCountEqual(
+            list(f.iter_links()), [(task1, task2, {'manual': True})]
+        )
 
     def test_graph_flow_links_and_dependencies(self):
         task1 = _task('task1', provides=['a'])
@@ -186,27 +195,26 @@ class GraphFlowTest(test.TestCase):
         f = gf.Flow('test').add(task1, task2)
         linked = f.link(task1, task2)
         self.assertIs(linked, f)
-        expected_meta = {
-            'manual': True,
-            'reasons': {'a'}
-        }
-        self.assertCountEqual(list(f.iter_links()), [
-            (task1, task2, expected_meta)
-        ])
+        expected_meta = {'manual': True, 'reasons': {'a'}}
+        self.assertCountEqual(
+            list(f.iter_links()), [(task1, task2, expected_meta)]
+        )
 
     def test_graph_flow_link_from_unknown_node(self):
         task1 = _task('task1')
         task2 = _task('task2')
         f = gf.Flow('test').add(task2)
-        self.assertRaisesRegex(ValueError, 'Node .* not found to link from',
-                               f.link, task1, task2)
+        self.assertRaisesRegex(
+            ValueError, 'Node .* not found to link from', f.link, task1, task2
+        )
 
     def test_graph_flow_link_to_unknown_node(self):
         task1 = _task('task1')
         task2 = _task('task2')
         f = gf.Flow('test').add(task1)
-        self.assertRaisesRegex(ValueError, 'Node .* not found to link to',
-                               f.link, task1, task2)
+        self.assertRaisesRegex(
+            ValueError, 'Node .* not found to link to', f.link, task1, task2
+        )
 
     def test_graph_flow_link_raises_on_cycle(self):
         task1 = _task('task1', provides=['a'])
@@ -236,7 +244,7 @@ class GraphFlowTest(test.TestCase):
         f1.add(task3)
         tasks = {task1, task2, f1}
         f = gf.Flow('test').add(task1, task2, f1)
-        for (n, data) in f.iter_nodes():
+        for n, data in f.iter_nodes():
             self.assertIn(n, tasks)
             self.assertEqual({}, data)
 
@@ -248,14 +256,13 @@ class GraphFlowTest(test.TestCase):
         f1.add(task3)
         tasks = {task1, task2, f1}
         f = gf.Flow('test').add(task1, task2, f1)
-        for (u, v, data) in f.iter_links():
+        for u, v, data in f.iter_links():
             self.assertIn(u, tasks)
             self.assertIn(v, tasks)
             self.assertEqual({}, data)
 
 
 class TargetedGraphFlowTest(test.TestCase):
-
     def test_targeted_flow_restricts(self):
         f = gf.TargetedFlow("test")
         task1 = _task('task1', provides=['a'], requires=[])
@@ -286,8 +293,9 @@ class TargetedGraphFlowTest(test.TestCase):
         task1 = _task('task1', provides=['a'], requires=[])
         task2 = _task('task2', provides=['b'], requires=['a'])
         f.add(task1)
-        self.assertRaisesRegex(ValueError, '^Node .* not found',
-                               f.set_target, task2)
+        self.assertRaisesRegex(
+            ValueError, '^Node .* not found', f.set_target, task2
+        )
 
     def test_targeted_flow_one_node(self):
         f = gf.TargetedFlow("test")
@@ -327,5 +335,7 @@ class TargetedGraphFlowTest(test.TestCase):
 
         f.link(task2, task1)
         self.assertEqual(2, len(f))
-        self.assertEqual([(task2, task1, {'manual': True})],
-                         list(f.iter_links()), )
+        self.assertEqual(
+            [(task2, task1, {'manual': True})],
+            list(f.iter_links()),
+        )

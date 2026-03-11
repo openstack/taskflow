@@ -47,9 +47,9 @@ class ProgressTaskWithDetails(task.Task):
 
 class TestProgress(test.TestCase):
     def _make_engine(self, flow, flow_detail=None, backend=None):
-        e = taskflow.engines.load(flow,
-                                  flow_detail=flow_detail,
-                                  backend=backend)
+        e = taskflow.engines.load(
+            flow, flow_detail=flow_detail, backend=backend
+        )
         e.compile()
         e.prepare()
         return e
@@ -116,10 +116,9 @@ class TestProgress(test.TestCase):
         self.assertEqual(1.0, end_progress)
         end_details = e.storage.get_task_progress_details("test")
         self.assertEqual(0.5, end_details.get('at_progress'))
-        self.assertEqual({
-            'test': 'test data',
-            'foo': 'bar'
-        }, end_details.get('details'))
+        self.assertEqual(
+            {'test': 'test data', 'foo': 'bar'}, end_details.get('details')
+        )
 
     def test_dual_storage_progress(self):
         fired_events = []

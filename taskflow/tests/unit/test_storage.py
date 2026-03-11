@@ -189,9 +189,9 @@ class StorageTestMixin:
 
     def test_fetch_unknown_name(self):
         s = self._get_storage()
-        self.assertRaisesRegex(exceptions.NotFound,
-                               "^Name 'xxx' is not mapped",
-                               s.fetch, 'xxx')
+        self.assertRaisesRegex(
+            exceptions.NotFound, "^Name 'xxx' is not mapped", s.fetch, 'xxx'
+        )
 
     def test_flow_metadata_update(self):
         s = self._get_storage()
@@ -221,24 +221,24 @@ class StorageTestMixin:
 
         s.set_task_progress('my task', 0.5, {'test_data': 11})
         self.assertEqual(0.5, s.get_task_progress('my task'))
-        self.assertEqual({
-            'at_progress': 0.5,
-            'details': {'test_data': 11}
-        }, s.get_task_progress_details('my task'))
+        self.assertEqual(
+            {'at_progress': 0.5, 'details': {'test_data': 11}},
+            s.get_task_progress_details('my task'),
+        )
 
         s.set_task_progress('my task', 0.7, {'test_data': 17})
         self.assertEqual(0.7, s.get_task_progress('my task'))
-        self.assertEqual({
-            'at_progress': 0.7,
-            'details': {'test_data': 17}
-        }, s.get_task_progress_details('my task'))
+        self.assertEqual(
+            {'at_progress': 0.7, 'details': {'test_data': 17}},
+            s.get_task_progress_details('my task'),
+        )
 
         s.set_task_progress('my task', 0.99)
         self.assertEqual(0.99, s.get_task_progress('my task'))
-        self.assertEqual({
-            'at_progress': 0.7,
-            'details': {'test_data': 17}
-        }, s.get_task_progress_details('my task'))
+        self.assertEqual(
+            {'at_progress': 0.7, 'details': {'test_data': 17}},
+            s.get_task_progress_details('my task'),
+        )
 
     def test_task_progress_erase(self):
         s = self._get_storage()
@@ -259,10 +259,13 @@ class StorageTestMixin:
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task', provides=['foo', 'bar']))
         s.save('my task', ('spam', 'eggs'))
-        self.assertEqual({
-            'foo': 'spam',
-            'bar': 'eggs',
-        }, s.fetch_all())
+        self.assertEqual(
+            {
+                'foo': 'spam',
+                'bar': 'eggs',
+            },
+            s.fetch_all(),
+        )
 
     def test_mapping_none(self):
         s = self._get_storage()
@@ -274,37 +277,49 @@ class StorageTestMixin:
         s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
         self.assertEqual('eggs', s.fetch('spam'))
-        self.assertEqual({
-            'foo': 'bar',
-            'spam': 'eggs',
-        }, s.fetch_all())
+        self.assertEqual(
+            {
+                'foo': 'bar',
+                'spam': 'eggs',
+            },
+            s.fetch_all(),
+        )
 
     def test_inject_twice(self):
         s = self._get_storage()
         s.inject({'foo': 'bar'})
         self.assertEqual({'foo': 'bar'}, s.fetch_all())
         s.inject({'spam': 'eggs'})
-        self.assertEqual({
-            'foo': 'bar',
-            'spam': 'eggs',
-        }, s.fetch_all())
+        self.assertEqual(
+            {
+                'foo': 'bar',
+                'spam': 'eggs',
+            },
+            s.fetch_all(),
+        )
 
     def test_inject_resumed(self):
         s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
         # verify it's there
-        self.assertEqual({
-            'foo': 'bar',
-            'spam': 'eggs',
-        }, s.fetch_all())
+        self.assertEqual(
+            {
+                'foo': 'bar',
+                'spam': 'eggs',
+            },
+            s.fetch_all(),
+        )
         # imagine we are resuming, so we need to make new
         # storage from same flow details
         s2 = self._get_storage(s._flowdetail)
         # injected data should still be there:
-        self.assertEqual({
-            'foo': 'bar',
-            'spam': 'eggs',
-        }, s2.fetch_all())
+        self.assertEqual(
+            {
+                'foo': 'bar',
+                'spam': 'eggs',
+            },
+            s2.fetch_all(),
+        )
 
     def test_many_thread_ensure_same_task(self):
         s = self._get_storage()
@@ -331,8 +346,9 @@ class StorageTestMixin:
             values = {
                 str(i): str(i),
             }
-            threads.append(threading.Thread(target=inject_values,
-                                            args=[values]))
+            threads.append(
+                threading.Thread(target=inject_values, args=[values])
+            )
 
         self._run_many_threads(threads)
         self.assertEqual(self.thread_count, len(s.fetch_all()))
@@ -341,28 +357,34 @@ class StorageTestMixin:
     def test_fetch_mapped_args(self):
         s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
-        self.assertEqual({'viking': 'eggs'},
-                         s.fetch_mapped_args({'viking': 'spam'}))
+        self.assertEqual(
+            {'viking': 'eggs'}, s.fetch_mapped_args({'viking': 'spam'})
+        )
 
     def test_fetch_not_found_args(self):
         s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
-        self.assertRaises(exceptions.NotFound,
-                          s.fetch_mapped_args, {'viking': 'helmet'})
+        self.assertRaises(
+            exceptions.NotFound, s.fetch_mapped_args, {'viking': 'helmet'}
+        )
 
     def test_fetch_optional_args_found(self):
         s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
-        self.assertEqual({'viking': 'eggs'},
-                         s.fetch_mapped_args({'viking': 'spam'},
-                                             optional_args={'viking'}))
+        self.assertEqual(
+            {'viking': 'eggs'},
+            s.fetch_mapped_args({'viking': 'spam'}, optional_args={'viking'}),
+        )
 
     def test_fetch_optional_args_not_found(self):
         s = self._get_storage()
         s.inject({'foo': 'bar', 'spam': 'eggs'})
-        self.assertEqual({},
-                         s.fetch_mapped_args({'viking': 'helmet'},
-                                             optional_args={'viking'}))
+        self.assertEqual(
+            {},
+            s.fetch_mapped_args(
+                {'viking': 'helmet'}, optional_args={'viking'}
+            ),
+        )
 
     def test_set_and_get_task_state(self):
         s = self._get_storage()
@@ -373,8 +395,9 @@ class StorageTestMixin:
 
     def test_get_state_of_unknown_task(self):
         s = self._get_storage()
-        self.assertRaisesRegex(exceptions.NotFound, '^Unknown',
-                               s.get_atom_state, 'my task')
+        self.assertRaisesRegex(
+            exceptions.NotFound, '^Unknown', s.get_atom_state, 'my task'
+        )
 
     def test_task_by_name(self):
         s = self._get_storage()
@@ -412,9 +435,9 @@ class StorageTestMixin:
 
     def test_unknown_task_by_name(self):
         s = self._get_storage()
-        self.assertRaisesRegex(exceptions.NotFound,
-                               '^Unknown atom',
-                               s.get_atom_uuid, '42')
+        self.assertRaisesRegex(
+            exceptions.NotFound, '^Unknown atom', s.get_atom_uuid, '42'
+        )
 
     def test_initial_flow_state(self):
         s = self._get_storage()
@@ -437,23 +460,26 @@ class StorageTestMixin:
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task', provides={'result'}))
         s.save('my task', {})
-        self.assertRaisesRegex(exceptions.NotFound,
-                               '^Unable to find result', s.fetch, 'result')
+        self.assertRaisesRegex(
+            exceptions.NotFound, '^Unable to find result', s.fetch, 'result'
+        )
 
     def test_empty_result_is_checked(self):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task', provides=['a']))
         s.save('my task', ())
-        self.assertRaisesRegex(exceptions.NotFound,
-                               '^Unable to find result', s.fetch, 'a')
+        self.assertRaisesRegex(
+            exceptions.NotFound, '^Unable to find result', s.fetch, 'a'
+        )
 
     def test_short_result_is_checked(self):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my task', provides=['a', 'b']))
         s.save('my task', ['result'])
         self.assertEqual('result', s.fetch('a'))
-        self.assertRaisesRegex(exceptions.NotFound,
-                               '^Unable to find result', s.fetch, 'b')
+        self.assertRaisesRegex(
+            exceptions.NotFound, '^Unable to find result', s.fetch, 'b'
+        )
 
     def test_ensure_retry(self):
         s = self._get_storage()
@@ -464,9 +490,12 @@ class StorageTestMixin:
     def test_ensure_retry_and_task_with_same_name(self):
         s = self._get_storage()
         s.ensure_atom(test_utils.NoopTask('my retry'))
-        self.assertRaisesRegex(exceptions.Duplicate,
-                               '^Atom detail', s.ensure_atom,
-                               test_utils.NoopRetry('my retry'))
+        self.assertRaisesRegex(
+            exceptions.Duplicate,
+            '^Atom detail',
+            s.ensure_atom,
+            test_utils.NoopRetry('my retry'),
+        )
 
     def test_save_retry_results(self):
         s = self._get_storage()
@@ -514,9 +543,9 @@ class StorageTestMixin:
         self.assertEqual({'my retry': a_failure}, s.get_failures())
 
     def test_logbook_get_unknown_atom_type(self):
-        self.assertRaisesRegex(TypeError,
-                               'Unknown atom',
-                               models.atom_detail_class, 'some_detail')
+        self.assertRaisesRegex(
+            TypeError, 'Unknown atom', models.atom_detail_class, 'some_detail'
+        )
 
     def test_save_task_intention(self):
         s = self._get_storage()
@@ -563,8 +592,7 @@ class StorageTestMixin:
         s.ensure_atom(t)
         s.save('my task', 2)
         self.assertEqual(2, s.get('my task'))
-        self.assertRaises(exceptions.NotFound,
-                          s.get_revert_result, 'my task')
+        self.assertRaises(exceptions.NotFound, s.get_revert_result, 'my task')
 
     def test_save_fetch_revert(self):
         t = test_utils.GiveBackRevert('my task')

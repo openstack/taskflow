@@ -38,13 +38,13 @@ class EtcdJobBoardMixin:
         }
         if conf:
             board_conf.update(conf)
-        board = impl_etcd.EtcdJobBoard("etcd", board_conf,
-                                       persistence=persistence)
+        board = impl_etcd.EtcdJobBoard(
+            "etcd", board_conf, persistence=persistence
+        )
         return board._client, board
 
 
 class MockedEtcdJobBoard(test.TestCase, EtcdJobBoardMixin):
-
     def test_create_board(self):
         _, jobboard = self.create_board()
         self.assertEqual(f"/taskflow/jobs/{self.path}", jobboard._root_path)
@@ -56,11 +56,13 @@ class MockedEtcdJobBoard(test.TestCase, EtcdJobBoardMixin):
     @mock.patch("threading.Condition")
     @mock.patch("oslo_utils.uuidutils.generate_uuid")
     @mock.patch("oslo_utils.timeutils.utcnow")
-    def test_post(self,
-                  mock_utcnow: mock.Mock,
-                  mock_generated_uuid: mock.Mock,
-                  mock_cond: mock.Mock,
-                  mock_incr: mock.Mock):
+    def test_post(
+        self,
+        mock_utcnow: mock.Mock,
+        mock_generated_uuid: mock.Mock,
+        mock_cond: mock.Mock,
+        mock_incr: mock.Mock,
+    ):
         mock_incr.return_value = 12
         mock_generated_uuid.return_value = "uuid1"
         mock_utcnow.return_value = "utcnow1"
@@ -72,17 +74,16 @@ class MockedEtcdJobBoard(test.TestCase, EtcdJobBoardMixin):
 
         _, jobboard = self.create_board()
         jobboard._client = mock.Mock()
-        job = jobboard.post("post1", book=mock_book,
-                            details=mock_details,
-                            priority=jobs_base.JobPriority.NORMAL)
+        job = jobboard.post(
+            "post1",
+            book=mock_book,
+            details=mock_details,
+            priority=jobs_base.JobPriority.NORMAL,
+        )
 
-        expected_key = (
-            f"/taskflow/jobs/{self.path}/job12")
+        expected_key = f"/taskflow/jobs/{self.path}/job12"
         expected_data_key = expected_key + jobboard.DATA_POSTFIX
-        expected_book_data = {
-            "name": "book1_name",
-            "uuid": "book1_uuid"
-        }
+        expected_book_data = {"name": "book1_name", "uuid": "book1_uuid"}
         expected_job_posting = {
             "uuid": "uuid1",
             "name": "post1",
@@ -96,7 +97,8 @@ class MockedEtcdJobBoard(test.TestCase, EtcdJobBoardMixin):
         mock_incr.assert_called_with(f"/taskflow/jobs/{self.path}/sequence")
 
         jobboard._client.create.assert_called_with(
-            expected_data_key, jsonutils.dumps(expected_job_posting))
+            expected_data_key, jsonutils.dumps(expected_job_posting)
+        )
 
         self.assertEqual("post1", job.name)
         self.assertEqual(expected_key, job.key)
@@ -109,8 +111,9 @@ class MockedEtcdJobBoard(test.TestCase, EtcdJobBoardMixin):
         self.assertEqual(1, len(jobboard._job_cache))
         self.assertEqual(job, jobboard._job_cache[expected_key])
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "set_last_modified")
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.set_last_modified"
+    )
     def test_claim(self, mock_set_last_modified):
         who = "owner1"
         lease_id = uuidutils.generate_uuid()
@@ -123,18 +126,20 @@ class MockedEtcdJobBoard(test.TestCase, EtcdJobBoardMixin):
         jobboard._client.create.return_value = True
         jobboard._client.get.return_value = [mock.Mock()]
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7",
-                                uuid=uuidutils.generate_uuid(),
-                                details=mock.Mock(),
-                                backend="etcd",
-                                book=mock.Mock(),
-                                book_data=mock.Mock(),
-                                priority=jobs_base.JobPriority.NORMAL,
-                                sequence=7,
-                                created_on="date")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+            uuid=uuidutils.generate_uuid(),
+            details=mock.Mock(),
+            backend="etcd",
+            book=mock.Mock(),
+            book_data=mock.Mock(),
+            priority=jobs_base.JobPriority.NORMAL,
+            sequence=7,
+            created_on="date",
+        )
 
         jobboard.claim(job, who)
 
@@ -142,22 +147,24 @@ class MockedEtcdJobBoard(test.TestCase, EtcdJobBoardMixin):
 
         jobboard._client.create.assert_called_once_with(
             f"{job.key}{jobboard.LOCK_POSTFIX}",
-            jsonutils.dumps({"owner": who,
-                             "lease_id": lease_id}),
-            lease=mock_lease)
+            jsonutils.dumps({"owner": who, "lease_id": lease_id}),
+            lease=mock_lease,
+        )
 
         jobboard._client.get.assert_called_once_with(
-            job.key + jobboard.DATA_POSTFIX)
+            job.key + jobboard.DATA_POSTFIX
+        )
         mock_lease.revoke.assert_not_called()
 
         mock_set_last_modified.assert_called_once_with(job)
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "set_last_modified")
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "find_owner")
-    def test_claim_already_claimed(self, mock_find_owner,
-                                   mock_set_last_modified):
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.set_last_modified"
+    )
+    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard.find_owner")
+    def test_claim_already_claimed(
+        self, mock_find_owner, mock_set_last_modified
+    ):
         who = "owner1"
         lease_id = uuidutils.generate_uuid()
 
@@ -171,36 +178,40 @@ class MockedEtcdJobBoard(test.TestCase, EtcdJobBoardMixin):
         jobboard._client.create.return_value = False
         jobboard._client.get.return_value = []
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7",
-                                uuid=uuidutils.generate_uuid(),
-                                details=mock.Mock(),
-                                backend="etcd",
-                                book=mock.Mock(),
-                                book_data=mock.Mock(),
-                                priority=jobs_base.JobPriority.NORMAL,
-                                sequence=7,
-                                created_on="date")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+            uuid=uuidutils.generate_uuid(),
+            details=mock.Mock(),
+            backend="etcd",
+            book=mock.Mock(),
+            book_data=mock.Mock(),
+            priority=jobs_base.JobPriority.NORMAL,
+            sequence=7,
+            created_on="date",
+        )
 
-        self.assertRaisesRegex(exc.UnclaimableJob, "already claimed by",
-                               jobboard.claim, job, who)
+        self.assertRaisesRegex(
+            exc.UnclaimableJob, "already claimed by", jobboard.claim, job, who
+        )
 
         jobboard._client.lease.assert_called_once_with(ttl=37)
 
         jobboard._client.create.assert_called_once_with(
             f"{job.key}{jobboard.LOCK_POSTFIX}",
-            jsonutils.dumps({"owner": who,
-                             "lease_id": lease_id}),
-            lease=mock_lease)
+            jsonutils.dumps({"owner": who, "lease_id": lease_id}),
+            lease=mock_lease,
+        )
 
         mock_lease.revoke.assert_called_once()
 
         mock_set_last_modified.assert_not_called()
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "set_last_modified")
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.set_last_modified"
+    )
     def test_claim_deleted(self, mock_set_last_modified):
         who = "owner1"
         lease_id = uuidutils.generate_uuid()
@@ -213,168 +224,213 @@ class MockedEtcdJobBoard(test.TestCase, EtcdJobBoardMixin):
         jobboard._client.create.return_value = True
         jobboard._client.get.return_value = []
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7",
-                                uuid=uuidutils.generate_uuid(),
-                                details=mock.Mock(),
-                                backend="etcd",
-                                book=mock.Mock(),
-                                book_data=mock.Mock(),
-                                priority=jobs_base.JobPriority.NORMAL,
-                                sequence=7,
-                                created_on="date")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+            uuid=uuidutils.generate_uuid(),
+            details=mock.Mock(),
+            backend="etcd",
+            book=mock.Mock(),
+            book_data=mock.Mock(),
+            priority=jobs_base.JobPriority.NORMAL,
+            sequence=7,
+            created_on="date",
+        )
 
-        self.assertRaisesRegex(exc.UnclaimableJob, "already deleted",
-                               jobboard.claim, job, who)
+        self.assertRaisesRegex(
+            exc.UnclaimableJob, "already deleted", jobboard.claim, job, who
+        )
 
         jobboard._client.lease.assert_called_once_with(ttl=37)
 
         jobboard._client.create.assert_called_once_with(
             f"{job.key}{jobboard.LOCK_POSTFIX}",
-            jsonutils.dumps({"owner": who,
-                             "lease_id": lease_id}),
-            lease=mock_lease)
+            jsonutils.dumps({"owner": who, "lease_id": lease_id}),
+            lease=mock_lease,
+        )
 
         jobboard._client.get.assert_called_once_with(
-            job.key + jobboard.DATA_POSTFIX)
+            job.key + jobboard.DATA_POSTFIX
+        )
         mock_lease.revoke.assert_called_once()
 
         mock_set_last_modified.assert_not_called()
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "get_owner_and_data")
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "_remove_job_from_cache")
-    def test_consume(self, mock__remove_job_from_cache,
-                     mock_get_owner_and_data):
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.get_owner_and_data"
+    )
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard._remove_job_from_cache"
+    )
+    def test_consume(
+        self, mock__remove_job_from_cache, mock_get_owner_and_data
+    ):
         mock_get_owner_and_data.return_value = ["owner1", mock.Mock()]
 
         _, jobboard = self.create_board()
         jobboard._client = mock.Mock()
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+        )
         jobboard.consume(job, "owner1")
 
         jobboard._client.delete_prefix.assert_called_once_with(job.key + ".")
         mock__remove_job_from_cache.assert_called_once_with(job.key)
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "get_owner_and_data")
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.get_owner_and_data"
+    )
     def test_consume_bad_owner(self, mock_get_owner_and_data):
         mock_get_owner_and_data.return_value = ["owner2", mock.Mock()]
 
         _, jobboard = self.create_board()
         jobboard._client = mock.Mock()
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7")
-        self.assertRaisesRegex(exc.JobFailure, "which is not owned",
-                               jobboard.consume, job, "owner1")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+        )
+        self.assertRaisesRegex(
+            exc.JobFailure,
+            "which is not owned",
+            jobboard.consume,
+            job,
+            "owner1",
+        )
 
         jobboard._client.delete_prefix.assert_not_called()
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "get_owner_and_data")
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.get_owner_and_data"
+    )
     def test_abandon(self, mock_get_owner_and_data):
         mock_get_owner_and_data.return_value = ["owner1", mock.Mock()]
 
         _, jobboard = self.create_board()
         jobboard._client = mock.Mock()
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+        )
         jobboard.abandon(job, "owner1")
 
         jobboard._client.delete.assert_called_once_with(
-            f"{job.key}{jobboard.LOCK_POSTFIX}")
+            f"{job.key}{jobboard.LOCK_POSTFIX}"
+        )
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "get_owner_and_data")
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.get_owner_and_data"
+    )
     def test_abandon_bad_owner(self, mock_get_owner_and_data):
         mock_get_owner_and_data.return_value = ["owner2", mock.Mock()]
 
         _, jobboard = self.create_board()
         jobboard._client = mock.Mock()
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7")
-        self.assertRaisesRegex(exc.JobFailure, "which is not owned",
-                               jobboard.abandon, job, "owner1")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+        )
+        self.assertRaisesRegex(
+            exc.JobFailure,
+            "which is not owned",
+            jobboard.abandon,
+            job,
+            "owner1",
+        )
 
         jobboard._client.delete.assert_not_called()
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "get_owner_and_data")
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "_remove_job_from_cache")
-    def test_trash(self, mock__remove_job_from_cache,
-                   mock_get_owner_and_data):
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.get_owner_and_data"
+    )
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard._remove_job_from_cache"
+    )
+    def test_trash(self, mock__remove_job_from_cache, mock_get_owner_and_data):
         mock_get_owner_and_data.return_value = ["owner1", mock.Mock()]
 
         _, jobboard = self.create_board()
         jobboard._client = mock.Mock()
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+        )
         jobboard.trash(job, "owner1")
 
         jobboard._client.create.assert_called_once_with(
-            f"/taskflow/.trash/{self.path}/job7", mock.ANY)
+            f"/taskflow/.trash/{self.path}/job7", mock.ANY
+        )
         jobboard._client.delete_prefix.assert_called_once_with(job.key + ".")
         mock__remove_job_from_cache.assert_called_once_with(job.key)
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "get_owner_and_data")
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "_remove_job_from_cache")
-    def test_trash_bad_owner(self, mock__remove_job_from_cache,
-                             mock_get_owner_and_data):
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.get_owner_and_data"
+    )
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard._remove_job_from_cache"
+    )
+    def test_trash_bad_owner(
+        self, mock__remove_job_from_cache, mock_get_owner_and_data
+    ):
         mock_get_owner_and_data.return_value = ["owner2", mock.Mock()]
 
         _, jobboard = self.create_board()
         jobboard._client = mock.Mock()
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7")
-        self.assertRaisesRegex(exc.JobFailure, "which is not owned",
-                               jobboard.trash, job, "owner1")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+        )
+        self.assertRaisesRegex(
+            exc.JobFailure, "which is not owned", jobboard.trash, job, "owner1"
+        )
 
         jobboard._client.create.assert_not_called()
         jobboard._client.delete_prefix.assert_not_called()
         mock__remove_job_from_cache.assert_not_called()
 
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "get_owner_and_data")
-    @mock.patch("taskflow.jobs.backends.impl_etcd.EtcdJobBoard."
-                "_remove_job_from_cache")
-    def test_trash_deleted_job(self, mock__remove_job_from_cache,
-                               mock_get_owner_and_data):
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard.get_owner_and_data"
+    )
+    @mock.patch(
+        "taskflow.jobs.backends.impl_etcd.EtcdJobBoard._remove_job_from_cache"
+    )
+    def test_trash_deleted_job(
+        self, mock__remove_job_from_cache, mock_get_owner_and_data
+    ):
         mock_get_owner_and_data.return_value = ["owner1", None]
 
         _, jobboard = self.create_board()
         jobboard._client = mock.Mock()
 
-        job = impl_etcd.EtcdJob(jobboard,
-                                "job7",
-                                jobboard._client,
-                                f"/taskflow/jobs/{self.path}/job7")
-        self.assertRaisesRegex(exc.NotFound, "Cannot find job",
-                               jobboard.trash, job, "owner1")
+        job = impl_etcd.EtcdJob(
+            jobboard,
+            "job7",
+            jobboard._client,
+            f"/taskflow/jobs/{self.path}/job7",
+        )
+        self.assertRaisesRegex(
+            exc.NotFound, "Cannot find job", jobboard.trash, job, "owner1"
+        )
 
         jobboard._client.create.assert_not_called()
         jobboard._client.delete_prefix.assert_not_called()

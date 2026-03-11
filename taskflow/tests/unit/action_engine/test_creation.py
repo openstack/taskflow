@@ -32,33 +32,36 @@ class ParallelCreationTest(test.TestCase):
         backend = backends.fetch({'connection': 'memory'})
         flow_detail = pu.create_flow_detail(flow, backend=backend)
         options = kwargs.copy()
-        return engine.ParallelActionEngine(flow, flow_detail,
-                                           backend, options)
+        return engine.ParallelActionEngine(flow, flow_detail, backend, options)
 
     def test_thread_string_creation(self):
         for s in ['threads', 'threaded', 'thread']:
             eng = self._create_engine(executor=s)
-            self.assertIsInstance(eng._task_executor,
-                                  executor.ParallelThreadTaskExecutor)
+            self.assertIsInstance(
+                eng._task_executor, executor.ParallelThreadTaskExecutor
+            )
 
     def test_thread_executor_creation(self):
         with futurist.ThreadPoolExecutor(1) as e:
             eng = self._create_engine(executor=e)
-            self.assertIsInstance(eng._task_executor,
-                                  executor.ParallelThreadTaskExecutor)
+            self.assertIsInstance(
+                eng._task_executor, executor.ParallelThreadTaskExecutor
+            )
 
     @testtools.skipIf(not eu.EVENTLET_AVAILABLE, 'eventlet is not available')
     def test_green_executor_creation(self):
         with futurist.GreenThreadPoolExecutor(1) as e:
             eng = self._create_engine(executor=e)
-            self.assertIsInstance(eng._task_executor,
-                                  executor.ParallelThreadTaskExecutor)
+            self.assertIsInstance(
+                eng._task_executor, executor.ParallelThreadTaskExecutor
+            )
 
     def test_sync_executor_creation(self):
         with futurist.SynchronousExecutor() as e:
             eng = self._create_engine(executor=e)
-            self.assertIsInstance(eng._task_executor,
-                                  executor.ParallelThreadTaskExecutor)
+            self.assertIsInstance(
+                eng._task_executor, executor.ParallelThreadTaskExecutor
+            )
 
     def test_invalid_creation(self):
         self.assertRaises(ValueError, self._create_engine, executor='crap')

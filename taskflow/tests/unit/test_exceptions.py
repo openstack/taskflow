@@ -73,8 +73,9 @@ class TestExceptions(test.TestCase):
                 try:
                     raise OSError("Didn't work")
                 except OSError:
-                    exc.raise_with_cause(exc.TaskFlowException,
-                                         "It didn't go so well")
+                    exc.raise_with_cause(
+                        exc.TaskFlowException, "It didn't go so well"
+                    )
             except exc.TaskFlowException:
                 exc.raise_with_cause(exc.TaskFlowException, "I Failed")
         except exc.TaskFlowException as e:
@@ -93,12 +94,11 @@ class TestExceptions(test.TestCase):
 
     def test_pformat_root_class(self):
         ex = exc.TaskFlowException("Broken")
-        self.assertIn("TaskFlowException",
-                      ex.pformat(show_root_class=True))
-        self.assertNotIn("TaskFlowException",
-                         ex.pformat(show_root_class=False))
-        self.assertIn("Broken",
-                      ex.pformat(show_root_class=True))
+        self.assertIn("TaskFlowException", ex.pformat(show_root_class=True))
+        self.assertNotIn(
+            "TaskFlowException", ex.pformat(show_root_class=False)
+        )
+        self.assertIn("Broken", ex.pformat(show_root_class=True))
 
     def test_invalid_pformat_indent(self):
         ex = exc.TaskFlowException("Broken")

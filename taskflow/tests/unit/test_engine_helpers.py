@@ -34,8 +34,12 @@ class EngineLoadingTestCase(test.TestCase):
 
     def test_unknown_load(self):
         f = self._make_dummy_flow()
-        self.assertRaises(exc.NotFound, taskflow.engines.load, f,
-                          engine='not_really_any_engine')
+        self.assertRaises(
+            exc.NotFound,
+            taskflow.engines.load,
+            f,
+            engine='not_really_any_engine',
+        )
 
     def test_options_empty(self):
         f = self._make_dummy_flow()
@@ -52,35 +56,43 @@ class FlowFromDetailTestCase(test.TestCase):
     def test_no_meta(self):
         _lb, flow_detail = p_utils.temporary_flow_detail()
         self.assertEqual({}, flow_detail.meta)
-        self.assertRaisesRegex(ValueError,
-                               '^Cannot .* no factory information saved.$',
-                               taskflow.engines.flow_from_detail,
-                               flow_detail)
+        self.assertRaisesRegex(
+            ValueError,
+            '^Cannot .* no factory information saved.$',
+            taskflow.engines.flow_from_detail,
+            flow_detail,
+        )
 
     def test_no_factory_in_meta(self):
         _lb, flow_detail = p_utils.temporary_flow_detail()
-        self.assertRaisesRegex(ValueError,
-                               '^Cannot .* no factory information saved.$',
-                               taskflow.engines.flow_from_detail,
-                               flow_detail)
+        self.assertRaisesRegex(
+            ValueError,
+            '^Cannot .* no factory information saved.$',
+            taskflow.engines.flow_from_detail,
+            flow_detail,
+        )
 
     def test_no_importable_function(self):
         _lb, flow_detail = p_utils.temporary_flow_detail()
-        flow_detail.meta = dict(factory=dict(
-            name='you can not import me, i contain spaces'
-        ))
-        self.assertRaisesRegex(ImportError,
-                               '^Could not import factory',
-                               taskflow.engines.flow_from_detail,
-                               flow_detail)
+        flow_detail.meta = dict(
+            factory=dict(name='you can not import me, i contain spaces')
+        )
+        self.assertRaisesRegex(
+            ImportError,
+            '^Could not import factory',
+            taskflow.engines.flow_from_detail,
+            flow_detail,
+        )
 
     def test_no_arg_factory(self):
         name = 'some.test.factory'
         _lb, flow_detail = p_utils.temporary_flow_detail()
         flow_detail.meta = dict(factory=dict(name=name))
 
-        with mock.patch('oslo_utils.importutils.import_class',
-                        return_value=lambda: 'RESULT') as mock_import:
+        with mock.patch(
+            'oslo_utils.importutils.import_class',
+            return_value=lambda: 'RESULT',
+        ) as mock_import:
             result = taskflow.engines.flow_from_detail(flow_detail)
             mock_import.assert_called_once_with(name)
         self.assertEqual('RESULT', result)
@@ -90,8 +102,10 @@ class FlowFromDetailTestCase(test.TestCase):
         _lb, flow_detail = p_utils.temporary_flow_detail()
         flow_detail.meta = dict(factory=dict(name=name, args=['foo']))
 
-        with mock.patch('oslo_utils.importutils.import_class',
-                        return_value=lambda x: 'RESULT %s' % x) as mock_import:
+        with mock.patch(
+            'oslo_utils.importutils.import_class',
+            return_value=lambda x: 'RESULT %s' % x,
+        ) as mock_import:
             result = taskflow.engines.flow_from_detail(flow_detail)
             mock_import.assert_called_once_with(name)
         self.assertEqual('RESULT foo', result)
@@ -102,40 +116,49 @@ def my_flow_factory(task_name):
 
 
 class LoadFromFactoryTestCase(test.TestCase):
-
     def test_non_reimportable(self):
 
         def factory():
             pass
 
-        self.assertRaisesRegex(ValueError,
-                               'Flow factory .* is not reimportable',
-                               taskflow.engines.load_from_factory,
-                               factory)
+        self.assertRaisesRegex(
+            ValueError,
+            'Flow factory .* is not reimportable',
+            taskflow.engines.load_from_factory,
+            factory,
+        )
 
     def test_it_works(self):
         engine = taskflow.engines.load_from_factory(
-            my_flow_factory, factory_kwargs={'task_name': 'test1'})
+            my_flow_factory, factory_kwargs={'task_name': 'test1'}
+        )
         self.assertIsInstance(engine._flow, test_utils.DummyTask)
 
         fd = engine.storage._flowdetail
         self.assertEqual('test1', fd.name)
-        self.assertEqual({
-            'name': '%s.my_flow_factory' % __name__,
-            'args': [],
-            'kwargs': {'task_name': 'test1'},
-        }, fd.meta.get('factory'))
+        self.assertEqual(
+            {
+                'name': '%s.my_flow_factory' % __name__,
+                'args': [],
+                'kwargs': {'task_name': 'test1'},
+            },
+            fd.meta.get('factory'),
+        )
 
     def test_it_works_by_name(self):
         factory_name = '%s.my_flow_factory' % __name__
         engine = taskflow.engines.load_from_factory(
-            factory_name, factory_kwargs={'task_name': 'test1'})
+            factory_name, factory_kwargs={'task_name': 'test1'}
+        )
         self.assertIsInstance(engine._flow, test_utils.DummyTask)
 
         fd = engine.storage._flowdetail
         self.assertEqual('test1', fd.name)
-        self.assertEqual({
-            'name': factory_name,
-            'args': [],
-            'kwargs': {'task_name': 'test1'},
-        }, fd.meta.get('factory'))
+        self.assertEqual(
+            {
+                'name': factory_name,
+                'args': [],
+                'kwargs': {'task_name': 'test1'},
+            },
+            fd.meta.get('factory'),
+        )

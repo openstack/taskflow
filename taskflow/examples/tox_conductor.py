@@ -25,9 +25,9 @@ import time
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 from oslo_utils import timeutils
@@ -128,7 +128,7 @@ def create_review_workflow():
     f.add(
         MakeTempDir(name="maker"),
         RunReview(name="runner"),
-        CleanResources(name="cleaner")
+        CleanResources(name="cleaner"),
     )
     return f
 
@@ -137,14 +137,16 @@ def generate_reviewer(client, saver, name=NAME):
     """Creates a review producer thread with the given name prefix."""
     real_name = "%s_reviewer" % name
     no_more = threading.Event()
-    jb = boards.fetch(real_name, JOBBOARD_CONF,
-                      client=client, persistence=saver)
+    jb = boards.fetch(
+        real_name, JOBBOARD_CONF, client=client, persistence=saver
+    )
 
     def make_save_book(saver, review_id):
         # Record what we want to happen (sometime in the future).
         book = models.LogBook("book_%s" % review_id)
-        detail = models.FlowDetail("flow_%s" % review_id,
-                                   uuidutils.generate_uuid())
+        detail = models.FlowDetail(
+            "flow_%s" % review_id, uuidutils.generate_uuid()
+        )
         book.add(detail)
         # Associate the factory method we want to be called (in the future)
         # with the book, so that the conductor will be able to call into
@@ -157,8 +159,9 @@ def generate_reviewer(client, saver, name=NAME):
         # workflow that represents this review).
         factory_args = ()
         factory_kwargs = {}
-        engines.save_factory_details(detail, create_review_workflow,
-                                     factory_args, factory_kwargs)
+        engines.save_factory_details(
+            detail, create_review_workflow, factory_args, factory_kwargs
+        )
         with contextlib.closing(saver.get_connection()) as conn:
             conn.save_logbook(book)
             return book
@@ -177,9 +180,11 @@ def generate_reviewer(client, saver, name=NAME):
                 }
                 job_name = "{}_{}".format(real_name, review['id'])
                 print("Posting review '%s'" % review['id'])
-                jb.post(job_name,
-                        book=make_save_book(saver, review['id']),
-                        details=details)
+                jb.post(
+                    job_name,
+                    book=make_save_book(saver, review['id']),
+                    details=details,
+                )
                 time.sleep(REVIEW_CREATION_DELAY)
 
     # Return the unstarted thread, and a callback that can be used
@@ -190,10 +195,10 @@ def generate_reviewer(client, saver, name=NAME):
 def generate_conductor(client, saver, name=NAME):
     """Creates a conductor thread with the given name prefix."""
     real_name = "%s_conductor" % name
-    jb = boards.fetch(name, JOBBOARD_CONF,
-                      client=client, persistence=saver)
-    conductor = conductors.fetch("blocking", real_name, jb,
-                                 engine='parallel', wait_timeout=SCAN_DELAY)
+    jb = boards.fetch(name, JOBBOARD_CONF, client=client, persistence=saver)
+    conductor = conductors.fetch(
+        "blocking", real_name, jb, engine='parallel', wait_timeout=SCAN_DELAY
+    )
 
     def run():
         jb.connect()

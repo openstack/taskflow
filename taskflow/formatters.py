@@ -63,8 +63,13 @@ class FailureFormatter:
         states.EXECUTE: (_fetch_predecessor_tree, 'predecessors'),
     }
 
-    def __init__(self, engine, hide_inputs_outputs_of=(),
-                 mask_inputs_keys=(), mask_outputs_keys=()):
+    def __init__(
+        self,
+        engine,
+        hide_inputs_outputs_of=(),
+        mask_inputs_keys=(),
+        mask_outputs_keys=(),
+    ):
         self._hide_inputs_outputs_of = hide_inputs_outputs_of
         self._mask_inputs_keys = mask_inputs_keys
         self._mask_outputs_keys = mask_outputs_keys
@@ -95,13 +100,17 @@ class FailureFormatter:
             atom_name = atom.name
             atom_attrs = {}
             intention, intention_found = _cached_get(
-                cache, 'intentions', atom_name, storage.get_atom_intention,
-                atom_name)
+                cache,
+                'intentions',
+                atom_name,
+                storage.get_atom_intention,
+                atom_name,
+            )
             if intention_found:
                 atom_attrs['intention'] = intention
-            state, state_found = _cached_get(cache, 'states', atom_name,
-                                             storage.get_atom_state,
-                                             atom_name)
+            state, state_found = _cached_get(
+                cache, 'states', atom_name, storage.get_atom_state, atom_name
+            )
             if state_found:
                 atom_attrs['state'] = state
             if atom_name not in self._hide_inputs_outputs_of:
@@ -109,27 +118,38 @@ class FailureFormatter:
                 # will be called with the rest of these arguments
                 # used to populate the cache.
                 fetch_mapped_args = functools.partial(
-                    storage.fetch_mapped_args, atom.rebind,
-                    atom_name=atom_name, optional_args=atom.optional)
-                requires, requires_found = _cached_get(cache, 'requires',
-                                                       atom_name,
-                                                       fetch_mapped_args)
+                    storage.fetch_mapped_args,
+                    atom.rebind,
+                    atom_name=atom_name,
+                    optional_args=atom.optional,
+                )
+                requires, requires_found = _cached_get(
+                    cache, 'requires', atom_name, fetch_mapped_args
+                )
                 if requires_found:
                     atom_attrs['requires'] = self._mask_keys(
-                        requires, self._mask_inputs_keys)
+                        requires, self._mask_inputs_keys
+                    )
                 provides, provides_found = _cached_get(
-                    cache, 'provides', atom_name,
-                    storage.get_execute_result, atom_name)
+                    cache,
+                    'provides',
+                    atom_name,
+                    storage.get_execute_result,
+                    atom_name,
+                )
                 if provides_found:
                     atom_attrs['provides'] = self._mask_keys(
-                        provides, self._mask_outputs_keys)
+                        provides, self._mask_outputs_keys
+                    )
             if atom_attrs:
                 return f"Atom '{atom_name}' {atom_attrs}"
             else:
                 return "Atom '%s'" % (atom_name)
         else:
-            raise TypeError("Unable to format node, unknown node"
-                            " kind '%s' encountered" % node.metadata['kind'])
+            raise TypeError(
+                "Unable to format node, unknown node"
+                " kind '%s' encountered" % node.metadata['kind']
+            )
 
     def format(self, fail, atom_matcher):
         """Returns a (exc_info, details) tuple about the failure.
@@ -173,15 +193,20 @@ class FailureFormatter:
             builder, kind = self._BUILDERS[atom_intention]
             rooted_tree = builder(graph, atom)
             child_count = rooted_tree.child_count(only_direct=False)
-            buff.write_nl(
-                f'{child_count} {kind} (most recent first):')
+            buff.write_nl(f'{child_count} {kind} (most recent first):')
             formatter = functools.partial(self._format_node, storage, cache)
             direct_child_count = rooted_tree.child_count(only_direct=True)
             for i, child in enumerate(rooted_tree, 1):
                 if i == direct_child_count:
-                    buff.write(child.pformat(stringify_node=formatter,
-                                             starting_prefix="  "))
+                    buff.write(
+                        child.pformat(
+                            stringify_node=formatter, starting_prefix="  "
+                        )
+                    )
                 else:
-                    buff.write_nl(child.pformat(stringify_node=formatter,
-                                                starting_prefix="  "))
+                    buff.write_nl(
+                        child.pformat(
+                            stringify_node=formatter, starting_prefix="  "
+                        )
+                    )
         return (fail.exc_info, buff.getvalue())

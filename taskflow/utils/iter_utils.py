@@ -22,8 +22,9 @@ def _ensure_iterable(func):
     @functools.wraps(func)
     def wrapper(it, *args, **kwargs):
         if not isinstance(it, abc.Iterable):
-            raise ValueError("Iterable expected, but '%s' is not"
-                             " iterable" % it)
+            raise ValueError(
+                "Iterable expected, but '%s' is not iterable" % it
+            )
         return func(it, *args, **kwargs)
 
     return wrapper
@@ -63,14 +64,17 @@ def generate_delays(delay, max_delay, multiplier=2):
     stop generating values).
     """
     if max_delay < 0:
-        raise ValueError("Provided delay (max) must be greater"
-                         " than or equal to zero")
+        raise ValueError(
+            "Provided delay (max) must be greater than or equal to zero"
+        )
     if delay < 0:
-        raise ValueError("Provided delay must start off greater"
-                         " than or equal to zero")
+        raise ValueError(
+            "Provided delay must start off greater than or equal to zero"
+        )
     if multiplier < 1.0:
-        raise ValueError("Provided multiplier must be greater than"
-                         " or equal to 1.0")
+        raise ValueError(
+            "Provided multiplier must be greater than or equal to 1.0"
+        )
 
     def _gen_it():
         # NOTE(harlowja): Generation is delayed so that validation
@@ -106,8 +110,9 @@ def unique_seen(its, seen_selector=None):
     all_its = list(its)
     for it in all_its:
         if not isinstance(it, abc.Iterable):
-            raise ValueError("Iterable expected, but '%s' is"
-                             " not iterable" % it)
+            raise ValueError(
+                "Iterable expected, but '%s' is not iterable" % it
+            )
     return _gen_it(all_its)
 
 

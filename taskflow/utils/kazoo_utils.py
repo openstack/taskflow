@@ -30,7 +30,8 @@ CONF_TRANSFERS = (
     ('keyfile_password', None, None),
     ('certfile', None, None),
     ('use_ssl', strutils.bool_from_string, False),
-    ('verify_certs', strutils.bool_from_string, True))
+    ('verify_certs', strutils.bool_from_string, True),
+)
 
 
 def _parse_hosts(hosts):
@@ -38,7 +39,7 @@ def _parse_hosts(hosts):
         return hosts.strip()
     if isinstance(hosts, (dict)):
         host_ports = []
-        for (k, v) in hosts.items():
+        for k, v in hosts.items():
             host_ports.append(f"{k}:{v}")
         hosts = host_ports
     if isinstance(hosts, (list, set, tuple)):
@@ -49,7 +50,7 @@ def _parse_hosts(hosts):
 def prettify_failures(failures, limit=-1):
     """Prettifies a checked commits failures (ignores sensitive data...)."""
     prettier = []
-    for (op, r) in failures:
+    for op, r in failures:
         pretty_op = reflection.get_class_name(op, fully_qualified=False)
         # Pick off a few attributes that are meaningful (but one that don't
         # show actual data, which might not be desired to show...).
@@ -102,17 +103,22 @@ def checked_commit(txn):
         raise KazooTransactionException(
             "Transaction returned %s results, this is less than"
             " the number of expected transaction operations %s"
-            % (len(results), len(txn.operations)), failures)
+            % (len(results), len(txn.operations)),
+            failures,
+        )
     if len(results) > len(txn.operations):
         raise KazooTransactionException(
             "Transaction returned %s results, this is greater than"
             " the number of expected transaction operations %s"
-            % (len(results), len(txn.operations)), failures)
+            % (len(results), len(txn.operations)),
+            failures,
+        )
     if failures:
         raise KazooTransactionException(
             "Transaction with %s operations failed: %s"
-            % (len(txn.operations),
-               prettify_failures(failures, limit=1)), failures)
+            % (len(txn.operations), prettify_failures(failures, limit=1)),
+            failures,
+        )
     return results
 
 
@@ -137,10 +143,11 @@ def check_compatible(client, min_version=None, max_version=None):
         if server_version < min_version:
             pretty_server_version = ".".join([str(a) for a in server_version])
             min_version = ".".join([str(a) for a in min_version])
-            raise exc.IncompatibleVersion("Incompatible zookeeper version"
-                                          " %s detected, zookeeper >= %s"
-                                          " required" % (pretty_server_version,
-                                                         min_version))
+            raise exc.IncompatibleVersion(
+                "Incompatible zookeeper version"
+                " %s detected, zookeeper >= %s"
+                " required" % (pretty_server_version, min_version)
+            )
     if max_version:
         if server_version is None:
             server_version = tuple(int(a) for a in client.server_version())
@@ -148,10 +155,11 @@ def check_compatible(client, min_version=None, max_version=None):
         if server_version > max_version:
             pretty_server_version = ".".join([str(a) for a in server_version])
             max_version = ".".join([str(a) for a in max_version])
-            raise exc.IncompatibleVersion("Incompatible zookeeper version"
-                                          " %s detected, zookeeper <= %s"
-                                          " required" % (pretty_server_version,
-                                                         max_version))
+            raise exc.IncompatibleVersion(
+                "Incompatible zookeeper version"
+                " %s detected, zookeeper <= %s"
+                " required" % (pretty_server_version, max_version)
+            )
 
 
 def make_client(conf):
@@ -207,8 +215,9 @@ def make_client(conf):
     for key, value_type_converter, default in CONF_TRANSFERS:
         if key in conf:
             if value_type_converter is not None:
-                client_kwargs[key] = value_type_converter(conf[key],
-                                                          default=default)
+                client_kwargs[key] = value_type_converter(
+                    conf[key], default=default
+                )
             else:
                 client_kwargs[key] = conf[key]
         else:
@@ -221,9 +230,10 @@ def make_client(conf):
         client_kwargs['connection_retry'] = conf['connection_retry']
     hosts = _parse_hosts(conf.get("hosts", "localhost:2181"))
     if not hosts or not isinstance(hosts, str):
-        raise TypeError("Invalid hosts format, expected "
-                        "non-empty string/list, not '%s' (%s)"
-                        % (hosts, type(hosts)))
+        raise TypeError(
+            "Invalid hosts format, expected "
+            "non-empty string/list, not '%s' (%s)" % (hosts, type(hosts))
+        )
     client_kwargs['hosts'] = hosts
     if 'timeout' in conf:
         client_kwargs['timeout'] = float(conf['timeout'])

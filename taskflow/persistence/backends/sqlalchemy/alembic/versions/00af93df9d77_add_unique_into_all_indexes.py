@@ -32,23 +32,24 @@ def upgrade():
         with op.batch_alter_table("logbooks") as batch_op:
             batch_op.drop_index("logbook_uuid_idx")
             batch_op.create_index(
-                index_name="logbook_uuid_idx",
-                columns=['uuid'],
-                unique=True)
+                index_name="logbook_uuid_idx", columns=['uuid'], unique=True
+            )
 
         with op.batch_alter_table("flowdetails") as batch_op:
             batch_op.drop_index("flowdetails_uuid_idx")
             batch_op.create_index(
                 index_name="flowdetails_uuid_idx",
                 columns=['uuid'],
-                unique=True)
+                unique=True,
+            )
 
         with op.batch_alter_table("atomdetails") as batch_op:
             batch_op.drop_index("taskdetails_uuid_idx")
             batch_op.create_index(
                 index_name="taskdetails_uuid_idx",
                 columns=['uuid'],
-                unique=True)
+                unique=True,
+            )
 
 
 def downgrade():
@@ -58,17 +59,17 @@ def downgrade():
         with op.batch_alter_table("logbooks") as batch_op:
             batch_op.drop_index("logbook_uuid_idx")
             batch_op.create_index(
-                index_name="logbook_uuid_idx",
-                columns=['uuid'])
+                index_name="logbook_uuid_idx", columns=['uuid']
+            )
 
         with op.batch_alter_table("flowdetails") as batch_op:
             batch_op.drop_index("flowdetails_uuid_idx")
             batch_op.create_index(
-                index_name="flowdetails_uuid_idx",
-                columns=['uuid'])
+                index_name="flowdetails_uuid_idx", columns=['uuid']
+            )
 
         with op.batch_alter_table("atomdetails") as batch_op:
             batch_op.drop_index("taskdetails_uuid_idx")
             batch_op.create_index(
-                index_name="taskdetails_uuid_idx",
-                columns=['uuid'])
+                index_name="taskdetails_uuid_idx", columns=['uuid']
+            )

@@ -51,8 +51,10 @@ class StrEnum(str, enum.Enum):
     def __new__(cls, *args, **kwargs):
         for a in args:
             if not isinstance(a, str):
-                raise TypeError("Enumeration '%s' (%s) is not"
-                                " a string" % (a, type(a).__name__))
+                raise TypeError(
+                    "Enumeration '%s' (%s) is not"
+                    " a string" % (a, type(a).__name__)
+                )
         return super().__new__(cls, *args, **kwargs)
 
 
@@ -93,7 +95,7 @@ def match_type(obj, matchers):
     Returns the result (the second element of the provided tuple) if a type
     match occurs, otherwise none if no matches are found.
     """
-    for (match_types, match_result) in matchers:
+    for match_types, match_result in matchers:
         if isinstance(obj, match_types):
             return match_result
     else:
@@ -108,8 +110,9 @@ def countdown_iter(start_at, decr=1):
     that step parameter does **not** exist and therefore can't be used).
     """
     if decr <= 0:
-        raise ValueError("Decrement value must be greater"
-                         " than zero and not %s" % decr)
+        raise ValueError(
+            "Decrement value must be greater than zero and not %s" % decr
+        )
     while start_at > 0:
         yield start_at
         start_at -= decr
@@ -157,10 +160,10 @@ def merge_uri(uri, conf):
         if uri_port is not None:
             hostname += ":%s" % (uri_port)
         specials.append(('hostname', hostname, lambda v: bool(v)))
-    for (k, v, is_not_empty_value_func) in specials:
+    for k, v, is_not_empty_value_func in specials:
         if is_not_empty_value_func(v):
             conf.setdefault(k, v)
-    for (k, v) in uri.params().items():
+    for k, v in uri.params().items():
         conf.setdefault(k, v)
     return conf
 
@@ -189,19 +192,22 @@ def find_subclasses(locations, base_cls, exclude_hidden=True):
             else:
                 obj = importutils.import_class(f'{pkg}.{cls}')
                 if not reflection.is_subclass(obj, base_cls):
-                    raise TypeError("Object '%s' (%s) is not a '%s' subclass"
-                                    % (item, type(item), base_cls))
+                    raise TypeError(
+                        "Object '%s' (%s) is not a '%s' subclass"
+                        % (item, type(item), base_cls)
+                    )
                 derived.add(obj)
         elif isinstance(item, types.ModuleType):
             module = item
         elif reflection.is_subclass(item, base_cls):
             derived.add(item)
         else:
-            raise TypeError("Object '%s' (%s) is an unexpected type" %
-                            (item, type(item)))
+            raise TypeError(
+                "Object '%s' (%s) is an unexpected type" % (item, type(item))
+            )
         # If it's a module derive objects from it if we can.
         if module is not None:
-            for (name, obj) in inspect.getmembers(module):
+            for name, obj in inspect.getmembers(module):
                 if name.startswith("_") and exclude_hidden:
                     continue
                 if reflection.is_subclass(obj, base_cls):
@@ -221,12 +227,15 @@ def parse_uri(uri):
     """Parses a uri into its components."""
     # Do some basic validation before continuing...
     if not isinstance(uri, str):
-        raise TypeError("Can only parse string types to uri data, "
-                        "and not '%s' (%s)" % (uri, type(uri)))
+        raise TypeError(
+            "Can only parse string types to uri data, "
+            "and not '%s' (%s)" % (uri, type(uri))
+        )
     match = _SCHEME_REGEX.match(uri)
     if not match:
-        raise ValueError("Uri '%s' does not start with a RFC 3986 compliant"
-                         " scheme" % (uri))
+        raise ValueError(
+            "Uri '%s' does not start with a RFC 3986 compliant scheme" % (uri)
+        )
     return netutils.urlsplit(uri)
 
 
@@ -250,8 +259,10 @@ def disallow_when_frozen(excp_cls):
 def clamp(value, minimum, maximum, on_clamped=None):
     """Clamps a value to ensure its >= minimum and <= maximum."""
     if minimum > maximum:
-        raise ValueError("Provided minimum '%s' must be less than or equal to"
-                         " the provided maximum '%s'" % (minimum, maximum))
+        raise ValueError(
+            "Provided minimum '%s' must be less than or equal to"
+            " the provided maximum '%s'" % (minimum, maximum)
+        )
     if value > maximum:
         value = maximum
         if on_clamped is not None:
@@ -276,8 +287,7 @@ def binary_encode(text, encoding='utf-8', errors='strict'):
     if isinstance(text, bytes):
         return text
     else:
-        return encodeutils.safe_encode(text, encoding=encoding,
-                                       errors=errors)
+        return encodeutils.safe_encode(text, encoding=encoding, errors=errors)
 
 
 def binary_decode(data, encoding='utf-8', errors='strict'):
@@ -288,8 +298,7 @@ def binary_decode(data, encoding='utf-8', errors='strict'):
     if isinstance(data, str):
         return data
     else:
-        return encodeutils.safe_decode(data, incoming=encoding,
-                                       errors=errors)
+        return encodeutils.safe_decode(data, incoming=encoding, errors=errors)
 
 
 def _check_decoded_type(data, root_types=(dict,)):
@@ -299,11 +308,15 @@ def _check_decoded_type(data, root_types=(dict,)):
         if not isinstance(data, root_types):
             if len(root_types) == 1:
                 root_type = root_types[0]
-                raise ValueError("Expected '%s' root type not '%s'"
-                                 % (root_type, type(data)))
+                raise ValueError(
+                    "Expected '%s' root type not '%s'"
+                    % (root_type, type(data))
+                )
             else:
-                raise ValueError("Expected %s root types not '%s'"
-                                 % (list(root_types), type(data)))
+                raise ValueError(
+                    "Expected %s root types not '%s'"
+                    % (list(root_types), type(data))
+                )
     return data
 
 
@@ -352,6 +365,7 @@ class cachedproperty:
     cached property would be stored under '_get_thing' in the self object
     after the first call to 'get_thing' occurs.
     """
+
     def __init__(self, fget=None, require_lock=True):
         if require_lock:
             self._lock = threading.RLock()
@@ -422,8 +436,7 @@ def get_version_string(obj):
     obj_version = getattr(obj, 'version', None)
     if isinstance(obj_version, (list, tuple)):
         obj_version = '.'.join(str(item) for item in obj_version)
-    if obj_version is not None and not isinstance(obj_version,
-                                                  str):
+    if obj_version is not None and not isinstance(obj_version, str):
         obj_version = str(obj_version)
     return obj_version
 
@@ -458,8 +471,9 @@ def as_int(obj, quiet=False):
         pass
     # Eck, not sure what this is then.
     if not quiet:
-        raise TypeError("Can not translate '%s' (%s) to an integer"
-                        % (obj, type(obj)))
+        raise TypeError(
+            "Can not translate '%s' (%s) to an integer" % (obj, type(obj))
+        )
     return obj
 
 
@@ -521,8 +535,9 @@ def is_iterable(obj):
     :param obj: object to be tested for iterable
     :return: True if object is iterable and is not a string
     """
-    return (not isinstance(obj, str) and
-            isinstance(obj, collections.abc.Iterable))
+    return not isinstance(obj, str) and isinstance(
+        obj, collections.abc.Iterable
+    )
 
 
 def safe_copy_dict(obj):

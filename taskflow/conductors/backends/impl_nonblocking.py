@@ -47,20 +47,34 @@ class NonBlockingConductor(impl_executor.ExecutorConductor):
             max_workers = max_simultaneous_jobs
         return futurist.ThreadPoolExecutor(max_workers=max_workers)
 
-    def __init__(self, name, jobboard,
-                 persistence=None, engine=None,
-                 engine_options=None, wait_timeout=None,
-                 log=None, max_simultaneous_jobs=MAX_SIMULTANEOUS_JOBS,
-                 executor_factory=None):
+    def __init__(
+        self,
+        name,
+        jobboard,
+        persistence=None,
+        engine=None,
+        engine_options=None,
+        wait_timeout=None,
+        log=None,
+        max_simultaneous_jobs=MAX_SIMULTANEOUS_JOBS,
+        executor_factory=None,
+    ):
         super().__init__(
-            name, jobboard,
-            persistence=persistence, engine=engine,
-            engine_options=engine_options, wait_timeout=wait_timeout,
-            log=log, max_simultaneous_jobs=max_simultaneous_jobs)
+            name,
+            jobboard,
+            persistence=persistence,
+            engine=engine,
+            engine_options=engine_options,
+            wait_timeout=wait_timeout,
+            log=log,
+            max_simultaneous_jobs=max_simultaneous_jobs,
+        )
         if executor_factory is None:
             self._executor_factory = self._default_executor_factory
         else:
             if not callable(executor_factory):
-                raise ValueError("Provided keyword argument 'executor_factory'"
-                                 " must be callable")
+                raise ValueError(
+                    "Provided keyword argument 'executor_factory'"
+                    " must be callable"
+                )
             self._executor_factory = executor_factory

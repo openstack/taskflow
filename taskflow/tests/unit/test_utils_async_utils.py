@@ -17,7 +17,6 @@ from taskflow.utils import async_utils as au
 
 
 class MakeCompletedFutureTest(test.TestCase):
-
     def test_make_completed_future(self):
         result = object()
         future = au.make_completed_future(result)

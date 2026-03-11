@@ -25,8 +25,9 @@ from taskflow import states
 
 STARTING_STATES = frozenset((states.RUNNING, states.REVERTING))
 FINISHED_STATES = frozenset(base.FINISH_STATES + (states.REVERTED,))
-WATCH_STATES = frozenset(itertools.chain(FINISHED_STATES, STARTING_STATES,
-                                         [states.PENDING]))
+WATCH_STATES = frozenset(
+    itertools.chain(FINISHED_STATES, STARTING_STATES, [states.PENDING])
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -45,10 +46,11 @@ class DurationListener(base.Listener):
     to storage. It saves the duration in seconds as float value
     to task metadata with key ``'duration'``.
     """
+
     def __init__(self, engine):
-        super().__init__(engine,
-                         task_listen_for=WATCH_STATES,
-                         flow_listen_for=WATCH_STATES)
+        super().__init__(
+            engine, task_listen_for=WATCH_STATES, flow_listen_for=WATCH_STATES
+        )
         self._timers = {co.TASK: {}, co.FLOW: {}}
 
     def deregister(self):
@@ -58,9 +60,12 @@ class DurationListener(base.Listener):
         for item_type, timers in self._timers.items():
             leftover_timers = len(timers)
             if leftover_timers:
-                LOG.warning("%s %s(s) did not enter %s states",
-                            leftover_timers,
-                            item_type, FINISHED_STATES)
+                LOG.warning(
+                    "%s %s(s) did not enter %s states",
+                    leftover_timers,
+                    item_type,
+                    FINISHED_STATES,
+                )
             timers.clear()
 
     def _record_ending(self, timer, item_type, item_name, state):
@@ -76,8 +81,13 @@ class DurationListener(base.Listener):
             else:
                 storage.update_atom_metadata(item_name, meta_update)
         except exc.StorageFailure:
-            LOG.warning("Failure to store duration update %s for %s %s",
-                        meta_update, item_type, item_name, exc_info=True)
+            LOG.warning(
+                "Failure to store duration update %s for %s %s",
+                meta_update,
+                item_type,
+                item_name,
+                exc_info=True,
+            )
 
     def _task_receiver(self, state, details):
         task_name = details['task_name']
@@ -110,10 +120,11 @@ class PrintingDurationListener(DurationListener):
             self._printer = printer
 
     def _record_ending(self, timer, item_type, item_name, state):
-        super()._record_ending(
-            timer, item_type, item_name, state)
-        self._printer("It took %s '%s' %0.2f seconds to"
-                      " finish." % (item_type, item_name, timer.elapsed()))
+        super()._record_ending(timer, item_type, item_name, state)
+        self._printer(
+            "It took %s '%s' %0.2f seconds to"
+            " finish." % (item_type, item_name, timer.elapsed())
+        )
 
     def _receiver(self, item_type, item_name, state):
         super()._receiver(item_type, item_name, state)
@@ -132,13 +143,19 @@ class EventTimeListener(base.Listener):
     This information can be later extracted/examined to derive durations...
     """
 
-    def __init__(self, engine,
-                 task_listen_for=base.DEFAULT_LISTEN_FOR,
-                 flow_listen_for=base.DEFAULT_LISTEN_FOR,
-                 retry_listen_for=base.DEFAULT_LISTEN_FOR):
+    def __init__(
+        self,
+        engine,
+        task_listen_for=base.DEFAULT_LISTEN_FOR,
+        flow_listen_for=base.DEFAULT_LISTEN_FOR,
+        retry_listen_for=base.DEFAULT_LISTEN_FOR,
+    ):
         super().__init__(
-            engine, task_listen_for=task_listen_for,
-            flow_listen_for=flow_listen_for, retry_listen_for=retry_listen_for)
+            engine,
+            task_listen_for=task_listen_for,
+            flow_listen_for=flow_listen_for,
+            retry_listen_for=retry_listen_for,
+        )
 
     def _record_atom_event(self, state, atom_name):
         meta_update = {'%s-timestamp' % state: time.time()}
@@ -146,8 +163,12 @@ class EventTimeListener(base.Listener):
             # Don't let storage failures throw exceptions in a listener method.
             self._engine.storage.update_atom_metadata(atom_name, meta_update)
         except exc.StorageFailure:
-            LOG.warning("Failure to store timestamp %s for atom %s",
-                        meta_update, atom_name, exc_info=True)
+            LOG.warning(
+                "Failure to store timestamp %s for atom %s",
+                meta_update,
+                atom_name,
+                exc_info=True,
+            )
 
     def _flow_receiver(self, state, details):
         meta_update = {'%s-timestamp' % state: time.time()}
@@ -155,8 +176,12 @@ class EventTimeListener(base.Listener):
             # Don't let storage failures throw exceptions in a listener method.
             self._engine.storage.update_flow_metadata(meta_update)
         except exc.StorageFailure:
-            LOG.warning("Failure to store timestamp %s for flow %s",
-                        meta_update, details['flow_name'], exc_info=True)
+            LOG.warning(
+                "Failure to store timestamp %s for flow %s",
+                meta_update,
+                details['flow_name'],
+                exc_info=True,
+            )
 
     def _task_receiver(self, state, details):
         self._record_atom_event(state, details['task_name'])

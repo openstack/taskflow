@@ -50,9 +50,13 @@ def _are_equal_exc_info_tuples(ei1, ei2):
     # NOTE(dhellmann): The flake8/pep8 error E721 does not apply here
     # because we want the types to be exactly the same, not just have
     # one be inherited from the other.
-    if not all((type(ei1[1]) == type(ei2[1]),  # noqa: E721
-                str(ei1[1]) == str(ei2[1]),
-                repr(ei1[1]) == repr(ei2[1]))):
+    if not all(
+        (
+            type(ei1[1]) == type(ei2[1]),  # noqa: E721
+            str(ei1[1]) == str(ei2[1]),
+            repr(ei1[1]) == repr(ei2[1]),
+        )
+    ):
         return False
     if ei1[2] == ei2[2]:
         return True
@@ -61,7 +65,7 @@ def _are_equal_exc_info_tuples(ei1, ei2):
     return tb1 == tb2
 
 
-class Failure():
+class Failure:
     """An immutable object that represents failure.
 
     Failure objects encapsulate exception information so that they can be
@@ -117,6 +121,7 @@ class Failure():
     backport at https://pypi.org/project/traceback2/ to (hopefully)
     simplify the methods and contents of this object...
     """
+
     DICT_VERSION = 1
 
     BASE_EXCEPTIONS = ('BaseException', 'Exception')
@@ -159,7 +164,7 @@ class Failure():
                         "items": {
                             "$ref": "#/definitions/cause",
                         },
-                    }
+                    },
                 },
                 "required": [
                     "exception_str",
@@ -180,18 +185,23 @@ class Failure():
                 # either from a prior sys.exc_info() call or from some other
                 # creation...
                 if len(exc_info) != 3:
-                    raise ValueError("Provided 'exc_info' must contain three"
-                                     " elements")
+                    raise ValueError(
+                        "Provided 'exc_info' must contain three elements"
+                    )
             self._exc_info = exc_info
             self._exc_args = tuple(getattr(exc_info[1], 'args', []))
             self._exc_type_names = tuple(
-                reflection.get_all_class_names(exc_info[0], up_to=Exception))
+                reflection.get_all_class_names(exc_info[0], up_to=Exception)
+            )
             if not self._exc_type_names:
-                raise TypeError("Invalid exception type '%s' (%s)"
-                                % (exc_info[0], type(exc_info[0])))
+                raise TypeError(
+                    "Invalid exception type '%s' (%s)"
+                    % (exc_info[0], type(exc_info[0]))
+                )
             self._exception_str = str(self._exc_info[1])
             self._traceback_str = ''.join(
-                traceback.format_tb(self._exc_info[2]))
+                traceback.format_tb(self._exc_info[2])
+            )
             self._causes = kwargs.pop('causes', None)
         else:
             self._causes = kwargs.pop('causes', None)
@@ -203,7 +213,8 @@ class Failure():
             if kwargs:
                 raise TypeError(
                     'Failure.__init__ got unexpected keyword argument(s): %s'
-                    % ', '.join(kwargs.keys()))
+                    % ', '.join(kwargs.keys())
+                )
 
     @classmethod
     def from_exception(cls, exception):
@@ -211,7 +222,7 @@ class Failure():
         exc_info = (
             type(exception),
             exception,
-            getattr(exception, '__traceback__', None)
+            getattr(exception, '__traceback__', None),
         )
         return cls(exc_info=exc_info)
 
@@ -221,8 +232,9 @@ class Failure():
         try:
             su.schema_validate(data, cls.SCHEMA)
         except su.ValidationError as e:
-            raise exc.InvalidFormat("Failure data not of the"
-                                    " expected format: %s" % (e.message), e)
+            raise exc.InvalidFormat(
+                "Failure data not of the expected format: %s" % (e.message), e
+            )
         else:
             # Ensure that all 'exc_type_names' originate from one of
             # BASE_EXCEPTIONS, because those are the root exceptions that
@@ -236,7 +248,8 @@ class Failure():
                         "Failure data 'exc_type_names' must"
                         " have an initial exception type that is one"
                         " of %s types: '%s' is not one of those"
-                        " types" % (cls.BASE_EXCEPTIONS, root_exc_type))
+                        " types" % (cls.BASE_EXCEPTIONS, root_exc_type)
+                    )
                 sub_causes = cause.get('causes')
                 if sub_causes:
                     causes.extend(sub_causes)
@@ -244,11 +257,13 @@ class Failure():
     def _matches(self, other):
         if self is other:
             return True
-        return (self._exc_type_names == other._exc_type_names
-                and self.exception_args == other.exception_args
-                and self.exception_str == other.exception_str
-                and self.traceback_str == other.traceback_str
-                and self.causes == other.causes)
+        return (
+            self._exc_type_names == other._exc_type_names
+            and self.exception_args == other.exception_args
+            and self.exception_str == other.exception_str
+            and self.traceback_str == other.traceback_str
+            and self.causes == other.causes
+        )
 
     def matches(self, other):
         """Checks if another object is equivalent to this object.
@@ -266,8 +281,9 @@ class Failure():
     def __eq__(self, other):
         if not isinstance(other, Failure):
             return NotImplemented
-        return (self._matches(other) and
-                _are_equal_exc_info_tuples(self.exc_info, other.exc_info))
+        return self._matches(other) and _are_equal_exc_info_tuples(
+            self.exc_info, other.exc_info
+        )
 
     def __ne__(self, other):
         return not (self == other)
@@ -379,8 +395,7 @@ class Failure():
             #
             # See: https://www.python.org/dev/peps/pep-0415/ for why/what
             # the '__suppress_context__' is/means/implies...
-            suppress_context = getattr(exc_val,
-                                       '__suppress_context__', False)
+            suppress_context = getattr(exc_val, '__suppress_context__', False)
             if suppress_context:
                 attr_lookups = ['__cause__']
             else:
@@ -431,8 +446,11 @@ class Failure():
         if not self._exc_type_names:
             buf.write('Failure: %s' % (self._exception_str))
         else:
-            buf.write('Failure: {}: {}'.format(self._exc_type_names[0],
-                                               self._exception_str))
+            buf.write(
+                'Failure: {}: {}'.format(
+                    self._exc_type_names[0], self._exception_str
+                )
+            )
         if traceback:
             if self._traceback_str is not None:
                 traceback_str = self._traceback_str.rstrip()
@@ -492,8 +510,9 @@ class Failure():
         data = dict(data)
         version = data.pop('version', None)
         if version != cls.DICT_VERSION:
-            raise ValueError('Invalid dict version of failure object: %r'
-                             % version)
+            raise ValueError(
+                'Invalid dict version of failure object: %r' % version
+            )
         causes = data.get('causes')
         if causes is not None:
             data['causes'] = tuple(cls.from_dict(d) for d in causes)
@@ -516,9 +535,11 @@ class Failure():
 
     def copy(self):
         """Copies this object."""
-        return Failure(exc_info=_copy_exc_info(self.exc_info),
-                       exception_str=self.exception_str,
-                       traceback_str=self.traceback_str,
-                       exc_args=self.exception_args,
-                       exc_type_names=self._exc_type_names[:],
-                       causes=self._causes)
+        return Failure(
+            exc_info=_copy_exc_info(self.exc_info),
+            exception_str=self.exception_str,
+            traceback_str=self.traceback_str,
+            exc_args=self.exception_args,
+            exc_type_names=self._exc_type_names[:],
+            causes=self._causes,
+        )

@@ -52,8 +52,9 @@ def _save_as_to_mapping(save_as):
         # NOTE(harlowja): this means that your atom will return a indexable
         # object, like a list or tuple and the results can be mapped by index
         # to that tuple/list that is returned for others to use.
-        return collections.OrderedDict((key, num)
-                                       for num, key in enumerate(save_as))
+        return collections.OrderedDict(
+            (key, num) for num, key in enumerate(save_as)
+        )
     elif isinstance(save_as, _set_types):
         # NOTE(harlowja): in the case where a set is given we will not be
         # able to determine the numeric ordering in a reliable way (since it
@@ -61,8 +62,10 @@ def _save_as_to_mapping(save_as):
         # result of the atom will be via the key itself.
         return collections.OrderedDict((key, key) for key in save_as)
     else:
-        raise TypeError('Atom provides parameter '
-                        'should be str, set or tuple/list, not %r' % save_as)
+        raise TypeError(
+            'Atom provides parameter '
+            'should be str, set or tuple/list, not %r' % save_as
+        )
 
 
 def _build_rebind_dict(req_args, rebind_args):
@@ -84,17 +87,19 @@ def _build_rebind_dict(req_args, rebind_args):
             # Extra things were rebound, that may be because of *args
             # or **kwargs (or some other reason); so just keep all of them
             # using 1:1 rebinding...
-            rebind.update((a, a) for a in rebind_args[len(req_args):])
+            rebind.update((a, a) for a in rebind_args[len(req_args) :])
         return rebind
     elif isinstance(rebind_args, dict):
         return rebind_args
     else:
-        raise TypeError("Invalid rebind value '%s' (%s)"
-                        % (rebind_args, type(rebind_args)))
+        raise TypeError(
+            "Invalid rebind value '%s' (%s)" % (rebind_args, type(rebind_args))
+        )
 
 
-def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
-                       ignore_list=None):
+def _build_arg_mapping(
+    atom_name, reqs, rebind_args, function, do_infer, ignore_list=None
+):
     """Builds an input argument mapping for a given function.
 
     Given a function, its requirements and a rebind mapping this helper
@@ -135,8 +140,9 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
     # Determine if there are optional arguments that we may or may not take.
     if do_infer:
         opt_args = sets.OrderedSet(all_args)
-        opt_args = opt_args - set(itertools.chain(required.keys(),
-                                                  iter(ignore_list)))
+        opt_args = opt_args - set(
+            itertools.chain(required.keys(), iter(ignore_list))
+        )
         optional = collections.OrderedDict((a, a) for a in opt_args)
     else:
         optional = collections.OrderedDict()
@@ -146,14 +152,17 @@ def _build_arg_mapping(atom_name, reqs, rebind_args, function, do_infer,
         extra_args = sets.OrderedSet(required.keys())
         extra_args -= all_args
         if extra_args:
-            raise ValueError('Extra arguments given to atom %s: %s'
-                             % (atom_name, list(extra_args)))
+            raise ValueError(
+                'Extra arguments given to atom %s: %s'
+                % (atom_name, list(extra_args))
+            )
 
     # NOTE(imelnikov): don't use set to preserve order in error message
     missing_args = [arg for arg in req_args if arg not in required]
     if missing_args:
-        raise ValueError('Missing arguments for atom %s: %s'
-                         % (atom_name, missing_args))
+        raise ValueError(
+            'Missing arguments for atom %s: %s' % (atom_name, missing_args)
+        )
     return required, optional
 
 
@@ -244,9 +253,18 @@ class Atom(metaclass=abc.ABCMeta):
 
     default_provides = None
 
-    def __init__(self, name=None, provides=None, requires=None,
-                 auto_extract=True, rebind=None, inject=None,
-                 ignore_list=None, revert_rebind=None, revert_requires=None):
+    def __init__(
+        self,
+        name=None,
+        provides=None,
+        requires=None,
+        auto_extract=True,
+        rebind=None,
+        inject=None,
+        ignore_list=None,
+        revert_rebind=None,
+        revert_requires=None,
+    ):
 
         if provides is None:
             provides = self.default_provides
@@ -263,8 +281,9 @@ class Atom(metaclass=abc.ABCMeta):
         self.rebind, exec_requires, self.optional = self._build_arg_mapping(
             self.execute,
             requires=requires,
-            rebind=rebind, auto_extract=auto_extract,
-            ignore_list=ignore_list
+            rebind=rebind,
+            auto_extract=auto_extract,
+            ignore_list=ignore_list,
         )
 
         revert_ignore = ignore_list + list(_default_revert_args)
@@ -273,10 +292,11 @@ class Atom(metaclass=abc.ABCMeta):
             requires=revert_requires or requires,
             rebind=revert_rebind or rebind,
             auto_extract=auto_extract,
-            ignore_list=revert_ignore
+            ignore_list=revert_ignore,
         )
-        (self.revert_rebind, addl_requires,
-         self.revert_optional) = revert_mapping
+        (self.revert_rebind, addl_requires, self.revert_optional) = (
+            revert_mapping
+        )
 
         # TODO(bnemec): This should be documented as an ivar, but can't be due
         # to https://github.com/sphinx-doc/sphinx/issues/2549
@@ -284,18 +304,30 @@ class Atom(metaclass=abc.ABCMeta):
         #: requires to function.
         self.requires = exec_requires.union(addl_requires)
 
-    def _build_arg_mapping(self, executor, requires=None, rebind=None,
-                           auto_extract=True, ignore_list=None):
+    def _build_arg_mapping(
+        self,
+        executor,
+        requires=None,
+        rebind=None,
+        auto_extract=True,
+        ignore_list=None,
+    ):
 
-        required, optional = _build_arg_mapping(self.name, requires, rebind,
-                                                executor, auto_extract,
-                                                ignore_list=ignore_list)
+        required, optional = _build_arg_mapping(
+            self.name,
+            requires,
+            rebind,
+            executor,
+            auto_extract,
+            ignore_list=ignore_list,
+        )
         # Form the real rebind mapping, if a key name is the same as the
         # key value, then well there is no rebinding happening, otherwise
         # there will be.
         rebind = collections.OrderedDict()
-        for (arg_name, bound_name) in itertools.chain(required.items(),
-                                                      optional.items()):
+        for arg_name, bound_name in itertools.chain(
+            required.items(), optional.items()
+        ):
             rebind.setdefault(arg_name, bound_name)
         requires = sets.OrderedSet(required.values())
         optional = sets.OrderedSet(optional.values())

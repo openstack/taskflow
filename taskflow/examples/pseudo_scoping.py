@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
@@ -43,12 +43,7 @@ from taskflow import task
 # his or her phone number from phone book and call.
 
 
-PHONE_BOOK = {
-    'jim': '444',
-    'joe': '555',
-    'iv_m': '666',
-    'josh': '777'
-}
+PHONE_BOOK = {'jim': '444', 'joe': '555', 'iv_m': '666', 'josh': '777'}
 
 
 class FetchNumberTask(task.Task):
@@ -67,11 +62,10 @@ class CallTask(task.Task):
     def execute(self, person, number):
         print(f'Calling {person} {number}.')
 
+
 # This is how it works for one person:
 
-simple_flow = lf.Flow('simple one').add(
-    FetchNumberTask(),
-    CallTask())
+simple_flow = lf.Flow('simple one').add(FetchNumberTask(), CallTask())
 print('Running simple flow:')
 taskflow.engines.run(simple_flow, store={'person': 'Josh'})
 
@@ -85,11 +79,10 @@ def subflow_factory(prefix):
         return f'{prefix}-{what}'
 
     return lf.Flow(pr('flow')).add(
-        FetchNumberTask(pr('fetch'),
-                        provides=pr('number'),
-                        rebind=[pr('person')]),
-        CallTask(pr('call'),
-                 rebind=[pr('person'), pr('number')])
+        FetchNumberTask(
+            pr('fetch'), provides=pr('number'), rebind=[pr('person')]
+        ),
+        CallTask(pr('call'), rebind=[pr('person'), pr('number')]),
     )
 
 
@@ -106,6 +99,7 @@ def call_them_all():
         persons['%s-person' % prefix] = person
         flow.add(subflow_factory(prefix))
     taskflow.engines.run(flow, store=persons)
+
 
 print('\nCalling many people using prefixed factory:')
 call_them_all()

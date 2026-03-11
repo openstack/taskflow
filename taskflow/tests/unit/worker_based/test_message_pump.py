@@ -37,11 +37,15 @@ class TestMessagePump(test.TestCase):
         on_notify.side_effect = lambda *args, **kwargs: barrier.set()
 
         handlers = {pr.NOTIFY: dispatcher.Handler(on_notify)}
-        p = proxy.Proxy(TEST_TOPIC, TEST_EXCHANGE, handlers,
-                        transport='memory',
-                        transport_options={
-                            'polling_interval': POLLING_INTERVAL,
-                        })
+        p = proxy.Proxy(
+            TEST_TOPIC,
+            TEST_EXCHANGE,
+            handlers,
+            transport='memory',
+            transport_options={
+                'polling_interval': POLLING_INTERVAL,
+            },
+        )
 
         t = threading_utils.daemon_thread(p.start)
         t.start()
@@ -62,11 +66,15 @@ class TestMessagePump(test.TestCase):
         on_response.side_effect = lambda *args, **kwargs: barrier.set()
 
         handlers = {pr.RESPONSE: dispatcher.Handler(on_response)}
-        p = proxy.Proxy(TEST_TOPIC, TEST_EXCHANGE, handlers,
-                        transport='memory',
-                        transport_options={
-                            'polling_interval': POLLING_INTERVAL,
-                        })
+        p = proxy.Proxy(
+            TEST_TOPIC,
+            TEST_EXCHANGE,
+            handlers,
+            transport='memory',
+            transport_options={
+                'polling_interval': POLLING_INTERVAL,
+            },
+        )
 
         t = threading_utils.daemon_thread(p.start)
         t.start()
@@ -101,11 +109,15 @@ class TestMessagePump(test.TestCase):
             pr.RESPONSE: dispatcher.Handler(on_response),
             pr.REQUEST: dispatcher.Handler(on_request),
         }
-        p = proxy.Proxy(TEST_TOPIC, TEST_EXCHANGE, handlers,
-                        transport='memory',
-                        transport_options={
-                            'polling_interval': POLLING_INTERVAL,
-                        })
+        p = proxy.Proxy(
+            TEST_TOPIC,
+            TEST_EXCHANGE,
+            handlers,
+            transport='memory',
+            transport_options={
+                'polling_interval': POLLING_INTERVAL,
+            },
+        )
 
         t = threading_utils.daemon_thread(p.start)
         t.start()
@@ -118,9 +130,16 @@ class TestMessagePump(test.TestCase):
             elif j == 1:
                 p.publish(pr.Response(pr.RUNNING), TEST_TOPIC)
             else:
-                p.publish(pr.Request(test_utils.DummyTask("dummy_%s" % i),
-                                     uuidutils.generate_uuid(),
-                                     pr.EXECUTE, [], None), TEST_TOPIC)
+                p.publish(
+                    pr.Request(
+                        test_utils.DummyTask("dummy_%s" % i),
+                        uuidutils.generate_uuid(),
+                        pr.EXECUTE,
+                        [],
+                        None,
+                    ),
+                    TEST_TOPIC,
+                )
 
         self.assertTrue(barrier.wait(test_utils.WAIT_TIMEOUT))
         self.assertEqual(0, barrier.needed)
@@ -135,9 +154,11 @@ class TestMessagePump(test.TestCase):
         self.assertEqual(10, on_response.call_count)
         self.assertEqual(10, on_request.call_count)
 
-        call_count = sum([
-            on_notify.call_count,
-            on_response.call_count,
-            on_request.call_count,
-        ])
+        call_count = sum(
+            [
+                on_notify.call_count,
+                on_response.call_count,
+                on_request.call_count,
+            ]
+        )
         self.assertEqual(message_count, call_count)

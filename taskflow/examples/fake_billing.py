@@ -20,9 +20,9 @@ import time
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 from oslo_utils import uuidutils
@@ -130,8 +130,11 @@ class ActivateDriver(task.Task):
         # that the url sending helper class uses. This allows the task progress
         # to be tied to the url sending progress, which is very useful for
         # downstream systems to be aware of what a task is doing at any time.
-        url_sender.send(self._url, json.dumps(parsed_request),
-                        status_cb=self.update_progress)
+        url_sender.send(
+            self._url,
+            json.dumps(parsed_request),
+            status_cb=self.update_progress,
+        )
         return self._url
 
     def update_progress(self, progress, **kwargs):

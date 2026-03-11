@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
@@ -46,7 +46,6 @@ from taskflow import task
 
 
 class Adder(task.Task):
-
     def execute(self, x, y):
         return x + y
 
@@ -56,7 +55,7 @@ flow = gf.Flow('root').add(
         # x2 = y3+y4 = 12
         Adder("add2", provides='x2', rebind=['y3', 'y4']),
         # x1 = y1+y2 = 4
-        Adder("add1", provides='x1', rebind=['y1', 'y2'])
+        Adder("add1", provides='x1', rebind=['y1', 'y2']),
     ),
     # x5 = x1+x3 = 20
     Adder("add5", provides='x5', rebind=['x1', 'x3']),
@@ -67,7 +66,8 @@ flow = gf.Flow('root').add(
     # x6 = x5+x4 = 41
     Adder("add6", provides='x6', rebind=['x5', 'x4']),
     # x7 = x6+x6 = 82
-    Adder("add7", provides='x7', rebind=['x6', 'x6']))
+    Adder("add7", provides='x7', rebind=['x6', 'x6']),
+)
 
 # Provide the initial variable inputs using a storage dictionary.
 store = {
@@ -90,21 +90,19 @@ expected = [
     ('x7', 82),
 ]
 
-result = taskflow.engines.run(
-    flow, engine='serial', store=store)
+result = taskflow.engines.run(flow, engine='serial', store=store)
 
 print("Single threaded engine result %s" % result)
-for (name, value) in expected:
+for name, value in expected:
     actual = result.get(name)
     if actual != value:
         sys.stderr.write(f"{actual} != {value}\n")
         unexpected += 1
 
-result = taskflow.engines.run(
-    flow, engine='parallel', store=store)
+result = taskflow.engines.run(flow, engine='parallel', store=store)
 
 print("Multi threaded engine result %s" % result)
-for (name, value) in expected:
+for name, value in expected:
     actual = result.get(name)
     if actual != value:
         sys.stderr.write(f"{actual} != {value}\n")

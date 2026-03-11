@@ -20,13 +20,15 @@ from taskflow import test
 class TestStates(test.TestCase):
     def test_valid_flow_states(self):
         for start_state, end_state in states._ALLOWED_FLOW_TRANSITIONS:
-            self.assertTrue(states.check_flow_transition(start_state,
-                                                         end_state))
+            self.assertTrue(
+                states.check_flow_transition(start_state, end_state)
+            )
 
     def test_ignored_flow_states(self):
         for start_state, end_state in states._IGNORED_FLOW_TRANSITIONS:
-            self.assertFalse(states.check_flow_transition(start_state,
-                                                          end_state))
+            self.assertFalse(
+                states.check_flow_transition(start_state, end_state)
+            )
 
     def test_invalid_flow_states(self):
         invalids = [
@@ -36,14 +38,18 @@ class TestStates(test.TestCase):
             (states.RESUMING, states.RUNNING),
         ]
         for start_state, end_state in invalids:
-            self.assertRaises(excp.InvalidState,
-                              states.check_flow_transition,
-                              start_state, end_state)
+            self.assertRaises(
+                excp.InvalidState,
+                states.check_flow_transition,
+                start_state,
+                end_state,
+            )
 
     def test_valid_job_states(self):
         for start_state, end_state in states._ALLOWED_JOB_TRANSITIONS:
-            self.assertTrue(states.check_job_transition(start_state,
-                                                        end_state))
+            self.assertTrue(
+                states.check_job_transition(start_state, end_state)
+            )
 
     def test_ignored_job_states(self):
         ignored = []
@@ -51,8 +57,9 @@ class TestStates(test.TestCase):
             ignored.append((start_state, start_state))
             ignored.append((end_state, end_state))
         for start_state, end_state in ignored:
-            self.assertFalse(states.check_job_transition(start_state,
-                                                         end_state))
+            self.assertFalse(
+                states.check_job_transition(start_state, end_state)
+            )
 
     def test_invalid_job_states(self):
         invalids = [
@@ -60,14 +67,18 @@ class TestStates(test.TestCase):
             (states.UNCLAIMED, states.COMPLETE),
         ]
         for start_state, end_state in invalids:
-            self.assertRaises(excp.InvalidState,
-                              states.check_job_transition,
-                              start_state, end_state)
+            self.assertRaises(
+                excp.InvalidState,
+                states.check_job_transition,
+                start_state,
+                end_state,
+            )
 
     def test_valid_task_states(self):
         for start_state, end_state in states._ALLOWED_TASK_TRANSITIONS:
-            self.assertTrue(states.check_task_transition(start_state,
-                                                         end_state))
+            self.assertTrue(
+                states.check_task_transition(start_state, end_state)
+            )
 
     def test_invalid_task_states(self):
         invalids = [
@@ -82,4 +93,5 @@ class TestStates(test.TestCase):
             # TODO(harlowja): fix this so that it raises instead of
             # returning false...
             self.assertFalse(
-                states.check_task_transition(start_state, end_state))
+                states.check_task_transition(start_state, end_state)
+            )

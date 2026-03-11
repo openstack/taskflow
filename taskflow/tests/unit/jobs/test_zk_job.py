@@ -36,7 +36,8 @@ from taskflow.utils import persistence_utils as p_utils
 FLUSH_PATH_TPL = '/taskflow/flush-test/%s'
 TEST_PATH_TPL = '/taskflow/board-test/%s'
 ZOOKEEPER_AVAILABLE = test_utils.zookeeper_available(
-    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION)
+    impl_zookeeper.ZookeeperJobBoard.MIN_ZK_VERSION
+)
 LOCK_POSTFIX = impl_zookeeper.ZookeeperJobBoard.LOCK_POSTFIX
 
 
@@ -70,25 +71,33 @@ class ZookeeperBoardTestMixin(base.BoardTestMixin):
         watchers.DataWatch(client, path, func=on_created)
         client.create(path, makepath=True)
         if not created.wait(test_utils.WAIT_TIMEOUT):
-            raise RuntimeError("Could not receive creation of %s in"
-                               " the alloted timeout of %s seconds"
-                               % (path, test_utils.WAIT_TIMEOUT))
+            raise RuntimeError(
+                "Could not receive creation of %s in"
+                " the alloted timeout of %s seconds"
+                % (path, test_utils.WAIT_TIMEOUT)
+            )
         try:
             yield
         finally:
             watchers.DataWatch(client, path, func=on_deleted)
             client.delete(path, recursive=True)
             if not deleted.wait(test_utils.WAIT_TIMEOUT):
-                raise RuntimeError("Could not receive deletion of %s in"
-                                   " the alloted timeout of %s seconds"
-                                   % (path, test_utils.WAIT_TIMEOUT))
+                raise RuntimeError(
+                    "Could not receive deletion of %s in"
+                    " the alloted timeout of %s seconds"
+                    % (path, test_utils.WAIT_TIMEOUT)
+                )
 
     def test_posting_no_post(self):
         with base.connect_close(self.board):
             with mock.patch.object(self.client, 'create') as create_func:
                 create_func.side_effect = IOError("Unable to post")
-                self.assertRaises(IOError, self.board.post,
-                                  'test', p_utils.temporary_log_book())
+                self.assertRaises(
+                    IOError,
+                    self.board.post,
+                    'test',
+                    p_utils.temporary_log_book(),
+                )
             self.assertEqual(0, self.board.job_count)
 
     def test_board_iter(self):
@@ -98,8 +107,9 @@ class ZookeeperBoardTestMixin(base.BoardTestMixin):
             self.assertFalse(it.only_unclaimed)
             self.assertFalse(it.ensure_fresh)
 
-    @mock.patch("taskflow.jobs.backends.impl_zookeeper.misc."
-                "millis_to_datetime")
+    @mock.patch(
+        "taskflow.jobs.backends.impl_zookeeper.misc.millis_to_datetime"
+    )
     def test_posting_dates(self, mock_dt):
         epoch = misc.millis_to_datetime(0)
         mock_dt.return_value = epoch
@@ -123,9 +133,11 @@ class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         client = kazoo_utils.make_client(test_utils.ZK_TEST_CONFIG.copy())
         self.path = TEST_PATH_TPL % uuidutils.generate_uuid()
         board = impl_zookeeper.ZookeeperJobBoard(
-            'test-board', {'path': self.path},
+            'test-board',
+            {'path': self.path},
             client=client,
-            persistence=persistence)
+            persistence=persistence,
+        )
         self.addCleanup(cleanup_path, client, self.path)
         self.addCleanup(board.close)
         self.addCleanup(self.close_client, client)
@@ -151,8 +163,10 @@ class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
             children = self.client.get_children(self.path)
             for p in children:
                 if p.endswith(LOCK_POSTFIX):
-                    self.client.set(k_paths.join(self.path, p),
-                                    misc.binary_encode(jsonutils.dumps({})))
+                    self.client.set(
+                        k_paths.join(self.path, p),
+                        misc.binary_encode(jsonutils.dumps({})),
+                    )
             self.assertEqual(states.UNCLAIMED, j.state)
 
     def test_posting_state_lock_lost(self):
@@ -203,8 +217,9 @@ class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
 
             self.assertEqual(self.board, posted_job.board)
             self.assertEqual(1, self.board.job_count)
-            self.assertIn(posted_job.uuid, [j.uuid
-                                            for j in self.board.iterjobs()])
+            self.assertIn(
+                posted_job.uuid, [j.uuid for j in self.board.iterjobs()]
+            )
 
         # Remove paths that got created due to the running process that we are
         # not interested in...
@@ -213,42 +228,46 @@ class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
         self.assertEqual(1, len(children))
         child = self.client.get(k_paths.join(self.path, children[0]))
         self.assertGreater(len(child[0]), 0)
-        self.assertEqual({
-            'uuid': posted_job.uuid,
-            'name': posted_job.name,
-            'book': {
-                'name': book.name,
-                'uuid': book.uuid,
+        self.assertEqual(
+            {
+                'uuid': posted_job.uuid,
+                'name': posted_job.name,
+                'book': {
+                    'name': book.name,
+                    'uuid': book.uuid,
+                },
+                'priority': 'NORMAL',
+                'details': {},
             },
-            'priority': 'NORMAL',
-            'details': {},
-        }, jsonutils.loads(misc.binary_decode(child[0])))
+            jsonutils.loads(misc.binary_decode(child[0])),
+        )
 
     def test_register_entity(self):
         conductor_name = "conductor-abc@localhost:4123"
-        entity_instance = entity.Entity("conductor",
-                                        conductor_name,
-                                        {})
+        entity_instance = entity.Entity("conductor", conductor_name, {})
         with base.connect_close(self.board):
             self.board.register_entity(entity_instance)
         # Check '.entity' node has been created
         self.client.get_children(self.board.entity_path)
 
-        conductor_entity_path = k_paths.join(self.board.entity_path,
-                                             'conductor',
-                                             conductor_name)
+        conductor_entity_path = k_paths.join(
+            self.board.entity_path, 'conductor', conductor_name
+        )
         conductor_data = self.client.get(conductor_entity_path)[0]
         self.assertGreater(len(conductor_data), 0)
-        self.assertEqual({
-            'name': conductor_name,
-            'kind': 'conductor',
-            'metadata': {},
-        }, jsonutils.loads(misc.binary_decode(conductor_data)))
+        self.assertEqual(
+            {
+                'name': conductor_name,
+                'kind': 'conductor',
+                'metadata': {},
+            },
+            jsonutils.loads(misc.binary_decode(conductor_data)),
+        )
 
-        entity_instance_2 = entity.Entity("non-sense",
-                                          "other_name",
-                                          {})
+        entity_instance_2 = entity.Entity("non-sense", "other_name", {})
         with base.connect_close(self.board):
-            self.assertRaises(excp.NotImplementedError,
-                              self.board.register_entity,
-                              entity_instance_2)
+            self.assertRaises(
+                excp.NotImplementedError,
+                self.board.register_entity,
+                entity_instance_2,
+            )

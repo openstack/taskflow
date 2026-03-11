@@ -18,9 +18,9 @@ import sys
 
 logging.basicConfig(level=logging.ERROR)
 
-top_dir = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                       os.pardir,
-                                       os.pardir))
+top_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+)
 sys.path.insert(0, top_dir)
 
 import taskflow.engines
@@ -82,12 +82,15 @@ flow.add(task.FunctorTask(execute=call_jim))
 flow.add(task.FunctorTask(execute=call_joe))
 
 # Now load (but do not run) the flow using the provided initial data.
-engine = taskflow.engines.load(flow, store={
-    'context': {
-        "joe_number": 444,
-        "jim_number": 555,
-    }
-})
+engine = taskflow.engines.load(
+    flow,
+    store={
+        'context': {
+            "joe_number": 444,
+            "jim_number": 555,
+        }
+    },
+)
 
 # This is where we attach our callback functions to the 2 different
 # notification objects that an engine exposes. The usage of a ANY (kleene star)
