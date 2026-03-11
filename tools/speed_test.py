@@ -111,7 +111,7 @@ def main():
     dummy_am = max(0, args.dummies)
     with ctx_manager("Building linear flow with %s tasks" % dummy_am, args):
         f = lf.Flow("root")
-        for i in compat_range(0, dummy_am):
+        for i in range(0, dummy_am):
             f.add(DummyTask(name="dummy_%s" % i))
     with ctx_manager("Loading", args):
         e = engines.load(f)
