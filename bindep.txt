@@ -4,18 +4,18 @@
 graphviz [!platform:gentoo]
 media-gfx/graphviz [platform:gentoo]
 
-mariadb [platform:rpm]
-mariadb-server [platform:redhat platform:debian]
 mariadb-devel [platform:redhat]
 libmariadb-dev-compat [platform:debian]
 libmysqlclient-dev [platform:ubuntu]
 libmysqlclient-devel [platform:suse]
-mysql-client [platform:dpkg !platform:debian]
-mysql-server [platform:dpkg !platform:debian]
-postgresql
-postgresql-client [platform:dpkg]
 libpq-dev [platform:dpkg]
 
+mariadb [platform:rpm test]
+mariadb-server [platform:redhat platform:debian test]
+mysql-client [platform:dpkg !platform:debian test]
+mysql-server [platform:dpkg !platform:debian test]
+postgresql [test]
+postgresql-client [platform:dpkg tests]
 etcd-client [platform:dpkg tests-functional-etcd]
 etcd-server [platform:dpkg tests-functional-etcd]
 # NOTE(tkajinam): etcd package is not available in CentOS
