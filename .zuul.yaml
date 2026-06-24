@@ -1,3 +1,5 @@
+---
+
 - job:
     name: taskflow-functional
     parent: openstack-tox
@@ -42,6 +44,7 @@
       - lib-forward-testing-python3
       - openstack-cover-jobs
       - openstack-python3-jobs
+      - openstack-python3-next-jobs
       - periodic-stable-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
