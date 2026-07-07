@@ -210,3 +210,62 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
                 [('127.0.0.1', 26379)], sentinel_kwargs=None, **test_conf
             )
             mock_sentinel().master_for.assert_called_once_with('mymaster')
+
+    def test__make_client_retry_health(self):
+        conf = {
+            'host': '127.0.0.1',
+            'port': 6379,
+            'retry_on_timeout': True,
+            'health_check_interval': 30,
+            'namespace': 'test',
+        }
+        test_conf = {
+            'host': '127.0.0.1',
+            'port': 6379,
+            'retry_on_timeout': True,
+            'health_check_interval': 30,
+        }
+        with mock.patch('taskflow.utils.redis_utils.RedisClient') as mock_ru:
+            impl_redis.RedisJobBoard('test-board', conf)
+            mock_ru.assert_called_once_with(**test_conf)
+
+    def test__make_client_sentinel_retry_health(self):
+        conf = {
+            'host': '127.0.0.1',
+            'port': 26379,
+            'retry_on_timeout': True,
+            'health_check_interval': 30,
+            'namespace': 'test',
+            'sentinel': 'mymaster',
+            'sentinel_kwargs': None,
+        }
+        with mock.patch('redis.sentinel.Sentinel') as mock_sentinel:
+            impl_redis.RedisJobBoard('test-board', conf)
+            test_conf = {
+                'retry_on_timeout': True,
+                'health_check_interval': 30,
+            }
+            mock_sentinel.assert_called_once_with(
+                [('127.0.0.1', 26379)], sentinel_kwargs=None, **test_conf
+            )
+            mock_sentinel().master_for.assert_called_once_with('mymaster')
+
+    def test__make_client_retry_health_string_conversion(self):
+        # Config values commonly arrive as strings; verify they are
+        # converted to the types redis-py expects (bool and int).
+        conf = {
+            'host': '127.0.0.1',
+            'port': 6379,
+            'retry_on_timeout': 'true',
+            'health_check_interval': '30',
+            'namespace': 'test',
+        }
+        test_conf = {
+            'host': '127.0.0.1',
+            'port': 6379,
+            'retry_on_timeout': True,
+            'health_check_interval': 30,
+        }
+        with mock.patch('taskflow.utils.redis_utils.RedisClient') as mock_ru:
+            impl_redis.RedisJobBoard('test-board', conf)
+            mock_ru.assert_called_once_with(**test_conf)
