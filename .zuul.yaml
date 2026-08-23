@@ -36,7 +36,6 @@
     vars:
       tox_environment:
         PIFPAF_DAEMON: etcd
-        SETUP_ENV_SCRIPT: ./setup-etcd-env.sh
 
 - project:
     templates:
