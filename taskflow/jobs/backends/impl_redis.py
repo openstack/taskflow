@@ -300,6 +300,11 @@ class RedisJobBoard(base.JobBoard):
             # Connection settings.
             ('socket_timeout', float),
             ('socket_connect_timeout', float),
+            # Retry / health-check behavior. Opt-in; lets deployments make
+            # the client resilient to transient backend disruptions such as
+            # a Redis Sentinel master failover (see bug 2160070).
+            ('retry_on_timeout', strutils.bool_from_string),
+            ('health_check_interval', int),
             # This one negates the usage of host, port, socket connection
             # settings as it doesn't use the same kind of underlying socket...
             ('unix_socket_path', str),

@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The Redis job board backend now allows the ``retry_on_timeout`` and
+    ``health_check_interval`` redis-py client options to be passed through
+    the job board configuration. These are opt-in and let deployments make
+    the Redis client resilient to transient backend disruptions such as a
+    Redis Sentinel master failover.
