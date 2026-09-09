@@ -14,7 +14,6 @@
 #    under the License.
 
 import abc
-
 import enum
 
 from taskflow import atom
@@ -23,7 +22,7 @@ from taskflow.utils import misc
 
 
 @enum.unique
-class Decision(misc.StrEnum):
+class Decision(enum.StrEnum):
     """Decision results/strategy enumeration."""
 
     REVERT = "REVERT"

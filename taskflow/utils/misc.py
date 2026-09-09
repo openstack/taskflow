@@ -16,6 +16,7 @@
 import collections.abc
 import contextlib
 import datetime
+import enum
 import functools
 import inspect
 import io
@@ -26,7 +27,6 @@ import sys
 import threading
 import types
 
-import enum
 from oslo_serialization import jsonutils
 from oslo_serialization import msgpackutils
 from oslo_utils import encodeutils
@@ -45,17 +45,8 @@ NUMERIC_TYPES = (int, float)
 _SCHEME_REGEX = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*):")
 
 
-class StrEnum(str, enum.Enum):
-    """An enumeration that is also a string and can be compared to strings."""
-
-    def __new__(cls, *args, **kwargs):
-        for a in args:
-            if not isinstance(a, str):
-                raise TypeError(
-                    "Enumeration '%s' (%s) is not"
-                    " a string" % (a, type(a).__name__)
-                )
-        return super().__new__(cls, *args, **kwargs)
+# NOTE(tkajinam): Kept here for compatibility. Maybe we should deprecate it.
+StrEnum = enum.StrEnum
 
 
 class StringIO(io.StringIO):
