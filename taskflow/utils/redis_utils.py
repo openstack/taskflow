@@ -33,11 +33,7 @@ def _raise_on_closed(meth):
 
 
 class RedisClient(redis.Redis):
-    """A redis client that can be closed (and raises on-usage after closed).
-
-    TODO(harlowja): if https://github.com/andymccurdy/redis-py/issues/613 ever
-    gets resolved or merged or other then we can likely remove this.
-    """
+    """A redis client that raises on-usage after closed."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -45,7 +41,7 @@ class RedisClient(redis.Redis):
 
     def close(self):
         self.closed = True
-        self.connection_pool.disconnect()
+        super().close()
 
     execute_command = _raise_on_closed(redis.Redis.execute_command)
     transaction = _raise_on_closed(redis.Redis.transaction)
