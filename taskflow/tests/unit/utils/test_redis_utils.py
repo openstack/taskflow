@@ -89,90 +89,36 @@ class TestIsServerNewEnough(test.TestCase):
 class TestGetExpiry(test.TestCase):
     def test_get_expiry(self):
         client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.6.1'}
         client.pttl.return_value = 10.0
         self.assertEqual(0.01, redis_utils.get_expiry(client, 'foo'))
         client.pttl.assert_called_once_with('foo')
-        client.ttl.assert_not_called()
 
     def test_get_expiry_does_not_expire(self):
         client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.6.1'}
         client.pttl.return_value = -1
         self.assertEqual(
             redis_utils.DOES_NOT_EXPIRE, redis_utils.get_expiry(client, 'foo')
         )
         client.pttl.assert_called_once_with('foo')
-        client.ttl.assert_not_called()
 
     def test_get_expiry_key_not_found(self):
         client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.6.1'}
         client.pttl.return_value = -2
         self.assertEqual(
             redis_utils.KEY_NOT_FOUND, redis_utils.get_expiry(client, 'foo')
         )
         client.pttl.assert_called_once_with('foo')
-        client.ttl.assert_not_called()
-
-    def test_get_expiry_legacy(self):
-        client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.5.1'}
-        client.ttl.return_value = 10
-        self.assertEqual(10.0, redis_utils.get_expiry(client, 'foo'))
-        client.ttl.assert_called_once_with('foo')
-        client.pttl.assert_not_called()
-
-    def test_get_expiry_legacy_does_not_expire(self):
-        client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.5.1'}
-        client.ttl.return_value = -1
-        self.assertEqual(
-            redis_utils.DOES_NOT_EXPIRE, redis_utils.get_expiry(client, 'foo')
-        )
-        client.ttl.assert_called_once_with('foo')
-        client.pttl.assert_not_called()
-
-    def test_get_expiry_legacy_key_not_found(self):
-        client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.5.1'}
-        client.ttl.return_value = -2
-        self.assertEqual(
-            redis_utils.KEY_NOT_FOUND, redis_utils.get_expiry(client, 'foo')
-        )
-        client.ttl.assert_called_once_with('foo')
-        client.pttl.assert_not_called()
 
 
 class TestApplyExpiry(test.TestCase):
     def test_apply_expiry(self):
         client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.6.1'}
         client.pexpire.return_value = 1
         self.assertIs(True, redis_utils.apply_expiry(client, 'foo', 10))
         client.pexpire.assert_called_once_with('foo', 10000.0)
-        client.expire.assert_not_called()
 
     def test_apply_expiry_negative(self):
         client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.6.1'}
         client.pexpire.return_value = 1
         self.assertIs(True, redis_utils.apply_expiry(client, 'foo', -10))
         client.pexpire.assert_called_once_with('foo', 0.0)
-        client.expire.assert_not_called()
-
-    def test_apply_expiry_legacy(self):
-        client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.5.1'}
-        client.expire.return_value = 1
-        self.assertIs(True, redis_utils.apply_expiry(client, 'foo', 10))
-        client.expire.assert_called_once_with('foo', 10)
-        client.pexpire.assert_not_called()
-
-    def test_apply_expiry_legacy_negative(self):
-        client = mock.Mock()
-        client.info.return_value = {'redis_version': '2.5.1'}
-        client.expire.return_value = 1
-        self.assertIs(True, redis_utils.apply_expiry(client, 'foo', -10))
-        client.expire.assert_called_once_with('foo', 0)
-        client.pexpire.assert_not_called()

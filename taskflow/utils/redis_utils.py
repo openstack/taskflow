@@ -73,38 +73,18 @@ KEY_NOT_FOUND = UnknownExpire.KEY_NOT_FOUND
 
 def get_expiry(client, key, prior_version=None):
     """Gets an expiry for a key (using **best** determined ttl method)."""
-    is_new_enough, _prior_version = is_server_new_enough(
-        client, (2, 6), prior_version=prior_version
-    )
-    if is_new_enough:
-        result = client.pttl(key)
-        try:
-            return UnknownExpire(result)
-        except ValueError:
-            return result / 1000.0
-    else:
-        result = client.ttl(key)
-        try:
-            return UnknownExpire(result)
-        except ValueError:
-            return float(result)
+    result = client.pttl(key)
+    try:
+        return UnknownExpire(result)
+    except ValueError:
+        return result / 1000.0
 
 
 def apply_expiry(client, key, expiry, prior_version=None):
     """Applies an expiry to a key (using **best** determined expiry method)."""
-    is_new_enough, _prior_version = is_server_new_enough(
-        client, (2, 6), prior_version=prior_version
-    )
-    if is_new_enough:
-        # Use milliseconds (as that is what pexpire uses/expects...)
-        ms_expiry = expiry * 1000.0
-        ms_expiry = max(0, int(ms_expiry))
-        result = client.pexpire(key, ms_expiry)
-    else:
-        # Only supports seconds (not subseconds...)
-        sec_expiry = int(expiry)
-        sec_expiry = max(0, sec_expiry)
-        result = client.expire(key, sec_expiry)
+    ms_expiry = expiry * 1000.0
+    ms_expiry = max(0, int(ms_expiry))
+    result = client.pexpire(key, ms_expiry)
     return bool(result)
 
 
