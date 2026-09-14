@@ -15,6 +15,7 @@
 import enum
 import functools
 
+from oslo_utils import versionutils
 import redis
 from redis import exceptions as redis_exceptions
 
@@ -119,14 +120,10 @@ def is_server_new_enough(
         version_text = server_info.get('redis_version', '')
     else:
         version_text = prior_version
-    version_pieces = []
-    for p in version_text.split("."):
-        try:
-            version_pieces.append(int(p))
-        except ValueError:
-            break
+
+    version_pieces = tuple()
+    if version_text:
+        version_pieces = versionutils.convert_version_to_tuple(version_text)
     if not version_pieces:
         return (default, version_text)
-    else:
-        version_pieces = tuple(version_pieces)
-        return (version_pieces >= min_version, version_text)
+    return (version_pieces >= min_version, version_text)
