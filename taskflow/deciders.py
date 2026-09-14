@@ -12,10 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from taskflow.utils import misc
+import enum
 
 
-class Depth(misc.StrEnum):
+class Depth(enum.StrEnum):
     """Enumeration of decider(s) *area of influence*."""
 
     ALL = 'ALL'
