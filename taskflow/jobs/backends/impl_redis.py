@@ -723,7 +723,7 @@ return cmsgpack.pack(result)
                 if redis_version:
                     raise exc.JobFailure(
                         "Redis version %s or greater is"
-                        " required (version %s is to"
+                        " required (version %s is too"
                         " old)" % (wanted_version, redis_version)
                     )
                 else:
