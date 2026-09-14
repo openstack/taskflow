@@ -58,10 +58,9 @@ class UnknownExpire(enum.IntEnum):
     See: http://redis.io/commands/ttl or http://redis.io/commands/pttl
     """
 
+    #: The command returns ``-1`` if the key exists but has no associated
+    #: expire.
     DOES_NOT_EXPIRE = -1
-    """
-    The command returns ``-1`` if the key exists but has no associated expire.
-    """
 
     #: The command returns ``-2`` if the key does not exist.
     KEY_NOT_FOUND = -2
@@ -69,8 +68,6 @@ class UnknownExpire(enum.IntEnum):
 
 DOES_NOT_EXPIRE = UnknownExpire.DOES_NOT_EXPIRE
 KEY_NOT_FOUND = UnknownExpire.KEY_NOT_FOUND
-
-_UNKNOWN_EXPIRE_MAPPING = {e.value: e for e in list(UnknownExpire)}
 
 
 def get_expiry(client, key, prior_version=None):
@@ -81,14 +78,14 @@ def get_expiry(client, key, prior_version=None):
     if is_new_enough:
         result = client.pttl(key)
         try:
-            return _UNKNOWN_EXPIRE_MAPPING[result]
-        except KeyError:
+            return UnknownExpire(result)
+        except ValueError:
             return result / 1000.0
     else:
         result = client.ttl(key)
         try:
-            return _UNKNOWN_EXPIRE_MAPPING[result]
-        except KeyError:
+            return UnknownExpire(result)
+        except ValueError:
             return float(result)
 
 
