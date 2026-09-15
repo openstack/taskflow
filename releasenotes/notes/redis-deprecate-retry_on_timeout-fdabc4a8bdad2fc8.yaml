@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The ``retry_on_timeout`` option of the redis jobboard driver has been
+    deprecated, because the same option in redis-py has been deprecated since
+    redis-py 6.0.0 . Now retry on timeout is enabled by default.

@@ -303,6 +303,7 @@ class RedisJobBoard(base.JobBoard):
             # Retry / health-check behavior. Opt-in; lets deployments make
             # the client resilient to transient backend disruptions such as
             # a Redis Sentinel master failover (see bug 2160070).
+            # TODO(tkajinam): retry_on_timeout was deprecated in redis-py 6.0.0
             ('retry_on_timeout', strutils.bool_from_string),
             ('health_check_interval', int),
             # This one negates the usage of host, port, socket connection
