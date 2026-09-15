@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The redis jobboard driver now raises
+    ``taskflow.exceptions.IncompatibleVersion`` instead of
+    ``taskflow.exceptions.JobFailure`` when redis backend is not compatible.
