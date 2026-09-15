@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The ``taskflow.utils.async_utils`` module has been removed. This module
+    has been unused in taskflow.
