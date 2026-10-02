@@ -96,6 +96,19 @@ workers = "taskflow.engines.worker_based.engine:WorkerBasedActionEngine"
 [tool.setuptools.packages.find]
 include = ["taskflow*"]
 
+[tool.coverage.run]
+source = [
+    "taskflow"
+]
+branch = true
+omit = [
+    "taskflow/tests/*"
+]
+
+[tool.coverage.report]
+ignore_errors = true
+show_missing = true
+
 [tool.ruff]
 line-length = 79
 
