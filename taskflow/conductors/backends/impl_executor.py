@@ -337,35 +337,47 @@ class ExecutorConductor(base.Conductor, metaclass=abc.ABCMeta):
                     fresh_period.restart()
                 else:
                     ensure_fresh = False
-                job_it = itertools.takewhile(
-                    self._can_claim_more_jobs,
-                    self._jobboard.iterjobs(ensure_fresh=ensure_fresh),
-                )
-                for job in job_it:
-                    self._log.debug("Trying to claim job: %s", job)
-                    try:
-                        self._jobboard.claim(job, self._name)
-                    except (excp.UnclaimableJob, excp.NotFound):
-                        self._log.debug(
-                            "Job already claimed or consumed: %s", job
-                        )
-                    else:
+                try:
+                    job_it = itertools.takewhile(
+                        self._can_claim_more_jobs,
+                        self._jobboard.iterjobs(ensure_fresh=ensure_fresh),
+                    )
+                    for job in job_it:
+                        self._log.debug("Trying to claim job: %s", job)
                         try:
-                            fut = executor.submit(self._dispatch_job, job)
-                        except RuntimeError:
-                            with excutils.save_and_reraise_exception():
-                                self._log.warn(
-                                    "Job dispatch submitting failed: %s", job
-                                )
-                                self._try_finish_job(job, False)
-                        else:
-                            fut.job = job
-                            self._dispatched.add(fut)
-                            any_dispatched = True
-                            fut.add_done_callback(
-                                functools.partial(self._on_job_done, job)
+                            self._jobboard.claim(job, self._name)
+                        except (excp.UnclaimableJob, excp.NotFound):
+                            self._log.debug(
+                                "Job already claimed or consumed: %s", job
                             )
-                            total_dispatched = next(dispatch_gen)
+                        else:
+                            try:
+                                fut = executor.submit(self._dispatch_job, job)
+                            except RuntimeError:
+                                with excutils.save_and_reraise_exception():
+                                    self._log.warn(
+                                        "Job dispatch submitting failed: %s",
+                                        job,
+                                    )
+                                    self._try_finish_job(job, False)
+                            else:
+                                fut.job = job
+                                self._dispatched.add(fut)
+                                any_dispatched = True
+                                fut.add_done_callback(
+                                    functools.partial(self._on_job_done, job)
+                                )
+                                total_dispatched = next(dispatch_gen)
+                except excp.JobFailure:
+                    # A transient job board failure (for example a Redis
+                    # Sentinel master failover) can surface while iterating
+                    # or claiming jobs. Log and back off rather than letting
+                    # it terminate the conductor, which is meant to run until
+                    # stopped; the next cycle reconnects and resumes.
+                    self._log.exception(
+                        "Transient job board failure while iterating jobs; "
+                        "backing off and retrying",
+                    )
                 if not any_dispatched and not is_stopped():
                     self._wait_timeout.wait()
         except StopIteration:

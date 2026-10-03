@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The executor conductor no longer terminates when a transient job board
+    failure (for example a Redis Sentinel master failover) is raised while
+    iterating or claiming jobs. It now logs the failure, backs off, and
+    continues, reconnecting to the backend on the next cycle.

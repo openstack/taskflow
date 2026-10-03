@@ -23,6 +23,7 @@ import testtools
 
 from taskflow.conductors import backends
 from taskflow import engines
+from taskflow import exceptions as excp
 from taskflow.jobs.backends import impl_zookeeper
 from taskflow.jobs import base
 from taskflow.patterns import linear_flow as lf
@@ -182,6 +183,52 @@ class ManyConductorTest(
             fd = lb.find(fd.uuid)
         self.assertIsNotNone(fd)
         self.assertEqual(st.SUCCESS, fd.state)
+
+    def test_run_survives_transient_jobboard_failure(self):
+        # Regression test for bug 2160070: a transient JobFailure raised while
+        # iterating the job board must not terminate the conductor.
+        components = self.make_components()
+        components.conductor.connect()
+        consumed_event = threading.Event()
+
+        def on_consume(state, details):
+            consumed_event.set()
+
+        components.board.notifier.register(base.REMOVAL, on_consume)
+
+        # iterjobs() itself does no I/O; it builds a JobBoardIterator and
+        # returns. The backend is only touched later, from inside
+        # JobBoardIterator.__next__, so raise from _fetch_jobs to put the
+        # failure where a real one lands: in the conductor's 'for job in
+        # job_it' statement.
+        real_fetch_jobs = components.board._fetch_jobs
+        state = {'failed_once': False}
+
+        def flaky_fetch_jobs(*args, **kwargs):
+            if not state['failed_once']:
+                state['failed_once'] = True
+                raise excp.JobFailure("simulated transient backend failure")
+            return real_fetch_jobs(*args, **kwargs)
+
+        components.board._fetch_jobs = flaky_fetch_jobs
+
+        with contextlib.closing(components.conductor):
+            t = threading_utils.daemon_thread(components.conductor.run)
+            t.start()
+            lb, fd = pu.temporary_flow_detail(components.persistence)
+            engines.save_factory_details(
+                fd, test_factory, [False], {}, backend=components.persistence
+            )
+            components.board.post('poke', lb, details={'flow_uuid': fd.uuid})
+            # The first job fetch raised JobFailure; with the fix the
+            # conductor backs off and keeps running, so the job is still
+            # consumed. Without the fix, run() dies and this times out.
+            self.assertTrue(consumed_event.wait(test_utils.WAIT_TIMEOUT))
+            self.assertTrue(state['failed_once'])
+            components.conductor.stop()
+            self.assertTrue(components.conductor.wait(test_utils.WAIT_TIMEOUT))
+            self.assertFalse(components.conductor.dispatching)
+            t.join()
 
     def test_run_max_dispatches(self):
         components = self.make_components()
