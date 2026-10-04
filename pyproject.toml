@@ -101,6 +101,7 @@ source = [
     "taskflow"
 ]
 branch = true
+parallel = true
 omit = [
     "taskflow/tests/*"
 ]
