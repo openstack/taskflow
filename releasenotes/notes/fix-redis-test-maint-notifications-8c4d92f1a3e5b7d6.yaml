@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed log flooding caused by redis-py 8.0's maintenance notification
+    probes on Redis servers older than 8.x. Taskflow now explicitly disables
+    these probes by passing ``MaintNotificationsConfig(enabled=False)`` to
+    the Redis client, as Taskflow has its own reconnection and failover logic
+    and does not consume maintenance notifications.

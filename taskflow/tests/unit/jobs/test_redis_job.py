@@ -27,7 +27,6 @@ from taskflow.tests import utils as test_utils
 from taskflow.utils import persistence_utils as p_utils
 from taskflow.utils import redis_utils as ru
 
-
 REDIS_AVAILABLE = test_utils.redis_available(
     impl_redis.RedisJobBoard.MIN_REDIS_VERSION
 )
@@ -120,6 +119,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
             'port': 6379,
             'username': 'default',
             'password': 'secret',
+            'maint_notifications_config': mock.ANY,
         }
         with mock.patch('taskflow.utils.redis_utils.RedisClient') as mock_ru:
             impl_redis.RedisJobBoard('test-board', conf)
@@ -143,6 +143,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
             test_conf = {
                 'username': 'default',
                 'password': 'secret',
+                'maint_notifications_config': mock.ANY,
             }
             mock_sentinel.assert_called_once_with(
                 [('127.0.0.1', 26379)],
@@ -174,6 +175,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
                 'username': 'default',
                 'password': 'secret',
                 'sentinel_kwargs': None,
+                'maint_notifications_config': mock.ANY,
             }
             mock_sentinel.assert_called_once_with(
                 [
@@ -205,6 +207,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
                 'password': 'secret',
                 'ssl': True,
                 'ssl_ca_certs': '/etc/ssl/certs',
+                'maint_notifications_config': mock.ANY,
             }
             mock_sentinel.assert_called_once_with(
                 [('127.0.0.1', 26379)], sentinel_kwargs=None, **test_conf
@@ -224,6 +227,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
             'port': 6379,
             'retry_on_timeout': True,
             'health_check_interval': 30,
+            'maint_notifications_config': mock.ANY,
         }
         with mock.patch('taskflow.utils.redis_utils.RedisClient') as mock_ru:
             impl_redis.RedisJobBoard('test-board', conf)
@@ -244,6 +248,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
             test_conf = {
                 'retry_on_timeout': True,
                 'health_check_interval': 30,
+                'maint_notifications_config': mock.ANY,
             }
             mock_sentinel.assert_called_once_with(
                 [('127.0.0.1', 26379)], sentinel_kwargs=None, **test_conf
@@ -265,6 +270,7 @@ class RedisJobboardTest(test.TestCase, base.BoardTestMixin):
             'port': 6379,
             'retry_on_timeout': True,
             'health_check_interval': 30,
+            'maint_notifications_config': mock.ANY,
         }
         with mock.patch('taskflow.utils.redis_utils.RedisClient') as mock_ru:
             impl_redis.RedisJobBoard('test-board', conf)
