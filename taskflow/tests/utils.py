@@ -13,6 +13,7 @@
 #    under the License.
 
 import contextlib
+import functools
 import os
 import string
 import threading
@@ -57,6 +58,7 @@ def wrap_all_failures():
         raise exceptions.WrappedFailure([failure.Failure()])
 
 
+@functools.lru_cache
 def zookeeper_available(min_version, timeout=30):
     url = os.getenv("TAKSFLOW_TEST_URL")
     if url is not None:
@@ -80,6 +82,7 @@ def zookeeper_available(min_version, timeout=30):
         kazoo_utils.finalize_client(client)
 
 
+@functools.lru_cache
 def redis_available(min_version):
     url = os.getenv("TAKSFLOW_TEST_URL")
     if url is not None:
@@ -97,6 +100,7 @@ def redis_available(min_version):
         return ok
 
 
+@functools.lru_cache
 def etcd_available():
     url = os.getenv("TAKSFLOW_TEST_URL")
     if url is not None:
