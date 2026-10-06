@@ -199,7 +199,7 @@ class Proxy:
             )
 
         def _publish_errback(exc, interval):
-            LOG.exception('Publishing error: %s', exc)
+            LOG.error('Publishing error: %s', exc)
             LOG.info('Retry triggering in %s seconds', interval)
 
         LOG.debug(
@@ -223,7 +223,7 @@ class Proxy:
                 pass
 
         def _drain_errback(exc, interval):
-            LOG.exception('Draining error: %s', exc)
+            LOG.error('Draining error: %s', exc)
             LOG.info('Retry triggering in %s seconds', interval)
 
         LOG.info(

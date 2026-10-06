@@ -118,7 +118,7 @@ quote-style = "preserve"
 docstring-code-format = true
 
 [tool.ruff.lint]
-select = ["E4", "E5", "E7", "E9", "F", "G", "LOG", "S"]
+select = ["E", "F", "G", "LOG", "S", "W"]
 external = ["H"]
 ignore = ["E402", "E721", "E731", "E741"]
 
