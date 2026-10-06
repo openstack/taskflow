@@ -17,8 +17,17 @@ import collections
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-from sqlalchemy import Table, Column, String, ForeignKey, DateTime, Enum
-from sqlalchemy_utils.types import json as json_type
+from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy import (
+    Table,
+    UnicodeText,
+    Column,
+    String,
+    ForeignKey,
+    DateTime,
+    Enum,
+)
+from sqlalchemy import types
 
 from taskflow.persistence import models
 from taskflow import states
@@ -34,11 +43,21 @@ STATE_LENGTH = 255
 VERSION_LENGTH = 64
 
 
-class JSONType(json_type.JSONType):
+class JSONType(types.TypeDecorator):
     """Customized JSONType using oslo.serialization for json operations"""
 
+    impl = UnicodeText
+    hashable = False
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(JSON())
+        else:
+            return dialect.type_descriptor(self.impl)
+
     def process_bind_param(self, value, dialect):
-        if dialect.name == 'postgresql' and json_type.has_postgres_json:
+        if dialect.name == 'postgresql':
             return value
         if value is not None:
             value = jsonutils.dumps(value)
