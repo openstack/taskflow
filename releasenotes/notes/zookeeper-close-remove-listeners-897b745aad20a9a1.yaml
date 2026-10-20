@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    ``ZookeeperJobBoard.close()`` now removes the connection state listener
+    it added to the kazoo client and switches off its job watch, also when
+    the client was passed in by the caller; kazoo drops that watch on its
+    next event or reconnect. Before, creating and closing boards on a
+    long-lived client left a listener and a working watch behind for every
+    board. See `bug 2170749 <https://bugs.launchpad.net/taskflow/+bug/2170749>`_.

@@ -16,6 +16,7 @@ import contextlib
 import threading
 
 from kazoo.protocol import paths as k_paths
+from kazoo.protocol import states as k_states
 from kazoo.recipe import watchers
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
@@ -271,3 +272,58 @@ class ZookeeperJobboardTest(test.TestCase, ZookeeperBoardTestMixin):
                 self.board.register_entity,
                 entity_instance_2,
             )
+
+
+class ZookeeperJobboardSharedClientTest(test.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.listeners = set()
+        self.client = mock.MagicMock()
+        self.client.add_listener.side_effect = self.listeners.add
+        self.client.remove_listener.side_effect = self.listeners.discard
+        self.client.retry.return_value = []
+        self.client.handler.spawn.side_effect = lambda func: func()
+
+    def make_board(self):
+        return impl_zookeeper.ZookeeperJobBoard(
+            'test-board',
+            {'path': '/test', 'check_compatible': False},
+            client=self.client,
+        )
+
+    def fire_job_watch(self):
+        # A new job and a reconnect make the ChildrenWatch fire again.
+        self.client.retry.return_value = ['job0000000001']
+        for state in (
+            k_states.KazooState.LOST,
+            k_states.KazooState.CONNECTED,
+        ):
+            for listener in list(self.listeners):
+                listener(state)
+
+    def test_close_removes_listeners(self):
+        other_listener = mock.Mock()
+        self.client.add_listener(other_listener)
+        listeners_before = set(self.listeners)
+        self.assertEqual(1, len(listeners_before))
+        board = self.make_board()
+        board.connect()
+        # connect() adds the board's state listener and the ChildrenWatch
+        # session listener.
+        self.assertEqual(3, len(self.listeners))
+        self.assertIn(board._state_change_listener, self.listeners)
+        board.close()
+        # Kazoo removes the ChildrenWatch listener only once the watch fires.
+        self.assertEqual(len(listeners_before) + 1, len(self.listeners))
+        self.assertNotIn(board._state_change_listener, self.listeners)
+        self.fire_job_watch()
+        self.assertEqual(listeners_before, self.listeners)
+        self.client.stop.assert_not_called()
+
+    def test_close_stops_job_watch(self):
+        board = self.make_board()
+        board.connect()
+        board.close()
+        with mock.patch.object(board, '_on_job_posting') as on_job_posting:
+            self.fire_job_watch()
+        on_job_posting.assert_not_called()

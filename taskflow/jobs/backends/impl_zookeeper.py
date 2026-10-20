@@ -229,6 +229,25 @@ class ZookeeperJob(base.Job):
         return hash(self.path)
 
 
+class _StoppableJobWatch:
+    """ChildrenWatch callback that close() can switch off."""
+
+    def __init__(self, board):
+        self.board = board
+
+    def stop(self):
+        # Kazoo may keep this callback until the next event, so drop the
+        # board to let it be freed.
+        self.board = None
+
+    def __call__(self, children):
+        board = self.board
+        if board is None:
+            # Returning False makes kazoo stop the ChildrenWatch.
+            return False
+        board._on_job_posting(children)
+
+
 class ZookeeperJobBoard(base.NotifyingJobBoard):
     """A jobboard backed by `zookeeper`_.
 
@@ -335,7 +354,6 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         self._known_jobs = {}
         self._job_cond = threading.Condition()
         self._open_close_lock = threading.RLock()
-        self._client.add_listener(self._state_change_listener)
         self._bad_paths = frozenset([path])
         self._job_watcher = None
         # Since we use sequenced ids this will be the path that the sequences
@@ -908,6 +926,12 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             LOG.debug("Stopping client")
             self._closing = True
             kazoo_utils.finalize_client(self._client)
+        # The client may outlive this board, so detach what connect()
+        # attached to it.
+        self._client.remove_listener(self._state_change_listener)
+        if self._job_watcher is not None:
+            self._job_watcher.stop()
+            self._job_watcher = None
         if self._worker is not None:
             LOG.debug("Shutting down the notifier")
             self._worker.shutdown()
@@ -936,12 +960,14 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
         try:
             if timeout is not None:
                 timeout = float(timeout)
+            self._client.add_listener(self._state_change_listener)
             self._client.start(timeout=timeout)
             self._closing = False
         except (
             self._client.handler.timeout_exception,
             k_exceptions.KazooException,
         ):
+            self._client.remove_listener(self._state_change_listener)
             excp.raise_with_cause(
                 excp.JobFailure, "Failed to connect to zookeeper"
             )
@@ -955,10 +981,11 @@ class ZookeeperJobBoard(base.NotifyingJobBoard):
             self._client.ensure_path(self.path)
             self._client.ensure_path(self.trash_path)
             if self._job_watcher is None:
-                self._job_watcher = watchers.ChildrenWatch(
+                self._job_watcher = _StoppableJobWatch(self)
+                watchers.ChildrenWatch(
                     self._client,
                     self.path,
-                    func=self._on_job_posting,
+                    func=self._job_watcher,
                     allow_session_lost=True,
                 )
             self._connected = True
